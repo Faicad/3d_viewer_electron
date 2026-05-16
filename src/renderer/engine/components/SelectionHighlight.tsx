@@ -53,13 +53,14 @@ export default function SelectionHighlight({
         runtime,
         ref.pickData.segmentStart,
         ref.pickData.segmentCount,
+        modelGroupRef,
       )
       if (result) return { type: 'line', geo: result.geo }
       return null
     }
 
     if (ref.selectorType === 'vertex') {
-      return buildVertexHighlightGeometry(runtime, ref)
+      return buildVertexHighlightGeometry(runtime, ref, modelGroupRef)
     }
 
     return null
@@ -247,6 +248,7 @@ function buildEdgeLineGeometry(
   runtime: SelectorRuntime,
   segmentStart: number,
   segmentCount: number,
+  modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
 ): { type: 'line'; geo: LineGeometry } | null {
   const { edgePositions, edgeIndices } = runtime.proxy
 
@@ -269,12 +271,24 @@ function buildEdgeLineGeometry(
     const i0 = edgeIndices[si] * 3
     const i1 = edgeIndices[si + 1] * 3
 
-    positions[pi] = edgePositions[i0]
-    positions[pi + 1] = edgePositions[i0 + 1]
-    positions[pi + 2] = edgePositions[i0 + 2]
-    positions[pi + 3] = edgePositions[i1]
-    positions[pi + 4] = edgePositions[i1 + 1]
-    positions[pi + 5] = edgePositions[i1 + 2]
+    let worldPos0 = new THREE.Vector3(edgePositions[i0], edgePositions[i0 + 1], edgePositions[i0 + 2])
+    let worldPos1 = new THREE.Vector3(edgePositions[i1], edgePositions[i1 + 1], edgePositions[i1 + 2])
+
+    if (modelGroupRef?.current) {
+      const meshes = collectDisplayMeshes(modelGroupRef.current)
+      if (meshes.length > 0) {
+        meshes[0].updateWorldMatrix(true, false)
+        worldPos0 = worldPos0.applyMatrix4(meshes[0].matrixWorld)
+        worldPos1 = worldPos1.applyMatrix4(meshes[0].matrixWorld)
+      }
+    }
+
+    positions[pi] = worldPos0.x
+    positions[pi + 1] = worldPos0.y
+    positions[pi + 2] = worldPos0.z
+    positions[pi + 3] = worldPos1.x
+    positions[pi + 4] = worldPos1.y
+    positions[pi + 5] = worldPos1.z
   }
 
   const geo = new LineGeometry()
@@ -285,6 +299,7 @@ function buildEdgeLineGeometry(
 function buildVertexHighlightGeometry(
   runtime: SelectorRuntime,
   ref: Reference,
+  modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
 ): { type: 'vertex'; geo: THREE.BufferGeometry } | null {
   const vertexIndex = ref.rowIndex
   const { allPointPositions, vertexPositions } = runtime.proxy
@@ -302,13 +317,27 @@ function buildVertexHighlightGeometry(
     return null
   }
 
-  const x = positions[vertexIndex * 3]
-  const y = positions[vertexIndex * 3 + 1]
-  const z = positions[vertexIndex * 3 + 2]
+  const localX = positions[vertexIndex * 3]
+  const localY = positions[vertexIndex * 3 + 1]
+  const localZ = positions[vertexIndex * 3 + 2]
+
+  let worldX = localX
+  let worldY = localY
+  let worldZ = localZ
+  if (modelGroupRef?.current) {
+    const meshes = collectDisplayMeshes(modelGroupRef.current)
+    if (meshes.length > 0) {
+      meshes[0].updateWorldMatrix(true, false)
+      const worldPos = new THREE.Vector3(localX, localY, localZ).applyMatrix4(meshes[0].matrixWorld)
+      worldX = worldPos.x
+      worldY = worldPos.y
+      worldZ = worldPos.z
+    }
+  }
 
   const radius = pointHighlightRadius(vertexIndex, allPointPositions, runtime)
   const geo = new THREE.SphereGeometry(radius, 8, 8)
-  geo.translate(x, y, z)
+  geo.translate(worldX, worldY, worldZ)
   return { type: 'vertex', geo }
 }
 
