@@ -23,7 +23,6 @@ import type { DisplayMode } from '@/engine/components/DisplayModeDropdown'
 import SelectionInfoOverlay from '@/engine/components/SelectionInfoOverlay'
 
 import AxesIndicator from '@/engine/components/AxesIndicator'
-import ViewCube from '@/engine/components/ViewCube'
 import ToolOverlay from '@/engine/components/ToolOverlay'
 import TopologyPicker from '@/engine/components/TopologyPicker'
 import { toast } from 'sonner'
@@ -43,14 +42,6 @@ function ModelTransformTracker({ modelRef }: { modelRef: React.RefObject<THREE.G
   return null
 }
 
-const FACE_DIRECTIONS: Record<string, [number, number, number]> = {
-  前: [0, -1, 0],
-  后: [0, 1, 0],
-  左: [-1, 0, 0],
-  右: [1, 0, 0],
-  上: [0, 0, 1],
-  下: [0, 0, -1],
-}
 
 function CameraAnimator({
   targetPos,
@@ -212,30 +203,6 @@ export default function ViewportContainer() {
     return selectorRuntime.referenceMap.get(selectedReferenceId) ?? null
   }, [selectedReferenceId, selectorRuntime])
 
-  const handleFaceClick = useCallback((face: string) => {
-    const dir = FACE_DIRECTIONS[face]
-    if (!dir) return
-
-    const controls = controlsRef.current
-    if (!controls) return
-
-    const camera = controls.object as THREE.PerspectiveCamera
-    const dist = camera.position.distanceTo(controls.target)
-    const target = new THREE.Vector3(dir[0], dir[1], dir[2]).normalize().multiplyScalar(dist)
-
-    const isTop = dir[2] > 0.99
-    const isBottom = dir[2] < -0.99
-    const targetUp = isTop
-      ? new THREE.Vector3(0, 1, 0)
-      : isBottom
-        ? new THREE.Vector3(0, -1, 0)
-        : new THREE.Vector3(0, 0, 1)
-
-    setAnimTarget(target)
-    setAnimTargetUp(targetUp)
-    setAnimActive(true)
-  }, [])
-
   const handleAnimDone = useCallback(() => {
     setAnimActive(false)
     setAnimTarget(null)
@@ -327,17 +294,6 @@ export default function ViewportContainer() {
     controls.target.set(0, 0, 0)
     controls.update()
   }, [applyCameraFit])
-
-  const handleDragRotate = useCallback((deltaX: number, deltaY: number) => {
-    const controls = controlsRef.current
-    if (!controls) return
-    // Use rotateLeft/rotateRight from OrbitControls internal API
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(controls as any).rotateLeft?.(deltaX * 0.01)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(controls as any).rotateUp?.(deltaY * 0.01)
-    controls.update()
-  }, [])
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -496,7 +452,6 @@ export default function ViewportContainer() {
       <SelectionInfoOverlay reference={selectedReference} />
 
       <AxesIndicator mainCamera={mainCamera} />
-      <ViewCube mainCamera={mainCamera} onFaceClick={handleFaceClick} onReset={handleResetCamera} onDragRotate={handleDragRotate} />
     </div>
   )
 }
