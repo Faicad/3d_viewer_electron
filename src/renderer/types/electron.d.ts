@@ -16,6 +16,7 @@ declare global {
         data?: string
         error?: string
       }>
+      getFilePath: (file: File) => string
     }
     env: {
       DEV: boolean

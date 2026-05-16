@@ -34,20 +34,24 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
         // Scan folder for other model files if in Electron environment
         if (window.electronAPI) {
-          const filePath = (file as any).path
-          if (filePath) {
-            try {
+          try {
+            const filePath = window.electronAPI.getFilePath(file)
+            if (filePath) {
               const lastSep = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'))
               const folderPath = lastSep > 0 ? filePath.slice(0, lastSep) : null
               if (folderPath) {
                 const result = await window.electronAPI.readDirectory(folderPath)
                 if (result.success && result.files) {
                   setFolderFiles(folderPath, result.files)
+                  const idx = result.files.findIndex(f => f.name === file.name)
+                  if (idx !== -1) {
+                    useModelStore.getState().setSelectedFileIndex(idx)
+                  }
                 }
               }
-            } catch (e) {
-              console.warn('[useFileUpload] Failed to read directory:', e)
             }
+          } catch (e) {
+            console.warn('[useFileUpload] Failed to read directory:', e)
           }
         }
       } catch (err) {
