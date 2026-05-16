@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { useThemeColors } from '@/components/settings/useThemeColors'
 
 export type DisplayMode = 'solid' | 'mesh' | 'solidWithMesh' | 'wireframe' | 'debug'
 
@@ -10,6 +11,7 @@ interface DisplayModeDropdownProps {
 
 export default function DisplayModeDropdown({ displayMode, onChange, hasTopology }: DisplayModeDropdownProps) {
   const { t } = useTranslation()
+  const colors = useThemeColors()
 
   return (
     <div
@@ -18,7 +20,7 @@ export default function DisplayModeDropdown({ displayMode, onChange, hasTopology
         alignItems: 'center',
         padding: '4px 8px',
         borderRadius: 8,
-        background: 'rgba(0,0,0,0.75)',
+        background: colors.toolbarBg,
         backdropFilter: 'blur(8px)',
       }}
     >
@@ -27,7 +29,7 @@ export default function DisplayModeDropdown({ displayMode, onChange, hasTopology
         onChange={(e) => onChange(e.target.value as DisplayMode)}
         style={{
           background: 'transparent',
-          color: '#aaa',
+          color: colors.textInactive,
           border: 'none',
           fontSize: 12,
           outline: 'none',

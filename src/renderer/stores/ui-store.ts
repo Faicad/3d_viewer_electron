@@ -25,7 +25,7 @@ interface UIStore {
   toggleRightPanel: () => void
   setMobileDrawerOpen: (open: boolean) => void
   setMobileChatOpen: (open: boolean) => void
-  setLanguage: (lang: 'zh' | 'en') => void
+  setLanguage: (lang: 'zh' | 'en' | 'system') => void
   setTheme: (theme: 'light' | 'dark' | 'system') => void
 }
 
@@ -36,7 +36,7 @@ export const useUIStore = create<UIStore>()(
       rightPanelOpen: true,
       mobileDrawerOpen: false,
       mobileChatOpen: false,
-      language: (safeLocalStorage.getItem('lang') as 'zh' | 'en') || 'zh',
+      language: (safeLocalStorage.getItem('lang') as 'zh' | 'en' | 'system') || 'zh',
       theme: 'system',
 
       toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen })),

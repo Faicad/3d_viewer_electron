@@ -1,34 +1,34 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Square, Minus, Crosshair } from 'lucide-react'
 import { useToolStore, type SelectionMode } from '@/stores/tool-store'
 import { useModelStore } from '@/stores/model-store'
+import { useThemeColors } from '@/components/settings/useThemeColors'
 
-const MODES: { mode: SelectionMode; label: string; icon: typeof Box }[] = [
-  { mode: 'object', label: 'Object', icon: Box },
-  { mode: 'face', label: 'Face', icon: Square },
-  { mode: 'edge', label: 'Edge', icon: Minus },
-  { mode: 'point', label: 'Point', icon: Crosshair },
-]
+interface ModeConfig {
+  mode: SelectionMode
+  labelKey: string
+  icon: typeof Box
+}
 
 interface SelectionToolbarProps {
-  /** Whether topology data is available (face/edge/vertex modes need it) */
   hasTopology: boolean
 }
 
-/**
- * Toolbar for switching between object/face/edge/vertex selection sub-modes.
- *
- * Dynamic default:
- * - If model has ≥2 parts → default to 'object'
- * - If single part and topology is present → default to 'face'
- * - Otherwise → 'object' only
- */
 export default function SelectionToolbar({ hasTopology }: SelectionToolbarProps) {
+  const { t } = useTranslation()
   const selectionMode = useToolStore((s) => s.selectionMode)
   const setSelectionMode = useToolStore((s) => s.setSelectionMode)
   const partCount = useModelStore((s) => s.glbPartInfos.length)
+  const colors = useThemeColors()
 
-  // Set dynamic default when part count or topology status changes
+  const modes: ModeConfig[] = [
+    { mode: 'object', labelKey: 'selection.object', icon: Box },
+    { mode: 'face', labelKey: 'selection.face', icon: Square },
+    { mode: 'edge', labelKey: 'selection.edge', icon: Minus },
+    { mode: 'point', labelKey: 'selection.point', icon: Crosshair },
+  ]
+
   useEffect(() => {
     if (partCount >= 2) {
       setSelectionMode('object')
@@ -46,11 +46,11 @@ export default function SelectionToolbar({ hasTopology }: SelectionToolbarProps)
         gap: 4,
         padding: '4px',
         borderRadius: 8,
-        background: 'rgba(0,0,0,0.75)',
+        background: colors.toolbarBg,
         backdropFilter: 'blur(8px)',
       }}
     >
-      {MODES.map(({ mode, label, icon: Icon }) => {
+      {modes.map(({ mode, labelKey, icon: Icon }) => {
         const isActive = selectionMode === mode
         const isDisabled = mode !== 'object' && !hasTopology
 
@@ -58,7 +58,7 @@ export default function SelectionToolbar({ hasTopology }: SelectionToolbarProps)
           <button
             key={mode}
             disabled={isDisabled}
-            title={label}
+            title={t(labelKey)}
             onClick={() => setSelectionMode(mode)}
             style={{
               display: 'flex',
@@ -69,14 +69,14 @@ export default function SelectionToolbar({ hasTopology }: SelectionToolbarProps)
               border: 'none',
               cursor: isDisabled ? 'not-allowed' : 'pointer',
               background: isActive ? '#2563eb' : 'transparent',
-              color: isDisabled ? '#555' : isActive ? '#fff' : '#aaa',
+              color: isDisabled ? colors.textDisabled : isActive ? colors.textActive : colors.textInactive,
               fontSize: 12,
               fontWeight: isActive ? 600 : 400,
               transition: 'background 0.15s, color 0.15s',
             }}
           >
             <Icon size={14} />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </button>
         )
       })}

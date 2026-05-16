@@ -104,7 +104,10 @@ export default function ViewportContainer() {
   const theme = useUIStore((s) => s.theme)
 
   const canvasBackground = useMemo(() => {
-    return theme === 'dark' ? '#1a1a2e' : '#f8f8f8'
+    const isDark = theme === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : theme === 'dark'
+    return isDark ? '#1a1a2e' : '#f8f8f8'
   }, [theme])
 
   const [animTarget, setAnimTarget] = useState<THREE.Vector3 | null>(null)

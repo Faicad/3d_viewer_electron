@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import ArrowLine from './ArrowLine'
+import { useThemeColors } from '@/components/settings/useThemeColors'
 
 const AXIS_LENGTH = 0.6
 const LABEL_OFFSET = 0.2
@@ -13,6 +14,7 @@ interface AxesIndicatorOverlayProps {
 
 function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
   const { camera } = useThree()
+  const colors = useThemeColors()
 
   useFrame(() => {
     if (mainCamera) {
@@ -32,17 +34,13 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
 
   const labelTexture = useMemo(
     () => {
-      console.log('[AxesIndicator] creating label textures')
       return (text: string) => {
         const canvas = document.createElement('canvas')
         canvas.width = 64
         canvas.height = 64
         const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          console.error('[AxesIndicator] failed to get 2d context for label:', text)
-          return new THREE.CanvasTexture(canvas)
-        }
-        ctx.fillStyle = '#ffffff'
+        if (!ctx) return new THREE.CanvasTexture(canvas)
+        ctx.fillStyle = colors.labelTextColor
         ctx.font = 'bold 48px Arial'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -52,7 +50,7 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
         return tex
       }
     },
-    [],
+    [colors.labelTextColor],
   )
 
   return (
@@ -60,23 +58,23 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
       {/* Origin sphere */}
       <mesh>
         <sphereGeometry args={[0.06, 8, 8]} />
-        <meshBasicMaterial color="#ffffff" depthTest={false} />
+        <meshBasicMaterial color={colors.originColor} depthTest={false} />
       </mesh>
 
       {/* X axis (red, +X direction) — default view: bottom-right on screen */}
-      <ArrowLine color="#ff4444" from={[0, 0, 0]} to={[AXIS_LENGTH, 0, 0]} />
+      <ArrowLine color={colors.axisXColor} from={[0, 0, 0]} to={[AXIS_LENGTH, 0, 0]} />
       <sprite position={[AXIS_LENGTH + LABEL_OFFSET, 0, 0]} scale={[0.28, 0.28, 1]}>
         <spriteMaterial map={labelTexture('X')} depthTest={false} />
       </sprite>
 
       {/* Y axis (green, +Y direction) — default view: -Y direction points bottom-left */}
-      <ArrowLine color="#44ff44" from={[0, 0, 0]} to={[0, AXIS_LENGTH, 0]} />
+      <ArrowLine color={colors.axisYColor} from={[0, 0, 0]} to={[0, AXIS_LENGTH, 0]} />
       <sprite position={[0, AXIS_LENGTH + LABEL_OFFSET, 0]} scale={[0.28, 0.28, 1]}>
         <spriteMaterial map={labelTexture('Y')} depthTest={false} />
       </sprite>
 
       {/* Z axis (blue, +Z direction) — default view: straight up on screen */}
-      <ArrowLine color="#4488ff" from={[0, 0, 0]} to={[0, 0, AXIS_LENGTH]} />
+      <ArrowLine color={colors.axisZColor} from={[0, 0, 0]} to={[0, 0, AXIS_LENGTH]} />
       <sprite position={[0, 0, AXIS_LENGTH + LABEL_OFFSET]} scale={[0.28, 0.28, 1]}>
         <spriteMaterial map={labelTexture('Z')} depthTest={false} />
       </sprite>
@@ -85,8 +83,6 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
 }
 
 export default function AxesIndicator({ mainCamera }: AxesIndicatorOverlayProps) {
-  console.log('[AxesIndicator] mounting overlay, mainCamera present:', !!mainCamera)
-
   return (
     <div
       style={{

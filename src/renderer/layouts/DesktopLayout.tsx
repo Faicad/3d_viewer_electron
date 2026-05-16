@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
 
 export default function DesktopLayout() {
   const { projectId } = useParams<{ projectId?: string }>()
@@ -116,6 +117,8 @@ export default function DesktopLayout() {
         <Button variant="ghost" size="icon" onClick={ui.toggleRightPanel}>
           {ui.rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
         </Button>
+
+        <SettingsDialog />
       </header>
 
       {/* Main Content */}
