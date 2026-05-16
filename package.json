@@ -60,6 +60,7 @@
   "build": {
     "appId": "com.ficad.web",
     "productName": "Ficad Web",
+    "publish": null,
     "directories": {
       "output": "dist",
       "buildResources": "resources"
