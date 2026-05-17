@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
+import { stepToGlb } from '@/lib/step-converter'
 
 const ALLOWED_EXTENSIONS = ['stl', 'glb', '3mf', 'step', 'stp'] as const
 type AllowedExtension = (typeof ALLOWED_EXTENSIONS)[number]
@@ -28,8 +29,17 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
       try {
         // Process file locally only - no server upload
-        const buffer = await file.arrayBuffer()
-        setModelBuffer(buffer, format as 'stl' | 'glb' | '3mf')
+        const isStep = format === 'step' || format === 'stp'
+        const rawBuffer = await file.arrayBuffer()
+
+        if (isStep) {
+          const glbBuffer = await stepToGlb(rawBuffer, {
+            wasmPath: '/wasm/occt-import-js.wasm',
+          })
+          setModelBuffer(glbBuffer, 'glb')
+        } else {
+          setModelBuffer(rawBuffer, format as 'stl' | 'glb' | '3mf')
+        }
         setGLBUrl(file.name)
 
         // Scan folder for other model files if in Electron environment

@@ -307,9 +307,7 @@ export default function ViewportContainer() {
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
         onCreated={({ camera, scene, gl }) => {
           useEngineStore.getState().setEngineObjects({ camera, scene, gl })
-          if (import.meta.env.DEV) {
-            window.__r3f_dev = { camera, scene, gl }
-          }
+          window.__r3f_dev = { camera, scene, gl }
         }}
       >
         <OrbitControls ref={controlsRef} enableDamping enabled={activeToolMode === 'view' && !animActive} />

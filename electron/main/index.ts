@@ -7,23 +7,51 @@ let mainWindow: BrowserWindow | null = null
 function setupProtocol(): void {
   // Intercept file:// protocol to serve from asar
   // Works with custom ficad-app:// URLs that get converted to file:// internally
+  const mimeTypes: Record<string, string> = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'application/javascript',
+    '.cjs': 'application/javascript',
+    '.css': 'text/css',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.json': 'application/json',
+    '.glb': 'model/gltf-binary',
+    '.wasm': 'application/wasm',
+  }
+
   protocol.registerFileProtocol('ficad-app', (request, callback) => {
     try {
       const url = new URL(request.url)
       const urlPath = decodeURIComponent(url.pathname)
-      // ficad-app://local/out/renderer/index.html -> /out/renderer/index.html
-      const rel = urlPath.replace(/^\/out\/renderer\//, '')
-      const asarPath = join(__dirname, '..', 'renderer', rel.replace(/\//g, '\\'))
-      const ext = extname(asarPath)
-      const mimeTypes: Record<string, string> = {
-        '.html': 'text/html; charset=utf-8',
-        '.js': 'application/javascript',
-        '.css': 'text/css',
-        '.svg': 'image/svg+xml',
-        '.png': 'image/png',
-        '.json': 'application/json',
-        '.glb': 'model/gltf-binary',
+      // Build a relative path from the renderer output directory.
+      // urlPath is e.g. /out/renderer/index.html or /wasm/occt-import-js.cjs
+      // (the latter when a script requests an origin-root path like /wasm/...).
+      let rel: string
+      if (urlPath.startsWith('/out/renderer/')) {
+        rel = urlPath.slice('/out/renderer/'.length)
+      } else {
+        // Absolute paths from origin root — strip the leading slash so
+        // path.join treats them as a relative segment, not a root-relative
+        // path on Windows (where \wasm\file would resolve to C:\wasm\file).
+        rel = urlPath.replace(/^\//, '')
       }
+      const relWin = rel.replace(/\//g, '\\')
+
+      // In dev mode, serve public assets (wasm etc.) from source tree
+      if (import.meta.env.DEV) {
+        const publicPath = join(__dirname, '..', '..', 'src', 'renderer', 'public', relWin)
+        try {
+          fs.accessSync(publicPath)
+          const ext = extname(publicPath)
+          callback({ path: publicPath, headers: { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' } })
+          return
+        } catch {
+          // File not in public/ — fall through to asar path
+        }
+      }
+
+      const asarPath = join(__dirname, '..', 'renderer', relWin)
+      const ext = extname(asarPath)
       callback({ path: asarPath, headers: { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' } })
     } catch (e: unknown) {
       const err = e as { message?: string; code?: string }

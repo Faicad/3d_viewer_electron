@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { Upload } from 'lucide-react'
+import { toast } from 'sonner'
 import ViewportContainer from '@/components/viewport/ViewportContainer'
+import { stepToGlb } from '@/lib/step-converter'
 
 interface WorkspacePageProps {
   projectId?: string
@@ -17,17 +19,31 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const [searchParams] = useSearchParams()
   const skipUpload = searchParams.get('skip_upload') === '1' && import.meta.env.DEV
 
-  const processFileLocally = useCallback((file: File) => {
+  const processFileLocally = useCallback(async (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (!ext || !['stl', 'glb', '3mf', 'step', 'stp'].includes(ext)) {
       console.error('[WorkspacePage] unsupported format:', ext)
       return
     }
-    const fmt = ext as 'stl' | 'glb' | '3mf' | 'step' | 'stp'
-    file.arrayBuffer().then((buffer) => {
-      useModelStore.getState().setModelBuffer(buffer, fmt)
-      useModelStore.getState().setGLBUrl(file.name)
-    })
+    const isStep = ext === 'step' || ext === 'stp'
+    const rawBuffer = await file.arrayBuffer()
+
+    if (isStep) {
+      try {
+        const glbBuffer = await stepToGlb(rawBuffer, {
+          wasmPath: '/wasm/occt-import-js.wasm',
+        })
+        useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
+      } catch (e) {
+        console.error('[WorkspacePage] STEP conversion failed:', e)
+        toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+        return
+      }
+    } else {
+      const fmt = ext as 'stl' | 'glb' | '3mf'
+      useModelStore.getState().setModelBuffer(rawBuffer, fmt)
+    }
+    useModelStore.getState().setGLBUrl(file.name)
   }, [])
 
   function handleDrop(e: React.DragEvent) {

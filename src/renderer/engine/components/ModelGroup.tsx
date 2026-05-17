@@ -206,9 +206,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           geo.computeBoundingBox()
           if (geo.boundingBox) onLoadedRef.current?.(geo.boundingBox.clone())
         } else if (format === 'step' || format === 'stp') {
-          setMergedGeometry(new THREE.BoxGeometry(0.3, 0.3, 0.3))
-          setGlbMeshes([])
-          setGlbPartInfos([])
+          console.warn('[ModelGroup] STEP received without prior conversion -- should be GLB by now')
         } else {
           const msg = `Unsupported format: ${format}`
           setError(msg)
@@ -234,8 +232,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   if (error) {
     return null
   }
-
-  const isPlaceholder = format === 'step' || format === 'stp'
 
   // GLB: render individual meshes
   if (glbMeshes.length > 0) {
@@ -350,7 +346,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       <group ref={ref as unknown as React.Ref<THREE.Group>}>
         <mesh geometry={mergedGeometry}>
           <meshBasicMaterial
-            color={isPlaceholder ? '#4488ff' : '#cccccc'}
+            color={'#cccccc'}
             transparent
             opacity={0}
             depthWrite={false}
@@ -365,16 +361,16 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     <group ref={ref as unknown as React.Ref<THREE.Group>}>
       <mesh geometry={mergedGeometry}>
         <meshStandardMaterial
-          color={isPlaceholder ? '#4488ff' : '#cccccc'}
-          roughness={isPlaceholder ? 0.6 : 0.4}
-          metalness={isPlaceholder ? 0.3 : 0.1}
-          wireframe={isPlaceholder || isMeshOnly}
+          color={'#cccccc'}
+          roughness={0.4}
+          metalness={0.1}
+          wireframe={isMeshOnly}
           polygonOffset={isSolidMesh}
           polygonOffsetFactor={isSolidMesh ? 1 : 0}
           polygonOffsetUnits={isSolidMesh ? 1 : 0}
         />
       </mesh>
-      {isSolidMesh && !isPlaceholder && (
+      {isSolidMesh && (
         <mesh geometry={mergedGeometry}>
           <meshBasicMaterial
             color="#222222"
