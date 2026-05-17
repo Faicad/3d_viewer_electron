@@ -94,4 +94,76 @@ test.describe('Ficad Web Electron - STEP Loading', () => {
     expect(topologyInfo).not.toBeNull()
     expect(topologyInfo!.faces).toBeGreaterThan(0)
   })
+
+  test('clicks STEP file in file list panel and renders model', async () => {
+    const window = await electronApp.firstWindow()
+    await window.waitForTimeout(2000)
+
+    // Populate file list panel with fixture files
+    const hasFiles = await window.evaluate(async (fixturesPath: string) => {
+      const result = await window.electronAPI.readDirectory(fixturesPath)
+      if (!result.success || !result.files) return false
+      window.__modelStore.getState().setFolderFiles(fixturesPath, result.files)
+      return true
+    }, path.resolve(__dirname, 'fixtures'))
+    expect(hasFiles).toBe(true)
+
+    await window.waitForTimeout(1000)
+
+    // Collect console messages
+    const consoleMessages: string[] = []
+    window.on('console', (msg) => {
+      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
+    })
+
+    // Find and click the test-model.step entry in the file list
+    const stepEntry = window.locator('div[data-index]').filter({ hasText: 'test-model.step' })
+    const entryCount = await stepEntry.count()
+    console.log('[test] step file entries found:', entryCount)
+    expect(entryCount).toBe(1)
+
+    await stepEntry.click()
+
+    // Wait for STEP → GLB conversion and render
+    await window.waitForTimeout(15000)
+
+    const relevant = consoleMessages.filter(m =>
+      m.includes('[ModelGroup]') ||
+      m.includes('STEP') ||
+      m.includes('Load failed') ||
+      m.includes('Error') ||
+      m.includes('error')
+    )
+    console.log('[test] console messages (file-list click):', relevant)
+
+    // Verify faceIds built (proof of successful conversion)
+    const hasFaceIds = consoleMessages.some(m => m.includes('[ModelGroup] faceIds built:'))
+    expect(hasFaceIds).toBe(true)
+
+    // Verify 3D meshes rendered
+    const sceneHasMeshes = await window.evaluate(() => {
+      const dev = window.__r3f_dev
+      if (!dev?.scene) return false
+      let meshCount = 0
+      dev.scene.traverse((obj: any) => {
+        if (obj?.isMesh) meshCount++
+      })
+      return meshCount > 0
+    })
+    console.log('[test] scene has meshes (file-list click):', sceneHasMeshes)
+    expect(sceneHasMeshes).toBe(true)
+
+    // Verify topology
+    const topologyInfo = await window.evaluate(() => {
+      const rt = window.__r3f_dev?.selectorRuntime
+      if (!rt) return null
+      return {
+        faces: rt.faces?.length,
+        occurrences: rt.occurrenceIdByRowIndex?.size,
+      }
+    })
+    console.log('[test] topology (file-list click):', topologyInfo)
+    expect(topologyInfo).not.toBeNull()
+    expect(topologyInfo!.faces).toBeGreaterThan(0)
+  })
 })

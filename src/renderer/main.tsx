@@ -4,9 +4,13 @@ import { HashRouter } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { useModelStore } from '@/stores/model-store'
 import App from './App'
 import './i18n'
 import './index.css'
+
+// Expose store for E2E test access
+window.__modelStore = useModelStore
 
 // Global error handlers — ensure all errors are visible in console
 window.addEventListener('error', (event) => {
