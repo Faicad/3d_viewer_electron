@@ -56,7 +56,7 @@ test.describe('Ficad Web Electron - Format Loading', () => {
 
   test('app starts and renders canvas', async () => {
     const window = await electronApp.firstWindow()
-    await window.waitForTimeout(3000)
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 15000 })
     const canvasCount = await window.locator('canvas').count()
     expect(canvasCount).toBeGreaterThan(0)
   })
