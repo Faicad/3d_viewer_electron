@@ -51,10 +51,12 @@ export async function stepToGlbCached(
   console.log(`[stepToGlbCached] conversion done in ${elapsed}s, size=${buffer.byteLength}`)
 
   memCache.set(key, buffer)
+  // Persist to IndexedDB for cross-restart cache hits
   try {
-    putCached(key, buffer)
-  } catch {
-    // best-effort persistence
+    await putCached(key, buffer)
+    console.log('[stepToGlbCached] persisted to IndexedDB:', key)
+  } catch (err) {
+    console.warn('[stepToGlbCached] IndexedDB write failed:', err)
   }
 
   return { buffer, cached: false }
