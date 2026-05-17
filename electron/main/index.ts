@@ -1,12 +1,16 @@
-import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join, extname, dirname } from 'path'
 import * as fs from 'fs'
+
+// Must be called before app.whenReady() to grant the custom protocol access to
+// IndexedDB, fetch, and other standard web APIs.
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'ficad-app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+])
 
 let mainWindow: BrowserWindow | null = null
 
 function setupProtocol(): void {
-  // Intercept file:// protocol to serve from asar
-  // Works with custom ficad-app:// URLs that get converted to file:// internally
   const mimeTypes: Record<string, string> = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'application/javascript',
@@ -19,45 +23,30 @@ function setupProtocol(): void {
     '.wasm': 'application/wasm',
   }
 
-  protocol.registerFileProtocol('ficad-app', (request, callback) => {
-    try {
-      const url = new URL(request.url)
-      const urlPath = decodeURIComponent(url.pathname)
-      // Build a relative path from the renderer output directory.
-      // urlPath is e.g. /out/renderer/index.html or /wasm/occt-import-js.cjs
-      // (the latter when a script requests an origin-root path like /wasm/...).
-      let rel: string
-      if (urlPath.startsWith('/out/renderer/')) {
-        rel = urlPath.slice('/out/renderer/'.length)
-      } else {
-        // Absolute paths from origin root — strip the leading slash so
-        // path.join treats them as a relative segment, not a root-relative
-        // path on Windows (where \wasm\file would resolve to C:\wasm\file).
-        rel = urlPath.replace(/^\//, '')
-      }
-      const relWin = rel.replace(/\//g, '\\')
-
-      // In dev mode, serve public assets (wasm etc.) from source tree
-      if (import.meta.env.DEV) {
-        const publicPath = join(__dirname, '..', '..', 'src', 'renderer', 'public', relWin)
-        try {
-          fs.accessSync(publicPath)
-          const ext = extname(publicPath)
-          callback({ path: publicPath, headers: { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' } })
-          return
-        } catch {
-          // File not in public/ — fall through to asar path
-        }
-      }
-
-      const asarPath = join(__dirname, '..', 'renderer', relWin)
-      const ext = extname(asarPath)
-      callback({ path: asarPath, headers: { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' } })
-    } catch (e: unknown) {
-      const err = e as { message?: string; code?: string }
-      console.error('[Protocol] error:', err?.message, err?.code)
-      callback({ error: -2 })
+  protocol.handle('ficad-app', (request) => {
+    const url = new URL(request.url)
+    const urlPath = decodeURIComponent(url.pathname)
+    let rel: string
+    if (urlPath.startsWith('/out/renderer/')) {
+      rel = urlPath.slice('/out/renderer/'.length)
+    } else {
+      rel = urlPath.replace(/^\//, '')
     }
+    const relWin = rel.replace(/\//g, '\\')
+
+    // In dev mode, serve public assets (wasm etc.) from source tree
+    if (import.meta.env.DEV) {
+      const publicPath = join(__dirname, '..', '..', 'src', 'renderer', 'public', relWin)
+      try {
+        fs.accessSync(publicPath)
+        return net.fetch('file:///' + publicPath.replace(/\\/g, '/'))
+      } catch {
+        // Fall through to asar path
+      }
+    }
+
+    const asarPath = join(__dirname, '..', 'renderer', relWin)
+    return net.fetch('file:///' + asarPath.replace(/\\/g, '/'))
   })
 }
 
