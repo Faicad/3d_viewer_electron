@@ -6,7 +6,7 @@ import { useUIStore } from '@/stores/ui-store'
 import { useModelStore } from '@/stores/model-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
-import { stepToGlb } from '@/lib/step-converter'
+import { stepToGlbCached } from '@/lib/step-converter'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -67,14 +67,18 @@ export default function DesktopLayout() {
               const isStep = ext === 'step' || ext === 'stp'
               if (isStep) {
                 try {
-                  const glbBuffer = await stepToGlb(buffer, {
-                    wasmPath: '/wasm/occt-import-js.wasm',
-                  })
+                  useModelStore.getState().setIsConverting(true)
+                  const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+                    { filePath: file.path, mtimeMs: file.mtimeMs },
+                    { wasmPath: '/wasm/occt-import-js.wasm' },
+                  )
                   useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
                 } catch (e) {
                   console.error('[DesktopLayout] STEP conversion failed:', e)
                   toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
                   return
+                } finally {
+                  useModelStore.getState().setIsConverting(false)
                 }
               } else {
                 useModelStore.getState().setModelBuffer(buffer, ext as 'stl' | 'glb' | '3mf')

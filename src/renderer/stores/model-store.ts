@@ -31,6 +31,10 @@ interface ModelStore {
   modelBuffer: ArrayBuffer | null
   modelFormat: 'stl' | 'glb' | '3mf' | 'step' | 'stp' | null
 
+  // STEP conversion loading state
+  isConverting: boolean
+  setIsConverting: (v: boolean) => void
+
   // Per-part info from GLB loading (populated by ModelGroup)
   glbPartInfos: GlbPartInfo[]
   setGlbPartInfos: (infos: GlbPartInfo[]) => void
@@ -43,9 +47,9 @@ interface ModelStore {
 
   // File list panel state
   currentFolderPath: string | null
-  folderFiles: { name: string; path: string }[]
+  folderFiles: { name: string; path: string; mtimeMs: number }[]
   selectedFileIndex: number
-  setFolderFiles: (folderPath: string | null, files: { name: string; path: string }[]) => void
+  setFolderFiles: (folderPath: string | null, files: { name: string; path: string; mtimeMs: number }[]) => void
   setSelectedFileIndex: (index: number) => void
 
   setGLBUrl: (url: string) => void
@@ -64,6 +68,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   stats: null,
   modelBuffer: null,
   modelFormat: null,
+  isConverting: false,
   glbPartInfos: [],
   modelCenteringOffset: null,
 
@@ -71,6 +76,12 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   folderFiles: [],
   selectedFileIndex: -1,
 
+  setIsConverting: (v) => {
+    set({ isConverting: v })
+    // Force synchronous DOM update so the overlay appears before WASM blocks the main thread
+    const el = document.getElementById('step-loading-overlay')
+    if (el) el.style.display = v ? 'flex' : 'none'
+  },
   setGlbPartInfos: (infos) => set({ glbPartInfos: infos }),
   setModelCenteringOffset: (offset) => set({ modelCenteringOffset: offset }),
 
@@ -102,6 +113,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   reset: () => {
     const url = get().glbUrl
     if (url && url !== 'loaded') URL.revokeObjectURL(url)
-    set({ glbUrl: null, sceneTree: [], modelVersion: 0, stats: null, modelBuffer: null, modelFormat: null, glbPartInfos: [], modelCenteringOffset: null })
+    set({ glbUrl: null, sceneTree: [], modelVersion: 0, stats: null, modelBuffer: null, modelFormat: null, glbPartInfos: [], modelCenteringOffset: null, isConverting: false })
   },
 }))

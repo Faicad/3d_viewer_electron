@@ -4,7 +4,7 @@ import { useModelStore } from '@/stores/model-store'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { stepToGlb } from '@/lib/step-converter'
+import { stepToGlbCached } from '@/lib/step-converter'
 
 const EXT_COLORS: Record<string, string> = {
   '.stl': 'text-blue-500',
@@ -92,7 +92,7 @@ export default function FileListPanel() {
   )
 }
 
-async function handleFileClick(file: { name: string; path: string }, index: number) {
+async function handleFileClick(file: { name: string; path: string; mtimeMs: number }, index: number) {
   const { setSelectedFileIndex } = useModelStore.getState()
   setSelectedFileIndex(index)
 
@@ -111,15 +111,19 @@ async function handleFileClick(file: { name: string; path: string }, index: numb
     const ext = file.name.split('.').pop()?.toLowerCase()
     const isStep = ext === 'step' || ext === 'stp'
     if (isStep) {
-      const glbBuffer = await stepToGlb(buffer, {
-        wasmPath: '/wasm/occt-import-js.wasm',
-      })
+      useModelStore.getState().setIsConverting(true)
+      const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+        { filePath: file.path, mtimeMs: file.mtimeMs },
+        { wasmPath: '/wasm/occt-import-js.wasm' },
+      )
+      useModelStore.getState().setIsConverting(false)
       useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
     } else {
       useModelStore.getState().setModelBuffer(buffer, ext as 'stl' | 'glb' | '3mf')
     }
     useModelStore.getState().setGLBUrl(file.name)
   } catch (e) {
+    useModelStore.getState().setIsConverting(false)
     toast.error('Load failed: ' + String(e))
   }
 }

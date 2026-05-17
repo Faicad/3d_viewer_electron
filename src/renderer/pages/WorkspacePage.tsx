@@ -6,7 +6,7 @@ import { useFileUpload } from '@/hooks/useFileUpload'
 import { Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import ViewportContainer from '@/components/viewport/ViewportContainer'
-import { stepToGlb } from '@/lib/step-converter'
+import { stepToGlbCached } from '@/lib/step-converter'
 
 interface WorkspacePageProps {
   projectId?: string
@@ -30,14 +30,19 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
     if (isStep) {
       try {
-        const glbBuffer = await stepToGlb(rawBuffer, {
-          wasmPath: '/wasm/occt-import-js.wasm',
-        })
+        useModelStore.getState().setIsConverting(true)
+        const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+        const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
+          { filePath, mtimeMs: file.lastModified },
+          { wasmPath: '/wasm/occt-import-js.wasm' },
+        )
         useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
       } catch (e) {
         console.error('[WorkspacePage] STEP conversion failed:', e)
         toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
         return
+      } finally {
+        useModelStore.getState().setIsConverting(false)
       }
     } else {
       const fmt = ext as 'stl' | 'glb' | '3mf'
@@ -107,6 +112,40 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
           </label>
         </div>
       )}
+
+      {/* Always rendered in DOM; toggled synchronously via setIsConverting to appear before WASM blocks main thread */}
+      <div
+        id="step-loading-overlay"
+        data-testid="step-loading-overlay"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'none',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.45)',
+          zIndex: 30,
+          backdropFilter: 'blur(2px)',
+        }}
+      >
+        <div style={{
+          width: 40,
+          height: 40,
+          border: '3px solid rgba(255,255,255,0.2)',
+          borderTopColor: '#fff',
+          borderRadius: '50%',
+          animation: 'step-loading-spin 0.8s linear infinite',
+        }} />
+        <p style={{ color: '#fff', marginTop: 16, fontSize: 14, fontWeight: 500 }}>
+          Loading...
+        </p>
+        <style>{`
+          @keyframes step-loading-spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
     </div>
   )
 }

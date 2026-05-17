@@ -113,12 +113,14 @@ const SUPPORTED_EXTENSIONS = new Set(['.stl', '.glb', '.3mf', '.step', '.stp'])
 ipcMain.handle('fs:readDirectory', async (_event, dirPath: string) => {
   try {
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true })
-    const files: { name: string; path: string }[] = []
+    const files: { name: string; path: string; mtimeMs: number }[] = []
     for (const entry of entries) {
       if (entry.isFile()) {
         const ext = extname(entry.name).toLowerCase()
         if (SUPPORTED_EXTENSIONS.has(ext)) {
-          files.push({ name: entry.name, path: join(dirPath, entry.name) })
+          const fullPath = join(dirPath, entry.name)
+          const stat = await fs.promises.stat(fullPath)
+          files.push({ name: entry.name, path: fullPath, mtimeMs: stat.mtimeMs })
         }
       }
     }

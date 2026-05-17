@@ -166,4 +166,95 @@ test.describe('Ficad Web Electron - STEP Loading', () => {
     expect(topologyInfo).not.toBeNull()
     expect(topologyInfo!.faces).toBeGreaterThan(0)
   })
+
+  test('caches converted GLB on first load, hits cache on second load', async () => {
+    test.setTimeout(90000)
+    const window = await electronApp.firstWindow()
+    await window.waitForTimeout(2000)
+
+    // Reset model and populate file list with fixture files
+    await window.evaluate(async (fixturesPath: string) => {
+      window.__modelStore.getState().reset()
+      const result = await window.electronAPI.readDirectory(fixturesPath)
+      if (result.success && result.files) {
+        window.__modelStore.getState().setFolderFiles(fixturesPath, result.files)
+      }
+    }, path.resolve(__dirname, 'fixtures'))
+    await window.waitForTimeout(1000)
+
+    const consoleMessages: string[] = []
+    window.on('console', (msg) => {
+      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
+    })
+
+    // Click keycap_v6.step (not loaded by prior tests) → must be cache miss
+    const entry1 = window.locator('div[data-index]').filter({ hasText: 'keycap_v6.step' })
+    await entry1.click()
+    await window.waitForTimeout(15000)
+
+    const hasCacheMiss = consoleMessages.some(m => m.includes('[stepToGlbCached] miss'))
+    console.log('[test] first load (keycap_v6) cache miss:', hasCacheMiss)
+    expect(hasCacheMiss).toBe(true)
+
+    // Verify model rendered
+    let sceneOk = await window.evaluate(() => {
+      const dev = window.__r3f_dev
+      if (!dev?.scene) return false
+      let meshCount = 0
+      dev.scene.traverse((obj: any) => { if (obj?.isMesh) meshCount++ })
+      return meshCount > 0
+    })
+    expect(sceneOk).toBe(true)
+
+    // Switch to test-model.step, then back to keycap_v6 → second load should hit memory cache
+    consoleMessages.length = 0
+    const entry2 = window.locator('div[data-index]').filter({ hasText: 'test-model.step' })
+    await entry2.click()
+    await window.waitForTimeout(15000)
+
+    consoleMessages.length = 0
+    const entry3 = window.locator('div[data-index]').filter({ hasText: 'keycap_v6.step' })
+    await entry3.click()
+    await window.waitForTimeout(8000)
+
+    const cacheLogs = consoleMessages.filter(m => m.includes('[stepToGlbCached]'))
+    console.log('[test] cache logs on re-click keycap_v6:', cacheLogs)
+
+    const hasCacheHit = consoleMessages.some(m => m.includes('[stepToGlbCached] memory hit'))
+    console.log('[test] second load cache hit:', hasCacheHit)
+    expect(hasCacheHit).toBe(true)
+
+    // Verify model renders from cache
+    sceneOk = await window.evaluate(() => {
+      const dev = window.__r3f_dev
+      if (!dev?.scene) return false
+      let meshCount = 0
+      dev.scene.traverse((obj: any) => { if (obj?.isMesh) meshCount++ })
+      return meshCount > 0
+    })
+    expect(sceneOk).toBe(true)
+  })
+
+  test('shows loading overlay during STEP conversion and hides after', async () => {
+    const window = await electronApp.firstWindow()
+    await window.waitForTimeout(2000)
+
+    // Verify overlay element is always in DOM (rendered unconditionally since overlay fix)
+    const overlay = window.locator('[data-testid="step-loading-overlay"]')
+    await expect(overlay).toBeAttached()
+
+    // Verify overlay is hidden by default
+    await expect(overlay).toBeHidden()
+
+    // Toggle on via store — this synchronously sets display:flex via DOM API
+    // Testing the real setIsConverting path that all call sites use
+    await window.evaluate(() => window.__modelStore.getState().setIsConverting(true))
+    await expect(overlay).toBeVisible()
+    console.log('[test] overlay visible after setIsConverting(true)')
+
+    // Toggle off
+    await window.evaluate(() => window.__modelStore.getState().setIsConverting(false))
+    await expect(overlay).toBeHidden()
+    console.log('[test] overlay hidden after setIsConverting(false)')
+  })
 })

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
-import { stepToGlb } from '@/lib/step-converter'
+import { stepToGlbCached } from '@/lib/step-converter'
 
 const ALLOWED_EXTENSIONS = ['stl', 'glb', '3mf', 'step', 'stp'] as const
 type AllowedExtension = (typeof ALLOWED_EXTENSIONS)[number]
@@ -33,9 +33,13 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         const rawBuffer = await file.arrayBuffer()
 
         if (isStep) {
-          const glbBuffer = await stepToGlb(rawBuffer, {
-            wasmPath: '/wasm/occt-import-js.wasm',
-          })
+          useModelStore.getState().setIsConverting(true)
+          const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+          const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
+            { filePath, mtimeMs: file.lastModified },
+            { wasmPath: '/wasm/occt-import-js.wasm' },
+          )
+          useModelStore.getState().setIsConverting(false)
           setModelBuffer(glbBuffer, 'glb')
         } else {
           setModelBuffer(rawBuffer, format as 'stl' | 'glb' | '3mf')
@@ -65,6 +69,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           }
         }
       } catch (err) {
+        useModelStore.getState().setIsConverting(false)
         console.error('[useFileUpload] upload failed:', err)
         const message = err instanceof Error ? err.message : String(err)
         toast.error(message || '文件读取失败')

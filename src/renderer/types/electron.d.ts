@@ -8,7 +8,7 @@ declare global {
       openExternal: (url: string) => Promise<void>
       readDirectory: (dirPath: string) => Promise<{
         success: boolean
-        files?: { name: string; path: string }[]
+        files?: { name: string; path: string; mtimeMs: number }[]
         error?: string
       }>
       readFileAsBase64: (filePath: string) => Promise<{
