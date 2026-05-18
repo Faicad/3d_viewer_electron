@@ -59,7 +59,7 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
 
         {/* Visibility toggle (eye) */}
         <button
-          className="h-4 w-4 shrink-0 flex items-center justify-center rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-4 w-4 shrink-0 flex items-center justify-center rounded hover:bg-muted"
           onClick={(e) => {
             e.stopPropagation()
             toggleVisible(node.id)

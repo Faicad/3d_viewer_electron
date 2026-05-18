@@ -304,10 +304,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           {glbMeshes.map((mesh, i) => {
             const partId = glbPartInfos[i]?.partId || `part-${i}`
             const vis = visibilityMap.get(partId) ?? true
-            if (!vis) return null
             return (
               <mesh
                 key={i}
+                visible={vis}
                 geometry={mesh.geometry}
                 position={mesh.position}
                 userData={{
@@ -335,10 +335,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         {glbMeshes.map((mesh, i) => {
           const partId = glbPartInfos[i]?.partId || `part-${i}`
           const vis = visibilityMap.get(partId) ?? true
-          if (!vis) return null
           return (
             <mesh
               key={i}
+              visible={vis}
               geometry={mesh.geometry}
               position={mesh.position}
               userData={{
@@ -362,10 +362,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         {isSolidMesh && glbMeshes.map((mesh, i) => {
           const partId = glbPartInfos[i]?.partId || `part-${i}`
           const vis = visibilityMap.get(partId) ?? true
-          if (!vis) return null
           return (
             <mesh
               key={`wf-${i}`}
+              visible={vis}
               geometry={mesh.geometry}
               position={mesh.position}
             >
