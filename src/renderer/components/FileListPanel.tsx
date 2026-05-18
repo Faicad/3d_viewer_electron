@@ -22,7 +22,6 @@ export default function FileListPanel() {
     selectedFileIndex,
     fileSortMode,
     setSelectedFileIndex,
-    setFolderFiles,
     setFileSortMode,
     glbUrl,
   } = useModelStore()

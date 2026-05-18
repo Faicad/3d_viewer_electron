@@ -10,6 +10,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "lint": "eslint .",
+    "ci": "bash scripts/ci.sh",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "electron-vite build && electron-builder --win",
     "build:unpacked": "electron-vite build && electron-builder --win --dir"
@@ -48,14 +50,27 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.2.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^25.8.0",
     "@vitejs/plugin-react": "^4.5.2",
+    "@vitest/ui": "^4.1.6",
     "electron": "^35.0.0",
     "electron-builder": "^26.0.0",
     "electron-vite": "^3.0.0",
+    "eslint": "^10.4.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
-    "vite": "^5.0.0"
+    "typescript-eslint": "^8.59.3",
+    "vite": "^5.0.0",
+    "vitest": "^4.1.6"
   },
   "build": {
     "appId": "com.ficad.web",

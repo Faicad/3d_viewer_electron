@@ -196,7 +196,7 @@ function buildObjectHighlightGeometry(
   if (!positions || positions.count === 0) return null
 
   const indexData = geo.index
-  const totalTriangles = indexData.count / 3
+  const _totalTriangles = indexData.count / 3
 
   // Collect all vertex indices for the entire mesh
   const vertexMap = new Map<number, number>()

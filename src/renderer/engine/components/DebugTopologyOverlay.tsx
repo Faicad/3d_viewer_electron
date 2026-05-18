@@ -56,19 +56,19 @@ export default function DebugTopologyOverlay({ selectorRuntime, centeringOffset,
       '\n  faces by type:', Object.fromEntries(faceByType),
       '\n  edges by type:', Object.fromEntries(edgeByType),
     )
-    if (faces.length > 0) console.table(faces.map((f, _i) => ({
+    if (faces.length > 0) console.table(faces.map((f) => ({
       id: f.id,
       type: f.surfaceType ?? '?',
       area: f.area != null ? Number(f.area.toFixed(4)) : '-',
       edgeCount: f.edgeCount ?? '-',
     })))
-    if (edges.length > 0) console.table(edges.map((e, _i) => ({
+    if (edges.length > 0) console.table(edges.map((e) => ({
       id: e.id,
       type: e.curveType ?? '?',
       length: e.length != null ? Number(e.length.toFixed(4)) : '-',
       segCount: e.segmentCount ?? '-',
     })))
-    if (occurrences.length > 0) console.table(occurrences.map((o, _i) => ({
+    if (occurrences.length > 0) console.table(occurrences.map((o) => ({
       id: o.id,
       name: o.name ?? '-',
       faceCount: o.faceCount ?? '-',

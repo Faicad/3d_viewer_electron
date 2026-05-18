@@ -56,7 +56,7 @@ function buildSceneTree(root: THREE.Object3D, partInfos: GlbPartInfo[]): SceneTr
   }
 
   function walk(obj: THREE.Object3D): SceneTreeNode[] {
-    return obj.children.map((child, i) => {
+    return obj.children.map((child) => {
       const partId = child.userData?.partId || child.name || child.uuid
       const isMesh = child instanceof THREE.Mesh
       const name = child.name || (isMesh ? 'Mesh' : 'Group')

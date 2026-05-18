@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
-import { join, extname, dirname } from 'path'
+import { join, extname } from 'path'
 import * as fs from 'fs'
 import { ALL_EXTENSIONS } from '../../src/renderer/config/file-formats'
 
@@ -12,18 +12,6 @@ protocol.registerSchemesAsPrivileged([
 let mainWindow: BrowserWindow | null = null
 
 function setupProtocol(): void {
-  const mimeTypes: Record<string, string> = {
-    '.html': 'text/html; charset=utf-8',
-    '.js': 'application/javascript',
-    '.cjs': 'application/javascript',
-    '.css': 'text/css',
-    '.svg': 'image/svg+xml',
-    '.png': 'image/png',
-    '.json': 'application/json',
-    '.glb': 'model/gltf-binary',
-    '.wasm': 'application/wasm',
-  }
-
   protocol.handle('ficad-app', (request) => {
     const url = new URL(request.url)
     const urlPath = decodeURIComponent(url.pathname)
@@ -77,7 +65,7 @@ function createWindow(): void {
     console.log('[Main] did-finish-load')
   })
 
-  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+  mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
     console.log('[Main] console[' + level + ']:', message)
   })
 

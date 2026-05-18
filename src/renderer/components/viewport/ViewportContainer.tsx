@@ -256,7 +256,7 @@ export default function ViewportContainer() {
     applyCameraFit(box, controls)
   }, [applyCameraFit, modelBuffer])
 
-  const handleResetCamera = useCallback(() => {
+  const _handleResetCamera = useCallback(() => {
     const controls = controlsRef.current
     const modelGroup = modelGroupRef.current
     if (!controls) return

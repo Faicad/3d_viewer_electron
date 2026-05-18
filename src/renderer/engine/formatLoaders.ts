@@ -21,7 +21,6 @@ import { KMZLoader } from 'three/examples/jsm/loaders/KMZLoader.js'
 import { AMFLoader } from 'three/examples/jsm/loaders/AMFLoader.js'
 import { LWOLoader } from 'three/examples/jsm/loaders/LWOLoader.js'
 import { MD2Loader } from 'three/examples/jsm/loaders/MD2Loader.js'
-import { MDDLoader } from 'three/examples/jsm/loaders/MDDLoader.js'
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 import { LDrawLoader } from 'three/examples/jsm/loaders/LDrawLoader.js'
 import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
@@ -212,7 +211,7 @@ export async function loadFormat(buffer: ArrayBuffer, format: FormatId): Promise
     case 'nrrd': {
       // NRRD produces volume data (3D texture) — create a unit box with wireframe
       // so the user can see something; real volume rendering needs custom shaders
-      const volume = new NRRDLoader().parse(buffer)
+      const _volume = new NRRDLoader().parse(buffer)
       const geo = new THREE.BoxGeometry(1, 1, 1)
       const mesh = new THREE.Mesh(geo)
       mesh.name = 'NRRD proxy'
