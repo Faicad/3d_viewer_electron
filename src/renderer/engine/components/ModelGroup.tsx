@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, forwardRef } from 'react'
+import { useEffect, useRef, useState, useMemo, forwardRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries as mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { useModelStore, type GlbPartInfo } from '@/stores/model-store'
+import { useModelStore, type GlbPartInfo, type SceneTreeNode } from '@/stores/model-store'
 import type { SelectorRuntime } from '@/lib/topology/types'
 import { buildGlbFaceIdsForPart } from '@/lib/topology/build-face-ids'
 import type { DisplayMode } from './DisplayModeDropdown'
@@ -32,8 +32,48 @@ function mergeGeometries(meshes: THREE.Mesh[]): THREE.BufferGeometry {
   return mergeBufferGeometries(geoms, false)
 }
 
+function flattenVisibility(tree: SceneTreeNode[], parentVisible: boolean): Map<string, boolean> {
+  const map = new Map<string, boolean>()
+  for (const node of tree) {
+    const vis = parentVisible && node.visible
+    map.set(node.id, vis)
+    if (node.children) {
+      for (const [childId, childVis] of flattenVisibility(node.children, vis)) {
+        map.set(childId, childVis)
+      }
+    }
+  }
+  return map
+}
+
 // ---- multi-mesh rendering constants ----
 const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm']
+
+function buildSceneTree(root: THREE.Object3D, partInfos: GlbPartInfo[]): SceneTreeNode[] {
+  const meshIndexMap = new Map<string, number>()
+  for (const info of partInfos) {
+    meshIndexMap.set(info.partId, info.meshIndex)
+  }
+
+  function walk(obj: THREE.Object3D): SceneTreeNode[] {
+    return obj.children.map((child, i) => {
+      const partId = child.userData?.partId || child.name || child.uuid
+      const isMesh = child instanceof THREE.Mesh
+      const name = child.name || (isMesh ? 'Mesh' : 'Group')
+      const children = walk(child)
+      return {
+        id: String(partId),
+        name,
+        visible: child.visible,
+        expanded: true,
+        meshIndex: meshIndexMap.get(String(partId)),
+        ...(children.length > 0 ? { children } : {}),
+      }
+    })
+  }
+
+  return walk(root)
+}
 
 // ----
 
@@ -48,7 +88,13 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   const setGlbPartInfos = useModelStore((s) => s.setGlbPartInfos)
   const setModelCenteringOffset = useModelStore((s) => s.setModelCenteringOffset)
   const glbPartInfos = useModelStore((s) => s.glbPartInfos)
+  const sceneTree = useModelStore((s) => s.sceneTree)
   const updateSceneTree = useModelStore((s) => s.updateSceneTree)
+
+  const visibilityMap = useMemo(
+    () => flattenVisibility(sceneTree, true),
+    [sceneTree],
+  )
 
   const onLoadedRef = useRef(onLoaded)
   onLoadedRef.current = onLoaded
@@ -86,7 +132,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setGlbMeshes([])
           setMergedGeometry(null)
           setGlbPartInfos([])
-          updateSceneTree([{ id: `${format}-objects`, name: format.toUpperCase(), visible: true }])
+          updateSceneTree([{ id: `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }])
 
           // Compute bounding box from all objects (Points, Lines, Bones, etc.)
           const box = new THREE.Box3()
@@ -163,11 +209,15 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setGlbMeshes(processed)
           setGlbPartInfos(partInfos)
 
-          const sceneTree = partInfos.map((info) => ({
-            id: info.partId,
-            name: info.name,
-            visible: true,
-          }))
+          const sceneTree = result.sceneRoot
+            ? buildSceneTree(result.sceneRoot, partInfos)
+            : partInfos.map((info) => ({
+                id: info.partId,
+                name: info.name,
+                visible: true,
+                expanded: true,
+                meshIndex: info.meshIndex,
+              }))
           updateSceneTree(sceneTree)
 
           const finalBox = new THREE.Box3()
@@ -186,7 +236,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setGlbMeshes([])
           setObjects([])
           setGlbPartInfos([])
-          updateSceneTree([{ id: `${format}-model`, name: format.toUpperCase(), visible: true }])
+          updateSceneTree([{ id: `${format}-model`, name: format.toUpperCase(), visible: true, expanded: true }])
           geo.computeBoundingBox()
           if (geo.boundingBox) onLoadedRef.current?.(geo.boundingBox.clone())
         }
@@ -251,68 +301,83 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     if (displayMode === 'wireframe') {
       return (
         <group ref={ref as unknown as React.Ref<THREE.Group>}>
-          {glbMeshes.map((mesh, i) => (
-            <mesh
-              key={i}
-              geometry={mesh.geometry}
-              position={mesh.position}
-              userData={{
-                partId: glbPartInfos[i]?.partId || `part-${i}`,
-                meshIndex: i,
-                faceIds: meshFaceIds[i] || undefined,
-              }}
-            >
-              <meshBasicMaterial
-                color="#cccccc"
-                transparent
-                opacity={0}
-                depthWrite={false}
-                colorWrite={false}
-              />
-            </mesh>
-          ))}
+          {glbMeshes.map((mesh, i) => {
+            const partId = glbPartInfos[i]?.partId || `part-${i}`
+            const vis = visibilityMap.get(partId) ?? true
+            if (!vis) return null
+            return (
+              <mesh
+                key={i}
+                geometry={mesh.geometry}
+                position={mesh.position}
+                userData={{
+                  partId,
+                  meshIndex: i,
+                  faceIds: meshFaceIds[i] || undefined,
+                }}
+              >
+                <meshBasicMaterial
+                  color="#cccccc"
+                  transparent
+                  opacity={0}
+                  depthWrite={false}
+                  colorWrite={false}
+                />
+              </mesh>
+            )
+          })}
         </group>
       )
     }
 
     return (
       <group ref={ref as unknown as React.Ref<THREE.Group>}>
-        {glbMeshes.map((mesh, i) => (
-          <mesh
-            key={i}
-            geometry={mesh.geometry}
-            position={mesh.position}
-            userData={{
-              partId: glbPartInfos[i]?.partId || `part-${i}`,
-              meshIndex: i,
-              faceIds: meshFaceIds[i] || undefined,
-            }}
-          >
-            <meshStandardMaterial
-              color="#cccccc"
-              roughness={0.4}
-              metalness={0.1}
-              wireframe={isMeshOnly}
-              polygonOffset={isSolidMesh}
-              polygonOffsetFactor={isSolidMesh ? 1 : 0}
-              polygonOffsetUnits={isSolidMesh ? 1 : 0}
-            />
-          </mesh>
-        ))}
-        {isSolidMesh && glbMeshes.map((mesh, i) => (
-          <mesh
-            key={`wf-${i}`}
-            geometry={mesh.geometry}
-            position={mesh.position}
-          >
-            <meshBasicMaterial
-              color="#222222"
-              wireframe
-              depthTest
-              depthWrite={false}
-            />
-          </mesh>
-        ))}
+        {glbMeshes.map((mesh, i) => {
+          const partId = glbPartInfos[i]?.partId || `part-${i}`
+          const vis = visibilityMap.get(partId) ?? true
+          if (!vis) return null
+          return (
+            <mesh
+              key={i}
+              geometry={mesh.geometry}
+              position={mesh.position}
+              userData={{
+                partId,
+                meshIndex: i,
+                faceIds: meshFaceIds[i] || undefined,
+              }}
+            >
+              <meshStandardMaterial
+                color="#cccccc"
+                roughness={0.4}
+                metalness={0.1}
+                wireframe={isMeshOnly}
+                polygonOffset={isSolidMesh}
+                polygonOffsetFactor={isSolidMesh ? 1 : 0}
+                polygonOffsetUnits={isSolidMesh ? 1 : 0}
+              />
+            </mesh>
+          )
+        })}
+        {isSolidMesh && glbMeshes.map((mesh, i) => {
+          const partId = glbPartInfos[i]?.partId || `part-${i}`
+          const vis = visibilityMap.get(partId) ?? true
+          if (!vis) return null
+          return (
+            <mesh
+              key={`wf-${i}`}
+              geometry={mesh.geometry}
+              position={mesh.position}
+            >
+              <meshBasicMaterial
+                color="#222222"
+                wireframe
+                depthTest
+                depthWrite={false}
+              />
+            </mesh>
+          )
+        })}
       </group>
     )
   }

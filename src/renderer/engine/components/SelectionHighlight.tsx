@@ -34,36 +34,41 @@ export default function SelectionHighlight({
   void lineVersion // suppress unused warning — used to trigger re-renders after ref update
 
   const geometry: HighlightGeometry = useMemo(() => {
-    if (!runtime || !referenceId) return null
+    if (!referenceId) return null
 
-    const ref = runtime.referenceMap.get(referenceId)
-    if (!ref) return null
+    // First try topology reference (face/edge/vertex)
+    const ref = runtime?.referenceMap.get(referenceId)
+    if (ref) {
+      if (ref.selectorType === 'face') {
+        return buildFaceHighlightGeometry(
+          ref.pickData.triangleStart,
+          ref.pickData.triangleCount,
+          ref.partId,
+          modelGroupRef,
+        )
+      }
 
-    if (ref.selectorType === 'face') {
-      return buildFaceHighlightGeometry(
-        ref.pickData.triangleStart,
-        ref.pickData.triangleCount,
-        ref.partId,
-        modelGroupRef,
-      )
-    }
+      if (ref.selectorType === 'edge') {
+        const result = buildEdgeLineGeometry(
+          runtime!,
+          ref.pickData.segmentStart,
+          ref.pickData.segmentCount,
+          modelGroupRef,
+        )
+        if (result) return { type: 'line', geo: result.geo }
+        return null
+      }
 
-    if (ref.selectorType === 'edge') {
-      const result = buildEdgeLineGeometry(
-        runtime,
-        ref.pickData.segmentStart,
-        ref.pickData.segmentCount,
-        modelGroupRef,
-      )
-      if (result) return { type: 'line', geo: result.geo }
+      if (ref.selectorType === 'vertex') {
+        return buildVertexHighlightGeometry(runtime!, ref, modelGroupRef)
+      }
+
       return null
     }
 
-    if (ref.selectorType === 'vertex') {
-      return buildVertexHighlightGeometry(runtime, ref, modelGroupRef)
-    }
-
-    return null
+    // Fallback: referenceId is a partId (object-mode selection or tree node click)
+    // Highlight the entire mesh for that part
+    return buildObjectHighlightGeometry(referenceId, modelGroupRef)
   }, [runtime, referenceId, modelGroupRef])
 
   useEffect(() => {
@@ -171,6 +176,61 @@ function collectDisplayMeshes(group: THREE.Group | null): THREE.Mesh[] {
 }
 
 // ---- geometry builders ----
+
+function buildObjectHighlightGeometry(
+  partId: string,
+  modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
+): { type: 'mesh'; geo: THREE.BufferGeometry } | null {
+  if (!modelGroupRef?.current) return null
+
+  const meshes = collectDisplayMeshes(modelGroupRef.current)
+  const mesh = meshes.find((m) => m.userData?.partId === partId)
+  if (!mesh) return null
+
+  const geo = mesh.geometry
+  if (!geo.index) return null
+
+  mesh.updateWorldMatrix(true, false)
+
+  const positions = geo.getAttribute('position')
+  if (!positions || positions.count === 0) return null
+
+  const indexData = geo.index
+  const totalTriangles = indexData.count / 3
+
+  // Collect all vertex indices for the entire mesh
+  const vertexMap = new Map<number, number>()
+  const uniqueVerts: number[] = []
+  const remappedIndices = new Uint32Array(indexData.count)
+
+  for (let i = 0; i < indexData.count; i++) {
+    const idx = indexData.getX(i)
+    if (!vertexMap.has(idx)) {
+      vertexMap.set(idx, uniqueVerts.length)
+      uniqueVerts.push(idx)
+    }
+    remappedIndices[i] = vertexMap.get(idx)!
+  }
+
+  // Transform local positions to world using mesh's matrixWorld
+  const newPositions = new Float32Array(uniqueVerts.length * 3)
+  for (let i = 0; i < uniqueVerts.length; i++) {
+    const srcIdx = uniqueVerts[i]
+    const worldPos = new THREE.Vector3(
+      positions.getX(srcIdx),
+      positions.getY(srcIdx),
+      positions.getZ(srcIdx),
+    ).applyMatrix4(mesh.matrixWorld)
+    newPositions[i * 3] = worldPos.x
+    newPositions[i * 3 + 1] = worldPos.y
+    newPositions[i * 3 + 2] = worldPos.z
+  }
+
+  const resultGeo = new THREE.BufferGeometry()
+  resultGeo.setAttribute('position', new THREE.BufferAttribute(newPositions, 3))
+  resultGeo.setIndex(new THREE.BufferAttribute(remappedIndices, 1))
+  return { type: 'mesh', geo: resultGeo }
+}
 
 function buildFaceHighlightGeometry(
   triangleStart: number,

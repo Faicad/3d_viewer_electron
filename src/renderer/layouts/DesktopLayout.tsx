@@ -3,21 +3,87 @@ import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useUIStore } from '@/stores/ui-store'
-import { useModelStore } from '@/stores/model-store'
+import { useModelStore, type SceneTreeNode } from '@/stores/model-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
-  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download,
+  ChevronRight, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
+
+function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) {
+  const hasChildren = node.children && node.children.length > 0
+  const toggleExpanded = useModelStore((s) => s.toggleNodeExpanded)
+  const toggleVisible = useModelStore((s) => s.toggleNodeVisible)
+  const selectedReferenceId = useSelectionStore((s) => s.selectedReferenceId)
+  const isSelected = selectedReferenceId === node.id
+
+  return (
+    <>
+      <div
+        className={cn(
+          'flex items-center gap-1 text-sm py-1 px-1 rounded hover:bg-accent cursor-pointer group whitespace-nowrap',
+          !node.visible && 'opacity-40',
+          isSelected && 'bg-accent ring-1 ring-primary',
+        )}
+        style={{ paddingLeft: `${depth * 16 + 4}px` }}
+        onClick={() => {
+          const { setSelectedReference } = useSelectionStore.getState()
+          setSelectedReference(node.id)
+        }}
+      >
+        {/* Expand/collapse chevron */}
+        <button
+          className="h-4 w-4 shrink-0 flex items-center justify-center rounded hover:bg-muted"
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleExpanded(node.id)
+          }}
+          aria-label={node.expanded ? 'collapse' : 'expand'}
+        >
+          {hasChildren ? (
+            node.expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
+          ) : (
+            <span className="w-3" />
+          )}
+        </button>
+
+        {/* Visibility toggle (eye) */}
+        <button
+          className="h-4 w-4 shrink-0 flex items-center justify-center rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleVisible(node.id)
+          }}
+          aria-label={node.visible ? 'hide' : 'show'}
+        >
+          {node.visible ? (
+            <Eye className="h-3 w-3" />
+          ) : (
+            <EyeOff className="h-3 w-3" />
+          )}
+        </button>
+
+        <span>{node.name}</span>
+      </div>
+
+      {/* Recursive children */}
+      {hasChildren && node.expanded &&
+        node.children!.map((child) => (
+          <SceneTreeItem key={child.id} node={child} depth={depth + 1} />
+        ))}
+    </>
+  )
+}
 
 export default function DesktopLayout() {
   const { projectId } = useParams<{ projectId?: string }>()
@@ -151,21 +217,13 @@ export default function DesktopLayout() {
               {model.sceneTree.length === 0 ? (
                 <p className="text-xs text-muted-foreground p-4">{t('app.emptySceneTree')}</p>
               ) : (
-                <div className="p-2">
+                <div className="p-2 min-w-max">
                   {model.sceneTree.map((node) => (
-                    <div
-                      key={node.id}
-                      className="text-sm py-1 px-2 rounded hover:bg-accent cursor-pointer"
-                      onClick={() => {
-                        const { setSelectedReference } = useSelectionStore.getState()
-                        setSelectedReference(node.id)
-                      }}
-                    >
-                      {node.name}
-                    </div>
+                    <SceneTreeItem key={node.id} node={node} depth={0} />
                   ))}
                 </div>
               )}
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </aside>
         )}

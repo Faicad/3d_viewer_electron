@@ -33,6 +33,8 @@ export interface LoaderResult {
   objects: THREE.Object3D[]
   /** For skeleton-based formats (BVH) */
   skeleton?: THREE.Skeleton
+  /** Preserved scene hierarchy for building multi-level scene tree */
+  sceneRoot?: THREE.Object3D
 }
 
 function bufferToText(buffer: ArrayBuffer): string {
@@ -73,7 +75,7 @@ export async function loadFormat(buffer: ArrayBuffer, format: FormatId): Promise
     case 'gltf': {
       const gltf = await new GLTFLoader().parseAsync(buffer, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [] }
+      return { meshes, objects: [], sceneRoot: gltf.scene }
     }
     case '3mf': {
       const group = new ThreeMFLoader().parse(buffer)

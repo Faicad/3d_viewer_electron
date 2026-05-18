@@ -6,6 +6,8 @@ export interface SceneTreeNode {
   name: string
   children?: SceneTreeNode[]
   visible: boolean
+  expanded?: boolean
+  meshIndex?: number
 }
 
 export interface GlbPartInfo {
@@ -61,9 +63,27 @@ interface ModelStore {
   setModelVersion: (v: number) => void
   updateStats: (vertices: number, faces: number, materialCost: number) => void
   updateSceneTree: (tree: SceneTreeNode[]) => void
+  toggleNodeExpanded: (nodeId: string) => void
+  toggleNodeVisible: (nodeId: string) => void
   replaceModel: (buffer: ArrayBuffer) => Promise<void>
   setModelBuffer: (buffer: ArrayBuffer, format: FormatId) => void
   reset: () => void
+}
+
+function toggleNodeInTree(
+  nodes: SceneTreeNode[],
+  nodeId: string,
+  key: 'expanded' | 'visible',
+): SceneTreeNode[] {
+  return nodes.map((node) => {
+    if (node.id === nodeId) {
+      return { ...node, [key]: !node[key] }
+    }
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: toggleNodeInTree(node.children, nodeId, key) }
+    }
+    return node
+  })
 }
 
 export const useModelStore = create<ModelStore>()((set, get) => ({
@@ -101,6 +121,14 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
     set({ stats: { vertices, faces, materialCost, volume: 0 } }),
 
   updateSceneTree: (tree) => set({ sceneTree: tree }),
+
+  toggleNodeExpanded: (nodeId) => {
+    set((state) => ({ sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'expanded') }))
+  },
+
+  toggleNodeVisible: (nodeId) => {
+    set((state) => ({ sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'visible') }))
+  },
 
   replaceModel: async (buffer) => {
     const url = URL.createObjectURL(new Blob([buffer], { type: 'model/gltf-binary' }))
