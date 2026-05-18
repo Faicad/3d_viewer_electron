@@ -97,6 +97,7 @@
       "resources/**/*"
     ],
     "win": {
+      "executableName": "3D_Viewer",
       "target": [
         {
           "target": "nsis",
