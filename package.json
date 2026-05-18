@@ -5,6 +5,7 @@
   "author": "Faicad",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.32.1",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -75,6 +76,13 @@
   },
   "overrides": {
     "magic-string": "0.30.17"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "sharp"
+    ]
   },
   "build": {
     "appId": "com.faicad.3d_viewer",

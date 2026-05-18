@@ -34,19 +34,19 @@ echo ""
 echo "========================================"
 echo "  1/5  Type check (tsc --noEmit)"
 echo "========================================"
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 
 echo ""
 echo "========================================"
 echo "  2/5  Lint (eslint)"
 echo "========================================"
-npm run lint
+pnpm run lint
 
 echo ""
 echo "========================================"
 echo "  3/5  Build ($BUILD_SCRIPT)"
 echo "========================================"
-npm run "$BUILD_SCRIPT"
+pnpm run "$BUILD_SCRIPT"
 
 # Symlink so tests find the binary at dist/win-unpacked/3D_Viewer.exe
 # Only needed on non-Windows where the binary lives at a different path
@@ -59,13 +59,13 @@ echo ""
 echo "========================================"
 echo "  4/5  Unit tests (vitest run)"
 echo "========================================"
-npx vitest run
+pnpm exec vitest run
 
 echo ""
 echo "========================================"
 echo "  5/5  Integration tests (playwright)"
 echo "========================================"
-npx playwright test
+pnpm exec playwright test
 
 echo ""
 echo "========================================"
