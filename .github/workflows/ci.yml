@@ -13,8 +13,9 @@ concurrency:
 jobs:
   ci:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -49,7 +50,7 @@ jobs:
             macOS)
               npm run build:unpacked:mac
               mkdir -p dist/win-unpacked
-              ln -sf "$PWD/dist/mac/3D_Viewer.app" "dist/win-unpacked/3D_Viewer.exe"
+              ln -sf "$PWD/dist/mac/3D Model Viewer.app/Contents/MacOS/3D Model Viewer" "dist/win-unpacked/3D_Viewer.exe"
               ;;
           esac
 
