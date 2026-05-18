@@ -3,13 +3,13 @@ import { persist } from 'zustand/middleware'
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
-    try { return localStorage.getItem(key) } catch { return null }
+    try { return localStorage.getItem(key) } catch (e) { console.error('localStorage getItem error:', e); return null }
   },
   setItem: (key: string, value: string): void => {
-    try { localStorage.setItem(key, value) } catch { /* noop */ }
+    try { localStorage.setItem(key, value) } catch (e) { console.error('localStorage setItem error:', e) }
   },
   removeItem: (key: string): void => {
-    try { localStorage.removeItem(key) } catch { /* noop */ }
+    try { localStorage.removeItem(key) } catch (e) { console.error('localStorage removeItem error:', e) }
   },
 }
 

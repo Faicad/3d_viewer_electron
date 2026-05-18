@@ -11,7 +11,7 @@ echo ""
 echo "========================================"
 echo "  2/5  Lint (eslint)"
 echo "========================================"
-npx eslint . --max-warnings 999
+npx eslint . --max-warnings 0
 
 echo ""
 echo "========================================"
