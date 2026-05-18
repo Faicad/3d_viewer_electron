@@ -50,7 +50,7 @@ export const useUIStore = create<UIStore>()(
       setTheme: (theme) => set({ theme }),
     }),
     {
-      name: 'ficad-ui',
+      name: 'faicad-ui',
       partialize: (s) => ({ language: s.language, theme: s.theme }),
       storage: {
         getItem: safeLocalStorage.getItem,

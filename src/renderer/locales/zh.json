@@ -1,6 +1,6 @@
 {
-  "app.name": "Ficad",
-  "app.welcome": "欢迎使用 Ficad",
+  "app.name": "Faicad",
+  "app.welcome": "欢迎使用 Faicad 3D模型查看器",
   "app.welcomeHint": "上传一个模型或直接描述需求开始",
   "app.quickExample1": "生成一个M3螺栓",
   "app.quickExample2": "做一个20mm立方体",
@@ -76,7 +76,7 @@
 
   "chat.uploadFormats": "拖放3D模型文件到此处",
   "chat.uploadHint": "支持 STL, GLB, 3MF, STEP, OBJ, FBX 等格式",
-  "chat.welcome": "欢迎使用 Ficad",
+  "chat.welcome": "欢迎使用 Faicad",
   "chat.welcomeMessage": "加载模型或输入需求让我生成",
   "chat.inputPlaceholder": "描述你需要什么...",
   "chat.send": "发送"

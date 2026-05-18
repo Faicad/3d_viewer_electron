@@ -38,11 +38,11 @@ const FIXTURES: { name: string; file: string; format: string }[] = [
   { name: 'saeukkang.usdz', file: 'saeukkang.usdz', format: 'USDZ' },
 ]
 
-test.describe('Ficad Web Electron - Format Loading', () => {
+test.describe('3D Viewer Electron - Format Loading', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', 'Ficad Web.exe')
+    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
     electronApp = await _electron.launch({
       executablePath: exePath,
     })

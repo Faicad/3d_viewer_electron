@@ -6,13 +6,13 @@ import { ALL_EXTENSIONS } from '../../src/renderer/config/file-formats'
 // Must be called before app.whenReady() to grant the custom protocol access to
 // IndexedDB, fetch, and other standard web APIs.
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'ficad-app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+  { scheme: 'faicad-viewer', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
 ])
 
 let mainWindow: BrowserWindow | null = null
 
 function setupProtocol(): void {
-  protocol.handle('ficad-app', (request) => {
+  protocol.handle('faicad-viewer', (request) => {
     const url = new URL(request.url)
     const urlPath = decodeURIComponent(url.pathname)
     let rel: string
@@ -45,7 +45,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: 'Ficad',
+    title: 'Faicad',
     backgroundColor: '#ffffff',
     show: false,
     webPreferences: {
@@ -74,8 +74,8 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  mainWindow.loadURL('ficad-app://local/out/renderer/index.html')
-  console.log('[Main] loading: ficad-app://local/out/renderer/index.html')
+  mainWindow.loadURL('faicad-viewer://local/out/renderer/index.html')
+  console.log('[Main] loading: faicad-viewer://local/out/renderer/index.html')
 
   mainWindow.on('closed', () => {
     mainWindow = null

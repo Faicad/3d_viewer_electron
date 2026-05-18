@@ -86,7 +86,7 @@ export async function loadOcct(
     const initFn = globalThis.occtimportjs!;
 
     // Pre-load the WASM binary ourselves because Emscripten's internal
-    // fetch() call doesn't support Electron custom protocols like ficad-app://.
+    // fetch() call doesn't support Electron custom protocols like faicad-viewer://.
     // XMLHttpRequest goes through the same request pipeline as <script> tags
     // and is handled by protocol.registerFileProtocol correctly.
     const wasmBinary = await fetchWasmBinary(wasmPath);

@@ -1,4 +1,4 @@
-# Ficad Web Electron 桌面应用
+# 3D Viewer Electron 桌面应用
 
 独立的本地 3D 模型文件查看器桌面应用，支持 STL/GLB/3MF/STEP/STP 格式文件浏览和渲染。
 
@@ -22,7 +22,7 @@
 ## 开发模式
 
 ```bash
-cd C:\my\Ficad\ficad_web_electron
+cd C:\my\Ficad\3d_viewer_electron
 npm install
 npm run dev
 ```
@@ -43,11 +43,11 @@ npm run build:win
 ## 项目结构
 
 ```
-ficad_web_electron/
+3d_viewer_electron/
 ├── electron/
 │   ├── main/index.ts      # 主进程：窗口管理、协议处理、文件系统 IPC
 │   └── preload/index.ts  # 预加载：contextBridge API
-├── src/renderer/         # 渲染进程源码（从 ficad_web 迁移）
+├── src/renderer/         # 渲染进程源码
 │   ├── components/       # 组件
 │   ├── engine/           # 3D 引擎组件
 │   ├── hooks/            # React hooks
@@ -59,7 +59,7 @@ ficad_web_electron/
 ├── out/                  # electron-vite 构建产物
 ├── dist/                 # electron-builder 打包产物
 │   └── win-unpacked/
-│       └── Ficad Web.exe # 可直接运行的可执行文件
+│       └── 3D_Viewer.exe # 可直接运行的可执行文件
 ├── package.json
 ├── electron.vite.config.ts
 └── tsconfig.json

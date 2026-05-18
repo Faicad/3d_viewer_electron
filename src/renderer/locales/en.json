@@ -1,6 +1,6 @@
 {
-  "app.name": "Ficad",
-  "app.welcome": "Welcome to Ficad",
+  "app.name": "Faicad",
+  "app.welcome": "Welcome to Faicad 3D Model Viewer",
   "app.welcomeHint": "Upload a model or describe what you need",
   "app.quickExample1": "Generate an M3 bolt",
   "app.quickExample2": "Make a 20mm cube",
@@ -76,7 +76,7 @@
 
   "chat.uploadFormats": "Drag & drop a 3D model file here",
   "chat.uploadHint": "Supports STL, GLB, 3MF, STEP, OBJ, FBX, and more",
-  "chat.welcome": "Welcome to Ficad",
+  "chat.welcome": "Welcome to Faicad",
   "chat.welcomeMessage": "Load a model or ask me to generate one",
   "chat.inputPlaceholder": "Describe what you need...",
   "chat.send": "Send"

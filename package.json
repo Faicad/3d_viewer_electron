@@ -1,8 +1,8 @@
 {
-  "name": "ficad_web_electron",
+  "name": "3d_viewer_electron",
   "version": "1.0.0",
-  "description": "Ficad Web Desktop Application",
-  "author": "Ficad",
+  "description": "Faicad 3d Viewer Desktop Application",
+  "author": "Faicad",
   "private": true,
   "type": "module",
   "main": "./out/main/index.js",
@@ -72,8 +72,8 @@
     "vitest": "^4.1.6"
   },
   "build": {
-    "appId": "com.ficad.web",
-    "productName": "Ficad Web",
+    "appId": "com.faicad.3d_viewer",
+    "productName": "3D Model Viewer",
     "publish": null,
     "directories": {
       "output": "dist",

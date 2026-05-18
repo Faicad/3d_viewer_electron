@@ -204,7 +204,7 @@ export type FileGroup =
 ```bash
 # 拷贝样例文件示例
 cp /c/git/three.js/examples/models/obj/cerberus/Cerberus.obj \
-   /c/my/Ficad/ficad_web_electron/src/test/fixtures/Cerberus.obj
+   /c/my/Ficad/3d_viewer_electron/src/test/fixtures/Cerberus.obj
 ```
 
 每个测试文件内容：

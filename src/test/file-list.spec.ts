@@ -8,11 +8,11 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 const TEST_GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
 const TEST_FIXTURES = path.join(PROJECT_ROOT, 'src', 'test', 'fixtures')
 
-test.describe('Ficad Web Electron - File List Panel', () => {
+test.describe('3D Viewer Electron - File List Panel', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', 'Ficad Web.exe')
+    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
     electronApp = await _electron.launch({
       executablePath: exePath,
     })
