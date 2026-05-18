@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -37,11 +37,16 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
-      - name: Build
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
         run: |
           pnpm run build:unpacked:linux
           mkdir -p dist/win-unpacked
           ln -sf "$PWD/dist/linux-unpacked/3d_viewer_electron" "dist/win-unpacked/3D_Viewer.exe"
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm run build:unpacked
 
       - name: Unit tests
         run: pnpm exec vitest run
@@ -49,5 +54,10 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Integration tests
+      - name: Integration tests (Linux)
+        if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum pnpm exec playwright test
+
+      - name: Integration tests (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm exec playwright test
