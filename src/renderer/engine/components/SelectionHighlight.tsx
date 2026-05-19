@@ -244,11 +244,14 @@ function buildFaceHighlightGeometry(
   const meshes = collectDisplayMeshes(modelGroupRef.current)
   if (!meshes.length) return null
 
-  let mesh = meshes[0]
+  let mesh: THREE.Mesh | undefined
   if (partId) {
-    const found = meshes.find((m) => m.userData?.partId === partId)
-    if (found) mesh = found
+    mesh = meshes.find((m) => m.userData?.partId === partId)
+  } else {
+    mesh = meshes[0]
   }
+  // If the target mesh is hidden (not in visible meshes), don't show highlight
+  if (!mesh) return null
 
   const geo = mesh.geometry
   if (!geo.index) return null
@@ -321,6 +324,10 @@ function buildEdgeLineGeometry(
 
   if (segmentCount <= 0) return null
 
+  // If no visible meshes, hide the highlight
+  const visibleMeshes = modelGroupRef?.current ? collectDisplayMeshes(modelGroupRef.current) : []
+  if (modelGroupRef?.current && visibleMeshes.length === 0) return null
+
   const indexStart = segmentStart * 2
   const indexEnd = Math.min(indexStart + segmentCount * 2, edgeIndices.length)
 
@@ -361,6 +368,10 @@ function buildVertexHighlightGeometry(
   ref: Reference,
   modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
 ): { type: 'vertex'; geo: THREE.BufferGeometry } | null {
+  // If no visible meshes, hide the highlight
+  const visibleMeshes = modelGroupRef?.current ? collectDisplayMeshes(modelGroupRef.current) : []
+  if (modelGroupRef?.current && visibleMeshes.length === 0) return null
+
   const vertexIndex = ref.rowIndex
   const { allPointPositions, vertexPositions } = runtime.proxy
 
