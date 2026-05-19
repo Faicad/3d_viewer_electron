@@ -8,6 +8,7 @@
   "app.noModel": "모델 없음",
 
   "toolbar.download": "모델 다운로드",
+  "toolbar.openFile": "파일 열기",
 
   "sceneTree.title": "씬",
   "sceneTree.visible": "표시",

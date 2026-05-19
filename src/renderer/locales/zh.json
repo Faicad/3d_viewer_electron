@@ -7,6 +7,7 @@
   "app.emptySceneTree": "暂无模型",
   "app.noModel": "无模型",
 
+  "toolbar.openFile": "打开文件",
   "toolbar.download": "下载模型",
   "toolbar.cache": "缓存",
   "cache.title": "缓存管理",

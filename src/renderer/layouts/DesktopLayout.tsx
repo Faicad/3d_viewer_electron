@@ -7,13 +7,14 @@ import { useModelStore, type SceneTreeNode } from '@/stores/model-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { stepToGlbCached } from '@/lib/step-converter'
+import { detectFormat } from '@/config/file-formats'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
-  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download, FolderOpen,
   ChevronRight, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
@@ -178,12 +179,73 @@ export default function DesktopLayout() {
     URL.revokeObjectURL(url)
   }, [])
 
+  const handleOpenFile = useCallback(async () => {
+    const result = await window.electronAPI.openFileDialog()
+    if (!result.success || !result.filePaths?.length) return
+    const filePath = result.filePaths[0]
+    const fileName = filePath.split(/[/\\]/).pop() || filePath
+    const dirPath = filePath.slice(0, filePath.lastIndexOf(filePath.includes('\\') ? '\\' : '/'))
+
+    try {
+      const fileResult = await window.electronAPI.readFileAsBase64(filePath)
+      if (!fileResult.success || !fileResult.data) {
+        toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
+        return
+      }
+      const binaryString = atob(fileResult.data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const buffer = bytes.buffer
+      const format = detectFormat(fileName)
+
+      if (format === 'step') {
+        useModelStore.getState().setIsConverting(true)
+        try {
+          const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+            { filePath, mtimeMs: Date.now() },
+            { wasmPath: '/wasm/occt-import-js.wasm' },
+          )
+          useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
+        } finally {
+          useModelStore.getState().setIsConverting(false)
+        }
+      } else if (format) {
+        useModelStore.getState().setModelBuffer(buffer, format)
+      } else {
+        toast.error('Unsupported file format: ' + fileName)
+        return
+      }
+      useModelStore.getState().setGLBUrl(fileName)
+
+      // Populate file list from the same directory
+      const dirResult = await window.electronAPI.readDirectory(dirPath)
+      if (dirResult.success && dirResult.files) {
+        useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
+      }
+    } catch (e) {
+      useModelStore.getState().setIsConverting(false)
+      toast.error('Load failed: ' + String(e))
+    }
+  }, [])
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* TopBar */}
       <header className="h-10 border-b flex items-center px-2 gap-2 shrink-0 overflow-x-auto">
         <span className="font-semibold text-sm px-2 shrink-0">{t('app.name')}</span>
         <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {/* Open File */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={handleOpenFile} aria-label={t('toolbar.openFile')}>
+              <FolderOpen className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.openFile')}</TooltipContent>
+        </Tooltip>
 
         <div className="flex-1" />
 

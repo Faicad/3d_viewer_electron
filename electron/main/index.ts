@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog } from 'electron'
 import { join, extname } from 'path'
 import * as fs from 'fs'
 import { ALL_EXTENSIONS } from '../../src/renderer/config/file-formats'
@@ -87,6 +87,20 @@ function createWindow(): void {
     mainWindow = null
   })
 }
+
+ipcMain.handle('dialog:openFile', async () => {
+  if (!mainWindow) return { success: false, error: 'No window' }
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Open 3D Model',
+    properties: ['openFile'],
+    filters: [
+      { name: 'All Supported Formats', extensions: ALL_EXTENSIONS.map((e) => e.slice(1)) },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  })
+  if (result.canceled) return { success: true, filePaths: [] }
+  return { success: true, filePaths: result.filePaths }
+})
 
 ipcMain.handle('electron:getAppVersion', () => app.getVersion())
 ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExternal(url))

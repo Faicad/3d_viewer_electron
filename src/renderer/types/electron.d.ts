@@ -17,6 +17,11 @@ declare global {
         error?: string
       }>
       getFilePath: (file: File) => string
+      openFileDialog: () => Promise<{
+        success: boolean
+        filePaths?: string[]
+        error?: string
+      }>
     }
     env: {
       DEV: boolean

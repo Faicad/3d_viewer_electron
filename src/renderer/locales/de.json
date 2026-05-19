@@ -8,6 +8,7 @@
   "app.noModel": "Kein Modell",
 
   "toolbar.download": "Modell herunterladen",
+  "toolbar.openFile": "Datei öffnen",
 
   "sceneTree.title": "Szene",
   "sceneTree.visible": "Sichtbar",

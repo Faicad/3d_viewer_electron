@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readDirectory: (dirPath: string) => ipcRenderer.invoke('fs:readDirectory', dirPath),
   readFileAsBase64: (filePath: string) => ipcRenderer.invoke('fs:readFileAsBase64', filePath),
   getFilePath: (file: File) => webUtils.getPathForFile(file),
+  openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
 })
 
 // Expose build info to renderer

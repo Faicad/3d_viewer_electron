@@ -10,6 +10,7 @@ if (typeof window !== 'undefined') {
     getFilePath: (file: File) => (file as unknown as { path?: string }).path ?? '',
     getAppVersion: async () => '1.0.0',
     openExternal: async () => {},
+    openFileDialog: async () => ({ success: true, filePaths: [] }),
   }
 
   // Mock env
