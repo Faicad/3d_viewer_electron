@@ -21,6 +21,29 @@ interface ModelGroupProps {
 
 // ---- helpers ----
 
+/**
+ * Clone a mesh's geometry for use in a new Mesh.
+ *
+ * R3F creates a fresh THREE.Mesh (no geometry in constructor) then sets geometry
+ * as a plain property, which does NOT call updateMorphTargets().  If the
+ * geometry has morphAttributes the mesh will have undefined
+ * morphTargetInfluences, and Three.js crashes in WebGLMorphtargets.update with
+ * "Cannot read properties of undefined (reading 'length')".
+ *
+ * We clear morphAttributes since we don't animate morph targets.
+ */
+export function cloneMeshGeometry(src: THREE.Mesh): THREE.BufferGeometry {
+  const geo = src.geometry.clone()
+  // R3F assigns geometry as a plain property (not via constructor), which
+  // does NOT call updateMorphTargets().  Clear morph attributes so Three.js
+  // skips morph processing — otherwise WebGLMorphtargets.update crashes on
+  // undefined morphTargetInfluences every render frame.
+  if (geo.morphAttributes) {
+    geo.morphAttributes = {}
+  }
+  return geo
+}
+
 function mergeGeometries(meshes: THREE.Mesh[]): THREE.BufferGeometry {
   const geoms = meshes.map((m) => {
     const g = m.geometry.clone()
@@ -124,6 +147,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           return
         }
 
+        // glTF requires a file path to resolve external buffer/image references
+        if (format === 'gltf' && !modelFilePath) {
+          return
+        }
         const result = await loadFormat(buffer, format, modelFilePath)
         if (cancelled) return
 
@@ -169,7 +196,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
           for (let i = 0; i < meshes.length; i++) {
             const src = meshes[i]
-            const geo = src.geometry.clone()
+            const geo = cloneMeshGeometry(src)
             src.updateWorldMatrix(true, false)
             geo.applyMatrix4(src.matrixWorld)
 
@@ -253,7 +280,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
     load()
     return () => { cancelled = true }
-  }, [buffer, format, setGlbPartInfos, setModelCenteringOffset])
+  }, [buffer, format, modelFilePath, setGlbPartInfos, setModelCenteringOffset])
 
   if (error) {
     return null

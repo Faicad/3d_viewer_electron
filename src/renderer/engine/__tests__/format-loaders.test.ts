@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as THREE from 'three'
 import { loadFormat } from '@/engine/formatLoaders'
 import { detectFormat, FORMAT_MAP, type FormatId } from '@/config/file-formats'
 
@@ -297,6 +298,76 @@ describe('Format loaders (Vitest integration)', () => {
       } finally {
         window.electronAPI = originalApi
       }
+    })
+  })
+
+  // ---- Morph target handling: geometry clone → new Mesh ----
+  describe('morph target mesh processing', () => {
+    // Regression: GLTFLoader creates meshes whose geometry has morphAttributes.
+    // ModelGroup calls cloneMeshGeometry(), which must clear morphAttributes
+    // because R3F creates a fresh THREE.Mesh() (no geometry in constructor),
+    // then assigns geometry as a plain property — which does NOT call
+    // updateMorphTargets().  Without the fix, morphTargetInfluences stays
+    // undefined while geometry.morphAttributes is non-empty, and Three.js
+    // crashes in WebGLMorphtargets.update every render frame with
+    // "Cannot read properties of undefined (reading 'length')".
+
+    it('cloneMeshGeometry clears morph attributes to prevent R3F crash', async () => {
+      // Dynamically import the function under test — it lives in ModelGroup
+      const { cloneMeshGeometry } = await import('@/engine/components/ModelGroup')
+
+      const gltfPath = path.join(FIXTURES_DIR, 'AnimatedMorphSphere.gltf')
+      const glbBuffer = resolveGltfFixture(gltfPath)
+      const result = await loadFormat(glbBuffer, 'glb')
+      expect(result.meshes.length).toBeGreaterThan(0)
+
+      for (const src of result.meshes) {
+        // cloneMeshGeometry is what ModelGroup calls on each source mesh.
+        // It must return a geometry WITHOUT morphAttributes so that R3F's
+        // plain-property geometry assignment is safe.
+        const cloned = cloneMeshGeometry(src)
+
+        // After the fix: morphAttributes must be empty (or absent)
+        const morphKeys = cloned.morphAttributes
+          ? Object.keys(cloned.morphAttributes)
+          : []
+        expect(
+          morphKeys.length,
+          `cloneMeshGeometry must clear morphAttributes to prevent ` +
+          `Three.js crash during R3F rendering. ` +
+          `Found keys: ${morphKeys.join(',') || 'none'}.`,
+        ).toBe(0)
+
+        // Verify R3F-style assignment is safe with the cloned geometry
+        const r3fMesh = new THREE.Mesh()
+        r3fMesh.geometry = cloned
+        // morphTargetInfluences may be undefined (R3F doesn't call
+        // updateMorphTargets), but that's safe because morphAttributes
+        // is empty → Three.js skips morph processing entirely.
+        expect(r3fMesh.geometry.morphAttributes).toEqual({})
+      }
+    })
+
+    it('raw geometry clone without fix causes undefined morphTargetInfluences', () => {
+      // This test documents WHY the fix is needed.
+      // Create a geometry with morph attributes (simulating GLTFLoader output)
+      const geo = new THREE.BufferGeometry()
+      const pos = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0])
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+      geo.morphAttributes = {
+        position: [
+          new THREE.BufferAttribute(new Float32Array([0, 0, 0.1, 1, 0, 0.1, 0, 1, 0.1]), 3),
+        ],
+      }
+      expect(Object.keys(geo.morphAttributes).length).toBeGreaterThan(0)
+
+      // R3F creates a Mesh without geometry in constructor, then assigns
+      // geometry as a plain property.  updateMorphTargets() is NOT called.
+      const r3fMesh = new THREE.Mesh()
+      r3fMesh.geometry = geo
+      expect(r3fMesh.morphTargetInfluences).toBeUndefined()
+      // ^ This is the bug: non-empty morphAttributes + undefined
+      //   morphTargetInfluences → Three.js crashes during rendering.
     })
   })
 })

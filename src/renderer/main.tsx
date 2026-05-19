@@ -14,7 +14,12 @@ window.__modelStore = useModelStore
 
 // Global error handlers — ensure all errors are visible in console
 window.addEventListener('error', (event) => {
-  console.error('[Global Error]', event.error ?? event.message)
+  const err = event.error
+  if (err instanceof Error) {
+    console.error('[Global Error]', err.message, '\n', err.stack)
+  } else {
+    console.error('[Global Error]', event.message, '\n', event.filename, ':', event.lineno, ':', event.colno)
+  }
 })
 
 window.addEventListener('unhandledrejection', (event) => {
