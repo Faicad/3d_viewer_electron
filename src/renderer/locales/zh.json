@@ -7,6 +7,8 @@
   "app.emptySceneTree": "暂无模型",
 
   "toolbar.openFile": "打开文件",
+  "toolbar.yUp": "Y轴朝上",
+  "toolbar.zUp": "Z轴朝上",
   "toolbar.fullscreen": "全屏",
   "toolbar.download": "下载模型",
   "toolbar.modelInfo": "模型信息",

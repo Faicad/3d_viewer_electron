@@ -27,6 +27,58 @@ import ToolOverlay from '@/engine/components/ToolOverlay'
 import TopologyPicker from '@/engine/components/TopologyPicker'
 import { toast } from 'sonner'
 
+/** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
+ *  the camera around the world X axis so the model appears stationary while the
+ *  "up" direction smoothly transitions. Does NOT touch the model at all. */
+function UpAxisAnimator({
+  upAxis,
+  animActive,
+  setAnimTarget,
+  setAnimTargetUp,
+  setAnimActive,
+}: {
+  upAxis: 'y' | 'z'
+  animActive: boolean
+  setAnimTarget: (pos: THREE.Vector3 | null) => void
+  setAnimTargetUp: (up: THREE.Vector3 | null) => void
+  setAnimActive: (active: boolean) => void
+}) {
+  const { camera } = useThree()
+  const prevUpAxis = useRef(upAxis)
+
+  useEffect(() => {
+    if (prevUpAxis.current === upAxis) return
+    // Wait for any in-progress animation to finish before starting a new one
+    if (animActive) return
+
+    const targetUp = upAxis === 'y'
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(0, 0, 1)
+
+    if (camera.up.clone().normalize().distanceTo(targetUp) < 0.001) {
+      prevUpAxis.current = upAxis
+      return
+    }
+
+    prevUpAxis.current = upAxis
+
+    // Rotate camera position around world X axis through origin.
+    // Z-up → Y-up: -π/2 around X.  Y-up → Z-up: +π/2 around X.
+    const currentUp = camera.up.clone().normalize()
+    const isCurrentlyYUp = Math.abs(currentUp.y - 1) < 0.01
+    const angle = isCurrentlyYUp ? Math.PI / 2 : -Math.PI / 2
+    const targetPos = camera.position.clone().applyAxisAngle(
+      new THREE.Vector3(1, 0, 0), angle,
+    )
+
+    setAnimTarget(targetPos)
+    setAnimTargetUp(targetUp)
+    setAnimActive(true)
+  }, [upAxis, animActive, camera, setAnimTarget, setAnimTargetUp, setAnimActive])
+
+  return null
+}
+
 function ModelTransformTracker({ modelRef }: { modelRef: React.RefObject<THREE.Group | null> }) {
   const setModelTransform = useEngineStore((s) => s.setModelTransform)
 
@@ -41,7 +93,6 @@ function ModelTransformTracker({ modelRef }: { modelRef: React.RefObject<THREE.G
 
   return null
 }
-
 
 function CameraAnimator({
   targetPos,
@@ -98,6 +149,7 @@ export default function ViewportContainer() {
   const mainCamera = useEngineStore((s) => s.camera)
   const modelBuffer = useModelStore((s) => s.modelBuffer)
   const modelFormat = useModelStore((s) => s.modelFormat)
+  const activeUpAxis = useModelStore((s) => s.activeUpAxis)
 
   const activeToolMode = useToolStore((s) => s.activeToolMode)
   const centeringOffset = useModelStore((s) => s.modelCenteringOffset)
@@ -232,11 +284,11 @@ export default function ViewportContainer() {
     const pos = center.clone().add(new THREE.Vector3(dist * 0.7, -dist * 0.7, dist * 0.6))
 
     setAnimTarget(pos)
-    setAnimTargetUp(new THREE.Vector3(0, 0, 1))
+    setAnimTargetUp(activeUpAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1))
     setAnimActive(true)
     controls.target.copy(center)
     controls.update()
-  }, [])
+  }, [activeUpAxis])
 
   const handleModelLoaded = useCallback((box: THREE.Box3) => {
     useEngineStore.getState().setModelGroup(modelGroupRef.current)
@@ -292,7 +344,9 @@ export default function ViewportContainer() {
 
     // Fallback: if no model loaded, use default view
     const defaultPos = new THREE.Vector3(5, -5, 3)
-    const defaultUp = new THREE.Vector3(0, 0, 1)
+    const defaultUp = activeUpAxis === 'y'
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(0, 0, 1)
     setAnimTarget(defaultPos)
     setAnimTargetUp(defaultUp)
     setAnimActive(true)
@@ -313,6 +367,7 @@ export default function ViewportContainer() {
         }}
       >
         <OrbitControls ref={controlsRef} enableDamping enabled={activeToolMode === 'view' && !animActive} />
+        <UpAxisAnimator upAxis={activeUpAxis} animActive={animActive} setAnimTarget={setAnimTarget} setAnimTargetUp={setAnimTargetUp} setAnimActive={setAnimActive} />
         <CameraAnimator
           targetPos={animTarget}
           targetUp={animTargetUp}

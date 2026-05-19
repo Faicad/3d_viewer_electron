@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import ArrowLine from './ArrowLine'
 import { useThemeColors } from '@/components/settings/useThemeColors'
+import { useModelStore } from '@/stores/model-store'
 
 const AXIS_LENGTH = 0.6
 const LABEL_OFFSET = 0.2
@@ -83,6 +84,8 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
 }
 
 export default function AxesIndicator({ mainCamera }: AxesIndicatorOverlayProps) {
+  const activeUpAxis = useModelStore((s) => s.activeUpAxis)
+
   return (
     <div
       style={{
@@ -98,8 +101,8 @@ export default function AxesIndicator({ mainCamera }: AxesIndicatorOverlayProps)
     >
       <Canvas
         orthographic
-        camera={{ zoom: 50, up: [0, 0, 1] as [number, number, number] }}
-        scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
+        camera={{ zoom: 50, up: (activeUpAxis === 'y' ? [0, 1, 0] : [0, 0, 1]) as [number, number, number] }}
+        scene={{ up: (activeUpAxis === 'y' ? [0, 1, 0] : [0, 0, 1]) as unknown as THREE.Vector3 }}
         gl={{ alpha: true, preserveDrawingBuffer: true }}
         style={{ width: '100%', height: '100%' }}
         onCreated={({ camera, scene, gl }) => {

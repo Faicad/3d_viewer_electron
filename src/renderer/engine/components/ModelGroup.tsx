@@ -181,11 +181,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             src.updateWorldMatrix(true, false)
             geo.applyMatrix4(src.matrixWorld)
 
-            // Standard GLTF/GLB is Y-up → convert to Z-up (unless cad-skill STEP GLB)
-            if ((format === 'glb' || format === 'gltf') && !isCadSkillGlb(buffer)) {
-              geo.rotateX(-Math.PI / 2)
-            }
-
             geo.computeVertexNormals()
             geo.computeBoundingBox()
 
@@ -444,20 +439,3 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 })
 
 export default ModelGroup
-
-/** Detect if GLB was produced by cad-skill's STEP pipeline (has STEP_topology extension) */
-function isCadSkillGlb(buffer: ArrayBuffer): boolean {
-  try {
-    // GLB header: magic(4) version(4) length(4), then JSON chunk
-    const header = new Uint32Array(buffer.slice(0, 12))
-    if (header[0] !== 0x46546C67) return false // 'glTF'
-    // Skip to JSON chunk — rough check
-    const view = new Uint8Array(buffer)
-    // Look for STEP_topology string in buffer
-    const decoder = new TextDecoder()
-    const text = decoder.decode(view.slice(0, Math.min(view.length, 2048)))
-    return text.includes('STEP_topology')
-  } catch {
-    return false
-  }
-}

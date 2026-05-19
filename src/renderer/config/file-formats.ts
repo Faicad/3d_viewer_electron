@@ -497,6 +497,38 @@ export function getGroupAccept(group: FileGroup): string {
 /** All extensions accept string */
 export const ALL_ACCEPT = ALL_EXTENSIONS.join(',')
 
+export type UpAxis = 'y' | 'z'
+
+const Y_UP_FORMATS: ReadonlySet<FormatId> = new Set([
+  'wrl', 'bvh', 'lwo', 'usdz', 'dae', 'fbx', 'obj', 'gltf',
+])
+
+/** Determines the coordinate-system up-axis native to a given file format.
+ *  For GLB, the presence of a STEP_topology extension signals Z-up (CAD data);
+ *  otherwise GLB defaults to Y-up (standard glTF convention). */
+export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis {
+  if (format === 'glb') {
+    if (buffer && isCadSkillGlb(buffer)) return 'z'
+    return 'y'
+  }
+  if (Y_UP_FORMATS.has(format)) return 'y'
+  return 'z'
+}
+
+/** Detect if GLB has STEP_topology extension */
+export function isCadSkillGlb(buffer: ArrayBuffer): boolean {
+  try {
+    const header = new Uint32Array(buffer.slice(0, 12))
+    if (header[0] !== 0x46546C67) return false
+    const view = new Uint8Array(buffer)
+    const decoder = new TextDecoder()
+    const text = decoder.decode(view.slice(0, Math.min(view.length, 2048)))
+    return text.includes('STEP_topology')
+  } catch {
+    return false
+  }
+}
+
 /** Detect format from a filename. Returns FormatId or null. Only matches enabled formats. */
 export function detectFormat(filename: string): FormatId | null {
   for (const fmt of ENABLED_FORMATS) {

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { FormatId } from '@/config/file-formats'
+import type { FormatId, UpAxis } from '@/config/file-formats'
+import { getDefaultUpAxis } from '@/config/file-formats'
 
 export interface SceneTreeNode {
   id: string
@@ -35,6 +36,10 @@ interface ModelStore {
   /** Loading phase for E2E test conditional waits (replaces fixed timeouts) */
   __loadingPhase: LoadingPhase
   setLoadingPhase: (phase: LoadingPhase) => void
+
+  /** Active coordinate-system up axis — auto-set on load, manually togglable via toolbar */
+  activeUpAxis: UpAxis
+  setActiveUpAxis: (axis: UpAxis) => void
 
   // STEP conversion loading state
   isConverting: boolean
@@ -98,6 +103,8 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   glbPartInfos: [],
   modelCenteringOffset: null,
 
+  activeUpAxis: 'z',
+
   currentFolderPath: null,
   folderFiles: [],
   selectedFileIndex: -1,
@@ -107,6 +114,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   setLoadingPhase: (phase) => set({ __loadingPhase: phase }),
   setGlbPartInfos: (infos) => set({ glbPartInfos: infos }),
   setModelCenteringOffset: (offset) => set({ modelCenteringOffset: offset }),
+  setActiveUpAxis: (axis) => set({ activeUpAxis: axis }),
 
   setFolderFiles: (folderPath, files) => set({ currentFolderPath: folderPath, folderFiles: files, selectedFileIndex: -1 }),
   setSelectedFileIndex: (index) => set({ selectedFileIndex: index }),
@@ -136,7 +144,9 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   },
 
   setModelBuffer: (buffer, format) => {
-    set({ modelBuffer: buffer.slice(0), modelFormat: format, __loadingPhase: 'loading' })
+    const sliced = buffer.slice(0)
+    const defaultAxis = getDefaultUpAxis(format, sliced)
+    set({ modelBuffer: sliced, modelFormat: format, __loadingPhase: 'loading', activeUpAxis: defaultAxis })
   },
 
   setModelFilePath: (path) => set({ modelFilePath: path }),
@@ -144,6 +154,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   reset: () => {
     const url = get().glbUrl
     if (url && url !== 'loaded') URL.revokeObjectURL(url)
-    set({ glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null, modelFilePath: null, __loadingPhase: 'idle', glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name' })
+    set({ glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null, modelFilePath: null, __loadingPhase: 'idle', glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name', activeUpAxis: 'z' })
   },
 }))

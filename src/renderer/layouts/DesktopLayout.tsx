@@ -261,6 +261,36 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.openFile')}</TooltipContent>
         </Tooltip>
 
+        {/* Y Axis Up */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={model.activeUpAxis === 'y' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => model.setActiveUpAxis('y')}
+              aria-label={t('toolbar.yUp')}
+            >
+              <span className="text-xs font-bold leading-none">Y↑</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.yUp')}</TooltipContent>
+        </Tooltip>
+
+        {/* Z Axis Up */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={model.activeUpAxis === 'z' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => model.setActiveUpAxis('z')}
+              aria-label={t('toolbar.zUp')}
+            >
+              <span className="text-xs font-bold leading-none">Z↑</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.zUp')}</TooltipContent>
+        </Tooltip>
+
         <div className="flex-1" />
 
         {/* Fullscreen */}
