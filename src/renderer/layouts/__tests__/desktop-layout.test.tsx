@@ -27,7 +27,6 @@ vi.mock('@/stores/model-store', () => {
     glbUrl: null,
     folderFiles: [],
     sceneTree: [],
-    stats: null,
     currentFolderPath: null,
     selectedFileIndex: -1,
     setIsConverting: mockSetIsConverting,
@@ -48,8 +47,10 @@ vi.mock('@/stores/ui-store', () => {
   const state = {
     leftPanelOpen: false,
     rightPanelOpen: false,
+    modelInfoOpen: false,
     toggleLeftPanel: vi.fn(),
     toggleRightPanel: vi.fn(),
+    toggleModelInfo: vi.fn(),
   }
   const useUIStore = Object.assign(
     (selector?: (s: typeof state) => any) => (selector ? selector(state) : state),
@@ -75,6 +76,19 @@ vi.mock('@/lib/step-converter', () => ({
 vi.mock('@/components/FileListPanel', () => ({
   default: () => null,
 }))
+
+vi.mock('@/components/ModelInfoPanel', () => ({
+  default: () => null,
+}))
+
+vi.mock('@/stores/engine-store', () => {
+  const state = { modelGroup: null }
+  const useEngineStore = Object.assign(
+    (selector?: (s: typeof state) => any) => (selector ? selector(state) : state),
+    { getState: () => state },
+  )
+  return { useEngineStore }
+})
 
 vi.mock('@/components/CacheManager', () => ({
   CacheManager: () => null,

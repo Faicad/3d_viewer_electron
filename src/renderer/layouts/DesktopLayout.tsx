@@ -15,11 +15,12 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download, FolderOpen,
-  Maximize, Minimize,
+  Maximize, Minimize, Info,
   ChevronRight, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
+import ModelInfoPanel from '@/components/ModelInfoPanel'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
 
@@ -282,6 +283,22 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.download')}</TooltipContent>
         </Tooltip>
 
+        {/* Model Info */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.modelInfoOpen ? 'secondary' : 'ghost'}
+              size="icon"
+              disabled={!activeTool}
+              onClick={ui.toggleModelInfo}
+              aria-label={t('toolbar.modelInfo')}
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.modelInfo')}</TooltipContent>
+        </Tooltip>
+
         {/* Panel toggles */}
         <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel}>
           {ui.leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -315,28 +332,15 @@ export default function DesktopLayout() {
           </aside>
         )}
 
-        {/* Center: Viewport + StatusBar */}
+        {/* Center: Viewport */}
         <div className="flex-1 flex flex-col min-w-0">
           <WorkspacePage projectId={projectId} />
-
-          {/* StatusBar */}
-          <footer className="h-7 border-t flex items-center px-3 gap-2 text-xs text-muted-foreground shrink-0 overflow-x-auto">
-            {model.stats ? (
-              <>
-                <span>{t('status.vertices')}: {model.stats.vertices.toLocaleString()}</span>
-                <span>{t('status.faces')}: {model.stats.faces.toLocaleString()}</span>
-                <span>{t('status.material')}: {model.stats.materialCost}g</span>
-              </>
-            ) : (
-              <span>{t('app.noModel')}</span>
-            )}
-          </footer>
         </div>
 
-        {/* Right Panel: File List */}
-        {ui.rightPanelOpen && (
+        {/* Right Panel */}
+        {(ui.rightPanelOpen || ui.modelInfoOpen) && (
           <aside style={{ width: '15%' } as React.CSSProperties} className="border-l flex flex-col shrink-0">
-            <FileListPanel />
+            {ui.modelInfoOpen ? <ModelInfoPanel /> : <FileListPanel />}
           </aside>
         )}
       </div>

@@ -197,15 +197,6 @@ describe('model-store', () => {
     expect(useModelStore.getState().modelCenteringOffset).toBeNull()
   })
 
-  it('updateStats', () => {
-    useModelStore.getState().updateStats(1000, 500, 25.5)
-    const stats = useModelStore.getState().stats
-    expect(stats).not.toBeNull()
-    expect(stats!.vertices).toBe(1000)
-    expect(stats!.faces).toBe(500)
-    expect(stats!.materialCost).toBe(25.5)
-  })
-
   it('setModelVersion', () => {
     useModelStore.getState().setModelVersion(5)
     expect(useModelStore.getState().modelVersion).toBe(5)

@@ -238,6 +238,7 @@ export default function ViewportContainer() {
   }, [])
 
   const handleModelLoaded = useCallback((box: THREE.Box3) => {
+    useEngineStore.getState().setModelGroup(modelGroupRef.current)
     const controls = controlsRef.current
     if (!controls) {
       pendingBoxRef.current = box.clone()

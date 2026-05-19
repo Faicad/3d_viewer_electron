@@ -17,20 +17,12 @@ export interface GlbPartInfo {
   triangleCount: number
 }
 
-interface ModelStats {
-  vertices: number
-  faces: number
-  volume: number
-  materialCost: number
-}
-
 export type FileSortMode = 'name' | 'type+name'
 
 interface ModelStore {
   glbUrl: string | null
   sceneTree: SceneTreeNode[]
   modelVersion: number
-  stats: ModelStats | null
 
   // R3F: raw model buffer for declarative rendering via ModelGroup
   modelBuffer: ArrayBuffer | null
@@ -61,7 +53,6 @@ interface ModelStore {
 
   setGLBUrl: (url: string) => void
   setModelVersion: (v: number) => void
-  updateStats: (vertices: number, faces: number, materialCost: number) => void
   updateSceneTree: (tree: SceneTreeNode[]) => void
   toggleNodeExpanded: (nodeId: string) => void
   toggleNodeVisible: (nodeId: string) => void
@@ -90,7 +81,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   glbUrl: null,
   sceneTree: [],
   modelVersion: 0,
-  stats: null,
   modelBuffer: null,
   modelFormat: null,
   isConverting: false,
@@ -117,9 +107,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
 
   setModelVersion: (v) => set({ modelVersion: v }),
 
-  updateStats: (vertices, faces, materialCost) =>
-    set({ stats: { vertices, faces, materialCost, volume: 0 } }),
-
   updateSceneTree: (tree) => set({ sceneTree: tree }),
 
   toggleNodeExpanded: (nodeId) => {
@@ -143,6 +130,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   reset: () => {
     const url = get().glbUrl
     if (url && url !== 'loaded') URL.revokeObjectURL(url)
-    set({ glbUrl: null, sceneTree: [], modelVersion: 0, stats: null, modelBuffer: null, modelFormat: null, glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name' })
+    set({ glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null, glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name' })
   },
 }))
