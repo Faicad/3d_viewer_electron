@@ -61,7 +61,7 @@ vi.mock('@/stores/ui-store', () => {
 
 vi.mock('@/stores/selection-store', () => ({
   useSelectionStore: () => ({
-    selectedReferenceId: null,
+    selectedReferenceIds: [],
   }),
 }))
 

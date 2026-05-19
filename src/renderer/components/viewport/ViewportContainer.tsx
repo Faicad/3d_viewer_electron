@@ -182,7 +182,7 @@ export default function ViewportContainer() {
   const hasTopology = selectorRuntime !== null
   const selectionMode = useToolStore((s) => s.selectionMode)
   const hoveredReferenceId = useSelectionStore((s) => s.hoveredReferenceId)
-  const selectedReferenceId = useSelectionStore((s) => s.selectedReferenceId)
+  const selectedReferenceIds = useSelectionStore((s) => s.selectedReferenceIds)
   const setHoveredReference = useSelectionStore((s) => s.setHoveredReference)
   const setSelectedReference = useSelectionStore((s) => s.setSelectedReference)
   const [snapCandidate, setSnapCandidate] = useState<SnapCandidate | null>(null)
@@ -253,11 +253,12 @@ export default function ViewportContainer() {
     if (dev) dev.selectorRuntime = selectorRuntime
   }, [selectorRuntime])
 
-  // Resolve selected reference for HUD
+  // Resolve first selected reference for HUD
   const selectedReference = useMemo(() => {
-    if (!selectedReferenceId || !selectorRuntime) return null
-    return selectorRuntime.referenceMap.get(selectedReferenceId) ?? null
-  }, [selectedReferenceId, selectorRuntime])
+    const id = selectedReferenceIds[0]
+    if (!id || !selectorRuntime) return null
+    return selectorRuntime.referenceMap.get(id) ?? null
+  }, [selectedReferenceIds, selectorRuntime])
 
   const handleAnimDone = useCallback(() => {
     setAnimActive(false)
@@ -397,7 +398,7 @@ export default function ViewportContainer() {
           selectorRuntime={selectorRuntime}
           modelGroupRef={modelGroupRef}
           onHover={setHoveredReference}
-          onClick={setSelectedReference}
+          onClick={(id, shiftKey) => setSelectedReference(id, { shiftKey })}
           onSnap={handleSnap}
           onClickWorldPoint={handleClickWorldPoint}
         />
@@ -409,14 +410,17 @@ export default function ViewportContainer() {
           modelGroupRef={modelGroupRef}
           renderOrder={displayMode === 'wireframe' ? 4 : 2}
         />
-        <SelectionHighlight
-          runtime={selectorRuntime}
-          referenceId={selectedReferenceId}
-          color="#2563eb"
-          opacity={displayMode === 'wireframe' ? 0.8 : 0.5}
-          modelGroupRef={modelGroupRef}
-          renderOrder={displayMode === 'wireframe' ? 5 : 2}
-        />
+        {selectedReferenceIds.map((id) => (
+          <SelectionHighlight
+            key={id}
+            runtime={selectorRuntime}
+            referenceId={id}
+            color="#2563eb"
+            opacity={displayMode === 'wireframe' ? 0.8 : 0.5}
+            modelGroupRef={modelGroupRef}
+            renderOrder={displayMode === 'wireframe' ? 5 : 2}
+          />
+        ))}
         {clickWorldPoint && selectionMode === 'face' && (
           <points
             position={clickWorldPoint}

@@ -28,8 +28,8 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
   const hasChildren = node.children && node.children.length > 0
   const toggleExpanded = useModelStore((s) => s.toggleNodeExpanded)
   const toggleVisible = useModelStore((s) => s.toggleNodeVisible)
-  const selectedReferenceId = useSelectionStore((s) => s.selectedReferenceId)
-  const isSelected = selectedReferenceId === node.id
+  const selectedReferenceIds = useSelectionStore((s) => s.selectedReferenceIds)
+  const isSelected = selectedReferenceIds.includes(node.id)
 
   return (
     <>
@@ -40,9 +40,9 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
           isSelected && 'bg-accent ring-1 ring-primary',
         )}
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
-        onClick={() => {
+        onClick={(e) => {
           const { setSelectedReference } = useSelectionStore.getState()
-          setSelectedReference(node.id)
+          setSelectedReference(node.id, { shiftKey: e.shiftKey })
         }}
       >
         {/* Expand/collapse chevron */}
