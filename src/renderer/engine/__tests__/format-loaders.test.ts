@@ -313,8 +313,7 @@ describe('Format loaders (Vitest integration)', () => {
     // "Cannot read properties of undefined (reading 'length')".
 
     it('cloneMeshGeometry clears morph attributes to prevent R3F crash', async () => {
-      // Dynamically import the function under test — it lives in ModelGroup
-      const { cloneMeshGeometry } = await import('@/engine/components/ModelGroup')
+      const { cloneMeshGeometry } = await import('@/engine/components/cloneMeshGeometry')
 
       const gltfPath = path.join(FIXTURES_DIR, 'AnimatedMorphSphere.gltf')
       const glbBuffer = resolveGltfFixture(gltfPath)
