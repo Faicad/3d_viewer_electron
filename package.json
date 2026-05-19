@@ -16,7 +16,12 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:unpacked": "electron-vite build && electron-builder --win --dir",
     "build:unpacked:linux": "electron-vite build && electron-builder --linux --dir",
-    "build:unpacked:mac": "electron-vite build && electron-builder --mac --dir"
+    "build:unpacked:mac": "electron-vite build && electron-builder --mac --dir",
+    "test:unit": "vitest run",
+    "test:components": "vitest run --config vitest.jsdom.config.ts",
+    "test:e2e": "playwright test",
+    "test:fast": "vitest run && vitest run --config vitest.jsdom.config.ts",
+    "ci": "bash scripts/ci.sh"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
