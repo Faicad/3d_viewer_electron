@@ -97,6 +97,7 @@ export function CacheManager({ children }: CacheManagerProps) {
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadEntries()
     }
   }, [open])
@@ -123,8 +124,6 @@ export function CacheManager({ children }: CacheManagerProps) {
     if (selectedKeys.size === 0) return
     setLoading(true)
 
-    selectedKeys.forEach(key => memCache.delete(key))
-
     try {
       const db = await openIDB()
       const tx = db.transaction(STORE_NAME, 'readwrite')
@@ -137,6 +136,10 @@ export function CacheManager({ children }: CacheManagerProps) {
         tx.onerror = () => reject(tx.error)
         tx.onabort = () => reject(tx.error)
       })
+      // Only clear memCache after IDB transaction succeeds
+      for (const key of selectedKeys) {
+        memCache.delete(key)
+      }
     } catch (e) {
       console.warn('[CacheManager] IndexedDB delete failed:', e)
     }

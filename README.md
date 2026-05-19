@@ -102,7 +102,6 @@
 ## 开发
 
 ```bash
-cd C:\my\Ficad\3d_viewer_electron
 pnpm install
 pnpm run dev
 ```

@@ -16,7 +16,6 @@ npm run build:win     # Build + package as NSIS installer (dist/)
 npm run lint          # Run ESLint
 npx vitest run        # Run unit tests
 npx playwright test   # Run integration tests
-npm run ci            # Run all checks: tsc --noEmit, eslint, build, vitest, playwright
 ```
 
 **Single test file**: `npx vitest run src/renderer/lib/step-converter/stepToGlb.test.ts`
@@ -65,5 +64,5 @@ Zustand stores in `src/renderer/stores/`. No Redux or other state library.
 - electron-builder (packaging)
 
 
-强调：任务完成前/代码提交到git前，必须跑npm run ci。
+强调：任务完成前/代码提交到git前，必须跑scripts下面的ci脚本。
 

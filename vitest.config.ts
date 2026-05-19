@@ -5,5 +5,6 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.{test,spec}.ts'],
     exclude: ['src/test/**'],
+    setupFiles: ['fake-indexeddb/auto'],
   },
 })

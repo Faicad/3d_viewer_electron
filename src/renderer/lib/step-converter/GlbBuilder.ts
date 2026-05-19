@@ -15,7 +15,7 @@ export class GlbBuilder {
 
   constructor() {
     this.json = {
-      asset: { version: '2.0', generator: 'ficad-step-converter' },
+      asset: { version: '2.0', generator: 'faicad-step-converter' },
       scene: 0,
       scenes: [{ nodes: [] }],
       nodes: [],

@@ -1,8 +1,7 @@
 import { buildGlbFromResult, type StepToGlbOptions } from './stepToGlb'
 import { convertInWorker } from './stepWorkerPool'
-import { getCached, putCached } from './stepCache'
-
-const memCache = new Map<string, ArrayBuffer>()
+import { getCached, putCached, memCache } from './stepCache'
+export { clearStepCache } from './stepCache'
 
 function cacheKey(filePath: string, mtimeMs: number): string {
   const normalizedPath = filePath.replace(/\\/g, '/')
