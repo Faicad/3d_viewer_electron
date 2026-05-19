@@ -1,7 +1,8 @@
 import { GlbBuilder } from './GlbBuilder';
 import type { OcctMesh, OcctNode } from './occtLoader';
 
-const CAD_TO_GLB_SCALE = 0.001;
+// Topology data stays in mm — the viewer's buildSelectorRuntime applies
+// a scale=0.001 transform to convert to meters, matching the Python convention.
 
 const OCCURRENCE_COLUMNS = [
   'id', 'path', 'name', 'sourceName', 'parentId', 'transform',
@@ -81,9 +82,9 @@ function faceBbox(
   for (let t = firstTri; t <= lastTri; t++) {
     for (let j = 0; j < 3; j++) {
       const vi = idxArray[t * 3 + j];
-      const x = posArray[vi * 3] * CAD_TO_GLB_SCALE;
-      const y = posArray[vi * 3 + 1] * CAD_TO_GLB_SCALE;
-      const z = posArray[vi * 3 + 2] * CAD_TO_GLB_SCALE;
+      const x = posArray[vi * 3];
+      const y = posArray[vi * 3 + 1];
+      const z = posArray[vi * 3 + 2];
       if (x < min[0]) min[0] = x;
       if (y < min[1]) min[1] = y;
       if (z < min[2]) min[2] = z;
@@ -133,11 +134,33 @@ export function addStepTopology(
   const indexPayload = new TextEncoder().encode(JSON.stringify(indexManifest));
   const indexView = builder.addBufferView(indexPayload);
 
-  // 2. selector manifest
+  // 2. selector manifest (with proxy geometry)
   let selectorView: number | null = null;
   if (includeSelectorTopology && importResult.meshes.length > 0) {
-    const selectorManifest = buildSelectorManifest(builder, importResult, { entryKind, stepHash, cadPath });
-    const selectorPayload = new TextEncoder().encode(JSON.stringify(selectorManifest));
+    const { manifest, buffers } = buildSelectorManifest(builder, importResult, { entryKind, stepHash, cadPath });
+
+    // Write typed buffer views into the GLB and record their view indices
+    const bufferViewDefs: Record<string, { dtype: string; bufferView: number; byteLength: number; count: number; itemSize: number }> = {};
+    for (const [name, arr] of Object.entries(buffers)) {
+      const bufViewIdx = builder.addBufferView(arr);
+      const itemSize = arr instanceof Float32Array ? 4 : 4; // Uint32Array also 4 bytes
+      bufferViewDefs[name] = {
+        dtype: arr instanceof Float32Array ? 'float32' : 'uint32',
+        bufferView: bufViewIdx,
+        byteOffset: 0,
+        byteLength: arr.byteLength,
+        count: arr.length,
+        itemSize,
+      };
+    }
+
+    // Patch the manifest with buffer view descriptors
+    (manifest as Record<string, unknown>).buffers = {
+      littleEndian: true,
+      views: bufferViewDefs,
+    };
+
+    const selectorPayload = new TextEncoder().encode(JSON.stringify(manifest));
     selectorView = builder.addBufferView(selectorPayload);
   }
 
@@ -195,14 +218,64 @@ function describeNode(node: OcctNode): Record<string, unknown> {
   };
 }
 
+// ── Edge extraction helpers ──
+
+/** Edges that appear only once across all faces are boundary/silhouette edges */
+function extractBoundaryEdges(
+  posArray: Float32Array,
+  idxArray: Uint32Array,
+  brepFaces: Array<{ first: number; last: number }>,
+): Map<string, { v0: number; v1: number }> {
+  const edgeCounts = new Map<string, { v0: number; v1: number; count: number }>();
+
+  for (const face of brepFaces) {
+    const faceEdges = new Set<string>();
+    for (let t = face.first; t <= face.last; t++) {
+      const a = idxArray[t * 3];
+      const b = idxArray[t * 3 + 1];
+      const c = idxArray[t * 3 + 2];
+      // Sort each edge's vertex indices so AB and BA count as same edge
+      const edges = [[a, b], [b, c], [c, a]].map(([x, y]) => x < y ? `${x},${y}` : `${y},${x}`);
+      for (const key of edges) {
+        if (!faceEdges.has(key)) {
+          faceEdges.add(key);
+          const entry = edgeCounts.get(key);
+          if (entry) {
+            entry.count++;
+          } else {
+            const [v0, v1] = key.split(',').map(Number);
+            edgeCounts.set(key, { v0, v1, count: 1 });
+          }
+        }
+      }
+    }
+  }
+
+  // Keep edges that appear exactly once (boundary edges)
+  const boundaries = new Map<string, { v0: number; v1: number }>();
+  for (const [key, entry] of edgeCounts) {
+    if (entry.count === 1) {
+      boundaries.set(key, { v0: entry.v0, v1: entry.v1 });
+    }
+  }
+  return boundaries;
+}
+
 function buildSelectorManifest(
   builder: GlbBuilder,
   importResult: OcctImportResult,
   { entryKind: _entryKind, stepHash, cadPath }: AddStepTopologyOptions,
-): Record<string, unknown> {
+): { manifest: Record<string, unknown>; buffers: Record<string, Float32Array | Uint32Array> } {
   const meshes = importResult.meshes;
 
   const faceRunData: number[] = [];
+
+  // Edge proxy geometry — boundary edges of faces
+  const allEdgePositions: number[] = [];
+  const allEdgeIndices: number[] = [];
+
+  // Map mesh vertex index → position in edgePositions
+  const edgeVertexMap = new Map<number, number>();
 
   let totalFaces = 0;
   let occIndex = 0;
@@ -217,8 +290,8 @@ function buildSelectorManifest(
     const idxArr = new Uint32Array(mesh.index.array);
     const brepFaces = mesh.brep_faces || [];
 
-    const occId = `o${occIndex}`;
-    const shapeId = `${occId}.s1`;
+    const occId = String(occIndex);
+    const shapeId = `${occId}.s0`;
 
     const faceBboxes: BBox[] = [];
     const faceNormals: number[][] = [];
@@ -229,19 +302,20 @@ function buildSelectorManifest(
       const lastTri = face.last;
       const triCount = lastTri - firstTri + 1;
 
+      // Bbox & normal (in mm, matching Python convention)
       const bbox = faceBbox(posArr, idxArr, firstTri, lastTri);
       faceBboxes.push(bbox);
-
       faceNormals.push(faceNormalFromTriangle(posArr, idxArr, firstTri));
 
+      // FaceRun references mesh index array directly (matching Python convention)
       faceRunData.push(occIndex, 0, firstTri, triCount, totalFaces + fi);
 
-      const faceId = `${occId}.f${fi + 1}`;
+      const faceId = `${occId}.f${fi}`;
       faceRows.push([
         faceId,
         occId,
         shapeId,
-        fi + 1,
+        fi,
         'unknown',
         0,
         bboxCenter(bbox),
@@ -255,6 +329,26 @@ function buildSelectorManifest(
         firstTri,
         triCount,
       ]);
+    }
+
+    // Edge proxy geometry: extract boundary edges
+    if (brepFaces.length > 0) {
+      const boundaryEdges = extractBoundaryEdges(posArr, idxArr, brepFaces);
+      for (const [, edge] of boundaryEdges) {
+        let ev0 = edgeVertexMap.get(edge.v0);
+        if (ev0 === undefined) {
+          ev0 = allEdgePositions.length / 3;
+          edgeVertexMap.set(edge.v0, ev0);
+          allEdgePositions.push(posArr[edge.v0 * 3], posArr[edge.v0 * 3 + 1], posArr[edge.v0 * 3 + 2]);
+        }
+        let ev1 = edgeVertexMap.get(edge.v1);
+        if (ev1 === undefined) {
+          ev1 = allEdgePositions.length / 3;
+          edgeVertexMap.set(edge.v1, ev1);
+          allEdgePositions.push(posArr[edge.v1 * 3], posArr[edge.v1 * 3 + 1], posArr[edge.v1 * 3 + 2]);
+        }
+        allEdgeIndices.push(ev0, ev1);
+      }
     }
 
     const meshBbox = faceBboxes.length > 0
@@ -280,7 +374,7 @@ function buildSelectorManifest(
     shapeRows.push([
       shapeId,
       occId,
-      1,
+      0,
       'solid',
       bboxArray(meshBbox),
       bboxCenter(meshBbox),
@@ -296,9 +390,6 @@ function buildSelectorManifest(
     occIndex++;
   }
 
-  const faceRunsArray = new Uint32Array(faceRunData);
-  const faceRunsViewIndex = builder.addBufferView(faceRunsArray);
-
   let globalBbox: BBox = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
   for (const row of occurrenceRows) {
     const rowBbox = row[6] as number[];
@@ -313,16 +404,19 @@ function buildSelectorManifest(
     globalBbox = { min: [0, 0, 0], max: [0, 0, 0] };
   }
 
-  return {
+  const edgePositionsArr = new Float32Array(allEdgePositions);
+  const edgeIndicesArr = new Uint32Array(allEdgeIndices);
+
+  const manifest: Record<string, unknown> = {
     schemaVersion: 1,
     profile: 'selector',
     cadRef: cadPath,
     stepPath: cadPath ? `${cadPath}.step` : undefined,
     stepHash,
-    bbox: {
-      min: [globalBbox.min[0], globalBbox.min[1], globalBbox.min[2]],
-      max: [globalBbox.max[0], globalBbox.max[1], globalBbox.max[2]],
-    },
+    bbox: [
+      globalBbox.min[0], globalBbox.min[1], globalBbox.min[2],
+      globalBbox.max[0], globalBbox.max[1], globalBbox.max[2],
+    ],
     stats: {
       occurrenceCount: occurrenceRows.length,
       leafOccurrenceCount: occurrenceRows.length,
@@ -330,8 +424,8 @@ function buildSelectorManifest(
       faceCount: totalFaces,
       edgeCount: 0,
       faceProxyRunCount: totalFaces,
-      edgeProxyPointCount: 0,
-      edgeProxySegmentCount: 0,
+      edgeProxyPointCount: allEdgePositions.length / 3,
+      edgeProxySegmentCount: allEdgeIndices.length / 2,
     },
     tables: {
       occurrenceColumns: OCCURRENCE_COLUMNS,
@@ -344,32 +438,28 @@ function buildSelectorManifest(
     faces: faceRows,
     edges: [],
     faceProxy: {
-      source: cadPath ? `.${cadPath}.step.glb` : undefined,
       runsView: 'faceRuns',
       runColumns: ['occurrenceRow', 'primitiveIndex', 'triangleStart', 'triangleCount', 'faceRow'],
     },
     edgeProxy: {
-      source: cadPath ? `.${cadPath}.step.glb` : undefined,
-      positionsView: null,
-      indicesView: null,
-      idsView: null,
+      positionsView: 'edgePositions',
+      indicesView: 'edgeIndices',
+      edgeIdsView: 'edgeIds',
     },
     relations: {
-      faceEdgeRows: [],
-      edgeFaceRows: [],
-    },
-    buffers: {
-      littleEndian: true,
-      views: {
-        faceRuns: {
-          dtype: 'uint32',
-          bufferView: faceRunsViewIndex,
-          byteOffset: 0,
-          byteLength: faceRunsArray.byteLength,
-          count: faceRunsArray.length,
-          itemSize: 4,
-        },
-      },
+      faceEdgeRowsView: 'faceEdgeRows',
+      edgeFaceRowsView: 'edgeFaceRows',
     },
   };
+
+  const buffers: Record<string, Float32Array | Uint32Array> = {
+    faceRuns: new Uint32Array(faceRunData),
+    edgePositions: edgePositionsArr,
+    edgeIndices: edgeIndicesArr,
+    edgeIds: new Uint32Array(0),
+    faceEdgeRows: new Uint32Array(0),
+    edgeFaceRows: new Uint32Array(0),
+  };
+
+  return { manifest, buffers };
 }

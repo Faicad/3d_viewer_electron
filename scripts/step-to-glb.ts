@@ -123,7 +123,8 @@ if (ext) {
   const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
   console.log(`  STEP_topology: ${sel.occurrences.length} occurrences, ${sel.faces.length} faces, ${sel.edges.length} edges`)
-  console.log(`  bbox: min=[${(sel.bbox.min as number[]).map((v: number) => v.toFixed(3)).join(', ')}] max=[${(sel.bbox.max as number[]).map((v: number) => v.toFixed(3)).join(', ')}]`)
+  const bboxArr = sel.bbox as number[]
+  console.log(`  bbox: min=[${bboxArr.slice(0, 3).map((v: number) => v.toFixed(3)).join(', ')}] max=[${bboxArr.slice(3, 6).map((v: number) => v.toFixed(3)).join(', ')}]`)
 } else {
   console.error('  WARNING: STEP_topology NOT present in output!')
 }

@@ -202,11 +202,9 @@ describe('STEP → GLB production pipeline', () => {
     expect(Array.isArray(sel.tables?.faceColumns)).toBe(true)
     expect(Array.isArray(sel.faces[0])).toBe(true)
 
-    // BBox
-    expect(Array.isArray(sel.bbox?.min)).toBe(true)
-    expect(Array.isArray(sel.bbox?.max)).toBe(true)
-    expect(sel.bbox.min.length).toBe(3)
-    expect(sel.bbox.max.length).toBe(3)
+    // BBox (flat array: [minX, minY, minZ, maxX, maxY, maxZ])
+    expect(Array.isArray(sel.bbox)).toBe(true)
+    expect(sel.bbox.length).toBe(6)
   })
 
   // ── Face proxy runs ──
@@ -240,7 +238,7 @@ describe('STEP → GLB production pipeline', () => {
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
     const firstFaceId: string = sel.faces[0][0]
-    expect(firstFaceId).toMatch(/^o\d+\.f\d+$/)
+    expect(firstFaceId).toMatch(/^\d+\.f\d+$/)
 
     // All face occurrence IDs exist in occurrences
     const occIds = new Set(sel.occurrences.map((o: unknown[]) => o[0]))
@@ -274,5 +272,38 @@ describe('STEP → GLB production pipeline', () => {
     expect(sel.faceProxy.runColumns).toContain('faceRow')
     expect(sel.faceProxy.runColumns).toContain('triangleStart')
     expect(sel.faceProxy.runColumns).toContain('triangleCount')
+  })
+
+  it('has edge proxy with positionsView and indicesView', () => {
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const selBytes = readBufferView(ext.selectorView as number)
+    const sel = JSON.parse(new TextDecoder().decode(selBytes))
+
+    expect(sel.edgeProxy?.positionsView).toBe('edgePositions')
+    expect(sel.edgeProxy?.indicesView).toBe('edgeIndices')
+  })
+
+  it('has edge proxy geometry buffers', () => {
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const selBytes = readBufferView(ext.selectorView as number)
+    const sel = JSON.parse(new TextDecoder().decode(selBytes))
+
+    const views = sel.buffers?.views as Record<string, { dtype: string; bufferView: number; count: number }> | undefined
+    expect(views?.edgePositions?.dtype).toBe('float32')
+    expect(views?.edgeIndices?.dtype).toBe('uint32')
+    expect(views?.edgePositions?.count).toBeGreaterThan(0)
+    expect(views?.edgeIndices?.count).toBeGreaterThan(0)
+  })
+
+  it('does not include face proxy geometry (selector profile has only runs)', () => {
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const selBytes = readBufferView(ext.selectorView as number)
+    const sel = JSON.parse(new TextDecoder().decode(selBytes))
+
+    const views = sel.buffers?.views as Record<string, unknown> | undefined
+    expect(views?.facePositions).toBeUndefined()
+    expect(views?.faceIndices).toBeUndefined()
+    // faceProxy has no source field (unlike Python's artifact profile)
+    expect(sel.faceProxy?.source).toBeUndefined()
   })
 })
