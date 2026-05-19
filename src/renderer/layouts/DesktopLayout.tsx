@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -15,6 +15,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download, FolderOpen,
+  Maximize, Minimize,
   ChevronRight, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
@@ -101,6 +102,18 @@ export default function DesktopLayout() {
   useEffect(() => {
     useUIStore.setState({ leftPanelOpen: !isCompactViewport })
   }, [isCompactViewport])
+
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onFullscreenChanged(setIsFullscreen)
+    return unsubscribe
+  }, [])
+
+  const handleToggleFullscreen = useCallback(async () => {
+    const result = await window.electronAPI.toggleFullscreen()
+    setIsFullscreen(result)
+  }, [])
 
   // Keyboard navigation for file list
   useEffect(() => {
@@ -248,6 +261,16 @@ export default function DesktopLayout() {
         </Tooltip>
 
         <div className="flex-1" />
+
+        {/* Fullscreen */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} aria-label={t('toolbar.fullscreen')}>
+              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.fullscreen')}</TooltipContent>
+        </Tooltip>
 
         {/* Download */}
         <Tooltip>

@@ -11,6 +11,8 @@ if (typeof window !== 'undefined') {
     getAppVersion: async () => '1.0.0',
     openExternal: async () => {},
     openFileDialog: async () => ({ success: true, filePaths: [] }),
+    toggleFullscreen: async () => true,
+    onFullscreenChanged: () => () => {},
   }
 
   // Mock env

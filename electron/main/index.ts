@@ -69,6 +69,21 @@ function createWindow(): void {
     console.log('[Main] console[' + level + ']:', message)
   })
 
+  // ESC exits fullscreen
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.key === 'Escape' && mainWindow?.isFullScreen()) {
+      mainWindow.setFullScreen(false)
+    }
+  })
+
+  // Forward fullscreen state changes to renderer
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow?.webContents.send('fullscreen-changed', true)
+  })
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow?.webContents.send('fullscreen-changed', false)
+  })
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
@@ -100,6 +115,13 @@ ipcMain.handle('dialog:openFile', async () => {
   })
   if (result.canceled) return { success: true, filePaths: [] }
   return { success: true, filePaths: result.filePaths }
+})
+
+ipcMain.handle('window:toggleFullscreen', () => {
+  if (!mainWindow) return false
+  const willBeFullscreen = !mainWindow.isFullScreen()
+  mainWindow.setFullScreen(willBeFullscreen)
+  return willBeFullscreen
 })
 
 ipcMain.handle('electron:getAppVersion', () => app.getVersion())

@@ -9,6 +9,7 @@
 
   "toolbar.download": "모델 다운로드",
   "toolbar.openFile": "파일 열기",
+  "toolbar.fullscreen": "전체 화면",
 
   "sceneTree.title": "씬",
   "sceneTree.visible": "표시",

@@ -8,6 +8,7 @@
   "app.noModel": "No model",
 
   "toolbar.openFile": "Open File",
+  "toolbar.fullscreen": "Fullscreen",
   "toolbar.download": "Download Model",
   "toolbar.cache": "Cache",
   "cache.title": "Cache Manager",

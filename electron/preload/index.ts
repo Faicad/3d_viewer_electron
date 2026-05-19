@@ -8,6 +8,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFileAsBase64: (filePath: string) => ipcRenderer.invoke('fs:readFileAsBase64', filePath),
   getFilePath: (file: File) => webUtils.getPathForFile(file),
   openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
+  toggleFullscreen: () => ipcRenderer.invoke('window:toggleFullscreen'),
+  onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, isFullscreen: boolean) => callback(isFullscreen)
+    ipcRenderer.on('fullscreen-changed', listener)
+    return () => ipcRenderer.removeListener('fullscreen-changed', listener)
+  },
 })
 
 // Expose build info to renderer

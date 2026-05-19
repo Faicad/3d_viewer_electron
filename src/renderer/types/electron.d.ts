@@ -22,6 +22,8 @@ declare global {
         filePaths?: string[]
         error?: string
       }>
+      toggleFullscreen: () => Promise<boolean>
+      onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => () => void
     }
     env: {
       DEV: boolean

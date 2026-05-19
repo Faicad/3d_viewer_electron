@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -91,6 +91,8 @@ vi.mock('@/pages/WorkspacePage', () => ({
 import DesktopLayout from '../DesktopLayout'
 
 describe('DesktopLayout toolbar', () => {
+  afterEach(() => cleanup())
+
   beforeEach(() => {
     vi.clearAllMocks()
     ;(window as any).electronAPI = {
@@ -100,6 +102,8 @@ describe('DesktopLayout toolbar', () => {
       getFilePath: vi.fn(),
       getAppVersion: vi.fn(),
       openExternal: vi.fn(),
+      toggleFullscreen: vi.fn().mockResolvedValue(true),
+      onFullscreenChanged: vi.fn().mockReturnValue(() => {}),
     }
   })
 
@@ -131,5 +135,35 @@ describe('DesktopLayout toolbar', () => {
     await user.click(buttons[0])
 
     expect(window.electronAPI.openFileDialog).toHaveBeenCalledOnce()
+  })
+
+  it('renders fullscreen button in the toolbar', () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <DesktopLayout />
+        </MemoryRouter>
+      </TooltipProvider>,
+    )
+
+    const button = screen.getByRole('button', { name: 'toolbar.fullscreen' })
+    expect(button).toBeDefined()
+  })
+
+  it('calls electronAPI.toggleFullscreen when fullscreen button clicked', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <DesktopLayout />
+        </MemoryRouter>
+      </TooltipProvider>,
+    )
+
+    const buttons = screen.getAllByRole('button', { name: 'toolbar.fullscreen' })
+    await user.click(buttons[0])
+
+    expect(window.electronAPI.toggleFullscreen).toHaveBeenCalledOnce()
   })
 })
