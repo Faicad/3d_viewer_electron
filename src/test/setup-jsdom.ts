@@ -1,5 +1,20 @@
-// jsdom environment setup for component tests
+// jsdom environment setup for component tests & format loader tests
 // Mocks browser APIs not provided by jsdom
+// Guarded: when @vitest-environment node is used, window is not defined
+
+if (typeof window !== 'undefined') {
+  // Mock electronAPI
+  ;(window as Record<string, unknown>).electronAPI = {
+    readDirectory: async () => [],
+    readFileAsBase64: async () => '',
+    getFilePath: (file: File) => (file as unknown as { path?: string }).path ?? '',
+    getAppVersion: async () => '1.0.0',
+    openExternal: async () => {},
+  }
+
+  // Mock env
+  ;(window as Record<string, unknown>).env = { DEV: true, PROD: false }
+}
 
 // Mock URL.createObjectURL / revokeObjectURL
 if (typeof URL.createObjectURL === 'undefined') {
@@ -9,14 +24,14 @@ if (typeof URL.createObjectURL === 'undefined') {
   URL.revokeObjectURL = () => {}
 }
 
-// Mock electronAPI
-;(window as Record<string, unknown>).electronAPI = {
-  readDirectory: async () => [],
-  readFileAsBase64: async () => '',
-  getFilePath: (file: File) => (file as unknown as { path?: string }).path ?? '',
-  getAppVersion: async () => '1.0.0',
-  openExternal: async () => {},
+// jsdom provides DOMParser, but some Three.js loaders access document.createElement / Image
+// jsdom provides these already — ensure they exist
+if (typeof globalThis.Image === 'undefined') {
+  // @ts-expect-error minimal Image mock for Three.js texture loaders
+  globalThis.Image = class {
+    onload: (() => void) | null = null
+    src = ''
+    width = 1
+    height = 1
+  }
 }
-
-// Mock env
-;(window as Record<string, unknown>).env = { DEV: true, PROD: false }
