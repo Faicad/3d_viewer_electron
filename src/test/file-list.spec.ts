@@ -43,7 +43,7 @@ test.describe('3D Viewer Electron - File List Panel', () => {
 
   test('electronAPI readDirectory returns fixture files', async () => {
     const window = await electronApp.firstWindow()
-    await window.waitForTimeout(2000)
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
     const result = await window.evaluate(async (fixturesPath: string) => {
       return await window.electronAPI.readDirectory(fixturesPath)
@@ -58,7 +58,7 @@ test.describe('3D Viewer Electron - File List Panel', () => {
 
   test('electronAPI readFileAsBase64 loads test-box.glb', async () => {
     const window = await electronApp.firstWindow()
-    await window.waitForTimeout(2000)
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
     const result = await window.evaluate(async (filePath: string) => {
       return await window.electronAPI.readFileAsBase64(filePath)
@@ -72,7 +72,7 @@ test.describe('3D Viewer Electron - File List Panel', () => {
 
   test('file list panel shows empty state initially', async () => {
     const window = await electronApp.firstWindow()
-    await window.waitForTimeout(2000)
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
     const emptyStateZh = window.getByText(/加载文件后显示同目录模型/)
     const visible = await emptyStateZh.isVisible().catch(() => false)
@@ -104,7 +104,7 @@ test.describe('3D Viewer Electron - File List Panel', () => {
   test('can manually trigger file list panel to show files', async () => {
     // This test verifies that we CAN manually set folder files via store
     const window = await electronApp.firstWindow()
-    await window.waitForTimeout(2000)
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
     // We can't directly set Zustand state from the test,
     // but we can verify the readDirectory works

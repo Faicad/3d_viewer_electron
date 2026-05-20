@@ -35,14 +35,18 @@ test.describe('DesktopLayout panel widths', () => {
       if (!leftOpen) {
         const leftOpenBtn = window.locator('button').filter({ has: window.locator('.lucide-panel-left-open') })
         const count = await leftOpenBtn.count()
-        if (count > 0) await leftOpenBtn.first().click()
-        await window.waitForTimeout(500)
+        if (count > 0) {
+          await leftOpenBtn.first().click()
+          await expect(leftCloseBtn).toBeAttached()
+        }
       }
       if (!rightOpen) {
         const rightOpenBtn = window.locator('button').filter({ has: window.locator('.lucide-panel-right-open') })
         const count = await rightOpenBtn.count()
-        if (count > 0) await rightOpenBtn.first().click()
-        await window.waitForTimeout(500)
+        if (count > 0) {
+          await rightOpenBtn.first().click()
+          await expect(rightCloseBtn).toBeAttached()
+        }
       }
     }
 

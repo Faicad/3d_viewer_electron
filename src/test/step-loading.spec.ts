@@ -121,8 +121,15 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   })
 
   test('clicks STEP file in file list panel and renders model', async () => {
+    test.setTimeout(60000)
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
+    await window.waitForLoadState('domcontentloaded')
+
+    // Start each test with a clean cache so stale IndexedDB entries
+    // from previous runs don't affect the conversion result.
+    await window.evaluate(() => window.__clearStepCache())
+    await window.evaluate(() => window.__modelStore?.getState().reset())
 
     // Populate file list panel with fixture files
     const hasFiles = await window.evaluate(async (fixturesPath: string) => {
@@ -133,8 +140,9 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     }, path.resolve(__dirname, 'fixtures'))
     expect(hasFiles).toBe(true)
 
-    // Let React render the file list entries
-    await window.waitForTimeout(200)
+    // Wait for the file list entry to appear in the DOM
+    const stepEntry = window.locator('div[data-index]').filter({ hasText: /test-model\.step$/ })
+    await expect(stepEntry).toBeAttached()
 
     // Collect console messages
     const consoleMessages: string[] = []
@@ -142,41 +150,25 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
       consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
     })
 
-    // Find and click the test-model.step entry in the file list
-    const stepEntry = window.locator('div[data-index]').filter({ hasText: /test-model\.step$/ })
-    const entryCount = await stepEntry.count()
-    console.log('[test] step file entries found:', entryCount)
-    expect(entryCount).toBe(1)
-
     await stepEntry.click()
 
-    await waitForLoadDone(window, 60000)
+    await waitForLoadDone(window, 50000)
 
-    const relevant = consoleMessages.filter(m =>
-      m.includes('[ModelGroup]') ||
-      m.includes('STEP') ||
-      m.includes('Load failed') ||
-      m.includes('Error') ||
-      m.includes('error')
-    )
-    console.log('[test] console messages (file-list click):', relevant)
+    // After loadingPhase becomes 'done', ModelGroup's glbMeshes state update
+    // and the subsequent React re-render (which logs faceIds built and attaches
+    // meshes to the scene) may not have completed yet. Wait for actual meshes
+    // in the THREE.js scene to ensure all render-cycle side effects are done.
+    await window.waitForFunction(() => {
+      const dev = window.__r3f_dev
+      if (!dev?.scene) return false
+      let meshCount = 0
+      dev.scene.traverse((obj: any) => { if (obj?.isMesh) meshCount++ })
+      return meshCount > 0
+    })
 
     // Verify faceIds built (proof of successful conversion)
     const hasFaceIds = consoleMessages.some(m => m.includes('[ModelGroup] faceIds built:'))
     expect(hasFaceIds).toBe(true)
-
-    // Verify 3D meshes rendered
-    const sceneHasMeshes = await window.evaluate(() => {
-      const dev = window.__r3f_dev
-      if (!dev?.scene) return false
-      let meshCount = 0
-      dev.scene.traverse((obj: any) => {
-        if (obj?.isMesh) meshCount++
-      })
-      return meshCount > 0
-    })
-    console.log('[test] scene has meshes (file-list click):', sceneHasMeshes)
-    expect(sceneHasMeshes).toBe(true)
 
     // Verify topology
     const topologyInfo = await window.evaluate(() => {
@@ -187,7 +179,6 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
         occurrences: rt.occurrenceIdByRowIndex?.size,
       }
     })
-    console.log('[test] topology (file-list click):', topologyInfo)
     expect(topologyInfo).not.toBeNull()
     expect(topologyInfo!.faces).toBeGreaterThan(0)
     await assertNoErrors()
@@ -197,6 +188,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     test.setTimeout(90000)
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
+    await window.waitForLoadState('domcontentloaded')
 
     // Reset model and populate file list with fixture files
     await window.evaluate(async (fixturesPath: string) => {
@@ -206,15 +198,16 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
         window.__modelStore.getState().setFolderFiles(fixturesPath, result.files)
       }
     }, path.resolve(__dirname, 'fixtures'))
-    await window.waitForTimeout(200)
+
+    // Wait for the file list entry to render before clicking
+    const entry1 = window.locator('div[data-index]').filter({ hasText: /keycap_v6\.step$/ })
+    await expect(entry1).toBeAttached()
 
     const consoleMessages: string[] = []
     window.on('console', (msg) => {
       consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
     })
 
-    // Click keycap_v6.step (not loaded by prior tests) → must be cache miss
-    const entry1 = window.locator('div[data-index]').filter({ hasText: /keycap_v6\.step$/ })
     await entry1.click()
     await waitForLoadDone(window, 60000)
 
@@ -267,7 +260,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   test('shows loading overlay during STEP conversion and hides after', async () => {
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
-    await window.waitForTimeout(2000)
+    await window.waitForLoadState('domcontentloaded')
 
     // Overlay is conditionally rendered — not in DOM when isConverting=false
     const overlay = window.locator('[data-testid="step-loading-overlay"]')

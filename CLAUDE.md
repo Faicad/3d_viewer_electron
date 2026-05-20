@@ -68,3 +68,5 @@ Zustand stores in `src/renderer/stores/`. No Redux or other state library.
 一定要保证ci通过才能提交git，没有任何借口，绝对不存在已有的错误不管这回事。
 
 本项目是开源项目，所以文档/代码里不能暴露本机开发环境/路径/密钥等私密信息。
+
+测试代码里，禁止用window.waitForTimeout，或者类似的粗暴延时的代码。

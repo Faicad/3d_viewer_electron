@@ -7,9 +7,10 @@ interface DisplayModeDropdownProps {
   displayMode: DisplayMode
   onChange: (mode: DisplayMode) => void
   hasTopology: boolean
+  hasEdges: boolean
 }
 
-export default function DisplayModeDropdown({ displayMode, onChange, hasTopology }: DisplayModeDropdownProps) {
+export default function DisplayModeDropdown({ displayMode, onChange, hasTopology: _hasTopology, hasEdges }: DisplayModeDropdownProps) {
   const { t } = useTranslation()
   const colors = useThemeColors()
 
@@ -37,11 +38,11 @@ export default function DisplayModeDropdown({ displayMode, onChange, hasTopology
         }}
       >
         <option value="solid">{t('display.solid')}</option>
-        {hasTopology && <option value="wireframe">{t('display.wireframe')}</option>}
-        {hasTopology && <option value="solidWithWireframe">{t('display.solidWithWireframe')}</option>}
+        {hasEdges && <option value="wireframe">{t('display.wireframe')}</option>}
+        {hasEdges && <option value="solidWithWireframe">{t('display.solidWithWireframe')}</option>}
         <option value="mesh">{t('display.mesh')}</option>
         <option value="solidWithMesh">{t('display.solidMesh')}</option>
-        {hasTopology && <option value="debug">{t('display.debug')}</option>}
+        {hasEdges && <option value="debug">{t('display.debug')}</option>}
       </select>
     </div>
   )

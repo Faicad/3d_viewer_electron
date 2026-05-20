@@ -8,6 +8,7 @@ declare global {
     __r3f_viewcube?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; hoveredFace?: string | null }
     __r3f_dev?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; selectorRuntime?: SelectorRuntime | null }
     __modelStore: typeof useModelStore
+    __clearStepCache: () => Promise<void>
   }
 }
 

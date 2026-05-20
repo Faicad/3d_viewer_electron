@@ -95,6 +95,11 @@ test.describe('3D Viewer - Key Format E2E', () => {
       return count > 0
     })
     expect(sceneHasContent).toBe(true)
+
+    // GLB has topology with edges → selection toolbar should be visible
+    await expect(window.locator('button[title="Object"], button[title="物体"]')).toBeAttached()
+    await expect(window.locator('button[title="Edge"], button[title="边"]')).toBeAttached()
+    await expect(window.locator('button[title="Point"], button[title="点"]')).toBeAttached()
   })
 
   test('loads 3MF file and renders mesh', async () => {
@@ -127,6 +132,9 @@ test.describe('3D Viewer - Key Format E2E', () => {
       return count > 0
     })
     expect(sceneHasContent).toBe(true)
+
+    // 3MF has no topology → selection toolbar should be hidden entirely
+    await expect(window.locator('button[title="Object"], button[title="物体"]')).not.toBeAttached()
   })
 
   test('loads STEP file and converts to GLB', async () => {
@@ -154,14 +162,12 @@ test.describe('3D Viewer - Key Format E2E', () => {
     await waitForLoadDone(window, 50000)
     await assertNoErrors()
 
-    // Verify topology was built (the ModelGroup console log)
     const topologyBuilt = consoleMessages.some((m) =>
       m.includes('[ModelGroup] faceIds built:'),
     )
     console.log(`[test] STEP topology built: ${topologyBuilt}`)
     expect(topologyBuilt).toBe(true)
 
-    // Verify scene has meshes
     const sceneHasContent = await window.evaluate(() => {
       const dev = window.__r3f_dev
       if (!dev?.scene) return false
@@ -172,6 +178,88 @@ test.describe('3D Viewer - Key Format E2E', () => {
       return count > 0
     })
     expect(sceneHasContent).toBe(true)
+  })
+
+  test('loads GLB with edge topology and validates selection/display modes', async () => {
+    test.setTimeout(30000)
+    const window = await electronApp.firstWindow()
+    const { assertNoErrors } = trackErrors(window)
+
+    await window.evaluate(() => {
+      window.__modelStore?.getState().reset()
+    })
+
+    const fileBuffer = readFileSync(path.join(FIXTURES_DIR, 'test-box.glb'))
+    await window.locator('input[type="file"]').setInputFiles({
+      name: 'test-box.glb',
+      mimeType: 'model/gltf-binary',
+      buffer: fileBuffer,
+    })
+
+    await waitForLoadDone(window)
+    await assertNoErrors()
+
+    // Wait for selectorRuntime with edges > 0 (R3F onCreated + effect may lag)
+    await window.waitForFunction(() => {
+      const dev = window.__r3f_dev
+      return dev?.selectorRuntime?.edges.length > 0
+    })
+
+    // Edge and Point buttons should be visible
+    await expect(window.locator('button[title="Edge"], button[title="边"]')).toBeAttached()
+    await expect(window.locator('button[title="Point"], button[title="点"]')).toBeAttached()
+
+    // Wireframe, Solid+Wireframe, and Debug options should be available in dropdown
+    const displaySelect = window.locator('select')
+    await expect(displaySelect.locator('option[value="wireframe"]')).toBeAttached()
+    await expect(displaySelect.locator('option[value="solidWithWireframe"]')).toBeAttached()
+    await expect(displaySelect.locator('option[value="debug"]')).toBeAttached()
+  })
+
+  test('loads STEP model (no edges) and validates edge-dependent UI hidden', async () => {
+    test.setTimeout(60000)
+    const window = await electronApp.firstWindow()
+    const { assertNoErrors } = trackErrors(window)
+
+    await window.evaluate(() => {
+      window.__modelStore?.getState().reset()
+    })
+
+    const fileBuffer = readFileSync(path.join(FIXTURES_DIR, 'test-model.step'))
+    const consoleMessages: string[] = []
+    window.on('console', (msg) => {
+      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
+    })
+
+    await window.locator('input[type="file"]').setInputFiles({
+      name: 'test-model.step',
+      mimeType: 'application/octet-stream',
+      buffer: fileBuffer,
+    })
+
+    await waitForLoadDone(window, 50000)
+    await assertNoErrors()
+
+    // Verify edges === 0
+    const info = await window.evaluate(() => {
+      const rt = window.__r3f_dev?.selectorRuntime
+      if (!rt) return null
+      return { edges: rt.edges.length, faces: rt.faces?.length }
+    })
+    expect(info).not.toBeNull()
+    expect(info!.edges).toBe(0)
+
+    // Edge and Point buttons should be hidden (no edges)
+    await expect(window.locator('button[title="Edge"], button[title="边"]')).not.toBeAttached()
+    await expect(window.locator('button[title="Point"], button[title="点"]')).not.toBeAttached()
+
+    // Wireframe, Solid+Wireframe, and Debug options should NOT be present in dropdown
+    await expect(window.locator('select').locator('option[value="wireframe"]')).not.toBeAttached()
+    await expect(window.locator('select').locator('option[value="solidWithWireframe"]')).not.toBeAttached()
+    await expect(window.locator('select').locator('option[value="debug"]')).not.toBeAttached()
+
+    // Face button should be visible (topology exists)
+    await expect(window.locator('button[title="Face"], button[title="面"]')).toBeAttached()
   })
 
   // Regression: glTF files with morph targets (like AnimatedMorphSphere)

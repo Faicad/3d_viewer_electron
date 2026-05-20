@@ -91,7 +91,7 @@
 | VOX | `.vox` | MagicaVoxel 体素格式 |
 | KMZ | `.kmz` | 压缩的 KML，含 3D 模型 |
 
-> **总计：25 种格式**。另有用例受限未启用的格式：IFC (`.ifc`)、LDraw (`.ldraw` `.mpd` `.ldr`)、MDD (`.mdd`)。
+> **总计：25 种格式**。另有用例受限未启用的格式：IFC (`.ifc`)、MDD (`.mdd`)。
 
 ## 环境要求
 

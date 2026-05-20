@@ -141,6 +141,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
   try {
     const result = await window.electronAPI.readFileAsBase64(file.path)
     if (!result.success || !result.data) {
+      console.error('[handleFileClick] readFileAsBase64 failed:', result.error || 'unknown error')
       toast.error('Load failed: ' + (result.error || 'unknown error'))
       return
     }
@@ -164,11 +165,13 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     } else if (format) {
       useModelStore.getState().setModelBuffer(buffer, format)
     } else {
+      console.error('[handleFileClick] unsupported format:', file.name)
       toast.error('Unsupported file format: ' + file.name)
       return
     }
     useModelStore.getState().setGLBUrl(file.name)
   } catch (e) {
+    console.error('[handleFileClick] exception:', e)
     useModelStore.getState().setIsConverting(false)
     toast.error('Load failed: ' + String(e))
   }

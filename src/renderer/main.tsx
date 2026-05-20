@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useModelStore } from '@/stores/model-store'
+import { clearStepCache } from '@/lib/step-converter'
 import App from './App'
 import './i18n'
 import './index.css'
@@ -12,6 +13,7 @@ import './index.css'
 // Expose state for E2E test access
 window.__modelStore = useModelStore
 window.__errors = []
+window.__clearStepCache = clearStepCache
 
 // Global error handlers — surface errors to both console and window.__errors
 window.addEventListener('error', (event) => {

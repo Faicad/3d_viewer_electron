@@ -180,6 +180,7 @@ export default function ViewportContainer() {
     }
   }, [modelBuffer, modelFormat])
   const hasTopology = selectorRuntime !== null
+  const hasEdges = hasTopology && selectorRuntime.edges.length > 0
   const selectionMode = useToolStore((s) => s.selectionMode)
   const hoveredReferenceId = useSelectionStore((s) => s.hoveredReferenceId)
   const selectedReferenceIds = useSelectionStore((s) => s.selectedReferenceIds)
@@ -199,6 +200,11 @@ export default function ViewportContainer() {
       setDebugSelectedEdgeRow(null)
     }
   }, [])
+
+  // Ensure the dropdown value is always valid (wireframe options hidden when !hasEdges)
+  const resolvedDisplayMode: DisplayMode = !hasEdges && (displayMode === 'wireframe' || displayMode === 'solidWithWireframe')
+    ? 'solid'
+    : displayMode
 
   const handleSnap = useCallback((candidate: SnapCandidate | null) => {
     setSnapCandidate(candidate)
@@ -385,11 +391,11 @@ export default function ViewportContainer() {
           onLoaded={handleModelLoaded}
           onError={handleModelError}
           selectorRuntime={selectorRuntime}
-          displayMode={displayMode}
+          displayMode={resolvedDisplayMode}
         />
         <ToolOverlay modelRef={modelGroupRef} />
         {hasTopology && <TopologyOverlay selectorRuntime={selectorRuntime} />}
-        {(displayMode === 'wireframe' || displayMode === 'solidWithMesh' || displayMode === 'debug') && hasTopology && (
+        {(resolvedDisplayMode === 'wireframe' && hasEdges || resolvedDisplayMode === 'solidWithMesh' && hasTopology || resolvedDisplayMode === 'debug' && hasEdges) && (
           <DebugTopologyOverlay selectorRuntime={selectorRuntime!} centeringOffset={centeringOffset} showVertices={displayMode === 'debug'} />
         )}
         <TopologyPicker
@@ -408,7 +414,7 @@ export default function ViewportContainer() {
           color="#ffffff"
           opacity={0.25}
           modelGroupRef={modelGroupRef}
-          renderOrder={displayMode === 'wireframe' ? 4 : 2}
+          renderOrder={resolvedDisplayMode === 'wireframe' ? 4 : 2}
         />
         {selectedReferenceIds.map((id) => (
           <SelectionHighlight
@@ -416,9 +422,9 @@ export default function ViewportContainer() {
             runtime={selectorRuntime}
             referenceId={id}
             color="#2563eb"
-            opacity={displayMode === 'wireframe' ? 0.8 : 0.5}
+            opacity={resolvedDisplayMode === 'wireframe' ? 0.8 : 0.5}
             modelGroupRef={modelGroupRef}
-            renderOrder={displayMode === 'wireframe' ? 5 : 2}
+            renderOrder={resolvedDisplayMode === 'wireframe' ? 5 : 2}
           />
         ))}
         {clickWorldPoint && selectionMode === 'face' && (
@@ -452,8 +458,8 @@ export default function ViewportContainer() {
           zIndex: 10,
         }}
       >
-        <SelectionToolbar hasTopology={hasTopology} />
-        <DisplayModeDropdown displayMode={displayMode} onChange={handleDisplayModeChange} hasTopology={hasTopology} />
+        <SelectionToolbar hasTopology={hasTopology} hasEdges={hasEdges} />
+        <DisplayModeDropdown displayMode={resolvedDisplayMode} onChange={handleDisplayModeChange} hasTopology={hasTopology} hasEdges={hasEdges} />
         {displayMode === 'debug' && selectorRuntime && (
           <>
             <select

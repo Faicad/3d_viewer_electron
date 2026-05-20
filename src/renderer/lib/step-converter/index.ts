@@ -1,5 +1,5 @@
 export { stepToGlb, sha256, buildGlbFromResult } from './stepToGlb'
-export { stepToGlbCached } from './stepToGlbCached'
+export { stepToGlbCached, clearStepCache } from './stepToGlbCached'
 export { loadOcct, isOcctLoaded, resetOcctLoader } from './occtLoader'
 export { GlbBuilder } from './GlbBuilder'
 export { addStepTopology } from './topologyExt'

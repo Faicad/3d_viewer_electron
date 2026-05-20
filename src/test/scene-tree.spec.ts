@@ -78,14 +78,26 @@ test.describe.serial('Multi-level scene tree', () => {
     const collapseCount = await collapseBtn.count()
     if (collapseCount > 0) {
       await collapseBtn.click()
-      await window.waitForTimeout(500)
+      await window.waitForFunction(
+        (initial: number) => {
+          const panel = document.querySelector('aside')
+          return (panel?.querySelectorAll('.whitespace-nowrap').length ?? 0) < initial
+        },
+        initialCount,
+      )
 
       const afterCollapseCount = await leftPanel.locator('.whitespace-nowrap').count()
       expect(afterCollapseCount).toBeLessThan(initialCount)
 
       const expandBtn = leftPanel.locator('button[aria-label="expand"]').first()
       await expandBtn.click()
-      await window.waitForTimeout(500)
+      await window.waitForFunction(
+        (initial: number) => {
+          const panel = document.querySelector('aside')
+          return (panel?.querySelectorAll('.whitespace-nowrap').length ?? 0) === initial
+        },
+        initialCount,
+      )
 
       const afterExpandCount = await leftPanel.locator('.whitespace-nowrap').count()
       expect(afterExpandCount).toBe(initialCount)
@@ -100,18 +112,14 @@ test.describe.serial('Multi-level scene tree', () => {
     const firstNode = leftPanel.locator('.whitespace-nowrap').first()
 
     await firstNode.hover()
-    await window.waitForTimeout(300)
 
     const eyeButton = firstNode.locator('button[aria-label="hide"], button[aria-label="show"]')
+    await expect(eyeButton).toBeVisible()
     const eyeCount = await eyeButton.count()
     expect(eyeCount).toBeGreaterThan(0)
-    await expect(eyeButton).toBeVisible()
 
     await eyeButton.click()
-    await window.waitForTimeout(300)
-
-    const classAttr = await firstNode.getAttribute('class')
-    expect(classAttr).toContain('opacity-40')
+    await expect(firstNode).toHaveClass(/opacity-40/)
 
     console.log('[test] eye icon visibility toggle works')
   })
