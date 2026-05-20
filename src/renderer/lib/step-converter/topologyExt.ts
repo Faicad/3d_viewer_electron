@@ -218,51 +218,8 @@ function describeNode(node: OcctNode): Record<string, unknown> {
   };
 }
 
-// ── Edge extraction helpers ──
-
-/** Edges that appear only once across all faces are boundary/silhouette edges */
-function extractBoundaryEdges(
-  posArray: Float32Array,
-  idxArray: Uint32Array,
-  brepFaces: Array<{ first: number; last: number }>,
-): Map<string, { v0: number; v1: number }> {
-  const edgeCounts = new Map<string, { v0: number; v1: number; count: number }>();
-
-  for (const face of brepFaces) {
-    const faceEdges = new Set<string>();
-    for (let t = face.first; t <= face.last; t++) {
-      const a = idxArray[t * 3];
-      const b = idxArray[t * 3 + 1];
-      const c = idxArray[t * 3 + 2];
-      // Sort each edge's vertex indices so AB and BA count as same edge
-      const edges = [[a, b], [b, c], [c, a]].map(([x, y]) => x < y ? `${x},${y}` : `${y},${x}`);
-      for (const key of edges) {
-        if (!faceEdges.has(key)) {
-          faceEdges.add(key);
-          const entry = edgeCounts.get(key);
-          if (entry) {
-            entry.count++;
-          } else {
-            const [v0, v1] = key.split(',').map(Number);
-            edgeCounts.set(key, { v0, v1, count: 1 });
-          }
-        }
-      }
-    }
-  }
-
-  // Keep edges that appear exactly once (boundary edges)
-  const boundaries = new Map<string, { v0: number; v1: number }>();
-  for (const [key, entry] of edgeCounts) {
-    if (entry.count === 1) {
-      boundaries.set(key, { v0: entry.v0, v1: entry.v1 });
-    }
-  }
-  return boundaries;
-}
-
 function buildSelectorManifest(
-  builder: GlbBuilder,
+  _builder: GlbBuilder,
   importResult: OcctImportResult,
   { entryKind: _entryKind, stepHash, cadPath }: AddStepTopologyOptions,
 ): { manifest: Record<string, unknown>; buffers: Record<string, Float32Array | Uint32Array> } {
@@ -270,22 +227,12 @@ function buildSelectorManifest(
 
   const faceRunData: number[] = [];
 
-  // Edge proxy geometry — boundary edges of faces
-  const allEdgePositions: number[] = [];
-  const allEdgeIndices: number[] = [];
-
-  // Map mesh vertex index → position in edgePositions
-  const edgeVertexMap = new Map<number, number>();
-
   let totalFaces = 0;
   let occIndex = 0;
 
   const occurrenceRows: unknown[][] = [];
   const shapeRows: unknown[][] = [];
   const faceRows: unknown[][] = [];
-
-  // Track per-occurrence edge segment ranges for edge table population
-  const occEdgeSegments: { occId: string; shapeId: string; segStart: number; segEnd: number }[] = [];
 
   for (let mi = 0; mi < meshes.length; mi++) {
     const mesh = meshes[mi];
@@ -295,7 +242,6 @@ function buildSelectorManifest(
 
     const occId = String(occIndex);
     const shapeId = `${occId}.s0`;
-    const segStart = allEdgeIndices.length / 2;
 
     const faceBboxes: BBox[] = [];
     const faceNormals: number[][] = [];
@@ -333,31 +279,6 @@ function buildSelectorManifest(
         firstTri,
         triCount,
       ]);
-    }
-
-    // Edge proxy geometry: extract boundary edges
-    if (brepFaces.length > 0) {
-      const boundaryEdges = extractBoundaryEdges(posArr, idxArr, brepFaces);
-      for (const [, edge] of boundaryEdges) {
-        let ev0 = edgeVertexMap.get(edge.v0);
-        if (ev0 === undefined) {
-          ev0 = allEdgePositions.length / 3;
-          edgeVertexMap.set(edge.v0, ev0);
-          allEdgePositions.push(posArr[edge.v0 * 3], posArr[edge.v0 * 3 + 1], posArr[edge.v0 * 3 + 2]);
-        }
-        let ev1 = edgeVertexMap.get(edge.v1);
-        if (ev1 === undefined) {
-          ev1 = allEdgePositions.length / 3;
-          edgeVertexMap.set(edge.v1, ev1);
-          allEdgePositions.push(posArr[edge.v1 * 3], posArr[edge.v1 * 3 + 1], posArr[edge.v1 * 3 + 2]);
-        }
-        allEdgeIndices.push(ev0, ev1);
-      }
-    }
-
-    const segEnd = allEdgeIndices.length / 2;
-    if (segEnd > segStart) {
-      occEdgeSegments.push({ occId, shapeId, segStart, segEnd });
     }
 
     const meshBbox = faceBboxes.length > 0
@@ -413,60 +334,11 @@ function buildSelectorManifest(
     globalBbox = { min: [0, 0, 0], max: [0, 0, 0] };
   }
 
-  const edgePositionsArr = new Float32Array(allEdgePositions);
-  const edgeIndicesArr = new Uint32Array(allEdgeIndices);
-
-  // ── Build edge table rows and edgeIds from proxy geometry ──
-
-  const edgeRows: unknown[][] = [];
-  const edgeIdsData: number[] = [];
-
-  for (const occ of occEdgeSegments) {
-    const { occId, shapeId, segStart, segEnd } = occ;
-    let edgeOrdinal = 0;
-
-    for (let si = segStart; si < segEnd; si++) {
-      const vi0 = allEdgeIndices[si * 2];
-      const vi1 = allEdgeIndices[si * 2 + 1];
-      const x0 = allEdgePositions[vi0 * 3], y0 = allEdgePositions[vi0 * 3 + 1], z0 = allEdgePositions[vi0 * 3 + 2];
-      const x1 = allEdgePositions[vi1 * 3], y1 = allEdgePositions[vi1 * 3 + 1], z1 = allEdgePositions[vi1 * 3 + 2];
-      const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
-      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
-      const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
-      const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
-      const minZ = Math.min(z0, z1), maxZ = Math.max(z0, z1);
-
-      edgeRows.push([
-        `${occId}.e${edgeOrdinal}`,
-        occId,
-        shapeId,
-        edgeOrdinal,
-        'line',
-        len,
-        [cx, cy, cz],
-        [minX, minY, minZ, maxX, maxY, maxZ],
-        0,  // faceStart — patched below after faceEdgeRows is built
-        0,  // faceCount
-        0,  // relevance
-        0,  // flags
-        null, // params
-        si,  // segmentStart
-        1,   // segmentCount
-      ]);
-
-      edgeIdsData.push(edgeOrdinal);
-      edgeOrdinal++;
-    }
-  }
-
-  const totalEdgeCount = edgeRows.length;
-
-  // Apply sequential relation starts for edge rows (faceStart/faceCount unused for now)
-  for (const row of edgeRows) {
-    row[8] = 0;
-    row[9] = 0;
-  }
-
+  // Edge data is not available from occt-import-js (WASM module only exposes
+  // brep_faces, not brep_edges). STEP topological edges must be extracted from
+  // OCCT's TopExp_Explorer / BRepAdaptor_Curve.
+  // Until the WASM module is rebuilt with edge support, edge tables and proxy
+  // geometry buffers are left empty.
   const manifest: Record<string, unknown> = {
     schemaVersion: 1,
     profile: 'selector',
@@ -482,10 +354,10 @@ function buildSelectorManifest(
       leafOccurrenceCount: occurrenceRows.length,
       shapeCount: shapeRows.length,
       faceCount: totalFaces,
-      edgeCount: totalEdgeCount,
+      edgeCount: 0,
       faceProxyRunCount: totalFaces,
-      edgeProxyPointCount: allEdgePositions.length / 3,
-      edgeProxySegmentCount: allEdgeIndices.length / 2,
+      edgeProxyPointCount: 0,
+      edgeProxySegmentCount: 0,
     },
     tables: {
       occurrenceColumns: OCCURRENCE_COLUMNS,
@@ -496,7 +368,7 @@ function buildSelectorManifest(
     occurrences: occurrenceRows,
     shapes: shapeRows,
     faces: faceRows,
-    edges: edgeRows,
+    edges: [],
     faceProxy: {
       runsView: 'faceRuns',
       runColumns: ['occurrenceRow', 'primitiveIndex', 'triangleStart', 'triangleCount', 'faceRow'],
@@ -514,9 +386,9 @@ function buildSelectorManifest(
 
   const buffers: Record<string, Float32Array | Uint32Array> = {
     faceRuns: new Uint32Array(faceRunData),
-    edgePositions: edgePositionsArr,
-    edgeIndices: edgeIndicesArr,
-    edgeIds: new Uint32Array(edgeIdsData),
+    edgePositions: new Float32Array(0),
+    edgeIndices: new Uint32Array(0),
+    edgeIds: new Uint32Array(0),
     faceEdgeRows: new Uint32Array(0),
     edgeFaceRows: new Uint32Array(0),
   };

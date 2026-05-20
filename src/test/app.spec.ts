@@ -47,6 +47,7 @@ test.describe('3D Viewer Electron', () => {
   test('app starts and renders canvas', async () => {
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
+    await window.waitForLoadState('domcontentloaded')
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
     const canvasCount = await window.locator('canvas').count()
