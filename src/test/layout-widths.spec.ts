@@ -1,17 +1,16 @@
 import { test, expect, ElectronApplication, _electron } from '@playwright/test'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getElectronPath } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 
 test.describe('DesktopLayout panel widths', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
     electronApp = await _electron.launch({
-      executablePath: exePath,
+      executablePath: getElectronPath(),
     })
   })
 

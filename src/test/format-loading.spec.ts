@@ -10,9 +10,9 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getElectronPath } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 const FIXTURES_DIR = path.join(__dirname, 'fixtures')
 
 const KEY_FIXTURES: { name: string; file: string; format: string }[] = [
@@ -49,9 +49,8 @@ test.describe('3D Viewer - Key Format E2E', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
     electronApp = await _electron.launch({
-      executablePath: exePath,
+      executablePath: getElectronPath(),
       args: ['--no-sandbox'],
     })
   })

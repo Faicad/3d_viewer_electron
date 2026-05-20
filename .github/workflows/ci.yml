@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, windows-2019]
+        os: [ubuntu-latest, windows-latest, windows-2019, macos-13, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -39,14 +39,15 @@ jobs:
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
-        run: |
-          pnpm run build:unpacked:linux
-          mkdir -p dist/win-unpacked
-          ln -sf "$PWD/dist/linux-unpacked/3d_viewer_electron" "dist/win-unpacked/3D_Viewer.exe"
+        run: pnpm run build:unpacked:linux
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
         run: pnpm run build:unpacked
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: pnpm run build:unpacked:mac
 
       - name: Unit tests
         run: pnpm exec vitest run
@@ -60,4 +61,8 @@ jobs:
 
       - name: Integration tests (Windows)
         if: runner.os == 'Windows'
+        run: pnpm exec playwright test
+
+      - name: Integration tests (macOS)
+        if: runner.os == 'macOS'
         run: pnpm exec playwright test

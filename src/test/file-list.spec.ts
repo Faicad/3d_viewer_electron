@@ -2,11 +2,11 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getElectronPath } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 const TEST_GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
-const TEST_FIXTURES = path.join(PROJECT_ROOT, 'src', 'test', 'fixtures')
+const TEST_FIXTURES = path.join(__dirname, 'fixtures')
 
 /** Wait for ModelGroup to finish loading (replaces fixed timeouts). */
 async function waitForLoadDone(page: Page, timeout = 30000) {
@@ -20,9 +20,8 @@ test.describe('3D Viewer Electron - File List Panel', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
     electronApp = await _electron.launch({
-      executablePath: exePath,
+      executablePath: getElectronPath(),
     })
   })
 

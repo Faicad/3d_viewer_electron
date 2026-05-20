@@ -14,16 +14,10 @@ if echo "${OS:-}${os:-}" | grep -q "Windows_NT" ||
    echo "$PLATFORM" | grep -qE "^(MINGW|MSYS|CYGWIN)"; then
   PLATFORM="Windows"
   BUILD_SCRIPT="build:unpacked"
-  SRC_DIR="dist/win-unpacked"
-  SRC_BIN="3D_Viewer.exe"
 elif [ "$PLATFORM" = "Linux" ]; then
   BUILD_SCRIPT="build:unpacked:linux"
-  SRC_DIR="dist/linux-unpacked"
-  SRC_BIN="3d_viewer_electron"
 elif [ "$PLATFORM" = "Darwin" ]; then
   BUILD_SCRIPT="build:unpacked:mac"
-  SRC_DIR="dist/mac"
-  SRC_BIN="3D_Viewer.app"
 else
   echo "Unsupported platform: $PLATFORM" >&2
   exit 1
@@ -61,13 +55,6 @@ echo "========================================"
 echo "  5/7  Build ($BUILD_SCRIPT)"
 echo "========================================"
 pnpm run "$BUILD_SCRIPT"
-
-# Symlink so tests find the binary at dist/win-unpacked/3D_Viewer.exe
-# Only needed on non-Windows where the binary lives at a different path
-if [ "$SRC_DIR" != "dist/win-unpacked" ]; then
-  mkdir -p dist/win-unpacked
-  ln -sf "$PWD/$SRC_DIR/$SRC_BIN" "dist/win-unpacked/3D_Viewer.exe"
-fi
 
 echo ""
 echo "========================================"

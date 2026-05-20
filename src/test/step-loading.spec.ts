@@ -2,9 +2,9 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getElectronPath } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 const TEST_STEP = readFileSync(path.join(__dirname, 'fixtures', 'test-model.step'))
 
 /** Collect page errors and return an assertion helper that fails on any error. */
@@ -34,9 +34,8 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    const exePath = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
     electronApp = await _electron.launch({
-      executablePath: exePath,
+      executablePath: getElectronPath(),
     })
   })
 
