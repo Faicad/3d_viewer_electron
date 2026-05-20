@@ -494,8 +494,7 @@ export default function ViewportContainer() {
         style={{
           position: 'absolute',
           bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          right: 16,
           display: 'flex',
           gap: 8,
           zIndex: 10,
