@@ -124,3 +124,24 @@ describe('getGroupAccept', () => {
     expect(anim.length).toBeGreaterThan(0)
   })
 })
+
+describe('file group filter constants', () => {
+  it('all groups have at least one enabled format', () => {
+    const groups = ['mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'other'] as const
+    for (const group of groups) {
+      const accept = getGroupAccept(group)
+      expect(accept.length, `${group} group is empty`).toBeGreaterThan(0)
+    }
+  })
+
+  it('disabled formats are excluded from all group filters', () => {
+    const disabledIds = FILE_FORMATS.filter((f) => f.disabled).map((f) => f.id)
+    for (const group of ['mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'other'] as const) {
+      const accept = getGroupAccept(group)
+      const acceptFormats = FILE_FORMATS.filter((f) => accept.includes(f.extensions[0]))
+      for (const fmt of acceptFormats) {
+        expect(disabledIds, `disabled format ${fmt.id} found in group ${group}`).not.toContain(fmt.id)
+      }
+    }
+  })
+})

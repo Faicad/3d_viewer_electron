@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog } from 'electron'
 import { join, extname } from 'path'
 import * as fs from 'fs'
-import { ALL_EXTENSIONS } from '../../src/renderer/config/file-formats'
+import { ALL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 
 // Must be called before app.whenReady() to grant the custom protocol access to
 // IndexedDB, fetch, and other standard web APIs.
@@ -103,6 +103,22 @@ function createWindow(): void {
   })
 }
 
+const ENABLED_FORMATS = FILE_FORMATS.filter((f) => !f.disabled)
+
+const GROUP_ORDER: Array<'mesh' | 'cad' | 'animation' | 'point' | 'volume' | 'gcode' | 'other'> = [
+  'mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'other',
+]
+
+const GROUP_LABELS: Record<string, string> = {
+  mesh: 'Mesh',
+  cad: 'CAD',
+  animation: 'Animation',
+  point: 'Point Cloud',
+  volume: 'Volume',
+  gcode: 'GCode',
+  other: 'Other',
+}
+
 ipcMain.handle('dialog:openFile', async () => {
   if (!mainWindow) return { success: false, error: 'No window' }
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -110,6 +126,12 @@ ipcMain.handle('dialog:openFile', async () => {
     properties: ['openFile'],
     filters: [
       { name: 'All Supported Formats', extensions: ALL_EXTENSIONS.map((e) => e.slice(1)) },
+      ...GROUP_ORDER.map((group) => ({
+        name: GROUP_LABELS[group],
+        extensions: ENABLED_FORMATS
+          .filter((f) => f.group === group)
+          .flatMap((f) => f.extensions.map((e) => e.slice(1))),
+      })),
       { name: 'All Files', extensions: ['*'] },
     ],
   })
