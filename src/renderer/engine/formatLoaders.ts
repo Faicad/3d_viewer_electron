@@ -22,7 +22,6 @@ import { AMFLoader } from 'three/examples/jsm/loaders/AMFLoader.js'
 import { LWOLoader } from 'three/examples/jsm/loaders/LWOLoader.js'
 import { MD2Loader } from 'three/examples/jsm/loaders/MD2Loader.js'
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
-import { LDrawLoader } from 'three/examples/jsm/loaders/LDrawLoader.js'
 import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
 import type { FormatId } from '@/config/file-formats'
 
@@ -425,18 +424,6 @@ export async function loadFormat(
     // IFC requires web-ifc-three (external package): npm install web-ifc-three web-ifc
     case 'ifc': {
       console.warn('[formatLoaders] IFC requires web-ifc-three package — not yet installed')
-      return { meshes: [], objects: [] }
-    }
-
-    // ---- LDRAW ----
-    case 'ldraw': {
-      // LDrawLoader needs parts library path — parse text directly
-      const text = bufferToText(buffer)
-      const group = new LDrawLoader().parse(text, '')
-      if (group) {
-        const meshes = extractMeshes(group)
-        return { meshes, objects: extractAllObjects(group) }
-      }
       return { meshes: [], objects: [] }
     }
 

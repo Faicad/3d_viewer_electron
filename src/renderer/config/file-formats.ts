@@ -39,7 +39,6 @@ export type FormatId =
   | 'mdd'
   | 'pcd'
   | 'ifc'
-  | 'ldraw'
   | '3dm'
 
 export interface FileFormatEntry {
@@ -423,20 +422,6 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     disabled: true, // needs npm install web-ifc-three web-ifc
     renderHint: 'mesh',
     color: 'text-yellow-600',
-  },
-  {
-    id: 'ldraw',
-    label: 'LDraw',
-    extensions: ['.mpd', '.ldr'],
-    loaderModule: 'LDrawLoader.js',
-    group: 'other',
-    sampleFile: 'ldraw/officialLibrary/models/10174-1-ImperialAT-ST-UCS.mpd_Packed.mpd',
-    textBased: true,
-    needsDracoWasm: false,
-    needsExternalDep: false,
-    disabled: true, // needs setPartsLibraryPath for split models, complex setup
-    renderHint: 'mesh',
-    color: 'text-red-600',
   },
   {
     id: '3dm',

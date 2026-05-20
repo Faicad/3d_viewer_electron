@@ -22,7 +22,6 @@ const PLAYWRIGHT_ONLY: Set<FormatId> = new Set(['stl', 'glb', '3mf', 'step'])
 const SKIP_FORMATS: Set<FormatId> = new Set([
   'mdd',   // disabled: morph data only, no standalone render
   'ifc',   // disabled: needs web-ifc-three npm package
-  'ldraw', // disabled: needs setPartsLibraryPath
   'drc',   // needs DRACOLoader WASM decoder path
   '3dm',   // needs Rhino3dmLoader WASM library path
   'kmz',   // fixture appears corrupted (fflate: invalid zip data)
