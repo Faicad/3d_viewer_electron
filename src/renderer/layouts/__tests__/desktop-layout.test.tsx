@@ -48,9 +48,11 @@ vi.mock('@/stores/ui-store', () => {
     leftPanelOpen: false,
     rightPanelOpen: false,
     modelInfoOpen: false,
+    cameraMode: 'perspective',
     toggleLeftPanel: vi.fn(),
     toggleRightPanel: vi.fn(),
     toggleModelInfo: vi.fn(),
+    setCameraMode: vi.fn(),
   }
   const useUIStore = Object.assign(
     (selector?: (s: typeof state) => any) => (selector ? selector(state) : state),
@@ -179,5 +181,36 @@ describe('DesktopLayout toolbar', () => {
     await user.click(buttons[0])
 
     expect(window.electronAPI.toggleFullscreen).toHaveBeenCalledOnce()
+  })
+
+  it('renders perspective and orthographic view buttons', () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <DesktopLayout />
+        </MemoryRouter>
+      </TooltipProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'toolbar.perspective' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'toolbar.orthographic' })).toBeDefined()
+  })
+
+  it('calls setCameraMode when orthographic button clicked', async () => {
+    const user = userEvent.setup()
+    const { useUIStore } = await import('@/stores/ui-store')
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <DesktopLayout />
+        </MemoryRouter>
+      </TooltipProvider>,
+    )
+
+    const button = screen.getByRole('button', { name: 'toolbar.orthographic' })
+    await user.click(button)
+
+    expect((useUIStore.getState() as any).setCameraMode).toHaveBeenCalledWith('orthographic')
   })
 })

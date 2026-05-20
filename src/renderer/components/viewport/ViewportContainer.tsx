@@ -142,6 +142,45 @@ function CameraAnimator({
   return null
 }
 
+function CameraModeSwitcher() {
+  const cameraMode = useUIStore((s) => s.cameraMode)
+  const { camera, set: setThree } = useThree()
+
+  useEffect(() => {
+    if (cameraMode === 'perspective' && !(camera instanceof THREE.PerspectiveCamera)) {
+      const pos = camera.position.clone()
+      const up = camera.up.clone()
+      const near = camera.near
+      const far = camera.far
+      const perspCam = new THREE.PerspectiveCamera(50, camera.aspect, near, far)
+      perspCam.position.copy(pos)
+      perspCam.up.copy(up)
+      perspCam.lookAt(0, 0, 0)
+      setThree({ camera: perspCam })
+    } else if (cameraMode === 'orthographic' && !(camera instanceof THREE.OrthographicCamera)) {
+      const pos = camera.position.clone()
+      const up = camera.up.clone()
+      const near = camera.near
+      const far = camera.far
+      // Estimate orthographic size from perspective camera distance
+      const dist = pos.length()
+      const size = dist * Math.tan(THREE.MathUtils.degToRad(25))
+      const aspect = camera.aspect
+      const orthoCam = new THREE.OrthographicCamera(
+        -size * aspect, size * aspect,
+        size, -size,
+        near, far,
+      )
+      orthoCam.position.copy(pos)
+      orthoCam.up.copy(up)
+      orthoCam.lookAt(0, 0, 0)
+      setThree({ camera: orthoCam })
+    }
+  }, [cameraMode, camera, setThree])
+
+  return null
+}
+
 export default function ViewportContainer() {
   const { t } = useTranslation()
   const controlsRef = useRef<OrbitControlsImpl>(null)
@@ -283,11 +322,14 @@ export default function ViewportContainer() {
     const maxDim = Math.max(size.x, size.y, size.z)
     if (maxDim === 0) return
 
-    const camera = controls.object as THREE.PerspectiveCamera
-    const fitDist = maxDim / (2 * Math.tan((camera.fov * Math.PI) / 360))
-    // Ensure the camera stays at least 10× the near plane away to avoid
-    // clipping tiny models (e.g. a 3cm box in meter units = 0.03 units).
-    const dist = Math.max(fitDist / 0.5, camera.near * 10)
+    const camera = controls.object
+    let dist: number
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const fitDist = maxDim / (2 * Math.tan((camera.fov * Math.PI) / 360))
+      dist = Math.max(fitDist / 0.5, camera.near * 10)
+    } else {
+      dist = maxDim * 1.5
+    }
     const pos = center.clone().add(new THREE.Vector3(dist * 0.7, -dist * 0.7, dist * 0.6))
 
     setAnimTarget(pos)
@@ -382,6 +424,7 @@ export default function ViewportContainer() {
           active={animActive}
           onDone={handleAnimDone}
         />
+        <CameraModeSwitcher />
         <SceneSetup />
         <ModelTransformTracker modelRef={modelGroupRef} />
         <ModelGroup

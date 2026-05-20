@@ -9,6 +9,8 @@
   "toolbar.openFile": "Open File",
   "toolbar.yUp": "Y Axis Up",
   "toolbar.zUp": "Z Axis Up",
+  "toolbar.perspective": "Perspective View",
+  "toolbar.orthographic": "Orthographic View",
   "toolbar.fullscreen": "Fullscreen",
   "toolbar.download": "Download Model",
   "toolbar.modelInfo": "Model Info",

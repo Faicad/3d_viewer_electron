@@ -17,6 +17,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download, FolderOpen,
   Maximize, Minimize, Info,
   ChevronRight, ChevronDown, Eye, EyeOff,
+  ScanLine, Scan,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -289,6 +290,36 @@ export default function DesktopLayout() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.zUp')}</TooltipContent>
+        </Tooltip>
+
+        {/* Perspective View */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.cameraMode === 'perspective' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => ui.setCameraMode('perspective')}
+              aria-label={t('toolbar.perspective')}
+            >
+              <ScanLine className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.perspective')}</TooltipContent>
+        </Tooltip>
+
+        {/* Orthographic View */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.cameraMode === 'orthographic' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => ui.setCameraMode('orthographic')}
+              aria-label={t('toolbar.orthographic')}
+            >
+              <Scan className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
         </Tooltip>
 
         <div className="flex-1" />

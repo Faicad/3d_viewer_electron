@@ -14,6 +14,8 @@ const safeLocalStorage = {
   },
 }
 
+export type CameraMode = 'perspective' | 'orthographic'
+
 interface UIStore {
   leftPanelOpen: boolean
   rightPanelOpen: boolean
@@ -22,6 +24,7 @@ interface UIStore {
   mobileChatOpen: boolean
   language: SupportedLanguage | 'system'
   theme: 'light' | 'dark' | 'system'
+  cameraMode: CameraMode
 
   toggleLeftPanel: () => void
   toggleRightPanel: () => void
@@ -30,6 +33,7 @@ interface UIStore {
   setMobileChatOpen: (open: boolean) => void
   setLanguage: (lang: SupportedLanguage | 'system') => void
   setTheme: (theme: 'light' | 'dark' | 'system') => void
+  setCameraMode: (mode: CameraMode) => void
 }
 
 export const useUIStore = create<UIStore>()(
@@ -42,6 +46,7 @@ export const useUIStore = create<UIStore>()(
       mobileChatOpen: false,
       language: (safeLocalStorage.getItem('lang') as SupportedLanguage | 'system') || 'zh',
       theme: 'system',
+      cameraMode: 'perspective',
 
       toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen })),
       toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
@@ -53,6 +58,7 @@ export const useUIStore = create<UIStore>()(
         set({ language })
       },
       setTheme: (theme) => set({ theme }),
+      setCameraMode: (cameraMode) => set({ cameraMode }),
     }),
     {
       name: 'faicad-ui',
