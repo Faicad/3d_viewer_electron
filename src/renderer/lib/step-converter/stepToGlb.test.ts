@@ -5,7 +5,7 @@
  *
  * Tests buildGlbFromResult() — the same code path used by stepToGlb(),
  * stepToGlbCached(), and preCache in production. Validates GLB binary
- * structure, STEP_topology extension, face proxy data, and columnar
+ * structure, STEP_T extension, face proxy data, and columnar
  * selector format.
  */
 import { describe, it, expect, beforeAll } from 'vitest'
@@ -146,14 +146,14 @@ describe('STEP → GLB production pipeline', () => {
     expect((gltf.bufferViews as unknown[]).length).toBeGreaterThan(0)
   })
 
-  // ── STEP_topology extension ──
+  // ── STEP_T extension ──
 
-  it('includes STEP_topology in extensionsUsed', () => {
-    expect(gltf.extensionsUsed).toContain('STEP_topology')
+  it('includes STEP_T in extensionsUsed', () => {
+    expect(gltf.extensionsUsed).toContain('STEP_T')
   })
 
-  it('has STEP_topology extension with required fields', () => {
-    const ext = (gltf.extensions as Record<string, unknown>)?.STEP_topology as Record<string, unknown> | undefined
+  it('has STEP_T extension with required fields', () => {
+    const ext = (gltf.extensions as Record<string, unknown>)?.STEP_T as Record<string, unknown> | undefined
     expect(ext).toBeDefined()
     expect(ext!.schemaVersion).toBe(1)
     expect(ext!.entryKind).toBe('part')
@@ -165,7 +165,7 @@ describe('STEP → GLB production pipeline', () => {
   // ── Index manifest ──
 
   it('has valid index manifest', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const indexBytes = readBufferView(ext.indexView as number)
     const indexManifest = JSON.parse(new TextDecoder().decode(indexBytes))
 
@@ -186,7 +186,7 @@ describe('STEP → GLB production pipeline', () => {
   // ── Selector manifest ──
 
   it('has valid selector manifest', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
@@ -210,7 +210,7 @@ describe('STEP → GLB production pipeline', () => {
   // ── Face proxy runs ──
 
   it('has valid faceRuns buffer', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
@@ -233,7 +233,7 @@ describe('STEP → GLB production pipeline', () => {
   // ── Face ID patterns ──
 
   it('has valid face IDs matching occurrence IDs', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
@@ -262,7 +262,7 @@ describe('STEP → GLB production pipeline', () => {
   // ── Face proxy structure ──
 
   it('has face proxy with runsView reference', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
@@ -275,7 +275,7 @@ describe('STEP → GLB production pipeline', () => {
   })
 
   it('has edge proxy with positionsView and indicesView', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
@@ -284,7 +284,7 @@ describe('STEP → GLB production pipeline', () => {
   })
 
   it('has edge proxy geometry buffers (empty — edges not available from WASM module)', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
@@ -300,7 +300,7 @@ describe('STEP → GLB production pipeline', () => {
   })
 
   it('does not include face proxy geometry (selector profile has only runs)', () => {
-    const ext = (gltf.extensions as Record<string, unknown>).STEP_topology as Record<string, unknown>
+    const ext = (gltf.extensions as Record<string, unknown>).STEP_T as Record<string, unknown>
     const selBytes = readBufferView(ext.selectorView as number)
     const sel = JSON.parse(new TextDecoder().decode(selBytes))
 

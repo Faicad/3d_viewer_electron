@@ -504,7 +504,7 @@ const Y_UP_FORMATS: ReadonlySet<FormatId> = new Set([
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.
- *  For GLB, the presence of a STEP_topology extension signals Z-up (CAD data);
+ *  For GLB, the presence of a STEP_T extension signals Z-up (CAD data);
  *  otherwise GLB defaults to Y-up (standard glTF convention). */
 export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis {
   if (format === 'glb') {
@@ -515,7 +515,7 @@ export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis
   return 'z'
 }
 
-/** Detect if GLB has STEP_topology extension */
+/** Detect if GLB has STEP_T extension */
 export function isCadSkillGlb(buffer: ArrayBuffer): boolean {
   try {
     const header = new Uint32Array(buffer.slice(0, 12))
@@ -523,7 +523,7 @@ export function isCadSkillGlb(buffer: ArrayBuffer): boolean {
     const view = new Uint8Array(buffer)
     const decoder = new TextDecoder()
     const text = decoder.decode(view.slice(0, Math.min(view.length, 2048)))
-    return text.includes('STEP_topology')
+    return text.includes('STEP_T')
   } catch {
     return false
   }

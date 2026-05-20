@@ -8,7 +8,7 @@ import type { SelectorRuntime } from './types'
  * 1. PRIMARY — hit the visible display meshes rendered by ModelGroup.
  *    These carry per-part faceIds (built by buildGlbFaceIdsForPart) and
  *    work for all normal display modes.
- * 2. FALLBACK — this invisible mesh, built from raw STEP_topology extension
+ * 2. FALLBACK — this invisible mesh, built from raw STEP_T extension
  *    data (proxy.facePositions / faceIndices / faceIds). Needed when
  *    display meshes are absent (e.g. wireframe mode where ModelGroup
  *    returns null).

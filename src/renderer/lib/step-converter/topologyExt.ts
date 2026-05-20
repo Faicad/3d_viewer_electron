@@ -169,14 +169,14 @@ export function addStepTopology(
     (builder.json as Record<string, unknown>).extensionsUsed = [];
   }
   const extUsed = builder.json.extensionsUsed as string[];
-  if (!extUsed.includes('STEP_topology')) {
-    extUsed.push('STEP_topology');
+  if (!extUsed.includes('STEP_T')) {
+    extUsed.push('STEP_T');
   }
   if (!(builder.json as Record<string, unknown>).extensions) {
     (builder.json as Record<string, unknown>).extensions = {};
   }
 
-  (builder.json.extensions as Record<string, unknown>).STEP_topology = {
+  (builder.json.extensions as Record<string, unknown>).STEP_T = {
     schemaVersion: 1,
     entryKind,
     indexView,

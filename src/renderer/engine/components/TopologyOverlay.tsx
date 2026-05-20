@@ -19,7 +19,7 @@ interface TopologyOverlayProps {
  *
  * Face picking is two-layer (see useTopologyPicking.ts):
  * - PRIMARY:   display meshes (rendered by ModelGroup with per-part faceIds)
- * - FALLBACK:  face-pick-mesh built here (raw STEP_topology geometry)
+ * - FALLBACK:  face-pick-mesh built here (raw STEP_T geometry)
  *
  * The fallback exists for modes where display meshes are hidden — e.g.
  * wireframe mode where ModelGroup returns null. In normal solid mode the

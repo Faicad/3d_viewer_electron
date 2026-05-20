@@ -36,7 +36,7 @@ export default function DebugTopologyOverlay({ selectorRuntime, centeringOffset,
     return geo
   }, [proxy.vertexPositions])
 
-  // Log STEP_topology extension data
+  // Log STEP_T extension data
   useMemo(() => {
     const { occurrences, shapes, faces, edges, vertices } = selectorRuntime
 
@@ -52,7 +52,7 @@ export default function DebugTopologyOverlay({ selectorRuntime, centeringOffset,
     }
 
     console.log(
-      `[STEP_topology] ${occurrences.length} occurrences, ${shapes.length} shapes, ${faces.length} faces, ${edges.length} edges, ${vertices.length} vertices`,
+      `[STEP_T] ${occurrences.length} occurrences, ${shapes.length} shapes, ${faces.length} faces, ${edges.length} edges, ${vertices.length} vertices`,
       '\n  faces by type:', Object.fromEntries(faceByType),
       '\n  edges by type:', Object.fromEntries(edgeByType),
     )

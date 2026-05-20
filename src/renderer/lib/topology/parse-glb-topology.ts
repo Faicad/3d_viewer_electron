@@ -1,6 +1,6 @@
 import type { BufferViewDescriptor, GlbContainer, SelectorBundle, SelectorManifest } from './types'
 
-const STEP_TOPOLOGY_EXTENSION = 'STEP_topology'
+const STEP_TOPOLOGY_EXTENSION = 'STEP_T'
 
 // ---- helpers ----
 
@@ -49,6 +49,10 @@ export function parseGlbContainer(arrayBuffer: ArrayBuffer): GlbContainer {
     }
 
     offset += chunkLength
+    const remainder = chunkLength % 4
+    if (remainder !== 0) {
+      offset += 4 - remainder
+    }
   }
 
   if (!json || !bin) {
@@ -144,7 +148,7 @@ export function buildSelectorBuffers(
   return output
 }
 
-// ---- STEP_topology extension ----
+// ---- STEP_T extension ----
 
 export function stepTopologyExtension(glb: GlbContainer): Record<string, unknown> {
   const gltfJson = glb.json

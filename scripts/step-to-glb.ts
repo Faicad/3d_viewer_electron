@@ -104,7 +104,7 @@ const glbBuffer = buildGlbFromResult(result, {
 
 console.log(`  GLB: ${glbBuffer.byteLength} bytes`)
 
-// ── Verify STEP_topology ──
+// ── Verify STEP_T ──
 
 const dv = new DataView(glbBuffer)
 const jsonLen = dv.getUint32(12, true)
@@ -113,7 +113,7 @@ let end = jsonLen
 while (end > 0 && jsonBytes[end - 1] === 0x20) end--
 const gltf = JSON.parse(new TextDecoder().decode(jsonBytes.slice(0, end)))
 
-const ext = gltf.extensions?.STEP_topology as Record<string, unknown> | undefined
+const ext = gltf.extensions?.STEP_T as Record<string, unknown> | undefined
 if (ext) {
   const chunkOff = 20 + jsonLen + ((4 - (jsonLen % 4)) % 4)
   const binOff = chunkOff + 8
@@ -122,11 +122,11 @@ if (ext) {
   const selBytes = new Uint8Array(glbBuffer, binOff + selView.byteOffset, selView.byteLength)
   const sel = JSON.parse(new TextDecoder().decode(selBytes))
 
-  console.log(`  STEP_topology: ${sel.occurrences.length} occurrences, ${sel.faces.length} faces, ${sel.edges.length} edges`)
+  console.log(`  STEP_T: ${sel.occurrences.length} occurrences, ${sel.faces.length} faces, ${sel.edges.length} edges`)
   const bboxArr = sel.bbox as number[]
   console.log(`  bbox: min=[${bboxArr.slice(0, 3).map((v: number) => v.toFixed(3)).join(', ')}] max=[${bboxArr.slice(3, 6).map((v: number) => v.toFixed(3)).join(', ')}]`)
 } else {
-  console.error('  WARNING: STEP_topology NOT present in output!')
+  console.error('  WARNING: STEP_T NOT present in output!')
 }
 
 // ── Write ──

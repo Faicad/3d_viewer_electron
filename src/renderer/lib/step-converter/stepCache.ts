@@ -1,5 +1,5 @@
 const DB_NAME = 'step-glb-cache'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const STORE_NAME = 'buffers'
 
 export const memCache = new Map<string, ArrayBuffer>()
@@ -11,9 +11,10 @@ function openCache(): Promise<IDBDatabase> {
   dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE_NAME)) {
-        request.result.createObjectStore(STORE_NAME)
+      if (request.result.objectStoreNames.contains(STORE_NAME)) {
+        request.result.deleteObjectStore(STORE_NAME)
       }
+      request.result.createObjectStore(STORE_NAME)
     }
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)

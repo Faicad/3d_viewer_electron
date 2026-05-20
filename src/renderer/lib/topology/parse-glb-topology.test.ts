@@ -26,7 +26,7 @@ describe('parse-glb-topology', () => {
     expect(glb.json).not.toBeNull()
     expect(glb.bin).not.toBeNull()
     const ext = glb.json.extensions as Record<string, unknown> | undefined
-    expect(ext?.STEP_topology).not.toBeNull()
+    expect(ext?.STEP_T).not.toBeNull()
   })
 
   it('extractSelectorBundle', () => {

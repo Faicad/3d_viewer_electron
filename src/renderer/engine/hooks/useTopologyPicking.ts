@@ -166,7 +166,7 @@ export function useTopologyPicking({
             }
           }
         }
-        // FALLBACK PATH: invisible face-pick-mesh built from raw STEP_topology
+        // FALLBACK PATH: invisible face-pick-mesh built from raw STEP_T
         // extension data (see buildFacePickMesh). Used when display meshes
         // are absent — e.g. wireframe mode where ModelGroup returns null.
         const facePickMesh = pickOverlay?.getObjectByName('face-pick-mesh') as THREE.Mesh | undefined
