@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Line2, LineMaterial, LineGeometry } from 'three-stdlib'
+import { useModelStore } from '@/stores/model-store'
+import { flattenVisibility } from '@/lib/scene-tree-utils'
 import type { Reference, SelectorRuntime } from '@/lib/topology/types'
 
 interface SelectionHighlightProps {
@@ -33,6 +35,20 @@ export default function SelectionHighlight({
   const [lineVersion, setLineVersion] = useState(0)
   void lineVersion // suppress unused warning — used to trigger re-renders after ref update
 
+  // Subscribe to sceneTree so highlight geometry is recomputed when mesh visibility toggles.
+  // We compute a Set of visible partIds from the sceneTree directly instead of relying on
+  // Three.js child.visible, because useMemo runs during render — before R3F commits
+  // visibility prop changes to the Three.js objects.
+  const sceneTree = useModelStore((s) => s.sceneTree)
+  const visiblePartIds = useMemo(() => {
+    const map = flattenVisibility(sceneTree)
+    const set = new Set<string>()
+    for (const [id, vis] of map) {
+      if (vis) set.add(id)
+    }
+    return set
+  }, [sceneTree])
+
   const geometry: HighlightGeometry = useMemo(() => {
     if (!referenceId) return null
 
@@ -45,6 +61,7 @@ export default function SelectionHighlight({
           ref.pickData.triangleCount,
           ref.partId,
           modelGroupRef,
+          visiblePartIds,
         )
       }
 
@@ -54,13 +71,14 @@ export default function SelectionHighlight({
           ref.pickData.segmentStart,
           ref.pickData.segmentCount,
           modelGroupRef,
+          visiblePartIds,
         )
         if (result) return { type: 'line', geo: result.geo }
         return null
       }
 
       if (ref.selectorType === 'vertex') {
-        return buildVertexHighlightGeometry(runtime!, ref, modelGroupRef)
+        return buildVertexHighlightGeometry(runtime!, ref, modelGroupRef, visiblePartIds)
       }
 
       return null
@@ -68,8 +86,8 @@ export default function SelectionHighlight({
 
     // Fallback: referenceId is a partId (object-mode selection or tree node click)
     // Highlight the entire mesh for that part
-    return buildObjectHighlightGeometry(referenceId, modelGroupRef)
-  }, [runtime, referenceId, modelGroupRef])
+    return buildObjectHighlightGeometry(referenceId, modelGroupRef, visiblePartIds)
+  }, [runtime, referenceId, modelGroupRef, visiblePartIds])
 
   useEffect(() => {
     // Dispose previous line objects
@@ -164,13 +182,19 @@ export default function SelectionHighlight({
 
 // ---- helpers ----
 
-function collectDisplayMeshes(group: THREE.Group | null): THREE.Mesh[] {
+function collectDisplayMeshes(
+  group: THREE.Group | null,
+  visiblePartIds?: Set<string>,
+): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = []
   if (!group) return meshes
   group.traverse((child) => {
-    if (child instanceof THREE.Mesh && child.visible) {
-      meshes.push(child)
-    }
+    if (!(child instanceof THREE.Mesh)) return
+    const partId = child.userData?.partId as string | undefined
+    const vis = visiblePartIds
+      ? partId != null && visiblePartIds.has(partId)
+      : child.visible
+    if (vis) meshes.push(child)
   })
   return meshes
 }
@@ -180,10 +204,11 @@ function collectDisplayMeshes(group: THREE.Group | null): THREE.Mesh[] {
 function buildObjectHighlightGeometry(
   partId: string,
   modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
+  visiblePartIds?: Set<string>,
 ): { type: 'mesh'; geo: THREE.BufferGeometry } | null {
   if (!modelGroupRef?.current) return null
 
-  const meshes = collectDisplayMeshes(modelGroupRef.current)
+  const meshes = collectDisplayMeshes(modelGroupRef.current, visiblePartIds)
   const mesh = meshes.find((m) => m.userData?.partId === partId)
   if (!mesh) return null
 
@@ -237,11 +262,12 @@ function buildFaceHighlightGeometry(
   triangleCount: number,
   partId: string | undefined,
   modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
+  visiblePartIds?: Set<string>,
 ): { type: 'mesh'; geo: THREE.BufferGeometry } | null {
   if (triangleCount <= 0) return null
   if (!modelGroupRef?.current) return null
 
-  const meshes = collectDisplayMeshes(modelGroupRef.current)
+  const meshes = collectDisplayMeshes(modelGroupRef.current, visiblePartIds)
   if (!meshes.length) return null
 
   let mesh: THREE.Mesh | undefined
@@ -312,6 +338,7 @@ function buildEdgeLineGeometry(
   segmentStart: number,
   segmentCount: number,
   modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
+  visiblePartIds?: Set<string>,
 ): { type: 'line'; geo: LineGeometry } | null {
   const { edgePositions, edgeIndices } = runtime.proxy
 
@@ -325,7 +352,7 @@ function buildEdgeLineGeometry(
   if (segmentCount <= 0) return null
 
   // If no visible meshes, hide the highlight
-  const visibleMeshes = modelGroupRef?.current ? collectDisplayMeshes(modelGroupRef.current) : []
+  const visibleMeshes = modelGroupRef?.current ? collectDisplayMeshes(modelGroupRef.current, visiblePartIds) : []
   if (modelGroupRef?.current && visibleMeshes.length === 0) return null
 
   const indexStart = segmentStart * 2
@@ -342,7 +369,7 @@ function buildEdgeLineGeometry(
     let worldPos1 = new THREE.Vector3(edgePositions[i1], edgePositions[i1 + 1], edgePositions[i1 + 2])
 
     if (modelGroupRef?.current) {
-      const meshes = collectDisplayMeshes(modelGroupRef.current)
+      const meshes = collectDisplayMeshes(modelGroupRef.current, visiblePartIds)
       if (meshes.length > 0) {
         meshes[0].updateWorldMatrix(true, false)
         worldPos0 = worldPos0.applyMatrix4(meshes[0].matrixWorld)
@@ -367,9 +394,10 @@ function buildVertexHighlightGeometry(
   runtime: SelectorRuntime,
   ref: Reference,
   modelGroupRef: React.RefObject<THREE.Group | null> | undefined,
+  visiblePartIds?: Set<string>,
 ): { type: 'vertex'; geo: THREE.BufferGeometry } | null {
   // If no visible meshes, hide the highlight
-  const visibleMeshes = modelGroupRef?.current ? collectDisplayMeshes(modelGroupRef.current) : []
+  const visibleMeshes = modelGroupRef?.current ? collectDisplayMeshes(modelGroupRef.current, visiblePartIds) : []
   if (modelGroupRef?.current && visibleMeshes.length === 0) return null
 
   const vertexIndex = ref.rowIndex
@@ -396,7 +424,7 @@ function buildVertexHighlightGeometry(
   let worldY = localY
   let worldZ = localZ
   if (modelGroupRef?.current) {
-    const meshes = collectDisplayMeshes(modelGroupRef.current)
+    const meshes = collectDisplayMeshes(modelGroupRef.current, visiblePartIds)
     if (meshes.length > 0) {
       meshes[0].updateWorldMatrix(true, false)
       const worldPos = new THREE.Vector3(localX, localY, localZ).applyMatrix4(meshes[0].matrixWorld)
