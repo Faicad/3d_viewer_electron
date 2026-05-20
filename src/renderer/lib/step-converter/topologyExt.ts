@@ -284,6 +284,9 @@ function buildSelectorManifest(
   const shapeRows: unknown[][] = [];
   const faceRows: unknown[][] = [];
 
+  // Track per-occurrence edge segment ranges for edge table population
+  const occEdgeSegments: { occId: string; shapeId: string; segStart: number; segEnd: number }[] = [];
+
   for (let mi = 0; mi < meshes.length; mi++) {
     const mesh = meshes[mi];
     const posArr = new Float32Array(mesh.attributes.position.array);
@@ -292,6 +295,7 @@ function buildSelectorManifest(
 
     const occId = String(occIndex);
     const shapeId = `${occId}.s0`;
+    const segStart = allEdgeIndices.length / 2;
 
     const faceBboxes: BBox[] = [];
     const faceNormals: number[][] = [];
@@ -351,6 +355,11 @@ function buildSelectorManifest(
       }
     }
 
+    const segEnd = allEdgeIndices.length / 2;
+    if (segEnd > segStart) {
+      occEdgeSegments.push({ occId, shapeId, segStart, segEnd });
+    }
+
     const meshBbox = faceBboxes.length > 0
       ? mergeBboxes(faceBboxes)
       : { min: [0, 0, 0], max: [0, 0, 0] };
@@ -407,6 +416,57 @@ function buildSelectorManifest(
   const edgePositionsArr = new Float32Array(allEdgePositions);
   const edgeIndicesArr = new Uint32Array(allEdgeIndices);
 
+  // ── Build edge table rows and edgeIds from proxy geometry ──
+
+  const edgeRows: unknown[][] = [];
+  const edgeIdsData: number[] = [];
+
+  for (const occ of occEdgeSegments) {
+    const { occId, shapeId, segStart, segEnd } = occ;
+    let edgeOrdinal = 0;
+
+    for (let si = segStart; si < segEnd; si++) {
+      const vi0 = allEdgeIndices[si * 2];
+      const vi1 = allEdgeIndices[si * 2 + 1];
+      const x0 = allEdgePositions[vi0 * 3], y0 = allEdgePositions[vi0 * 3 + 1], z0 = allEdgePositions[vi0 * 3 + 2];
+      const x1 = allEdgePositions[vi1 * 3], y1 = allEdgePositions[vi1 * 3 + 1], z1 = allEdgePositions[vi1 * 3 + 2];
+      const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+      const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+      const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+      const minZ = Math.min(z0, z1), maxZ = Math.max(z0, z1);
+
+      edgeRows.push([
+        `${occId}.e${edgeOrdinal}`,
+        occId,
+        shapeId,
+        edgeOrdinal,
+        'line',
+        len,
+        [cx, cy, cz],
+        [minX, minY, minZ, maxX, maxY, maxZ],
+        0,  // faceStart — patched below after faceEdgeRows is built
+        0,  // faceCount
+        0,  // relevance
+        0,  // flags
+        null, // params
+        si,  // segmentStart
+        1,   // segmentCount
+      ]);
+
+      edgeIdsData.push(edgeOrdinal);
+      edgeOrdinal++;
+    }
+  }
+
+  const totalEdgeCount = edgeRows.length;
+
+  // Apply sequential relation starts for edge rows (faceStart/faceCount unused for now)
+  for (const row of edgeRows) {
+    row[8] = 0;
+    row[9] = 0;
+  }
+
   const manifest: Record<string, unknown> = {
     schemaVersion: 1,
     profile: 'selector',
@@ -422,7 +482,7 @@ function buildSelectorManifest(
       leafOccurrenceCount: occurrenceRows.length,
       shapeCount: shapeRows.length,
       faceCount: totalFaces,
-      edgeCount: 0,
+      edgeCount: totalEdgeCount,
       faceProxyRunCount: totalFaces,
       edgeProxyPointCount: allEdgePositions.length / 3,
       edgeProxySegmentCount: allEdgeIndices.length / 2,
@@ -436,7 +496,7 @@ function buildSelectorManifest(
     occurrences: occurrenceRows,
     shapes: shapeRows,
     faces: faceRows,
-    edges: [],
+    edges: edgeRows,
     faceProxy: {
       runsView: 'faceRuns',
       runColumns: ['occurrenceRow', 'primitiveIndex', 'triangleStart', 'triangleCount', 'faceRow'],
@@ -456,7 +516,7 @@ function buildSelectorManifest(
     faceRuns: new Uint32Array(faceRunData),
     edgePositions: edgePositionsArr,
     edgeIndices: edgeIndicesArr,
-    edgeIds: new Uint32Array(0),
+    edgeIds: new Uint32Array(edgeIdsData),
     faceEdgeRows: new Uint32Array(0),
     edgeFaceRows: new Uint32Array(0),
   };

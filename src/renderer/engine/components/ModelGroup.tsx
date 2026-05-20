@@ -168,6 +168,14 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             src.updateWorldMatrix(true, false)
             geo.applyMatrix4(src.matrixWorld)
 
+            // Strip skinning attributes — we don't evaluate skeletal animation,
+            // and these attributes can cause shader compilation errors in Three.js
+            // because MeshStandardMaterial doesn't define them.
+            geo.deleteAttribute('skinIndex')
+            geo.deleteAttribute('skinWeight')
+            geo.deleteAttribute('joints_0')
+            geo.deleteAttribute('weights_0')
+
             geo.computeVertexNormals()
             geo.computeBoundingBox()
 
