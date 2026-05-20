@@ -90,7 +90,7 @@ export default function FileListPanel() {
         </Button>
       </div>
       {currentFolderPath && (
-        <div className="px-3 py-1.5 text-xs text-muted-foreground border-b truncate" title={currentFolderPath}>
+        <div className="px-3 py-1.5 text-xs text-muted-foreground border-b overflow-x-auto whitespace-nowrap">
           {t('fileList.folder')}: {currentFolderPath}
         </div>
       )}
