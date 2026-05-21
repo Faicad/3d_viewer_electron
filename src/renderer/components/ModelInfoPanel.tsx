@@ -6,7 +6,8 @@ import { useModelStore } from '@/stores/model-store'
 import { useUIStore } from '@/stores/ui-store'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { computeModelStats, formatNumber } from '@/lib/compute-model-stats'
+import { computeModelStats, formatNumber, computeMaterialCost } from '@/lib/compute-model-stats'
+import { sourceUnitToLabel } from '@/config/file-formats'
 
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
@@ -21,7 +22,14 @@ export default function ModelInfoPanel() {
   const { t } = useTranslation()
   const modelGroup = useEngineStore((s) => s.modelGroup)
   const modelFormat = useModelStore((s) => s.modelFormat)
+  const sourceUnit = useModelStore((s) => s.sourceUnit)
+  const fileGroup = useModelStore((s) => s.fileGroup)
   const toggleModelInfo = useUIStore((s) => s.toggleModelInfo)
+
+  const unitLabel = sourceUnitToLabel(sourceUnit)
+  const areaUnit = `${unitLabel}²`
+  const volumeUnit = `${unitLabel}³`
+  const showMaterialCost = fileGroup === 'mesh' || fileGroup === 'cad'
 
   const stats = useMemo(() => {
     if (!modelGroup) return null
@@ -53,22 +61,24 @@ export default function ModelInfoPanel() {
           <div className="flex flex-col">
             <StatRow label={t('modelInfo.vertices')} value={formatNumber(stats.vertices)} />
             <StatRow label={t('modelInfo.triangles')} value={formatNumber(stats.triangles)} />
-            <StatRow label={t('modelInfo.surfaceArea')} value={`${formatNumber(stats.surfaceArea)} mm²`} />
-            <StatRow label={t('modelInfo.volume')} value={`${formatNumber(stats.volume)} mm³`} />
+            <StatRow label={t('modelInfo.surfaceArea')} value={`${formatNumber(stats.surfaceArea)} ${areaUnit}`} />
+            <StatRow label={t('modelInfo.volume')} value={`${formatNumber(stats.volume)} ${volumeUnit}`} />
             <StatRow
               label={t('modelInfo.dimensions')}
               value={
                 stats.boundingBox.isEmpty()
                   ? '-'
-                  : `${formatNumber(stats.boundingBox.max.x - stats.boundingBox.min.x)} × ${formatNumber(stats.boundingBox.max.y - stats.boundingBox.min.y)} × ${formatNumber(stats.boundingBox.max.z - stats.boundingBox.min.z)} mm`
+                  : `${formatNumber(stats.boundingBox.max.x - stats.boundingBox.min.x)} × ${formatNumber(stats.boundingBox.max.y - stats.boundingBox.min.y)} × ${formatNumber(stats.boundingBox.max.z - stats.boundingBox.min.z)} ${unitLabel}`
               }
             />
             <StatRow label={t('modelInfo.parts')} value={formatNumber(stats.partCount)} />
             <StatRow label={t('modelInfo.format')} value={formatLabel} />
-            <StatRow
-              label={t('modelInfo.materialCost')}
-              value={stats.volume > 0 ? `${formatNumber(stats.volume / 1000 * 1.24)} g (PLA)` : '-'}
-            />
+            {showMaterialCost && (
+              <StatRow
+                label={t('modelInfo.materialCost')}
+                value={computeMaterialCost(stats.volume, sourceUnit)}
+              />
+            )}
           </div>
         </ScrollArea>
       )}

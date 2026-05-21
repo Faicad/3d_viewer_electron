@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { computeModelStats, formatNumber } from './compute-model-stats'
+import { computeModelStats, formatNumber, computeMaterialCost } from './compute-model-stats'
+import { sourceUnitToLabel, FILE_FORMATS } from '@/config/file-formats'
+import type { UnitSystem } from '@/config/file-formats'
 
 function makeBoxGroup(useIndex: boolean): THREE.Group {
   const group = new THREE.Group()
@@ -128,5 +130,98 @@ describe('computeModelStats', () => {
     expect(stats.volume).toBe(16)
     expect(stats.partCount).toBe(2)
     expect(stats.boundingBox.isEmpty()).toBe(false)
+  })
+})
+
+describe('sourceUnitToLabel', () => {
+  const cases: [UnitSystem, string][] = [
+    ['millimeter', 'mm'],
+    ['centimeter', 'cm'],
+    ['meter', 'm'],
+    ['inch', 'in'],
+    ['foot', 'ft'],
+    ['micron', 'µm'],
+    ['angstrom', 'Å'],
+  ]
+
+  for (const [unit, label] of cases) {
+    it(`maps ${unit} → ${label}`, () => {
+      expect(sourceUnitToLabel(unit)).toBe(label)
+    })
+  }
+
+  it('falls back to mm for unknown unit', () => {
+    expect(sourceUnitToLabel('unknown' as UnitSystem)).toBe('mm')
+  })
+})
+
+describe('file-formats defaultUnit coverage', () => {
+  const validUnits: UnitSystem[] = ['millimeter', 'centimeter', 'meter', 'inch', 'foot', 'micron', 'angstrom']
+
+  for (const format of FILE_FORMATS) {
+    it(`${format.label} (${format.extensions.join(', ')}) has a valid defaultUnit`, () => {
+      expect(format.defaultUnit).toBeDefined()
+      expect(validUnits).toContain(format.defaultUnit)
+    })
+  }
+})
+
+describe('computeMaterialCost', () => {
+  it('returns "-" for zero volume', () => {
+    expect(computeMaterialCost(0, 'millimeter')).toBe('-')
+  })
+
+  it('returns "-" for negative volume', () => {
+    expect(computeMaterialCost(-1, 'millimeter')).toBe('-')
+  })
+
+  it('computes correctly for mm³ volume', () => {
+    // 1000 mm³ = 1 cm³ → 1.24 g
+    expect(computeMaterialCost(1000, 'millimeter')).toBe('1.24 g (PLA)')
+  })
+
+  it('handles cm³ volume with conversion', () => {
+    // 1 cm³ = 1000 mm³ → 1000/1000*1.24 = 1.24 g
+    expect(computeMaterialCost(1, 'centimeter')).toBe('1.24 g (PLA)')
+  })
+
+  it('handles m³ volume with conversion (e.g. GLB file)', () => {
+    // A 0.15×0.12×0.09 m box → 0.00162 m³
+    // 0.00162 * 10⁹ = 1,620,000 mm³ → 1620000/1000*1.24 = 2008.8 g
+    const cost = computeMaterialCost(0.00162, 'meter')
+    expect(cost).toContain('g (PLA)')
+    expect(cost).not.toBe('-')
+    // Should be around 2009 g
+    const grams = parseFloat(cost.replace(/ g \(PLA\)$/, '').replace(/,/g, ''))
+    expect(grams).toBeGreaterThan(1000)
+    expect(grams).toBeLessThan(3000)
+  })
+
+  it('handles in³ volume with conversion', () => {
+    // 1 in³ = 16387.064 mm³ → 16387.064/1000*1.24 ≈ 20.32 g
+    const cost = computeMaterialCost(1, 'inch')
+    expect(cost).toContain('g (PLA)')
+    const grams = parseFloat(cost.replace(/ g \(PLA\)$/, '').replace(/,/g, ''))
+    expect(grams).toBeGreaterThan(20)
+    expect(grams).toBeLessThan(21)
+  })
+
+  it('handles ft³ volume with conversion', () => {
+    // 1 ft³ = 28316846.592 mm³ → 28316846.592/1000*1.24 ≈ 35113 g
+    const cost = computeMaterialCost(1, 'foot')
+    expect(cost).toContain('g (PLA)')
+    const grams = parseFloat(cost.replace(/ g \(PLA\)$/, '').replace(/,/g, ''))
+    expect(grams).toBeGreaterThan(35000)
+    expect(grams).toBeLessThan(36000)
+  })
+
+  it('returns non-zero for non-mm units', () => {
+    const units: UnitSystem[] = ['centimeter', 'meter', 'inch', 'foot', 'micron', 'angstrom']
+    for (const unit of units) {
+      // Use a volume that ensures reasonable output
+      const cost = computeMaterialCost(unit === 'micron' ? 1e9 : unit === 'angstrom' ? 1e24 : 1, unit)
+      expect(cost).not.toBe('-')
+      expect(parseFloat(cost.replace(/ g \(PLA\)$/, '').replace(/,/g, ''))).toBeGreaterThan(0)
+    }
   })
 })

@@ -23,7 +23,7 @@ import { LWOLoader } from 'three/examples/jsm/loaders/LWOLoader.js'
 import { MD2Loader } from 'three/examples/jsm/loaders/MD2Loader.js'
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
-import type { FormatId } from '@/config/file-formats'
+import type { FormatId, UnitSystem } from '@/config/file-formats'
 
 export interface LoaderResult {
   meshes: THREE.Mesh[]
@@ -33,6 +33,8 @@ export interface LoaderResult {
   skeleton?: THREE.Skeleton
   /** Preserved scene hierarchy for building multi-level scene tree */
   sceneRoot?: THREE.Object3D
+  /** Unit system detected or defaulted for this file format. If undefined, caller should use format's defaultUnit. */
+  sourceUnit?: UnitSystem
 }
 
 function bufferToText(buffer: ArrayBuffer): string {
@@ -216,7 +218,7 @@ export async function loadFormat(
     case 'glb': {
       const gltf = await new GLTFLoader().parseAsync(buffer, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [], sceneRoot: gltf.scene }
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter' }
     }
     case 'gltf': {
       if (resourcePath) {
@@ -229,7 +231,7 @@ export async function loadFormat(
       const gltfText = bufferToText(buffer)
       const gltf = await new GLTFLoader().parseAsync(gltfText, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [], sceneRoot: gltf.scene }
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter' }
     }
     case '3mf': {
       const group = new ThreeMFLoader().parse(buffer)
@@ -361,7 +363,7 @@ export async function loadFormat(
           new THREE.LineBasicMaterial({ color: 0x888888 }))
         objects.push(lineSegs)
       }
-      return { meshes: [], objects }
+      return { meshes: [], objects, sourceUnit: 'angstrom' }
     }
     case 'nrrd': {
       // NRRD produces volume data (3D texture) — create a unit box with wireframe
@@ -370,7 +372,7 @@ export async function loadFormat(
       const geo = new THREE.BoxGeometry(1, 1, 1)
       const mesh = new THREE.Mesh(geo)
       mesh.name = 'NRRD proxy'
-      return { meshes: [mesh], objects: [] }
+      return { meshes: [mesh], objects: [], sourceUnit: 'micron' }
     }
     case 'pcd': {
       const points = new PCDLoader().parse(buffer)

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { FormatId, UpAxis } from '@/config/file-formats'
+import type { FormatId, FileGroup, UnitSystem, UpAxis } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
 
 export interface SceneTreeNode {
@@ -37,6 +37,14 @@ interface ModelStore {
   /** Loading phase for E2E test conditional waits (replaces fixed timeouts) */
   __loadingPhase: LoadingPhase
   setLoadingPhase: (phase: LoadingPhase) => void
+
+  /** Detected or default unit system for the loaded file */
+  sourceUnit: UnitSystem
+  setSourceUnit: (unit: UnitSystem) => void
+
+  /** File format group (mesh/cad/point/volume/animation/gcode/other) */
+  fileGroup: FileGroup
+  setFileGroup: (group: FileGroup) => void
 
   /** Active coordinate-system up axis — auto-set on load, manually togglable via toolbar */
   activeUpAxis: UpAxis
@@ -118,6 +126,8 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   modelFormat: null,
   modelFilePath: null,
   __loadingPhase: 'idle',
+  sourceUnit: 'millimeter',
+  fileGroup: 'mesh',
   isConverting: false,
   glbPartInfos: [],
   modelCenteringOffset: null,
@@ -132,6 +142,8 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
 
   setIsConverting: (v) => set({ isConverting: v }),
   setLoadingPhase: (phase) => set({ __loadingPhase: phase }),
+  setSourceUnit: (unit) => set({ sourceUnit: unit }),
+  setFileGroup: (group) => set({ fileGroup: group }),
   setGlbPartInfos: (infos) => set({ glbPartInfos: infos }),
   setModelCenteringOffset: (offset) => set({ modelCenteringOffset: offset }),
   setActiveUpAxis: (axis) => set({ activeUpAxis: axis }),
@@ -175,6 +187,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   reset: () => {
     const url = get().glbUrl
     if (url && url !== 'loaded') URL.revokeObjectURL(url)
-    set({ glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null, modelFilePath: null, __loadingPhase: 'idle', glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name', sortOrder: 'asc', activeUpAxis: 'z' })
+    set({ glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null, modelFilePath: null, __loadingPhase: 'idle', sourceUnit: 'millimeter', fileGroup: 'mesh', glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name', sortOrder: 'asc', activeUpAxis: 'z' })
   },
 }))

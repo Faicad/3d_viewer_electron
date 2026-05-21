@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { UnitSystem } from '@/config/file-formats'
 
 export interface ComputedModelStats {
   vertices: number
@@ -12,7 +13,9 @@ export interface ComputedModelStats {
 export function formatNumber(n: number): string {
   if (!Number.isFinite(n)) return '-'
   if (n === 0) return '0'
-  if (Math.abs(n) >= 1) return Math.round(n).toLocaleString()
+  if (Math.abs(n) >= 100) return Math.round(n).toLocaleString()
+  // For values between 1 and 100, show up to 4 significant digits
+  if (Math.abs(n) >= 1) return n.toLocaleString(undefined, { maximumSignificantDigits: 4 })
   // For values < 1, show up to 3 significant digits
   return n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
 }
@@ -129,4 +132,28 @@ export function computeModelStats(group: THREE.Group): ComputedModelStats {
     boundingBox: overallBox,
     partCount,
   }
+}
+
+/** Convert volume from source unit to mm³ */
+function volumeToMm3(volume: number, sourceUnit: UnitSystem): number {
+  switch (sourceUnit) {
+    case 'millimeter': return volume
+    case 'centimeter': return volume * 1000            // 1 cm³ = 1000 mm³
+    case 'meter':      return volume * 1_000_000_000    // 1 m³ = 10⁹ mm³
+    case 'inch':       return volume * 16_387.064       // 1 in³ = 16387.064 mm³
+    case 'foot':       return volume * 28_316_846.592   // 1 ft³ ≈ 28.3×10⁶ mm³
+    case 'micron':     return volume * 1e-9             // 1 µm³ = 10⁻⁹ mm³
+    case 'angstrom':   return volume * 1e-24            // 1 Å³ = 10⁻²⁴ mm³
+    default:           return volume                    // assume mm
+  }
+}
+
+/** Compute PLA material cost string.
+ *  Formula: mm³ ÷ 1000 × 1.24 g/cm³ (PLA density).
+ *  Volume is converted to mm³ based on sourceUnit before applying the formula. */
+export function computeMaterialCost(volume: number, sourceUnit: UnitSystem): string {
+  if (!Number.isFinite(volume) || volume <= 0) return '-'
+  const volumeMm3 = volumeToMm3(volume, sourceUnit)
+  const grams = volumeMm3 / 1000 * 1.24
+  return `${formatNumber(grams)} g (PLA)`
 }

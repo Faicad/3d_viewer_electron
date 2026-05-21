@@ -11,6 +11,15 @@ export type FileGroup =
   | 'gcode'
   | 'other'
 
+export type UnitSystem =
+  | 'millimeter'
+  | 'centimeter'
+  | 'meter'
+  | 'inch'
+  | 'foot'
+  | 'micron'
+  | 'angstrom'
+
 export type FormatId =
   | 'stl'
   | 'glb'
@@ -65,6 +74,8 @@ export interface FileFormatEntry {
   disabled?: boolean
   /** Tailwind color class for file extension badge */
   color: string
+  /** Default unit system for this format (used when file carries no unit metadata) */
+  defaultUnit: UnitSystem
 }
 
 export const FILE_FORMATS: FileFormatEntry[] = [
@@ -80,6 +91,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-blue-500',
   },
   {
@@ -93,6 +105,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'meter',
     color: 'text-green-500',
   },
   {
@@ -106,6 +119,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'meter',
     color: 'text-green-400',
   },
   {
@@ -119,6 +133,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-orange-500',
   },
   {
@@ -132,6 +147,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-purple-500',
   },
   // ---- 5-29: New formats ----
@@ -146,6 +162,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-cyan-500',
   },
   {
@@ -159,6 +176,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-teal-500',
   },
   {
@@ -172,6 +190,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'centimeter',
     color: 'text-indigo-500',
   },
   {
@@ -185,6 +204,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'meter',
     color: 'text-rose-500',
   },
   {
@@ -198,6 +218,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-amber-500',
   },
   {
@@ -211,6 +232,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'meter',
     color: 'text-sky-500',
   },
   {
@@ -224,6 +246,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: true,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-lime-500',
   },
   {
@@ -237,6 +260,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'skeleton',
+    defaultUnit: 'millimeter',
     color: 'text-pink-500',
   },
   {
@@ -250,6 +274,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-violet-500',
   },
   {
@@ -263,6 +288,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'pointcloud',
+    defaultUnit: 'millimeter',
     color: 'text-fuchsia-500',
   },
   {
@@ -276,6 +302,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'pointcloud',
+    defaultUnit: 'angstrom',
     color: 'text-red-500',
   },
   {
@@ -289,6 +316,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'volume',
+    defaultUnit: 'micron',
     color: 'text-blue-400',
   },
   {
@@ -302,6 +330,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'toolpath',
+    defaultUnit: 'millimeter',
     color: 'text-emerald-500',
   },
   {
@@ -315,6 +344,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'meter',
     color: 'text-yellow-500',
   },
   {
@@ -328,6 +358,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-orange-400',
   },
   {
@@ -341,6 +372,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'meter',
     color: 'text-green-600',
   },
   {
@@ -354,6 +386,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-blue-300',
   },
   {
@@ -367,6 +400,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-stone-500',
   },
   {
@@ -380,6 +414,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-red-400',
   },
   {
@@ -394,6 +429,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsExternalDep: false,
     disabled: true, // morph data only, no standalone mesh to render
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-orange-300',
   },
   {
@@ -407,6 +443,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'pointcloud',
+    defaultUnit: 'millimeter',
     color: 'text-slate-400',
   },
   {
@@ -421,6 +458,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsExternalDep: true,
     disabled: true, // needs npm install web-ifc-three web-ifc
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-yellow-600',
   },
   {
@@ -434,6 +472,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     needsDracoWasm: false,
     needsExternalDep: false,
     renderHint: 'mesh',
+    defaultUnit: 'millimeter',
     color: 'text-gray-400',
   },
 ]
@@ -511,6 +550,20 @@ export function isCadSkillGlb(buffer: ArrayBuffer): boolean {
     return text.includes('STEP_T')
   } catch {
     return false
+  }
+}
+
+/** Map unit system to display label */
+export function sourceUnitToLabel(unit: UnitSystem): string {
+  switch (unit) {
+    case 'millimeter': return 'mm'
+    case 'centimeter': return 'cm'
+    case 'meter':      return 'm'
+    case 'inch':       return 'in'
+    case 'foot':       return 'ft'
+    case 'micron':     return 'µm'
+    case 'angstrom':   return 'Å'
+    default:           return 'mm'
   }
 }
 

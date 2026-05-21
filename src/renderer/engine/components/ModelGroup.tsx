@@ -9,6 +9,7 @@ import { flattenVisibility } from '@/lib/scene-tree-utils'
 import type { DisplayMode } from './DisplayModeDropdown'
 import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
+import { FORMAT_MAP } from '@/config/file-formats'
 import { cloneMeshGeometry } from './cloneMeshGeometry'
 
 // ---- types ----
@@ -120,6 +121,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         }
         const result = await loadFormat(buffer, format, modelFilePath)
         if (cancelled) return
+
+        // Set unit metadata in store
+        useModelStore.getState().setSourceUnit(result.sourceUnit ?? FORMAT_MAP[format].defaultUnit)
+        useModelStore.getState().setFileGroup(FORMAT_MAP[format].group)
 
         // If format produced non-mesh objects (GCode lines, BVH skeleton, PCD points, etc.)
         if (result.objects.length > 0 && result.meshes.length === 0) {
