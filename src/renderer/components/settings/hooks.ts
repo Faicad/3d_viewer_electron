@@ -49,5 +49,6 @@ export function useLanguageSync() {
     const supportedCodes = SUPPORTED_LANGUAGES.map(l => l.code)
     const lang = supportedCodes.includes(targetLang as typeof supportedCodes[number]) ? targetLang : 'zh'
     i18n.changeLanguage(lang)
+    document.documentElement.lang = lang
   }, [language])
 }

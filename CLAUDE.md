@@ -70,3 +70,8 @@ Zustand stores in `src/renderer/stores/`. No Redux or other state library.
 本项目是开源项目，所以文档/代码里不能暴露本机开发环境/路径/密钥等私密信息。
 
 测试代码里，禁止用window.waitForTimeout，或者类似的粗暴延时的代码。
+
+注意区分wireframe和mesh：
+wireframe显示模型的拓扑线条，如果不是step等格式，就没有拓扑线条。
+mesh显示的是模型的三角网格，所有文件格式都有mesh网格。
+它们的显示效果都是线条。

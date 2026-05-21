@@ -33,23 +33,23 @@ export function useThemeColors(): ThemeColors {
     const isDark = theme === 'system' ? getSystemDark() : theme === 'dark'
 
     return {
-      cubeColor: isDark ? '#445566' : '#9ab5c5',
-      cubeEdgeColor: isDark ? '#666666' : '#7a8fa0',
-      labelColor: isDark ? '#cccccc' : '#2d3a4a',
-      labelHoverColor: isDark ? '#ffcc33' : '#e6a700',
-      resetBtnBg: isDark ? 'rgba(80,80,80,0.9)' : 'rgba(240,240,240,0.95)',
-      resetBtnBorder: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+      cubeColor: isDark ? '#3d5566' : '#a8c8d8',
+      cubeEdgeColor: isDark ? '#5a6a7a' : '#7a9aaa',
+      labelColor: isDark ? '#ccd8e0' : '#2a3a4a',
+      labelHoverColor: isDark ? '#2dd4bf' : '#0a8a8a',
+      resetBtnBg: isDark ? 'rgba(45,55,65,0.9)' : 'rgba(240,244,246,0.95)',
+      resetBtnBorder: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
 
       axisXColor: isDark ? '#ff6666' : '#dd4444',
       axisYColor: isDark ? '#66ff66' : '#44aa44',
-      axisZColor: isDark ? '#6699ff' : '#4477dd',
-      originColor: isDark ? '#cccccc' : '#555555',
-      labelTextColor: isDark ? '#cccccc' : '#333333',
+      axisZColor: isDark ? '#6688ff' : '#4466dd',
+      originColor: isDark ? '#ccd8e0' : '#556677',
+      labelTextColor: isDark ? '#ccd8e0' : '#334455',
 
-      toolbarBg: isDark ? 'rgba(40,40,40,0.85)' : 'rgba(240,240,240,0.9)',
+      toolbarBg: isDark ? 'rgba(35,45,55,0.85)' : 'rgba(235,240,244,0.9)',
       textActive: '#ffffff',
-      textInactive: isDark ? '#888888' : '#666666',
-      textDisabled: isDark ? '#444444' : '#aaaaaa',
+      textInactive: isDark ? '#7a8a9a' : '#6a7a8a',
+      textDisabled: isDark ? '#445566' : '#aab8c4',
     }
   }, [theme])
 }
