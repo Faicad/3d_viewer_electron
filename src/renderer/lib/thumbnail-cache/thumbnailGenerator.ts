@@ -35,6 +35,7 @@ function getRenderer(): THREE.WebGLRenderer {
   })
   renderer.setSize(WIDTH, HEIGHT, false)
   renderer.setPixelRatio(1)
+  renderer.setClearColor(0x000000, 0)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.2
@@ -108,7 +109,7 @@ export async function generateThumbnail(
 ): Promise<Blob | null> {
   const r = getRenderer()
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x1a1a2e)
+  // Transparent background — CSS bg-muted shows through the PNG alpha channel
 
   // Lighting
   const ambient = new THREE.AmbientLight(0xffffff, 0.6)
