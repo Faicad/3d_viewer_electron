@@ -144,39 +144,50 @@ function CameraAnimator({
 
 function CameraModeSwitcher() {
   const cameraMode = useUIStore((s) => s.cameraMode)
-  const { camera, set: setThree } = useThree()
+  const { camera, set: setThree, size, controls } = useThree()
 
   useEffect(() => {
+    const aspect = size.width / size.height
+    const orbitControls = controls as OrbitControlsImpl | null
+    const target = orbitControls?.target ?? new THREE.Vector3(0, 0, 0)
+
     if (cameraMode === 'perspective' && !(camera instanceof THREE.PerspectiveCamera)) {
       const pos = camera.position.clone()
       const up = camera.up.clone()
       const near = camera.near
       const far = camera.far
-      const perspCam = new THREE.PerspectiveCamera(50, camera.aspect, near, far)
-      perspCam.position.copy(pos)
+
+      const orthoCam = camera as THREE.OrthographicCamera
+      const zoom = orthoCam.zoom || 1
+      const effectiveHalfHeight = orthoCam.top / zoom
+      const dist = effectiveHalfHeight / Math.tan(THREE.MathUtils.degToRad(25))
+
+      const perspCam = new THREE.PerspectiveCamera(50, aspect, near, far)
+      const viewDir = pos.clone().sub(target).normalize()
+      perspCam.position.copy(target).addScaledVector(viewDir, dist)
       perspCam.up.copy(up)
-      perspCam.lookAt(0, 0, 0)
+      perspCam.lookAt(target)
       setThree({ camera: perspCam })
     } else if (cameraMode === 'orthographic' && !(camera instanceof THREE.OrthographicCamera)) {
       const pos = camera.position.clone()
       const up = camera.up.clone()
       const near = camera.near
       const far = camera.far
-      // Estimate orthographic size from perspective camera distance
-      const dist = pos.length()
-      const size = dist * Math.tan(THREE.MathUtils.degToRad(25))
-      const aspect = camera.aspect
+
+      const dist = pos.distanceTo(target)
+      const halfHeight = dist * Math.tan(THREE.MathUtils.degToRad(25))
+
       const orthoCam = new THREE.OrthographicCamera(
-        -size * aspect, size * aspect,
-        size, -size,
+        -halfHeight * aspect, halfHeight * aspect,
+        halfHeight, -halfHeight,
         near, far,
       )
       orthoCam.position.copy(pos)
       orthoCam.up.copy(up)
-      orthoCam.lookAt(0, 0, 0)
+      orthoCam.lookAt(target)
       setThree({ camera: orthoCam })
     }
-  }, [cameraMode, camera, setThree])
+  }, [cameraMode, camera, setThree, size, controls])
 
   return null
 }
@@ -415,7 +426,7 @@ export default function ViewportContainer() {
           window.__r3f_dev = { camera, scene, gl }
         }}
       >
-        <OrbitControls ref={controlsRef} enableDamping enabled={activeToolMode === 'view' && !animActive} />
+        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !animActive} />
         <UpAxisAnimator upAxis={activeUpAxis} animActive={animActive} setAnimTarget={setAnimTarget} setAnimTargetUp={setAnimTargetUp} setAnimActive={setAnimActive} />
         <CameraAnimator
           targetPos={animTarget}

@@ -17,7 +17,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Download, FolderOpen,
   Maximize, Minimize, Info,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  ScanLine, Scan,
+  Cuboid, Grid3x3,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -342,7 +342,7 @@ export default function DesktopLayout() {
               onClick={() => ui.setCameraMode('perspective')}
               aria-label={t('toolbar.perspective')}
             >
-              <ScanLine className="h-4 w-4" />
+              <Cuboid className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.perspective')}</TooltipContent>
@@ -357,7 +357,7 @@ export default function DesktopLayout() {
               onClick={() => ui.setCameraMode('orthographic')}
               aria-label={t('toolbar.orthographic')}
             >
-              <Scan className="h-4 w-4" />
+              <Grid3x3 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
