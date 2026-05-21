@@ -57,6 +57,8 @@
   "fileList.folder": "โฟลเดอร์",
   "fileList.sortByName": "เรียงตามชื่อ",
   "fileList.sortByType": "เรียงตามประเภท",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "เปิดไฟล์",
   "openFile.description": "เลือกไฟล์โมเดล 3D ที่จะเปิด",
   "openFile.dropHint": "คลิกเพื่อเรียกดูหรือลากและวางไฟล์",

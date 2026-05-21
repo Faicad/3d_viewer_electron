@@ -57,6 +57,8 @@
   "fileList.folder": "Thư mục",
   "fileList.sortByName": "Sắp xếp theo tên",
   "fileList.sortByType": "Sắp xếp theo loại",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Mở tệp",
   "openFile.description": "Chọn tệp mô hình 3D để mở",
   "openFile.dropHint": "Nhấp để duyệt hoặc kéo và thả tệp",

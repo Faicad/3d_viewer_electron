@@ -57,6 +57,8 @@
   "fileList.folder": "Map",
   "fileList.sortByName": "Sorteren op naam",
   "fileList.sortByType": "Sorteren op type",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Bestand openen",
   "openFile.description": "Selecteer een 3D model bestand om te openen",
   "openFile.dropHint": "Klik om te bladeren of sleep en neerzetten",

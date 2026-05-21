@@ -57,6 +57,8 @@
   "fileList.folder": "Folder",
   "fileList.sortByName": "Urutkan berdasarkan nama",
   "fileList.sortByType": "Urutkan berdasarkan tipe",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Buka file",
   "openFile.description": "Pilih file model 3D untuk dibuka",
   "openFile.dropHint": "Klik untuk menjelajah atau seret dan letakkan",

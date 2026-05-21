@@ -57,6 +57,8 @@
   "fileList.folder": "Carpeta",
   "fileList.sortByName": "Ordenar por nombre",
   "fileList.sortByType": "Ordenar por tipo",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Abrir archivo",
   "openFile.description": "Selecciona un archivo de modelo 3D para abrir",
   "openFile.dropHint": "Clic para explorar o arrastra y suelta",

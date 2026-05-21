@@ -57,6 +57,8 @@
   "fileList.folder": "폴더",
   "fileList.sortByName": "이름순 정렬",
   "fileList.sortByType": "종류순 정렬",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "파일 열기",
   "openFile.description": "열 3D 모델 파일 선택",
   "openFile.dropHint": "클릭하여 찾아보기 또는 드래그&드롭",

@@ -57,6 +57,8 @@
   "fileList.folder": "Klasör",
   "fileList.sortByName": "İsme göre sırala",
   "fileList.sortByType": "Türe göre sırala",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Dosya aç",
   "openFile.description": "Açılacak 3D model dosyası seçin",
   "openFile.dropHint": "Gözatmak için tıklayın veya sürükle-bırak yapın",

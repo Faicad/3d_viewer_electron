@@ -57,6 +57,8 @@
   "fileList.folder": "Mapp",
   "fileList.sortByName": "Sortera efter namn",
   "fileList.sortByType": "Sortera efter typ",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Öppna fil",
   "openFile.description": "Välj en 3D-modellfil att öppna",
   "openFile.dropHint": "Klicka för att bläddra eller dra och släpp",

@@ -57,6 +57,8 @@
   "fileList.folder": "フォルダ",
   "fileList.sortByName": "名前順でソート",
   "fileList.sortByType": "種類順でソート",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "ファイルを開く",
   "openFile.description": "開く3Dモデルファイルを選択",
   "openFile.dropHint": "クリックして参照またはドラッグ&ドロップ",

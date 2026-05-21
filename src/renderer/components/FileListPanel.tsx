@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { EXT_COLORS, detectFormat } from '@/config/file-formats'
 import { Button } from '@/components/ui/button'
-import { List, ArrowUpAZ, ArrowDownZA, AlertCircle } from 'lucide-react'
+import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import {
   startThumbnailQueue,
   stopThumbnailQueue,
@@ -40,6 +40,7 @@ export default function FileListPanel() {
     glbUrl,
   } = useModelStore()
   const enablePreview = useUIStore((s) => s.enablePreview)
+  const setEnablePreview = useUIStore((s) => s.setEnablePreview)
   const listRef = useRef<HTMLDivElement>(null)
 
   const [thumbState, setThumbState] = useState<ThumbState>({ urls: new Map(), failed: new Set() })
@@ -197,6 +198,15 @@ export default function FileListPanel() {
             variant="ghost"
             size="icon"
             className="h-5 w-5"
+            onClick={() => setEnablePreview(!enablePreview)}
+            title={enablePreview ? t('fileList.previewView') : t('fileList.listView')}
+          >
+            {enablePreview ? <Eye className={cn('h-3 w-3', enablePreview && 'text-primary')} /> : <EyeOff className="h-3 w-3" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
             onClick={cycleSortMode}
             title={fileSortMode === 'name' ? t('fileList.sortByName') : t('fileList.sortByType')}
           >
@@ -218,9 +228,12 @@ export default function FileListPanel() {
         </div>
       </div>
       {currentFolderPath && (
-        <div className="px-3 py-1.5 text-xs text-muted-foreground border-b overflow-x-auto whitespace-nowrap">
-          {t('fileList.folder')}: {currentFolderPath}
-        </div>
+        <ScrollArea className="border-b">
+          <div className="px-3 py-1.5 text-xs text-muted-foreground whitespace-nowrap min-w-max">
+            {currentFolderPath}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       )}
 
       {enablePreview ? (

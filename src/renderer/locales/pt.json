@@ -57,6 +57,8 @@
   "fileList.folder": "Pasta",
   "fileList.sortByName": "Ordenar por nome",
   "fileList.sortByType": "Ordenar por tipo",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Abrir ficheiro",
   "openFile.description": "Selecione um ficheiro de modelo 3D para abrir",
   "openFile.dropHint": "Clique para procurar ou arraste e solte",

@@ -57,6 +57,8 @@
   "fileList.folder": "Ordner",
   "fileList.sortByName": "Nach Namen sortieren",
   "fileList.sortByType": "Nach Typ sortieren",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Datei öffnen",
   "openFile.description": "Wählen Sie eine 3D-Modelldatei zum Öffnen",
   "openFile.dropHint": "Klicken zum Durchsuchen oder Datei hierher ziehen",

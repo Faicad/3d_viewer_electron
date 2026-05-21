@@ -57,6 +57,8 @@
   "fileList.folder": "Cartella",
   "fileList.sortByName": "Ordina per nome",
   "fileList.sortByType": "Ordina per tipo",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Apri file",
   "openFile.description": "Seleziona un file di modello 3D da aprire",
   "openFile.dropHint": "Clicca per sfogliare o trascina e rilascia",

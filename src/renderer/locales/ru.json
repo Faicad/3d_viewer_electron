@@ -57,6 +57,8 @@
   "fileList.folder": "Папка",
   "fileList.sortByName": "Сортировать по имени",
   "fileList.sortByType": "Сортировать по типу",
+  "fileList.previewView": "Preview thumbnails",
+  "fileList.listView": "List view",
   "openFile.title": "Открыть файл",
   "openFile.description": "Выберите файл 3D модели для открытия",
   "openFile.dropHint": "Нажмите для выбора или перетащите файл",
