@@ -1,185 +1,187 @@
-# 3D Viewer Electron 桌面应用
+# 3D Viewer Electron Desktop App
 
-独立的本地 3D 模型文件查看器桌面应用，支持 24 种 3D 文件格式的浏览和渲染。
+> [中文版](README.zh.md)
 
-## 功能
+A standalone local 3D model file viewer desktop application supporting browsing and rendering of 24 3D file formats.
 
-### 文件加载
-- **拖拽上传**：直接将 3D 文件拖入窗口即可加载
-- **点击上传**：点击上传按钮，按类别筛选文件格式后选择文件
-- **剪贴板粘贴**：从剪贴板粘贴 3D 文件
-- **文件列表**：加载文件后自动扫描同目录下所有支持的 3D 模型
-- **键盘切换**：使用 ↑↓ 键选择文件，Enter 键加载
-- **鼠标切换**：点击文件列表中的文件即可切换
+## Features
 
-### 3D 渲染与显示
-- **PBR 材质系统**：基于物理的渲染，支持金属度/粗糙度工作流
-- **5 种显示模式**：实体 / 线框 / 实体+线框 / 网格 / 调试视图
-- **多光源系统**：环境光 + 方向光，自适应场景亮度
-- **OrbitControls**：带阻尼的旋转/平移/缩放，自动适配模型尺寸
+### File Loading
+- **Drag & Drop**: Drag 3D files directly into the window to load
+- **Click to Upload**: Click the upload button, filter by file category, and select files
+- **Clipboard Paste**: Paste 3D files from the clipboard
+- **File List**: Automatically scan all supported 3D models in the same directory after loading
+- **Keyboard Navigation**: Use ↑↓ to select files, Enter to load
+- **Mouse Navigation**: Click on a file in the file list to switch
 
-### 交互工具
-- **变换工具 (TransformControls)**：平移 / 旋转 / 缩放
-- **拓扑选择**：支持对象 / 面 / 边 / 顶点四种选择模式
-- **选择高亮**：悬停（白色轮廓）和选中（蓝色轮廓）
-- **选择信息面板**：显示选中元素的 ID、类型、面积/长度/坐标
+### 3D Rendering & Display
+- **PBR Material System**: Physically based rendering with metalness/roughness workflow
+- **4 Display Modes**: Solid / Wireframe / Solid+Wireframe / Grid
+- **Multi-light System**: Ambient + directional lights with adaptive scene brightness
+- **OrbitControls**: Rotate/pan/zoom with damping, auto-fit to model size
 
-### 模型操作
-- **模型下载**：将当前模型下载为 STL 或 GLB 文件
-- **场景树**：层次化展示模型部件，支持展开/折叠和单独显隐控制
-- **模型统计**：实时显示顶点数、面数、材质重量
+### Interaction Tools
+- **TransformControls**: Translate / Rotate / Scale
+- **Topology Selection**: Object / Face / Edge / Vertex selection modes
+- **Selection Highlight**: Hover (white outline) and selected (blue outline)
+- **Selection Info Panel**: Displays selected element ID, type, area/length/coordinates
 
-### 通用功能
-- **中英文切换**：支持简体中文和英文界面，可跟随系统
-- **暗色/亮色主题**：支持浅色/深色/跟随系统
-- **状态栏**：显示当前模型的顶点、面、材质重量信息
-- **XYZ 轴指示器**：右下角实时显示坐标系方向
+### Model Operations
+- **Model Download**: Download current model as STL or GLB
+- **Scene Tree**: Hierarchical display of model parts with expand/collapse and individual visibility control
+- **Model Statistics**: Real-time display of vertex count, face count, material weight
 
-## 支持的文件格式
+### General
+- **Chinese/English Switch**: Supports Simplified Chinese and English UI, can follow system language
+- **Dark/Light Theme**: Light/dark/system theme support
+- **Status Bar**: Displays current model vertices, faces, material weight
+- **XYZ Axis Indicator**: Real-time coordinate system orientation in bottom-right corner
 
-### 网格 (Mesh) — 13 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| STL | `.stl` | 三角面片网格，支持 ASCII 和 Binary |
-| GLB | `.glb` | glTF 2.0 二进制格式 |
-| GLTF | `.gltf` | glTF 2.0 JSON 格式，自动解析外部 .bin/纹理引用 |
+## Supported File Formats
+
+### Mesh — 13 Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| STL | `.stl` | Triangle mesh, supports ASCII and Binary |
+| GLB | `.glb` | glTF 2.0 Binary format |
+| GLTF | `.gltf` | glTF 2.0 JSON format, auto-resolves external .bin/textures |
 | 3MF | `.3mf` | 3D Manufacturing Format |
-| OBJ | `.obj` | Wavefront OBJ，基于文本 |
-| PLY | `.ply` | 支持 ASCII 和 Binary 自动检测 |
+| OBJ | `.obj` | Wavefront OBJ, text-based |
+| PLY | `.ply` | Supports ASCII and Binary auto-detection |
 | FBX | `.fbx` | Autodesk Filmbox |
-| DAE | `.dae` | Collada 格式，基于文本 |
-| 3DS | `.3ds` | 3D Studio 旧版格式 |
-| USDZ | `.usdz` | Apple 通用场景描述压缩包 |
-| DRC | `.drc` | Draco 压缩网格（需 Draco WASM 解码器） |
+| DAE | `.dae` | Collada format, text-based |
+| 3DS | `.3ds` | 3D Studio legacy format |
+| USDZ | `.usdz` | Apple Universal Scene Description package |
+| DRC | `.drc` | Draco compressed mesh (requires Draco WASM decoder) |
 | AMF | `.amf` | Additive Manufacturing Format |
-| LWO | `.lwo` | LightWave 3D 对象格式 |
-| 3DM | `.3dm` | Rhinoceros 3D 格式（需 rhino3dm WASM） |
+| LWO | `.lwo` | LightWave 3D object format |
+| 3DM | `.3dm` | Rhinoceros 3D format (requires rhino3dm WASM) |
 
-### CAD — 1 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| STEP | `.step` `.stp` | 通过 Open CASCADE 引擎转换为 GLB 渲染 |
+### CAD — 1 Format
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| STEP | `.step` `.stp` | Converted to GLB for rendering via Open CASCADE engine |
 
-### 动画 (Animation) — 2 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| BVH | `.bvh` | 骨骼动画，以骨架方式渲染 |
-| MD2 | `.md2` | Quake II 模型格式 |
+### Animation — 2 Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| BVH | `.bvh` | Skeletal animation, rendered as skeleton |
+| MD2 | `.md2` | Quake II model format |
 
-### 点云 (Point Cloud) — 3 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| XYZ | `.xyz` | 点坐标数据，以点云渲染 |
-| PDB | `.pdb` | 蛋白质数据库格式，原子+键渲染为点云+线段 |
-| PCD | `.pcd` | Point Cloud Data 格式 |
+### Point Cloud — 3 Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| XYZ | `.xyz` | Point coordinate data, rendered as point cloud |
+| PDB | `.pdb` | Protein Data Bank format, atoms+bonds rendered as point cloud + lines |
+| PCD | `.pcd` | Point Cloud Data format |
 
-### 体数据 (Volume) — 2 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| VTK | `.vtk` `.vtp` | Visualization Toolkit 格式 |
-| NRRD | `.nrrd` | 近原始光栅数据，代理立方体渲染 |
+### Volume — 2 Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| VTK | `.vtk` `.vtp` | Visualization Toolkit format |
+| NRRD | `.nrrd` | Nearly Raw Raster Data, proxy cube rendering |
 
-### GCode — 1 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| GCode | `.gcode` | 3D 打印刀具路径，渲染为线线段 |
+### GCode — 1 Format
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| GCode | `.gcode` | 3D printing toolpath, rendered as line segments |
 
-### 其他 — 2 种
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| WRL | `.wrl` | VRML，基于文本 |
-| VOX | `.vox` | MagicaVoxel 体素格式 |
-| KMZ | `.kmz` | 压缩的 KML，含 3D 模型 |
+### Other — 2 Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| WRL | `.wrl` | VRML, text-based |
+| VOX | `.vox` | MagicaVoxel voxel format |
+| KMZ | `.kmz` | Compressed KML with 3D models |
 
-> **总计：25 种格式**。另有用例受限未启用的格式：IFC (`.ifc`)、MDD (`.mdd`)。
+> **Total: 25 formats**. Additionally, formats with limited use cases not enabled: IFC (`.ifc`), MDD (`.mdd`).
 
-## 环境要求
+## Prerequisites
 
 - Node.js 20+
 - pnpm 10+
-- Windows 10/11 x64（主要开发平台）
-- Linux x64 / macOS (arm64 + x64) 已适配构建，但非主要测试平台
+- Windows 10/11 x64 (primary development platform)
+- Linux x64 / macOS (arm64 + x64) build-adapted, but not primary test platforms
 
-## 开发
+## Development
 
 ```bash
 pnpm install
 pnpm run dev
 ```
 
-## 生产构建
+## Production Build
 
 ```bash
-# 构建渲染进程 + 主进程 + preload
+# Build renderer + main + preload
 pnpm run build
 
-# 打包为 Windows 便携版（dist/win-unpacked/）
+# Package as Windows portable (dist/win-unpacked/)
 pnpm run build:unpacked
 
-# 打包为 NSIS 安装程序（dist/）
+# Package as NSIS installer (dist/)
 pnpm run build:win
 
-# Linux / macOS 构建
+# Linux / macOS builds
 pnpm run build:unpacked:linux
 pnpm run build:unpacked:mac
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 3d_viewer_electron/
 ├── electron/
-│   ├── main/index.ts          # 主进程：窗口管理、faicad-viewer:// 协议、IPC 处理
-│   └── preload/index.ts       # 预加载：contextBridge 暴露 electronAPI
-├── src/renderer/              # 渲染进程源码
-│   ├── components/            # UI 组件
-│   │   ├── viewport/          # 3D 视口（引擎组件、工具栏、选择叠加层等）
-│   │   └── settings/          # 设置面板（主题、语言）
-│   ├── config/                # 文件格式配置
-│   ├── engine/                # 3D 引擎（格式加载器、场景设置）
+│   ├── main/index.ts          # Main process: window management, faicad-viewer:// protocol, IPC handlers
+│   └── preload/index.ts       # Preload: contextBridge exposing electronAPI
+├── src/renderer/              # Renderer process source
+│   ├── components/            # UI components
+│   │   ├── viewport/          # 3D viewport (engine components, toolbars, selection overlay, etc.)
+│   │   └── settings/          # Settings panel (theme, language)
+│   ├── config/                # File format configuration
+│   ├── engine/                # 3D engine (format loaders, scene setup)
 │   ├── hooks/                 # React hooks
-│   ├── i18n/                  # i18next 初始化
-│   ├── layouts/               # 桌面布局（顶部栏、面板、视口）
+│   ├── i18n/                  # i18next initialization
+│   ├── layouts/               # Desktop layout (top bar, panels, viewport)
 │   ├── lib/
-│   │   ├── step-converter/    # STEP→GLB 转换（OCCT WASM + Worker + 缓存）
-│   │   └── topology/          # 拓扑选择系统（面/边/顶点）
-│   ├── locales/               # 翻译文件（zh.json / en.json）
-│   ├── pages/                 # 页面组件
-│   ├── stores/                # Zustand 状态管理
-│   │   ├── ui-store.ts        # UI 状态（主题、语言、面板）
-│   │   ├── model-store.ts     # 模型状态（场景树、统计、文件列表）
-│   │   ├── engine-store.ts    # Three.js 引擎引用
-│   │   ├── selection-store.ts # 拓扑选择状态
-│   │   └── tool-store.ts      # 活动工具模式
-│   └── types/                 # TypeScript 类型定义
-├── out/                       # electron-vite 构建产物
-├── dist/                      # electron-builder 打包产物
+│   │   ├── step-converter/    # STEP→GLB conversion (OCCT WASM + Worker + cache)
+│   │   └── topology/          # Topology selection system (face/edge/vertex)
+│   ├── locales/               # Translation files (zh.json / en.json)
+│   ├── pages/                 # Page components
+│   ├── stores/                # Zustand state management
+│   │   ├── ui-store.ts        # UI state (theme, language, panels)
+│   │   ├── model-store.ts     # Model state (scene tree, statistics, file list)
+│   │   ├── engine-store.ts    # Three.js engine references
+│   │   ├── selection-store.ts # Topology selection state
+│   │   └── tool-store.ts      # Active tool mode
+│   └── types/                 # TypeScript type definitions
+├── out/                       # electron-vite build output
+├── dist/                      # electron-builder package output
 │   └── win-unpacked/
-│       └── 3D_Viewer.exe      # 可直接运行的可执行文件
-├── .github/workflows/ci.yml   # CI 配置（Ubuntu + Windows 矩阵）
-├── .npmrc                      # pnpm 配置
+│       └── 3D_Viewer.exe      # Directly runnable executable
+├── .github/workflows/ci.yml   # CI configuration (Ubuntu + Windows matrix)
+├── .npmrc                      # pnpm config
 ├── package.json
-├── pnpm-lock.yaml              # 跨平台一致的依赖锁文件
+├── pnpm-lock.yaml              # Cross-platform consistent dependency lock file
 ├── electron.vite.config.ts
 └── tsconfig.json
 ```
 
-## 技术栈
+## Tech Stack
 
-| 类别 | 技术 | 版本 |
-|------|------|------|
-| 桌面框架 | Electron + electron-vite | 35 + 3 |
-| 前端框架 | React | 19 |
-| 3D 渲染 | Three.js + React Three Fiber + Drei | 0.184 + 9 + 10 |
-| UI 组件 | Radix UI + TailwindCSS | 4 |
-| 状态管理 | Zustand | 5 |
-| 国际化 | i18next + react-i18next | 26 |
-| 路由 | React Router | 7 |
-| 打包 | electron-builder | 26 |
-| 包管理 | pnpm | 10 |
-| 测试 | Vitest + Playwright | - |
-| 语言 | TypeScript | 6 |
+| Category | Technology | Version |
+|----------|-----------|---------|
+| Desktop Framework | Electron + electron-vite | 35 + 3 |
+| Frontend Framework | React | 19 |
+| 3D Rendering | Three.js + React Three Fiber + Drei | 0.184 + 9 + 10 |
+| UI Components | Radix UI + TailwindCSS | 4 |
+| State Management | Zustand | 5 |
+| Internationalization | i18next + react-i18next | 26 |
+| Routing | React Router | 7 |
+| Packaging | electron-builder | 26 |
+| Package Manager | pnpm | 10 |
+| Testing | Vitest + Playwright | - |
+| Language | TypeScript | 6 |
 
-## 已知问题
+## Known Issues
 
-- 应用图标尚未设置（使用 Electron 默认图标）
+- App icon not yet set (uses Electron default icon)
