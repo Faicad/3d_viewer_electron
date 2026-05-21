@@ -6,9 +6,13 @@ import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useModelStore } from '@/stores/model-store'
 import { clearStepCache } from '@/lib/step-converter'
+import { initLogger } from '@/lib/logger'
 import App from './App'
 import './i18n'
 import './index.css'
+
+// Suppress console.log/warn/debug/info in production
+initLogger()
 
 // Expose state for E2E test access
 window.__modelStore = useModelStore
