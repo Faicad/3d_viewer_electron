@@ -11,7 +11,10 @@ export interface ComputedModelStats {
 
 export function formatNumber(n: number): string {
   if (!Number.isFinite(n)) return '-'
-  return n.toLocaleString()
+  if (n === 0) return '0'
+  if (Math.abs(n) >= 1) return Math.round(n).toLocaleString()
+  // For values < 1, show up to 3 significant digits
+  return n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
 }
 
 function computeMeshStats(mesh: THREE.Mesh): {

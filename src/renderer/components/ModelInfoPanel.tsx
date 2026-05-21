@@ -53,21 +53,21 @@ export default function ModelInfoPanel() {
           <div className="flex flex-col">
             <StatRow label={t('modelInfo.vertices')} value={formatNumber(stats.vertices)} />
             <StatRow label={t('modelInfo.triangles')} value={formatNumber(stats.triangles)} />
-            <StatRow label={t('modelInfo.surfaceArea')} value={`${formatNumber(Math.round(stats.surfaceArea))} mm²`} />
-            <StatRow label={t('modelInfo.volume')} value={`${formatNumber(Math.round(stats.volume))} mm³`} />
+            <StatRow label={t('modelInfo.surfaceArea')} value={`${formatNumber(stats.surfaceArea)} mm²`} />
+            <StatRow label={t('modelInfo.volume')} value={`${formatNumber(stats.volume)} mm³`} />
             <StatRow
               label={t('modelInfo.dimensions')}
               value={
                 stats.boundingBox.isEmpty()
                   ? '-'
-                  : `${formatNumber(Math.round(stats.boundingBox.max.x - stats.boundingBox.min.x))} × ${formatNumber(Math.round(stats.boundingBox.max.y - stats.boundingBox.min.y))} × ${formatNumber(Math.round(stats.boundingBox.max.z - stats.boundingBox.min.z))} mm`
+                  : `${formatNumber(stats.boundingBox.max.x - stats.boundingBox.min.x)} × ${formatNumber(stats.boundingBox.max.y - stats.boundingBox.min.y)} × ${formatNumber(stats.boundingBox.max.z - stats.boundingBox.min.z)} mm`
               }
             />
             <StatRow label={t('modelInfo.parts')} value={formatNumber(stats.partCount)} />
             <StatRow label={t('modelInfo.format')} value={formatLabel} />
             <StatRow
               label={t('modelInfo.materialCost')}
-              value={stats.volume > 0 ? `${formatNumber(Math.round(stats.volume / 1000 * 1.24))} g (PLA)` : '-'}
+              value={stats.volume > 0 ? `${formatNumber(stats.volume / 1000 * 1.24)} g (PLA)` : '-'}
             />
           </div>
         </ScrollArea>
