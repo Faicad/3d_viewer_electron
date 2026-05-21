@@ -52,6 +52,7 @@ test.describe('3D Viewer - Key Format E2E', () => {
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: ['--no-sandbox'],
+      env: { E2E: '1' },
     })
   })
 

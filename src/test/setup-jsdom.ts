@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
   }
 
   // Mock env
-  ;(window as Record<string, unknown>).env = { DEV: true, PROD: false }
+  ;(window as Record<string, unknown>).env = { DEV: true, PROD: false, E2E: false }
 }
 
 // Mock URL.createObjectURL / revokeObjectURL

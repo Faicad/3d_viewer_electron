@@ -1,4 +1,4 @@
-const isProd = typeof window !== 'undefined' && window.env?.PROD
+const isProd = typeof window !== 'undefined' && window.env?.PROD && !window.env?.E2E
 
 const noop = () => {}
 

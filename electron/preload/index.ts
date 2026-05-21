@@ -20,5 +20,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // Expose build info to renderer
 contextBridge.exposeInMainWorld('env', {
   DEV: import.meta.env.DEV,
-  PROD: !import.meta.env.DEV
+  PROD: !import.meta.env.DEV,
+  E2E: process.env.E2E === '1',
 })

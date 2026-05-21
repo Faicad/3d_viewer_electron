@@ -34,6 +34,7 @@ declare global {
     env: {
       DEV: boolean
       PROD: boolean
+      E2E: boolean
     }
   }
 }
