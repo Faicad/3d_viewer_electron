@@ -77,10 +77,39 @@ test.describe.serial('Multi-level scene tree', () => {
     await waitForLoadDone(window)
     getErrors()
 
-    // Wait for at least one tree node to appear (handles cross-platform DOM timing)
+    // Wait for at least one tree node to appear in the DOM.
+    // Uses a direct poll that also logs store state for cross-platform debugging.
     const leftPanel = window.locator('aside').first()
     const treeNodes = leftPanel.locator('.whitespace-nowrap')
-    await expect(treeNodes.first()).toBeAttached({ timeout: 20000 })
+
+    const nodeFound = await window.waitForFunction(
+      () => {
+        const s = window.__modelStore?.getState()
+        if (s?.sceneTree && s.sceneTree.length > 0) {
+          const aside = document.querySelector('aside')
+          return aside && aside.querySelectorAll('.whitespace-nowrap').length > 0
+        }
+        return false
+      },
+      { timeout: 20000 },
+    ).then(() => true).catch(() => false)
+
+    if (!nodeFound) {
+      // Diagnostic: check store state and DOM
+      const diag = await window.evaluate(() => {
+        const s = window.__modelStore?.getState()
+        const asideHTML = document.querySelector('aside')?.innerHTML ?? 'null'
+        return {
+          loadingPhase: s?.__loadingPhase,
+          sceneTreeLength: s?.sceneTree?.length,
+          asideLength: asideHTML.length,
+          hasWhitespaceNowrap: asideHTML.includes('whitespace-nowrap'),
+          isEmptyText: asideHTML.includes('app.emptySceneTree') || asideHTML.includes('empty'),
+        }
+      })
+      console.log('[test] diagnostic on Windows:', JSON.stringify(diag))
+    }
+    expect(nodeFound).toBe(true)
 
     const nodeCount = await treeNodes.count()
     // Some platforms (Windows) may produce a 1-node tree (RootNode without hierarchy)
