@@ -60,6 +60,26 @@ test.describe.serial('Multi-level scene tree', () => {
     )
   }
 
+  test('left panel hides on narrow viewport (compact layout)', async () => {
+    const window = await electronApp.firstWindow()
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
+
+    // Start wide — panel should be visible
+    await window.setViewportSize({ width: 1280, height: 800 })
+    await expect(window.locator('aside.border-r').first()).toBeAttached({ timeout: 5000 })
+
+    // Shrink below 1024px — panel should collapse
+    await window.setViewportSize({ width: 800, height: 800 })
+    await window.waitForFunction(
+      () => document.querySelector('aside.border-r') === null,
+      { timeout: 5000 },
+    )
+
+    // Widen again — panel should reappear
+    await window.setViewportSize({ width: 1280, height: 800 })
+    await expect(window.locator('aside.border-r').first()).toBeAttached({ timeout: 5000 })
+  })
+
   test('scene tree panel title is visible', async () => {
     const window = await electronApp.firstWindow()
     await ensureLeftPanelOpen(window)
