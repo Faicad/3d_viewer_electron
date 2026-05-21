@@ -95,16 +95,20 @@ test.describe.serial('Multi-level scene tree', () => {
     ).then(() => true).catch(() => false)
 
     if (!nodeFound) {
-      // Diagnostic: check store state and DOM
+      // Diagnostic: check store state and full aside HTML
       const diag = await window.evaluate(() => {
         const s = window.__modelStore?.getState()
-        const asideHTML = document.querySelector('aside')?.innerHTML ?? 'null'
+        const aside = document.querySelector('aside')
+        const asideHTML = aside?.innerHTML ?? 'null'
         return {
           loadingPhase: s?.__loadingPhase,
           sceneTreeLength: s?.sceneTree?.length,
+          sceneTreeFirstNode: s?.sceneTree?.[0] ? { id: s.sceneTree[0].id, name: s.sceneTree[0].name, childCount: s.sceneTree[0].children?.length } : null,
           asideLength: asideHTML.length,
+          asideHTML: asideHTML.substring(0, 700),
           hasWhitespaceNowrap: asideHTML.includes('whitespace-nowrap'),
-          isEmptyText: asideHTML.includes('app.emptySceneTree') || asideHTML.includes('empty'),
+          isEmptyTextVisible: asideHTML.includes('app.emptySceneTree'),
+          scrollAreaContent: aside?.querySelector('[data-radix-scroll-area-viewport]')?.children[0]?.innerHTML ? String(aside.querySelector('[data-radix-scroll-area-viewport]')!.children[0]!.innerHTML).substring(0, 200) : null,
         }
       })
       console.log('[test] diagnostic on Windows:', JSON.stringify(diag))
