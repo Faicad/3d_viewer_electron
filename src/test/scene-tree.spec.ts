@@ -46,11 +46,26 @@ test.describe.serial('Multi-level scene tree', () => {
     await electronApp.close()
   })
 
+  /** Ensure the left (scene tree) panel is open. On CI some runners create
+   *  a window narrower than 1024px, which triggers the compact layout and
+   *  hides the left panel. We normalize by setting a viewport > 1024px. */
+  async function ensureLeftPanelOpen(window: Page) {
+    // Setting viewport to 1280px triggers the responsive effect that opens
+    // the left panel when width > 1023px.
+    await window.setViewportSize({ width: 1280, height: 800 })
+    // Wait for the left panel to actually open (effect is async)
+    await window.waitForFunction(
+      () => document.querySelector('aside.border-r') !== null,
+      { timeout: 5000 },
+    )
+  }
+
   test('scene tree panel title is visible', async () => {
     const window = await electronApp.firstWindow()
+    await ensureLeftPanelOpen(window)
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
-    const title = window.locator('aside').first().locator('.text-xs.font-semibold')
+    const title = window.locator('aside.border-r').first().locator('.text-xs.font-semibold')
     await expect(title).toBeVisible()
     const text = await title.textContent()
     // Title text varies by locale (Scene / 场景)
@@ -59,6 +74,7 @@ test.describe.serial('Multi-level scene tree', () => {
 
   test('loads a hierarchical GLB and renders tree nodes with expand/collapse', async () => {
     const window = await electronApp.firstWindow()
+    await ensureLeftPanelOpen(window)
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
     const getErrors = setupConsoleCapture(window)
@@ -77,16 +93,14 @@ test.describe.serial('Multi-level scene tree', () => {
     await waitForLoadDone(window)
     getErrors()
 
-    // Wait for at least one tree node to appear in the DOM.
-    // Uses a direct poll that also logs store state for cross-platform debugging.
-    const leftPanel = window.locator('aside').first()
+    const leftPanel = window.locator('aside.border-r').first()
     const treeNodes = leftPanel.locator('.whitespace-nowrap')
 
     const nodeFound = await window.waitForFunction(
       () => {
         const s = window.__modelStore?.getState()
         if (s?.sceneTree && s.sceneTree.length > 0) {
-          const aside = document.querySelector('aside')
+          const aside = document.querySelector('aside.border-r')
           return aside && aside.querySelectorAll('.whitespace-nowrap').length > 0
         }
         return false
@@ -95,23 +109,21 @@ test.describe.serial('Multi-level scene tree', () => {
     ).then(() => true).catch(() => false)
 
     if (!nodeFound) {
-      // Diagnostic: check store state and full aside HTML
+      // Diagnostic: check store state and panel state
       const diag = await window.evaluate(() => {
         const s = window.__modelStore?.getState()
-        const aside = document.querySelector('aside')
-        const asideHTML = aside?.innerHTML ?? 'null'
+        const leftAside = document.querySelector('aside.border-r')
+        const rightAside = document.querySelector('aside.border-l')
         return {
           loadingPhase: s?.__loadingPhase,
           sceneTreeLength: s?.sceneTree?.length,
-          sceneTreeFirstNode: s?.sceneTree?.[0] ? { id: s.sceneTree[0].id, name: s.sceneTree[0].name, childCount: s.sceneTree[0].children?.length } : null,
-          asideLength: asideHTML.length,
-          asideHTML: asideHTML.substring(0, 700),
-          hasWhitespaceNowrap: asideHTML.includes('whitespace-nowrap'),
-          isEmptyTextVisible: asideHTML.includes('app.emptySceneTree'),
-          scrollAreaContent: aside?.querySelector('[data-radix-scroll-area-viewport]')?.children[0]?.innerHTML ? String(aside.querySelector('[data-radix-scroll-area-viewport]')!.children[0]!.innerHTML).substring(0, 200) : null,
+          leftPanelHTML: leftAside?.innerHTML?.substring(0, 300) ?? 'null',
+          rightPanelHTML: rightAside?.innerHTML?.substring(0, 300) ?? 'null',
+          leftPanelExists: !!leftAside,
+          rightPanelExists: !!rightAside,
         }
       })
-      console.log('[test] diagnostic on Windows:', JSON.stringify(diag))
+      console.log('[test] diagnostic:', JSON.stringify(diag))
     }
     expect(nodeFound).toBe(true)
 
@@ -135,7 +147,8 @@ test.describe.serial('Multi-level scene tree', () => {
 
   test('expand/collapse toggles children visibility', async () => {
     const window = await electronApp.firstWindow()
-    const leftPanel = window.locator('aside').first()
+    await ensureLeftPanelOpen(window)
+    const leftPanel = window.locator('aside.border-r').first()
 
     const initialCount = await leftPanel.locator('.whitespace-nowrap').count()
     // Skip if no hierarchy to expand/collapse
@@ -147,7 +160,7 @@ test.describe.serial('Multi-level scene tree', () => {
       await collapseBtn.click()
       await window.waitForFunction(
         (initial: number) => {
-          const panel = document.querySelector('aside')
+          const panel = document.querySelector('aside.border-r')
           return (panel?.querySelectorAll('.whitespace-nowrap').length ?? 0) < initial
         },
         initialCount,
@@ -160,7 +173,7 @@ test.describe.serial('Multi-level scene tree', () => {
       await expandBtn.click()
       await window.waitForFunction(
         (initial: number) => {
-          const panel = document.querySelector('aside')
+          const panel = document.querySelector('aside.border-r')
           return (panel?.querySelectorAll('.whitespace-nowrap').length ?? 0) === initial
         },
         initialCount,
@@ -175,7 +188,8 @@ test.describe.serial('Multi-level scene tree', () => {
 
   test('eye icon toggles visibility on hover', async () => {
     const window = await electronApp.firstWindow()
-    const leftPanel = window.locator('aside').first()
+    await ensureLeftPanelOpen(window)
+    const leftPanel = window.locator('aside.border-r').first()
     const firstNode = leftPanel.locator('.whitespace-nowrap').first()
 
     await expect(firstNode).toBeAttached({ timeout: 10000 })
