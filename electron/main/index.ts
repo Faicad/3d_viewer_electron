@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog, Menu } from 'electron'
 import { join, extname } from 'path'
 import * as fs from 'fs'
 import { ALL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
@@ -185,6 +185,7 @@ ipcMain.handle('fs:readFileAsBase64', async (_event, filePath: string) => {
 
 app.whenReady().then(() => {
   console.log('[Main] app ready')
+  Menu.setApplicationMenu(null)
   setupProtocol()
   createWindow()
 })
