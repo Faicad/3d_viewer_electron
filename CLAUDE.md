@@ -53,6 +53,21 @@ Zustand stores in `src/renderer/stores/`. No Redux or other state library.
 
 `src/renderer/config/file-formats.ts` exports `ALL_EXTENSIONS` — used by both main process (IPC `fs:readDirectory`) and renderer for validation.
 
+## Versioning
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) with `standard-version`:
+
+```bash
+pnpm run release          # auto bump version + generate CHANGELOG.md
+pnpm run release:minor    # force minor bump (1.0 → 1.1)
+pnpm run release:major    # force major bump (1.0 → 2.0)
+```
+
+Commit message format determines version bump:
+- `fix: ...` → patch (1.0.0 → 1.0.1)
+- `feat: ...` → minor (1.0.0 → 1.1.0)
+- `feat: ...\n\nBREAKING CHANGE: ...` → major (1.0.0 → 2.0.0)
+
 ## Tech Stack
 
 - React 19 + TypeScript
