@@ -99,15 +99,28 @@ test.describe.serial('Multi-level scene tree', () => {
 
     const getErrors = setupConsoleCapture(window)
 
-    // Load GLB directly through store to avoid cross-platform
-    // differences in file input change event handling
+    // Load GLB via addLoadedFile so ModelGroup renders through the
+    // multi-file path (which properly updates the store via callbacks).
     const base64 = ROBOT_GLB.toString('base64')
     await window.evaluate((b64) => {
       const binary = atob(b64)
       const bytes = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      window.__modelStore!.getState().setModelBuffer(bytes.buffer, 'glb')
-      window.__modelStore!.getState().setGLBUrl('RobotExpressive.glb')
+      const buf = bytes.buffer.slice(0)
+      window.__modelStore!.getState().addLoadedFile({
+        id: crypto.randomUUID(),
+        fileName: 'RobotExpressive.glb',
+        filePath: 'RobotExpressive.glb',
+        mtimeMs: 0,
+        buffer: buf,
+        format: 'glb',
+        sceneTree: [],
+        glbPartInfos: [],
+        modelCenteringOffset: null,
+        sourceUnit: 'meter',
+        fileGroup: 'mesh',
+        loadingPhase: 'loading',
+      })
     }, base64)
 
     await waitForLoadDone(window)

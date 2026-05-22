@@ -127,7 +127,7 @@ ipcMain.handle('dialog:openFile', async () => {
   if (!mainWindow) return { success: false, error: 'No window' }
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Open 3D Model',
-    properties: ['openFile'],
+    properties: ['openFile', 'multiSelections'],
     filters: [
       { name: 'All Supported Formats', extensions: ALL_EXTENSIONS.map((e) => e.slice(1)) },
       ...GROUP_ORDER.map((group) => ({

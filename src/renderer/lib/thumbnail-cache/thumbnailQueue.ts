@@ -16,6 +16,7 @@ const GAP_MS = 200
 
 let currentFiles: QueueFile[] = []
 let visiblePaths = new Set<string>()
+let priorityPaths = new Set<string>()
 let queue: QueueFile[] = []
 let processing = false
 let abortFlag = false
@@ -134,6 +135,7 @@ export function stopThumbnailQueue(): void {
   cancelSchedule()
   currentFiles = []
   visiblePaths.clear()
+  priorityPaths.clear()
   queue = []
   processing = false
   onReady = null
@@ -143,14 +145,16 @@ export function stopThumbnailQueue(): void {
 export function updateVisibleFiles(visiblePaths_: Set<string>): void {
   visiblePaths = visiblePaths_
   if (processing) {
-    // Reorder existing queue: visible files first
+    // Reorder existing queue: priority > visible > hidden
+    const priority: QueueFile[] = []
     const visible: QueueFile[] = []
     const hidden: QueueFile[] = []
     for (const f of queue) {
-      if (visiblePaths.has(f.path)) visible.push(f)
+      if (priorityPaths.has(f.path)) priority.push(f)
+      else if (visiblePaths.has(f.path)) visible.push(f)
       else hidden.push(f)
     }
-    queue = [...visible, ...hidden]
+    queue = [...priority, ...visible, ...hidden]
   } else {
     rebuildQueue()
   }
@@ -159,18 +163,38 @@ export function updateVisibleFiles(visiblePaths_: Set<string>): void {
 function rebuildQueue(): void {
   if (currentFiles.length === 0) return
 
+  const priority: QueueFile[] = []
   const visible: QueueFile[] = []
   const hidden: QueueFile[] = []
 
   for (const f of currentFiles) {
-    if (visiblePaths.has(f.path)) visible.push(f)
+    if (priorityPaths.has(f.path)) priority.push(f)
+    else if (visiblePaths.has(f.path)) visible.push(f)
     else hidden.push(f)
   }
 
-  queue = [...visible, ...hidden]
+  queue = [...priority, ...visible, ...hidden]
 
   if (!processing && queue.length > 0) {
     processing = true
     scheduleNext()
+  }
+}
+
+export function setPriorityPaths(paths: Set<string>): void {
+  priorityPaths = new Set(paths)
+  if (processing) {
+    // Reorder existing queue: priority > visible > hidden
+    const priority: QueueFile[] = []
+    const visible: QueueFile[] = []
+    const hidden: QueueFile[] = []
+    for (const f of queue) {
+      if (priorityPaths.has(f.path)) priority.push(f)
+      else if (visiblePaths.has(f.path)) visible.push(f)
+      else hidden.push(f)
+    }
+    queue = [...priority, ...visible, ...hidden]
+  } else {
+    rebuildQueue()
   }
 }

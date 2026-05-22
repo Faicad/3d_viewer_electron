@@ -8,7 +8,11 @@ import { toast } from 'sonner'
 import ViewportContainer from '@/components/viewport/ViewportContainer'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { stepToGlbCached } from '@/lib/step-converter'
-import { ALL_ACCEPT, detectFormat } from '@/config/file-formats'
+import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { loadFormat } from '@/engine/formatLoaders'
+import { setCachedResult } from '@/engine/loaderResultCache'
+import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
 interface WorkspacePageProps {
   projectId?: string
@@ -17,7 +21,9 @@ interface WorkspacePageProps {
 export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const { t } = useTranslation()
   const glbUrl = useModelStore((s) => s.glbUrl)
+  const loadedFiles = useModelStore((s) => s.loadedFiles)
   const isConverting = useModelStore((s) => s.isConverting)
+  const hasAnyModel = glbUrl !== null || loadedFiles.length > 0
   const { uploadFile } = useFileUpload({ projectId })
   const [searchParams] = useSearchParams()
   const skipUpload = searchParams.get('skip_upload') === '1' && import.meta.env.DEV
@@ -32,56 +38,82 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     const result = await window.electronAPI.openFileDialog()
     if (!result.success || !result.filePaths?.length) return
 
-    const filePath = result.filePaths[0]
-    const fileName = filePath.split(/[/\\]/).pop() || filePath
-    const dirPath = filePath.slice(0, filePath.lastIndexOf(filePath.includes('\\') ? '\\' : '/'))
+    let firstDirPath: string | null = null
 
-    const format = detectFormat(fileName)
-    if (!format) {
-      toast.error('Unsupported file format: ' + fileName)
-      return
+    for (const filePath of result.filePaths) {
+      const fileName = filePath.split(/[/\\]/).pop() || filePath
+      const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
+      firstDirPath ??= dirPath
+
+      let format = detectFormat(fileName)
+      if (!format) {
+        toast.error('Unsupported file format: ' + fileName)
+        continue
+      }
+
+      try {
+        const fileResult = await window.electronAPI.readFile(filePath)
+        if (!fileResult.success || !fileResult.data) {
+          toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
+          continue
+        }
+        let buffer = fileResult.data
+
+        if (format === 'step') {
+          try {
+            useModelStore.getState().setIsConverting(true)
+            const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+              { filePath, mtimeMs: Date.now() },
+              { wasmPath: '/wasm/occt-import-js.wasm' },
+            )
+            buffer = glbBuffer
+            format = 'glb'
+          } catch (e) {
+            console.error('[WorkspacePage] STEP conversion failed:', e)
+            toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+            continue
+          } finally {
+            useModelStore.getState().setIsConverting(false)
+          }
+        }
+
+        // Parse once
+        const loadResult = await loadFormat(buffer, format, filePath)
+        const fileId = crypto.randomUUID()
+        setCachedResult(fileId, loadResult)
+
+        // Thumbnail as byproduct
+        const upAxis = getDefaultUpAxis(format, buffer)
+        generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+          .then(blob => {
+            if (blob) putThumbnail(`${filePath}|${Date.now()}`, blob)
+          })
+
+        useModelStore.getState().addLoadedFile({
+          id: fileId,
+          fileName,
+          filePath,
+          mtimeMs: Date.now(),
+          buffer,
+          format,
+          sceneTree: [],
+          glbPartInfos: [],
+          modelCenteringOffset: null,
+          sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+          fileGroup: FORMAT_MAP[format].group,
+          loadingPhase: 'loading',
+        })
+      } catch (e) {
+        useModelStore.getState().setIsConverting(false)
+        toast.error('Load failed: ' + String(e))
+      }
     }
 
-    try {
-      const fileResult = await window.electronAPI.readFile(filePath)
-      if (!fileResult.success || !fileResult.data) {
-        toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
-        return
-      }
-      const buffer = fileResult.data
-
-      if (format === 'step') {
-        try {
-          useModelStore.getState().setIsConverting(true)
-          const { buffer: glbBuffer } = await stepToGlbCached(buffer,
-            { filePath, mtimeMs: Date.now() },
-            { wasmPath: '/wasm/occt-import-js.wasm' },
-          )
-          useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
-        } catch (e) {
-          console.error('[WorkspacePage] STEP conversion failed:', e)
-          toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
-          return
-        } finally {
-          useModelStore.getState().setIsConverting(false)
-        }
-      } else {
-        useModelStore.getState().setModelBuffer(buffer, format)
-        useModelStore.getState().setModelFilePath(filePath)
-      }
-      useModelStore.getState().setGLBUrl(fileName)
-
-      const dirResult = await window.electronAPI.readDirectory(dirPath)
+    if (firstDirPath) {
+      const dirResult = await window.electronAPI.readDirectory(firstDirPath)
       if (dirResult.success && dirResult.files) {
-        useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
-        const idx = dirResult.files.findIndex(f => f.name === fileName)
-        if (idx !== -1) {
-          useModelStore.getState().setSelectedFileIndex(idx)
-        }
+        useModelStore.getState().setFolderFiles(firstDirPath, dirResult.files)
       }
-    } catch (e) {
-      useModelStore.getState().setIsConverting(false)
-      toast.error('Load failed: ' + String(e))
     }
   }, [])
 
@@ -163,7 +195,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     <div className="relative flex-1" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
       <ViewportContainer />
 
-      {!glbUrl && (
+      {!hasAnyModel && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
             className="flex flex-col items-center gap-4 p-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto"

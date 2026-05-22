@@ -7,7 +7,11 @@ import { useModelStore, type SceneTreeNode } from '@/stores/model-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { stepToGlbCached } from '@/lib/step-converter'
-import { detectFormat } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { loadFormat } from '@/engine/formatLoaders'
+import { setCachedResult } from '@/engine/loaderResultCache'
+import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -15,7 +19,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
-  Maximize, Minimize, Info,
+  Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
   Cuboid, Grid3x3,
 } from 'lucide-react'
@@ -29,19 +33,28 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
   const hasChildren = node.children && node.children.length > 0
   const toggleExpanded = useModelStore((s) => s.toggleNodeExpanded)
   const toggleVisible = useModelStore((s) => s.toggleNodeVisible)
+  const setActiveFile = useModelStore((s) => s.setActiveFile)
+  const removeLoadedFile = useModelStore((s) => s.removeLoadedFile)
   const selectedReferenceIds = useSelectionStore((s) => s.selectedReferenceIds)
   const isSelected = selectedReferenceIds.includes(node.id)
+  const isFileNode = node.id.startsWith('file:')
+  const fileId = isFileNode ? node.id.slice(5) : null
 
   return (
     <>
       <div
         className={cn(
           'flex items-center gap-1 text-sm py-1 px-1 rounded hover:bg-accent cursor-pointer group whitespace-nowrap',
+          isFileNode && 'font-semibold',
           !node.visible && 'opacity-40',
           isSelected && 'bg-accent ring-1 ring-primary',
         )}
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
         onClick={(e) => {
+          if (isFileNode && fileId) {
+            setActiveFile(fileId)
+            return
+          }
           const { setSelectedReference } = useSelectionStore.getState()
           setSelectedReference(node.id, { shiftKey: e.shiftKey })
         }}
@@ -78,7 +91,21 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
           )}
         </button>
 
-        <span>{node.name}</span>
+        <span className="flex-1 truncate">{node.name}</span>
+
+        {/* Close button for file-level nodes */}
+        {isFileNode && fileId && (
+          <button
+            className="h-4 w-4 shrink-0 flex items-center justify-center rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation()
+              removeLoadedFile(fileId)
+            }}
+            aria-label="remove file"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {/* Recursive children */}
@@ -111,9 +138,14 @@ export default function DesktopLayout() {
   const { projectId } = useParams<{ projectId?: string }>()
   const { t } = useTranslation()
   const ui = useUIStore()
-  const model = useModelStore()
+  const activeUpAxis = useModelStore((s) => s.activeUpAxis)
+  const sceneTree = useModelStore((s) => s.sceneTree)
+  const hasModel = useModelStore((s) => s.modelBuffer !== null || s.loadedFiles.length > 0)
+  const folderFilesLen = useModelStore((s) => s.folderFiles.length)
+  const selectedFileIndex = useModelStore((s) => s.selectedFileIndex)
+  const setActiveUpAxis = useModelStore((s) => s.setActiveUpAxis)
 
-  const activeTool = useModelStore.getState().glbUrl
+  const activeTool = hasModel
 
   const [leftPanelPct, setLeftPanelPct] = useState(15)
   const [rightPanelPct, setRightPanelPct] = useState(15)
@@ -160,7 +192,7 @@ export default function DesktopLayout() {
 
   // Keyboard navigation for file list
   useEffect(() => {
-    if (!ui.rightPanelOpen || model.folderFiles.length === 0) return
+    if (!ui.rightPanelOpen || folderFilesLen === 0) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const { folderFiles, selectedFileIndex, setSelectedFileIndex } = useModelStore.getState()
@@ -179,11 +211,20 @@ export default function DesktopLayout() {
         const idx = selectedFileIndex === -1 ? 0 : selectedFileIndex
         const file = folderFiles[idx]
         if (file) {
-          window.electronAPI.readFile(file.path).then(async (result) => {
-            if (result.success && result.data) {
-              const buffer = result.data
+          const store = useModelStore.getState()
+          // If already loaded, just switch
+          const existing = store.loadedFiles.find(f => f.filePath === file.path)
+          if (existing) {
+            store.setActiveFile(existing.id)
+            return
+          }
+          // Otherwise load it
+          window.electronAPI.readFile(file.path).then(async (fileResult) => {
+            if (fileResult.success && fileResult.data) {
+              let buffer = fileResult.data
               const ext = file.name.split('.').pop()?.toLowerCase()
               const isStep = ext === 'step' || ext === 'stp'
+              let format = detectFormat(file.name)
               if (isStep) {
                 try {
                   useModelStore.getState().setIsConverting(true)
@@ -191,7 +232,8 @@ export default function DesktopLayout() {
                     { filePath: file.path, mtimeMs: file.mtimeMs },
                     { wasmPath: '/wasm/occt-import-js.wasm' },
                   )
-                  useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
+                  buffer = glbBuffer
+                  format = 'glb'
                 } catch (e) {
                   console.error('[DesktopLayout] STEP conversion failed:', e)
                   toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
@@ -199,10 +241,30 @@ export default function DesktopLayout() {
                 } finally {
                   useModelStore.getState().setIsConverting(false)
                 }
-              } else {
-                useModelStore.getState().setModelBuffer(buffer, ext as 'stl' | 'glb' | '3mf')
               }
-              useModelStore.getState().setGLBUrl(file.name)
+              if (!format) return
+              const loadResult = await loadFormat(buffer, format, file.path)
+              const fileId = crypto.randomUUID()
+              setCachedResult(fileId, loadResult)
+              const upAxis = getDefaultUpAxis(format, buffer)
+              generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+                .then(blob => {
+                  if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
+                })
+              useModelStore.getState().addLoadedFile({
+                id: fileId,
+                fileName: file.name,
+                filePath: file.path,
+                mtimeMs: file.mtimeMs,
+                buffer,
+                format,
+                sceneTree: [],
+                glbPartInfos: [],
+                modelCenteringOffset: null,
+                sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+                fileGroup: FORMAT_MAP[format].group,
+                loadingPhase: 'loading',
+              })
             }
           })
         }
@@ -211,51 +273,91 @@ export default function DesktopLayout() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [ui.rightPanelOpen, model.folderFiles.length, model.selectedFileIndex])
+  }, [ui.rightPanelOpen, folderFilesLen, selectedFileIndex])
 
   const handleOpenFile = useCallback(async () => {
     const result = await window.electronAPI.openFileDialog()
     if (!result.success || !result.filePaths?.length) return
-    const filePath = result.filePaths[0]
-    const fileName = filePath.split(/[/\\]/).pop() || filePath
-    const dirPath = filePath.slice(0, filePath.lastIndexOf(filePath.includes('\\') ? '\\' : '/'))
 
-    try {
-      const fileResult = await window.electronAPI.readFile(filePath)
-      if (!fileResult.success || !fileResult.data) {
-        toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
-        return
-      }
-      const buffer = fileResult.data
-      const format = detectFormat(fileName)
+    const store = useModelStore.getState()
+    let firstDirPath: string | null = null
 
-      if (format === 'step') {
-        useModelStore.getState().setIsConverting(true)
-        try {
-          const { buffer: glbBuffer } = await stepToGlbCached(buffer,
-            { filePath, mtimeMs: Date.now() },
-            { wasmPath: '/wasm/occt-import-js.wasm' },
-          )
-          useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
-        } finally {
-          useModelStore.getState().setIsConverting(false)
+    for (const filePath of result.filePaths) {
+      const fileName = filePath.split(/[/\\]/).pop() || filePath
+      const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
+      firstDirPath ??= dirPath
+
+      try {
+        const fileResult = await window.electronAPI.readFile(filePath)
+        if (!fileResult.success || !fileResult.data) {
+          toast.error(`Failed to read: ${fileName}`)
+          continue
         }
-      } else if (format) {
-        useModelStore.getState().setModelBuffer(buffer, format)
-      } else {
-        toast.error('Unsupported file format: ' + fileName)
-        return
-      }
-      useModelStore.getState().setGLBUrl(fileName)
+        let buffer = fileResult.data
+        let format = detectFormat(fileName)
 
-      // Populate file list from the same directory
-      const dirResult = await window.electronAPI.readDirectory(dirPath)
-      if (dirResult.success && dirResult.files) {
-        useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
+        if (format === 'step') {
+          store.setIsConverting(true)
+          try {
+            const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+              { filePath, mtimeMs: Date.now() },
+              { wasmPath: '/wasm/occt-import-js.wasm' },
+            )
+            buffer = glbBuffer
+            format = 'glb'
+          } finally {
+            store.setIsConverting(false)
+          }
+        }
+
+        if (!format) {
+          toast.error('Unsupported file format: ' + fileName)
+          continue
+        }
+
+        // Parse once — result feeds both canvas and thumbnail
+        const loadResult = await loadFormat(buffer, format, filePath)
+        const fileId = crypto.randomUUID()
+        setCachedResult(fileId, loadResult)
+
+        // Thumbnail as byproduct (fire-and-forget)
+        const upAxis = getDefaultUpAxis(format, buffer)
+        generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+          .then(blob => {
+            if (blob) {
+              const key = `${filePath}|${Date.now()}`
+              putThumbnail(key, blob)
+            }
+          })
+
+        // Add to store
+        const currentStore = useModelStore.getState()
+        currentStore.addLoadedFile({
+          id: fileId,
+          fileName,
+          filePath,
+          mtimeMs: Date.now(),
+          buffer,
+          format,
+          sceneTree: [],
+          glbPartInfos: [],
+          modelCenteringOffset: null,
+          sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+          fileGroup: FORMAT_MAP[format].group,
+          loadingPhase: 'loading',
+        })
+      } catch {
+        useModelStore.getState().setIsConverting(false)
+        toast.error(`Load failed: ${fileName}`)
       }
-    } catch (e) {
-      useModelStore.getState().setIsConverting(false)
-      toast.error('Load failed: ' + String(e))
+    }
+
+    // Populate file list from the first file's directory
+    if (firstDirPath) {
+      const dirResult = await window.electronAPI.readDirectory(firstDirPath)
+      if (dirResult.success && dirResult.files) {
+        useModelStore.getState().setFolderFiles(firstDirPath, dirResult.files)
+      }
     }
   }, [])
 
@@ -280,9 +382,9 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={model.activeUpAxis === 'y' ? 'secondary' : 'ghost'}
+              variant={activeUpAxis === 'y' ? 'secondary' : 'ghost'}
               size="icon"
-              onClick={() => model.setActiveUpAxis('y')}
+              onClick={() => setActiveUpAxis('y')}
               aria-label={t('toolbar.yUp')}
             >
               <span className="text-xs font-bold leading-none">Y↑</span>
@@ -295,9 +397,9 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={model.activeUpAxis === 'z' ? 'secondary' : 'ghost'}
+              variant={activeUpAxis === 'z' ? 'secondary' : 'ghost'}
               size="icon"
-              onClick={() => model.setActiveUpAxis('z')}
+              onClick={() => setActiveUpAxis('z')}
               aria-label={t('toolbar.zUp')}
             >
               <span className="text-xs font-bold leading-none">Z↑</span>
@@ -384,11 +486,11 @@ export default function DesktopLayout() {
             <aside style={{ width: `${leftPanelPct}%` } as React.CSSProperties} className="border-r flex flex-col shrink-0">
               <div className="p-2 text-xs font-semibold text-muted-foreground">{t('sceneTree.title')}</div>
               <ScrollArea className="flex-1">
-                {model.sceneTree.length === 0 ? (
+                {sceneTree.length === 0 ? (
                   <p className="text-xs text-muted-foreground p-4">{t('app.emptySceneTree')}</p>
                 ) : (
                   <div className="p-2 min-w-max">
-                    {model.sceneTree.map((node) => (
+                    {sceneTree.map((node) => (
                       <SceneTreeItem key={node.id} node={node} depth={0} />
                     ))}
                   </div>

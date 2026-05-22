@@ -12,6 +12,8 @@ const { mockStoreState } = vi.hoisted(() => {
     modelBuffer: null,
     modelFormat: null,
     modelFilePath: null,
+    loadedFiles: [],
+    activeFileId: null,
     folderFiles: [],
     currentFolderPath: null,
     selectedFileIndex: -1,
@@ -42,6 +44,15 @@ const { mockStoreState } = vi.hoisted(() => {
     __loadingPhase: 'idle',
     replaceModel: vi.fn(),
     reset: vi.fn(),
+    setActiveFile: vi.fn(),
+    removeLoadedFile: vi.fn(),
+    addLoadedFile: vi.fn(),
+    updateFileSceneTree: vi.fn(),
+    updateFilePartInfos: vi.fn(),
+    updateFileCenteringOffset: vi.fn(),
+    updateFileLoadingPhase: vi.fn(),
+    isFileLoaded: vi.fn(),
+    setModelFilePath: vi.fn(),
   }
   return { mockStoreState: state }
 })

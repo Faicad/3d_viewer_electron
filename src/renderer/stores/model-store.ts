@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { FormatId, FileGroup, UnitSystem, UpAxis } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
+import { clearAllResults, releaseResult, clearLoaded } from '@/engine/loaderResultCache'
 
 export interface SceneTreeNode {
   id: string
@@ -18,10 +19,60 @@ export interface GlbPartInfo {
   triangleCount: number
 }
 
+export interface LoadedFileModel {
+  id: string
+  fileName: string
+  filePath: string
+  mtimeMs?: number
+  buffer: ArrayBuffer
+  format: FormatId
+  sceneTree: SceneTreeNode[]
+  glbPartInfos: GlbPartInfo[]
+  modelCenteringOffset: [number, number, number] | null
+  sourceUnit: UnitSystem
+  fileGroup: FileGroup
+  loadingPhase: LoadingPhase
+}
+
 export type FileSortMode = 'name' | 'type+name'
 export type SortOrder = 'asc' | 'desc'
 
 export type LoadingPhase = 'idle' | 'loading' | 'done' | 'error'
+
+function buildCombinedTree(files: LoadedFileModel[], prevTree?: SceneTreeNode[]): SceneTreeNode[] {
+  // Preserve expanded/visible state from the previous combined tree
+  const prevMap = new Map<string, { expanded?: boolean; visible?: boolean }>()
+  if (prevTree) {
+    const walk = (nodes: readonly SceneTreeNode[]) => {
+      for (const n of nodes) {
+        prevMap.set(n.id, { expanded: n.expanded, visible: n.visible })
+        if (n.children) walk(n.children)
+      }
+    }
+    walk(prevTree)
+  }
+
+  function preserveState(node: SceneTreeNode): SceneTreeNode {
+    const prev = prevMap.get(node.id)
+    const children = node.children?.map(preserveState)
+    return {
+      ...node,
+      expanded: prev?.expanded ?? node.expanded,
+      visible: prev?.visible ?? node.visible,
+      ...(children ? { children } : {}),
+    }
+  }
+
+  const tree = files.map((file) => ({
+    id: `file:${file.id}`,
+    name: file.fileName,
+    visible: true,
+    expanded: true,
+    ...(file.sceneTree.length > 0 ? { children: file.sceneTree } : {}),
+  }))
+
+  return tree.map(preserveState)
+}
 
 interface ModelStore {
   glbUrl: string | null
@@ -84,6 +135,20 @@ interface ModelStore {
   setModelBuffer: (buffer: ArrayBuffer, format: FormatId) => void
   setModelFilePath: (path: string | null) => void
   reset: () => void
+
+  // Multi-file state
+  loadedFiles: LoadedFileModel[]
+  activeFileId: string | null
+  addLoadedFile: (file: LoadedFileModel) => void
+  removeLoadedFile: (id: string) => void
+  setActiveFile: (id: string) => void
+  updateFileSceneTree: (fileId: string, tree: SceneTreeNode[]) => void
+  updateFilePartInfos: (fileId: string, infos: GlbPartInfo[]) => void
+  updateFileCenteringOffset: (fileId: string, offset: [number, number, number] | null) => void
+  updateFileLoadingPhase: (fileId: string, phase: LoadingPhase) => void
+
+  /** Check if a file path is among the loaded files */
+  isFileLoaded: (filePath: string) => boolean
 }
 
 function toggleNodeInTree(
@@ -118,6 +183,41 @@ function setAllVisible(nodes: SceneTreeNode[], visible: boolean): SceneTreeNode[
   }))
 }
 
+function syncActiveFileFields(
+  file: LoadedFileModel | undefined,
+  allFiles: LoadedFileModel[],
+  prevTree?: SceneTreeNode[],
+) {
+  if (!file) {
+    return {
+      activeFileId: null,
+      glbUrl: null,
+      modelBuffer: null,
+      modelFormat: null,
+      modelFilePath: null,
+      __loadingPhase: 'idle' as LoadingPhase,
+      sourceUnit: 'millimeter' as UnitSystem,
+      fileGroup: 'mesh' as FileGroup,
+      glbPartInfos: [] as GlbPartInfo[],
+      modelCenteringOffset: null,
+      sceneTree: buildCombinedTree(allFiles, prevTree),
+    }
+  }
+  return {
+    activeFileId: file.id,
+    glbUrl: file.fileName,
+    modelBuffer: file.buffer,
+    modelFormat: file.format,
+    modelFilePath: file.filePath,
+    __loadingPhase: file.loadingPhase,
+    sourceUnit: file.sourceUnit,
+    fileGroup: file.fileGroup,
+    glbPartInfos: file.glbPartInfos,
+    modelCenteringOffset: file.modelCenteringOffset,
+    sceneTree: buildCombinedTree(allFiles, prevTree),
+  }
+}
+
 export const useModelStore = create<ModelStore>()((set, get) => ({
   glbUrl: null,
   sceneTree: [],
@@ -139,6 +239,10 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   selectedFileIndex: -1,
   fileSortMode: 'name',
   sortOrder: 'asc',
+
+  // Multi-file state
+  loadedFiles: [],
+  activeFileId: null,
 
   setIsConverting: (v) => set({ isConverting: v }),
   setLoadingPhase: (phase) => set({ __loadingPhase: phase }),
@@ -163,11 +267,20 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   updateSceneTree: (tree) => set({ sceneTree: tree }),
 
   toggleNodeExpanded: (nodeId) => {
-    set((state) => ({ sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'expanded') }))
+    set((state) => {
+      // Handle file-level nodes: delegate to the file's internal tree
+      if (nodeId.startsWith('file:')) {
+        return { sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'expanded') }
+      }
+      // Internal node: toggle in the combined tree (which contains all files' trees)
+      return { sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'expanded') }
+    })
   },
 
   toggleNodeVisible: (nodeId) => {
-    set((state) => ({ sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'visible') }))
+    set((state) => {
+      return { sceneTree: toggleNodeInTree(state.sceneTree, nodeId, 'visible') }
+    })
   },
 
   replaceModel: async (buffer) => {
@@ -187,6 +300,114 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   reset: () => {
     const url = get().glbUrl
     if (url && url !== 'loaded') URL.revokeObjectURL(url)
-    set({ glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null, modelFilePath: null, __loadingPhase: 'idle', sourceUnit: 'millimeter', fileGroup: 'mesh', glbPartInfos: [], modelCenteringOffset: null, isConverting: false, fileSortMode: 'name', sortOrder: 'asc', activeUpAxis: 'z' })
+    for (const file of get().loadedFiles) {
+      releaseResult(file.id)
+      clearLoaded(file.id)
+    }
+    clearAllResults()
+    set({
+      glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null,
+      modelFilePath: null, __loadingPhase: 'idle', sourceUnit: 'millimeter', fileGroup: 'mesh',
+      glbPartInfos: [], modelCenteringOffset: null, isConverting: false,
+      fileSortMode: 'name', sortOrder: 'asc', activeUpAxis: 'z',
+      loadedFiles: [], activeFileId: null,
+    })
+  },
+
+  // Multi-file actions
+  addLoadedFile: (file) =>
+    set((state) => {
+      const newFiles = [...state.loadedFiles, file]
+      const isFirst = state.loadedFiles.length === 0
+      return {
+        loadedFiles: newFiles,
+        ...(isFirst ? syncActiveFileFields(file, newFiles, state.sceneTree) : { sceneTree: buildCombinedTree(newFiles, state.sceneTree) }),
+      }
+    }),
+
+  removeLoadedFile: (id) => {
+    releaseResult(id)
+    clearLoaded(id)
+    set((state) => {
+      const newFiles = state.loadedFiles.filter((f) => f.id !== id)
+      if (newFiles.length === 0) {
+        return {
+          loadedFiles: [],
+          activeFileId: null,
+          glbUrl: null,
+          sceneTree: [],
+          modelBuffer: null,
+          modelFormat: null,
+          modelFilePath: null,
+          __loadingPhase: 'idle' as LoadingPhase,
+          sourceUnit: 'millimeter' as UnitSystem,
+          fileGroup: 'mesh' as FileGroup,
+          glbPartInfos: [] as GlbPartInfo[],
+          modelCenteringOffset: null,
+        }
+      }
+      const newActive = state.activeFileId === id
+        ? newFiles[newFiles.length - 1]
+        : newFiles.find((f) => f.id === state.activeFileId) ?? newFiles[0]
+      return {
+        loadedFiles: newFiles,
+        ...syncActiveFileFields(newActive, newFiles, state.sceneTree),
+      }
+    })
+  },
+
+  setActiveFile: (id) =>
+    set((state) => {
+      const file = state.loadedFiles.find((f) => f.id === id)
+      if (!file) return {}
+      return syncActiveFileFields(file, state.loadedFiles, state.sceneTree)
+    }),
+
+  updateFileSceneTree: (fileId, tree) =>
+    set((state) => {
+      const newFiles = state.loadedFiles.map((f) =>
+        f.id === fileId ? { ...f, sceneTree: tree } : f,
+      )
+      const synced = state.activeFileId === fileId
+        ? { sceneTree: buildCombinedTree(newFiles, state.sceneTree) }
+        : {}
+      return { loadedFiles: newFiles, ...synced }
+    }),
+
+  updateFilePartInfos: (fileId, infos) =>
+    set((state) => {
+      const newFiles = state.loadedFiles.map((f) =>
+        f.id === fileId ? { ...f, glbPartInfos: infos } : f,
+      )
+      const synced = state.activeFileId === fileId
+        ? { glbPartInfos: infos }
+        : {}
+      return { loadedFiles: newFiles, ...synced }
+    }),
+
+  updateFileCenteringOffset: (fileId, offset) =>
+    set((state) => {
+      const newFiles = state.loadedFiles.map((f) =>
+        f.id === fileId ? { ...f, modelCenteringOffset: offset } : f,
+      )
+      const synced = state.activeFileId === fileId
+        ? { modelCenteringOffset: offset }
+        : {}
+      return { loadedFiles: newFiles, ...synced }
+    }),
+
+  updateFileLoadingPhase: (fileId, phase) =>
+    set((state) => {
+      const newFiles = state.loadedFiles.map((f) =>
+        f.id === fileId ? { ...f, loadingPhase: phase } : f,
+      )
+      const synced = state.activeFileId === fileId
+        ? { __loadingPhase: phase }
+        : {}
+      return { loadedFiles: newFiles, ...synced }
+    }),
+
+  isFileLoaded: (filePath) => {
+    return get().loadedFiles.some((f) => f.filePath === filePath)
   },
 }))

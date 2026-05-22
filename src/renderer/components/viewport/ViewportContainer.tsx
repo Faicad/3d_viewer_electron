@@ -5,6 +5,7 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useModelStore } from '@/stores/model-store'
+import type { UnitSystem, FileGroup } from '@/config/file-formats'
 import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
 import { useToolStore } from '@/stores/tool-store'
@@ -21,6 +22,8 @@ import DisplayModeDropdown from '@/engine/components/DisplayModeDropdown'
 import DebugTopologyOverlay from '@/engine/components/DebugTopologyOverlay'
 import type { DisplayMode } from '@/engine/components/DisplayModeDropdown'
 import SelectionInfoOverlay from '@/engine/components/SelectionInfoOverlay'
+import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
 import AxesIndicator from '@/engine/components/AxesIndicator'
 import ToolOverlay from '@/engine/components/ToolOverlay'
@@ -200,6 +203,12 @@ export default function ViewportContainer() {
   const modelBuffer = useModelStore((s) => s.modelBuffer)
   const modelFormat = useModelStore((s) => s.modelFormat)
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
+  const loadedFiles = useModelStore((s) => s.loadedFiles)
+  const activeFileId = useModelStore((s) => s.activeFileId)
+  const updateFileSceneTree = useModelStore((s) => s.updateFileSceneTree)
+  const updateFilePartInfos = useModelStore((s) => s.updateFilePartInfos)
+  const updateFileCenteringOffset = useModelStore((s) => s.updateFileCenteringOffset)
+  const updateFileLoadingPhase = useModelStore((s) => s.updateFileLoadingPhase)
 
   const activeToolMode = useToolStore((s) => s.activeToolMode)
   const centeringOffset = useModelStore((s) => s.modelCenteringOffset)
@@ -327,6 +336,18 @@ export default function ViewportContainer() {
     toast.error(msg)
   }, [])
 
+  // Per-file parsed handler factory
+  const makeHandleParsed = useCallback((fileId: string) => {
+    return (meshes: THREE.Mesh[], objects: THREE.Object3D[], upAxis: 'y' | 'z') => {
+      const file = useModelStore.getState().loadedFiles.find(f => f.id === fileId)
+      if (!file) return
+      const key = `${file.filePath}|${file.mtimeMs ?? 0}`
+      generateThumbnailFromResult(meshes, objects, upAxis).then(blob => {
+        if (blob) putThumbnail(key, blob)
+      })
+    }
+  }, [])
+
   const applyCameraFit = useCallback((box: THREE.Box3, controls: OrbitControlsImpl) => {
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
@@ -437,15 +458,50 @@ export default function ViewportContainer() {
         <CameraModeSwitcher />
         <SceneSetup />
         <ModelTransformTracker modelRef={modelGroupRef} />
-        <ModelGroup
-          ref={modelGroupRef}
-          buffer={modelBuffer}
-          format={modelFormat}
-          onLoaded={handleModelLoaded}
-          onError={handleModelError}
-          selectorRuntime={selectorRuntime}
-          displayMode={resolvedDisplayMode}
-        />
+        {loadedFiles.length > 0 ? (
+          loadedFiles.map((file, i) => (
+            <group key={file.id} position={[i * 10, 0, 0]}>
+              <ModelGroup
+                ref={i === 0 ? modelGroupRef : undefined}
+                buffer={file.buffer}
+                format={file.format}
+                fileId={file.id}
+                filePath={file.filePath}
+                sceneTree={file.sceneTree}
+                glbPartInfos={file.glbPartInfos}
+                fileName={file.fileName}
+                onSceneTreeChange={(tree) => updateFileSceneTree(file.id, tree)}
+                onPartInfosChange={(infos) => updateFilePartInfos(file.id, infos)}
+                onCenteringOffsetChange={(offset) => updateFileCenteringOffset(file.id, offset)}
+                onLoadingPhaseChange={(phase) => updateFileLoadingPhase(file.id, phase)}
+                onParsed={makeHandleParsed(file.id)}
+                onLoaded={i === 0 ? handleModelLoaded : undefined}
+                onError={handleModelError}
+                selectorRuntime={file.id === activeFileId ? selectorRuntime : null}
+                displayMode={resolvedDisplayMode}
+              />
+            </group>
+          ))
+        ) : (
+          <ModelGroup
+            ref={modelGroupRef}
+            buffer={modelBuffer}
+            format={modelFormat}
+            filePath={useModelStore.getState().modelFilePath}
+            sceneTree={useModelStore.getState().sceneTree}
+            glbPartInfos={useModelStore.getState().glbPartInfos}
+            onSceneTreeChange={(tree) => useModelStore.getState().updateSceneTree(tree)}
+            onPartInfosChange={(infos) => useModelStore.getState().setGlbPartInfos(infos)}
+            onCenteringOffsetChange={(offset) => useModelStore.getState().setModelCenteringOffset(offset)}
+            onLoadingPhaseChange={(phase) => useModelStore.getState().setLoadingPhase(phase)}
+            onSourceUnitChange={(unit) => useModelStore.getState().setSourceUnit(unit as UnitSystem)}
+            onFileGroupChange={(group) => useModelStore.getState().setFileGroup(group as FileGroup)}
+            onLoaded={handleModelLoaded}
+            onError={handleModelError}
+            selectorRuntime={selectorRuntime}
+            displayMode={resolvedDisplayMode}
+          />
+        )}
         <ToolOverlay modelRef={modelGroupRef} />
         {hasTopology && <TopologyOverlay selectorRuntime={selectorRuntime} />}
         {((resolvedDisplayMode === 'wireframe' || resolvedDisplayMode === 'solidWithWireframe') && hasEdges || resolvedDisplayMode === 'debug' && hasEdges) && (

@@ -43,6 +43,20 @@ function getRenderer(): THREE.WebGLRenderer {
   return renderer
 }
 
+function setupLighting(scene: THREE.Scene): void {
+  const ambient = new THREE.AmbientLight(0xD4E1E8, 0.5)
+  scene.add(ambient)
+  const dir1 = new THREE.DirectionalLight(0xFFF5EE, 1.2)
+  dir1.position.set(1, 1, 1)
+  scene.add(dir1)
+  const dir2 = new THREE.DirectionalLight(0xC0D4E8, 0.6)
+  dir2.position.set(-0.5, -0.3, -1)
+  scene.add(dir2)
+  const dir3 = new THREE.DirectionalLight(0x8FD6D6, 0.3)
+  dir3.position.set(0, 0.5, -0.5)
+  scene.add(dir3)
+}
+
 function disposeScene(scene: THREE.Scene): void {
   scene.traverse((obj) => {
     if (obj instanceof THREE.Mesh) {
@@ -103,51 +117,41 @@ function fitCameraToMeshes(
   camera.updateProjectionMatrix()
 }
 
-export async function generateThumbnail(
-  buffer: ArrayBuffer,
-  format: FormatId,
+/**
+ * Generate thumbnail from already-parsed meshes/objects.
+ * Called as a byproduct of canvas loading — no re-parse, no file I/O.
+ */
+export async function generateThumbnailFromResult(
+  meshes: THREE.Mesh[],
+  objects: THREE.Object3D[],
+  upAxis: 'y' | 'z',
 ): Promise<Blob | null> {
   const r = getRenderer()
   const scene = new THREE.Scene()
-  // Transparent background — CSS bg-muted shows through the PNG alpha channel
-
-  // Lighting (synced with SceneSetup.tsx)
-  const ambient = new THREE.AmbientLight(0xD4E1E8, 0.5)
-  scene.add(ambient)
-  const dir1 = new THREE.DirectionalLight(0xFFF5EE, 1.2)
-  dir1.position.set(1, 1, 1)
-  scene.add(dir1)
-  const dir2 = new THREE.DirectionalLight(0xC0D4E8, 0.6)
-  dir2.position.set(-0.5, -0.3, -1)
-  scene.add(dir2)
-  const dir3 = new THREE.DirectionalLight(0x8FD6D6, 0.3)
-  dir3.position.set(0, 0.5, -0.5)
-  scene.add(dir3)
+  setupLighting(scene)
 
   const camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT)
 
   try {
-    const result = await loadFormat(buffer, format)
-    const allObjects: THREE.Object3D[] = [...result.meshes, ...result.objects]
-    if (result.sceneRoot) allObjects.push(result.sceneRoot)
-
+    const allObjects: THREE.Object3D[] = [...meshes, ...objects]
     if (allObjects.length === 0) {
       disposeScene(scene)
       return null
     }
 
     const group = new THREE.Group()
-    allObjects.forEach((obj) => group.add(obj.clone()))
+    for (const obj of allObjects) {
+      group.add(obj.clone())
+    }
     scene.add(group)
 
-    const upAxis = getDefaultUpAxis(format, buffer)
-    const meshes: THREE.Mesh[] = []
+    const allMeshes: THREE.Mesh[] = []
     group.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) meshes.push(obj)
+      if (obj instanceof THREE.Mesh) allMeshes.push(obj)
     })
 
-    if (meshes.length > 0) {
-      fitCameraToMeshes(meshes, camera, upAxis)
+    if (allMeshes.length > 0) {
+      fitCameraToMeshes(allMeshes, camera, upAxis)
     } else {
       camera.position.set(0, 0, 5)
       camera.lookAt(0, 0, 0)
@@ -160,11 +164,24 @@ export async function generateThumbnail(
     })
 
     disposeScene(scene)
-
     return blob
   } catch (err) {
-    console.warn('[thumbnailGenerator] failed for format', format, err)
+    console.warn('[thumbnailGenerator] failed from result:', err)
     disposeScene(scene)
+    return null
+  }
+}
+
+export async function generateThumbnail(
+  buffer: ArrayBuffer,
+  format: FormatId,
+): Promise<Blob | null> {
+  try {
+    const result = await loadFormat(buffer, format)
+    const upAxis = getDefaultUpAxis(format, buffer)
+    return generateThumbnailFromResult(result.meshes, result.objects, upAxis)
+  } catch (err) {
+    console.warn('[thumbnailGenerator] failed for format', format, err)
     return null
   }
 }

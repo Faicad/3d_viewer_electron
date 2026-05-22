@@ -229,11 +229,19 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     })
     expect(sceneOk).toBe(true)
 
-    // Switch to test-model.step, then back to keycap_v6 → second load should hit memory cache
+    // Switch to test-model.step, remove keycap_v6, then re-click keycap_v6
+    // to force a reload — should hit memory cache (multi-file keeps both loaded)
     consoleMessages.length = 0
     const entry2 = window.locator('div[data-index]').filter({ hasText: /test-model\.step$/ })
     await entry2.click()
     await waitForLoadDone(window, 60000)
+
+    // Remove keycap_v6 from loaded files so next click triggers a fresh load
+    await window.evaluate(() => {
+      const st = window.__modelStore!.getState()
+      const keycap = st.loadedFiles.find((f: any) => f.fileName === 'keycap_v6.step')
+      if (keycap) st.removeLoadedFile(keycap.id)
+    })
 
     consoleMessages.length = 0
     const entry3 = window.locator('div[data-index]').filter({ hasText: /keycap_v6\.step$/ })

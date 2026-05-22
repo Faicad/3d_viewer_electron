@@ -285,9 +285,20 @@ test.describe('3D Viewer - Key Format E2E', () => {
       const bytes = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
       const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-      window.__modelStore.getState().setModelBuffer(buf, 'gltf')
-      window.__modelStore.getState().setModelFilePath(fp)
-      window.__modelStore.getState().setGLBUrl('AnimatedMorphSphere.gltf')
+      window.__modelStore.getState().addLoadedFile({
+        id: crypto.randomUUID(),
+        fileName: 'AnimatedMorphSphere.gltf',
+        filePath: fp,
+        mtimeMs: 0,
+        buffer: buf,
+        format: 'gltf',
+        sceneTree: [],
+        glbPartInfos: [],
+        modelCenteringOffset: null,
+        sourceUnit: 'meter',
+        fileGroup: 'mesh',
+        loadingPhase: 'loading',
+      })
     }, gltfPath)
 
     await waitForLoadDone(window)

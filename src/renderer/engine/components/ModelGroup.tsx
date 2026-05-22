@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, forwardRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries as mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { useModelStore, type GlbPartInfo, type SceneTreeNode } from '@/stores/model-store'
+import { type GlbPartInfo, type SceneTreeNode } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
 import type { SelectorRuntime } from '@/lib/topology/types'
 import { buildGlbFaceIdsForPart } from '@/lib/topology/build-face-ids'
@@ -10,6 +10,8 @@ import type { DisplayMode } from './DisplayModeDropdown'
 import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
 import { FORMAT_MAP } from '@/config/file-formats'
+import { getDefaultUpAxis } from '@/config/file-formats'
+import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderResultCache'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
 import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor } from './cloneMaterial'
 
@@ -18,13 +20,24 @@ import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor } from './cl
 interface ModelGroupProps {
   buffer: ArrayBuffer | null
   format: FormatId | null
+  fileId?: string
+  filePath?: string | null
+  sceneTree: SceneTreeNode[]
+  glbPartInfos: GlbPartInfo[]
+  fileName?: string
+  onSceneTreeChange: (tree: SceneTreeNode[]) => void
+  onPartInfosChange: (infos: GlbPartInfo[]) => void
+  onCenteringOffsetChange: (offset: [number, number, number] | null) => void
+  onLoadingPhaseChange: (phase: 'idle' | 'loading' | 'done' | 'error') => void
+  onSourceUnitChange?: (unit: string) => void
+  onFileGroupChange?: (group: string) => void
+  onParsed?: (meshes: THREE.Mesh[], objects: THREE.Object3D[], upAxis: 'y' | 'z') => void
   onLoaded?: (box: THREE.Box3) => void
   onError?: (message: string) => void
   selectorRuntime?: SelectorRuntime | null
   displayMode?: DisplayMode
 }
 
-// ---- helpers ----
 
 function mergeGeometries(meshes: THREE.Mesh[]): THREE.BufferGeometry {
   const geoms = meshes.map((m) => {
@@ -56,13 +69,10 @@ function setSkinningFlag(
 // ---- multi-mesh rendering constants ----
 const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm', 'wrl']
 
-/** If the tree has a single root node, rename it to the base file name (without extension). */
-function applySinglePartName(nodes: SceneTreeNode[]): SceneTreeNode[] {
-  if (nodes.length === 1) {
-    const glbUrl = useModelStore.getState().glbUrl
-    if (glbUrl) {
-      nodes[0] = { ...nodes[0], name: glbUrl.replace(/\.[^.]+$/, '') }
-    }
+/** If the tree has a single root node, rename it to the file name (without extension). */
+function applySinglePartName(nodes: SceneTreeNode[], fileName?: string): SceneTreeNode[] {
+  if (nodes.length === 1 && fileName) {
+    nodes[0] = { ...nodes[0], name: fileName.replace(/\.[^.]+$/, '') }
   }
   return nodes
 }
@@ -96,7 +106,10 @@ function buildSceneTree(root: THREE.Object3D, partInfos: GlbPartInfo[]): SceneTr
 // ----
 
 const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
-  { buffer, format, onLoaded, onError, selectorRuntime, displayMode = 'solid' },
+  { buffer, format, fileId, filePath, sceneTree, glbPartInfos, fileName,
+    onSceneTreeChange, onPartInfosChange, onCenteringOffsetChange,
+    onLoadingPhaseChange, onSourceUnitChange, onFileGroupChange,
+    onParsed, onLoaded, onError, selectorRuntime, displayMode = 'solid' },
   ref,
 ) {
   const [glbMeshes, setGlbMeshes] = useState<THREE.Mesh[]>([])
@@ -104,13 +117,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   const [mergedGeometry, setMergedGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [objects, setObjects] = useState<THREE.Object3D[]>([])
   const [error, setError] = useState<string | null>(null)
-  const setGlbPartInfos = useModelStore((s) => s.setGlbPartInfos)
-  const setModelCenteringOffset = useModelStore((s) => s.setModelCenteringOffset)
-  const setLoadingPhase = useModelStore((s) => s.setLoadingPhase)
-  const glbPartInfos = useModelStore((s) => s.glbPartInfos)
-  const sceneTree = useModelStore((s) => s.sceneTree)
-  const updateSceneTree = useModelStore((s) => s.updateSceneTree)
-  const modelFilePath = useModelStore((s) => s.modelFilePath)
 
   const visibilityMap = useMemo(
     () => flattenVisibility(sceneTree),
@@ -137,6 +143,20 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   onLoadedRef.current = onLoaded
   const onErrorRef = useRef(onError)
   onErrorRef.current = onError
+  const onParsedRef = useRef(onParsed)
+  onParsedRef.current = onParsed
+  const onSceneTreeChangeRef = useRef(onSceneTreeChange)
+  onSceneTreeChangeRef.current = onSceneTreeChange
+  const onPartInfosChangeRef = useRef(onPartInfosChange)
+  onPartInfosChangeRef.current = onPartInfosChange
+  const onCenteringOffsetChangeRef = useRef(onCenteringOffsetChange)
+  onCenteringOffsetChangeRef.current = onCenteringOffsetChange
+  const onLoadingPhaseChangeRef = useRef(onLoadingPhaseChange)
+  onLoadingPhaseChangeRef.current = onLoadingPhaseChange
+  const onSourceUnitChangeRef = useRef(onSourceUnitChange)
+  onSourceUnitChangeRef.current = onSourceUnitChange
+  const onFileGroupChangeRef = useRef(onFileGroupChange)
+  onFileGroupChangeRef.current = onFileGroupChange
   const materialsRef = useRef<(THREE.Material | THREE.Material[] | null)[]>([])
 
   useEffect(() => {
@@ -146,11 +166,13 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       setMergedGeometry(null)
       setObjects([])
       setError(null)
-      setGlbPartInfos([])
-      setModelCenteringOffset(null)
-      updateSceneTree([])
+      onPartInfosChangeRef.current([])
+      onCenteringOffsetChangeRef.current(null)
+      onSceneTreeChangeRef.current([])
       return
     }
+
+    if (fileId && !markLoaded(fileId, buffer)) return
 
     let cancelled = false
 
@@ -163,15 +185,27 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         }
 
         // glTF requires a file path to resolve external buffer/image references
-        if (format === 'gltf' && !modelFilePath) {
+        if (format === 'gltf' && !filePath) {
           return
         }
-        const result = await loadFormat(buffer, format, modelFilePath)
+
+        // Check loaderResultCache first
+        let result: Awaited<ReturnType<typeof loadFormat>>
+        const cached = fileId ? getCachedResult(fileId) : undefined
+        if (cached) {
+          result = cached
+        } else {
+          result = await loadFormat(buffer, format, filePath ?? null)
+          if (fileId) setCachedResult(fileId, result)
+          // Fire onParsed so caller generates thumbnail from this fresh parse
+          const upAxis = getDefaultUpAxis(format, buffer)
+          onParsedRef.current?.(result.meshes, result.objects, upAxis)
+        }
         if (cancelled) return
 
-        // Set unit metadata in store
-        useModelStore.getState().setSourceUnit(result.sourceUnit ?? FORMAT_MAP[format].defaultUnit)
-        useModelStore.getState().setFileGroup(FORMAT_MAP[format].group)
+        // Set unit metadata
+        onSourceUnitChangeRef.current?.(result.sourceUnit ?? FORMAT_MAP[format].defaultUnit)
+        onFileGroupChangeRef.current?.(FORMAT_MAP[format].group)
 
         // If format produced non-mesh objects (GCode lines, BVH skeleton, PCD points, etc.)
         if (result.objects.length > 0 && result.meshes.length === 0) {
@@ -179,8 +213,12 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setGlbMeshes([])
           setMeshMaterials([])
           setMergedGeometry(null)
-          setGlbPartInfos([])
-          updateSceneTree(applySinglePartName([{ id: `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }]))
+          onPartInfosChangeRef.current([])
+          const tree = applySinglePartName(
+            [{ id: `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }],
+            fileName,
+          )
+          onSceneTreeChangeRef.current(tree)
 
           // Compute bounding box from all objects (Points, Lines, Bones, etc.)
           const box = new THREE.Box3()
@@ -194,7 +232,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             }
           }
           if (!box.isEmpty()) onLoadedRef.current?.(box)
-          setLoadingPhase('done')
+          onLoadingPhaseChangeRef.current('done')
           return
         }
 
@@ -203,7 +241,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           const msg = 'No meshes found in file'
           setError(msg)
           onErrorRef.current?.(msg)
-          setLoadingPhase('error')
+          onLoadingPhaseChangeRef.current('error')
           return
         }
 
@@ -262,16 +300,16 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             mesh.position.copy(center).multiplyScalar(-1)
           }
 
-          setModelCenteringOffset([center.x, center.y, center.z])
+          onCenteringOffsetChangeRef.current([center.x, center.y, center.z])
 
           setMergedGeometry(null)
           setObjects([])
           setGlbMeshes(processed)
           setMeshMaterials(materials)
           materialsRef.current = materials
-          setGlbPartInfos(partInfos)
+          onPartInfosChangeRef.current(partInfos)
 
-          const sceneTree = result.sceneRoot
+          const tree = result.sceneRoot
             ? buildSceneTree(result.sceneRoot, partInfos)
             : partInfos.map((info) => ({
                 id: info.partId,
@@ -281,8 +319,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 meshIndex: info.meshIndex,
               }))
 
-          applySinglePartName(sceneTree)
-          updateSceneTree(sceneTree)
+          applySinglePartName(tree, fileName)
+          onSceneTreeChangeRef.current(tree)
 
           const finalBox = new THREE.Box3()
           for (const mesh of processed) {
@@ -291,7 +329,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             finalBox.expandByObject(new THREE.Mesh(clone))
           }
           onLoadedRef.current?.(finalBox)
-          setLoadingPhase('done')
+          onLoadingPhaseChangeRef.current('done')
         } else {
           // Single merged geometry path (STL-like)
           const geo = mergeGeometries(meshes)
@@ -300,11 +338,15 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setMergedGeometry(geo)
           setGlbMeshes([])
           setObjects([])
-          setGlbPartInfos([])
-          updateSceneTree(applySinglePartName([{ id: `${format}-model`, name: format.toUpperCase(), visible: true, expanded: true }]))
+          onPartInfosChangeRef.current([])
+          const tree = applySinglePartName(
+            [{ id: `${format}-model`, name: format.toUpperCase(), visible: true, expanded: true }],
+            fileName,
+          )
+          onSceneTreeChangeRef.current(tree)
           geo.computeBoundingBox()
           if (geo.boundingBox) onLoadedRef.current?.(geo.boundingBox.clone())
-          setLoadingPhase('done')
+          onLoadingPhaseChangeRef.current('done')
         }
       } catch (e) {
         if (!cancelled) {
@@ -312,7 +354,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           console.error('[ModelGroup] load error:', msg)
           setError(msg)
           onErrorRef.current?.(msg)
-          setLoadingPhase('error')
+          onLoadingPhaseChangeRef.current('error')
         }
       }
     }
@@ -320,13 +362,12 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     load()
     return () => {
       cancelled = true
-      // Dispose materials tracked via ref to avoid stale-closure races
       for (const mat of materialsRef.current) {
         disposeMaterial(mat)
       }
       materialsRef.current = []
     }
-  }, [buffer, format, modelFilePath, setGlbPartInfos, setModelCenteringOffset, setLoadingPhase, updateSceneTree])
+  }, [buffer, format, filePath, fileId, fileName])
 
   // Sync group ref to engine store after render so ModelInfoPanel can read it
   useEffect(() => {

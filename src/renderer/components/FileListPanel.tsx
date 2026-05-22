@@ -6,13 +6,18 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { EXT_COLORS, detectFormat } from '@/config/file-formats'
+import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { loadFormat } from '@/engine/formatLoaders'
+import { setCachedResult } from '@/engine/loaderResultCache'
+import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { Button } from '@/components/ui/button'
 import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import {
   startThumbnailQueue,
   stopThumbnailQueue,
   updateVisibleFiles,
+  setPriorityPaths,
   type QueueFile,
 } from '@/lib/thumbnail-cache/thumbnailQueue'
 
@@ -37,10 +42,20 @@ export default function FileListPanel() {
     setSelectedFileIndex,
     setFileSortMode,
     setSortOrder,
-    glbUrl,
+    loadedFiles,
   } = useModelStore()
   const enablePreview = useUIStore((s) => s.enablePreview)
   const setEnablePreview = useUIStore((s) => s.setEnablePreview)
+
+  const loadedFilePaths = useMemo(
+    () => new Set(loadedFiles.map(f => f.filePath)),
+    [loadedFiles],
+  )
+
+  // Sync priority paths to thumbnail queue
+  useEffect(() => {
+    setPriorityPaths(loadedFilePaths)
+  }, [loadedFilePaths])
   const listRef = useRef<HTMLDivElement>(null)
 
   const [thumbState, setThumbState] = useState<ThumbState>({ urls: new Map(), failed: new Set() })
@@ -261,7 +276,7 @@ export default function FileListPanel() {
           >
             {sortedFiles.map((file, i) => {
               const isSelected = i === selectedFileIndex
-              const isCurrent = file.name === glbUrl
+              const isCurrent = loadedFilePaths.has(file.path)
               const thumbUrl = thumbState.urls.get(file.path)
               const failed = thumbState.failed.has(file.path)
 
@@ -316,7 +331,7 @@ export default function FileListPanel() {
           <div ref={listRef} className="p-2 min-w-max">
             {sortedFiles.map((file, i) => {
               const isSelected = i === selectedFileIndex
-              const isCurrent = file.name === glbUrl
+              const isCurrent = loadedFilePaths.has(file.path)
               const ext = getExt(file.name)
               return (
                 <div
@@ -389,8 +404,15 @@ function PlaceholderCard({ file, failed, loading }: { file: { name: string }; fa
 }
 
 async function handleFileClick(file: { name: string; path: string; mtimeMs: number }, index: number) {
-  const { setSelectedFileIndex } = useModelStore.getState()
-  setSelectedFileIndex(index)
+  const store = useModelStore.getState()
+  store.setSelectedFileIndex(index)
+
+  // If already loaded, just switch active file
+  const existing = store.loadedFiles.find(f => f.filePath === file.path)
+  if (existing) {
+    store.setActiveFile(existing.id)
+    return
+  }
 
   try {
     const result = await window.electronAPI.readFile(file.path)
@@ -399,25 +421,55 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       toast.error('Load failed: ' + (result.error || 'unknown error'))
       return
     }
-    const buffer = result.data
-    const format = detectFormat(file.name)
+    let buffer = result.data
+    let format = detectFormat(file.name)
 
     if (format === 'step') {
-      useModelStore.getState().setIsConverting(true)
-      const { buffer: glbBuffer } = await stepToGlbCached(buffer,
-        { filePath: file.path, mtimeMs: file.mtimeMs },
-        { wasmPath: '/wasm/occt-import-js.wasm' },
-      )
-      useModelStore.getState().setIsConverting(false)
-      useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
-    } else if (format) {
-      useModelStore.getState().setModelBuffer(buffer, format)
-    } else {
+      store.setIsConverting(true)
+      try {
+        const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+          { filePath: file.path, mtimeMs: file.mtimeMs },
+          { wasmPath: '/wasm/occt-import-js.wasm' },
+        )
+        buffer = glbBuffer
+        format = 'glb'
+      } finally {
+        store.setIsConverting(false)
+      }
+    }
+
+    if (!format) {
       console.error('[handleFileClick] unsupported format:', file.name)
       toast.error('Unsupported file format: ' + file.name)
       return
     }
-    useModelStore.getState().setGLBUrl(file.name)
+
+    // Parse once
+    const loadResult = await loadFormat(buffer, format, file.path)
+    const fileId = crypto.randomUUID()
+    setCachedResult(fileId, loadResult)
+
+    // Thumbnail as byproduct
+    const upAxis = getDefaultUpAxis(format, buffer)
+    generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+      .then(blob => {
+        if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
+      })
+
+    store.addLoadedFile({
+      id: fileId,
+      fileName: file.name,
+      filePath: file.path,
+      mtimeMs: file.mtimeMs,
+      buffer,
+      format,
+      sceneTree: [],
+      glbPartInfos: [],
+      modelCenteringOffset: null,
+      sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+      fileGroup: FORMAT_MAP[format].group,
+      loadingPhase: 'loading',
+    })
   } catch (e) {
     console.error('[handleFileClick] exception:', e)
     useModelStore.getState().setIsConverting(false)
