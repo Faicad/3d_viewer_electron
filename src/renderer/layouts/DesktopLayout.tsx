@@ -11,7 +11,7 @@ import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-format
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
-import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { putThumbnail, cacheKey } from '@/lib/thumbnail-cache/thumbnailCache'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -250,7 +250,7 @@ export default function DesktopLayout() {
               const upAxis = getDefaultUpAxis(format, buffer)
               generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
                 .then(blob => {
-                  if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
+                  if (blob) putThumbnail(cacheKey(file.path, file.mtimeMs), blob)
                 })
               useModelStore.getState().addLoadedFile({
                 id: fileId,
@@ -325,13 +325,11 @@ export default function DesktopLayout() {
         setCachedResult(fileId, loadResult)
 
         // Thumbnail as byproduct (fire-and-forget)
+        const loadTime = Date.now()
         const upAxis = getDefaultUpAxis(format, buffer)
         generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
           .then(blob => {
-            if (blob) {
-              const key = `${filePath}|${Date.now()}`
-              putThumbnail(key, blob)
-            }
+            if (blob) putThumbnail(cacheKey(filePath, loadTime), blob)
           })
 
         // Add to store
@@ -340,7 +338,7 @@ export default function DesktopLayout() {
           id: fileId,
           fileName,
           filePath,
-          mtimeMs: Date.now(),
+          mtimeMs: loadTime,
           buffer,
           format,
           sceneTree: [],

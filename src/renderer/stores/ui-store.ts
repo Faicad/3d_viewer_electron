@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { SupportedLanguage } from '@/i18n'
 
 const safeLocalStorage = {
@@ -71,11 +71,7 @@ export const useUIStore = create<UIStore>()(
     {
       name: 'faicad-ui',
       partialize: (s) => ({ language: s.language, theme: s.theme, enablePreview: s.enablePreview }),
-      storage: {
-        getItem: safeLocalStorage.getItem,
-        setItem: safeLocalStorage.setItem,
-        removeItem: safeLocalStorage.removeItem,
-      },
+      storage: createJSONStorage(() => safeLocalStorage),
     }
   )
 )

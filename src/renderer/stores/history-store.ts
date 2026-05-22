@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export interface HistoryEntry {
   filePath: string
@@ -42,11 +42,7 @@ export const useHistoryStore = create<HistoryStore>()(
     }),
     {
       name: 'faicad-history',
-      storage: {
-        getItem: safeLocalStorage.getItem,
-        setItem: safeLocalStorage.setItem,
-        removeItem: safeLocalStorage.removeItem,
-      },
+      storage: createJSONStorage(() => safeLocalStorage),
     },
   ),
 )
