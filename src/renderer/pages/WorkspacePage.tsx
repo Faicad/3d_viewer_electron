@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
@@ -22,6 +22,68 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const [searchParams] = useSearchParams()
   const skipUpload = searchParams.get('skip_upload') === '1' && import.meta.env.DEV
   const [dialogOpen, setDialogOpen] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleNativeOpenFile = useCallback(async () => {
+    if (!window.electronAPI) {
+      fileInputRef.current?.click()
+      return
+    }
+    const result = await window.electronAPI.openFileDialog()
+    if (!result.success || !result.filePaths?.length) return
+
+    const filePath = result.filePaths[0]
+    const fileName = filePath.split(/[/\\]/).pop() || filePath
+    const dirPath = filePath.slice(0, filePath.lastIndexOf(filePath.includes('\\') ? '\\' : '/'))
+
+    const format = detectFormat(fileName)
+    if (!format) {
+      toast.error('Unsupported file format: ' + fileName)
+      return
+    }
+
+    try {
+      const fileResult = await window.electronAPI.readFile(filePath)
+      if (!fileResult.success || !fileResult.data) {
+        toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
+        return
+      }
+      const buffer = fileResult.data
+
+      if (format === 'step') {
+        try {
+          useModelStore.getState().setIsConverting(true)
+          const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+            { filePath, mtimeMs: Date.now() },
+            { wasmPath: '/wasm/occt-import-js.wasm' },
+          )
+          useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
+        } catch (e) {
+          console.error('[WorkspacePage] STEP conversion failed:', e)
+          toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+          return
+        } finally {
+          useModelStore.getState().setIsConverting(false)
+        }
+      } else {
+        useModelStore.getState().setModelBuffer(buffer, format)
+        useModelStore.getState().setModelFilePath(filePath)
+      }
+      useModelStore.getState().setGLBUrl(fileName)
+
+      const dirResult = await window.electronAPI.readDirectory(dirPath)
+      if (dirResult.success && dirResult.files) {
+        useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
+        const idx = dirResult.files.findIndex(f => f.name === fileName)
+        if (idx !== -1) {
+          useModelStore.getState().setSelectedFileIndex(idx)
+        }
+      }
+    } catch (e) {
+      useModelStore.getState().setIsConverting(false)
+      toast.error('Load failed: ' + String(e))
+    }
+  }, [])
 
   const processFileLocally = useCallback(async (file: File) => {
     const format = detectFormat(file.name)
@@ -103,17 +165,24 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
       {!glbUrl && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <label className="flex flex-col items-center gap-4 p-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto">
+          <div
+            className="flex flex-col items-center gap-4 p-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto"
+            onClick={handleNativeOpenFile}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleNativeOpenFile() }}
+          >
             <Upload className="h-12 w-12" />
             <p className="text-lg font-medium">{t('chat.uploadFormats')}</p>
             <p className="text-sm">{t('chat.uploadHint')}</p>
             <input
+              ref={fileInputRef}
               type="file"
               accept={ALL_ACCEPT}
               className="hidden"
               onChange={handleFileChange}
             />
-          </label>
+          </div>
         </div>
       )}
 
