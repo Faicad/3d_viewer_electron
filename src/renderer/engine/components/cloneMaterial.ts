@@ -20,8 +20,8 @@ export function cloneAndConvertMaterial(
 }
 
 /** Create the default PBR material for meshes without source materials. */
-export function createDefaultMaterial(): THREE.MeshStandardMaterial {
-  const mat = new THREE.MeshStandardMaterial()
+export function createDefaultMaterial(): THREE.MeshPhysicalMaterial {
+  const mat = new THREE.MeshPhysicalMaterial()
   mat.color.setHex(0x9ba6ae)
   mat.roughness = 0.35
   mat.metalness = 0.1
@@ -83,7 +83,7 @@ function convertSingle(src: THREE.Material): THREE.Material {
   if (src instanceof THREE.MeshPhysicalMaterial) {
     dst = src.clone()
   } else if (src instanceof THREE.MeshStandardMaterial) {
-    dst = src.clone()
+    dst = standardToPhysical(src)
   } else if (src instanceof THREE.MeshPhongMaterial) {
     dst = phongToStandard(src)
   } else if (src instanceof THREE.MeshLambertMaterial) {
@@ -114,8 +114,49 @@ function convertSingle(src: THREE.Material): THREE.Material {
 // Per-type converters
 // ---------------------------------------------------------------------------
 
-function phongToStandard(src: THREE.MeshPhongMaterial): THREE.MeshStandardMaterial {
-  const dst = new THREE.MeshStandardMaterial()
+function standardToPhysical(
+  src: THREE.MeshStandardMaterial,
+): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
+
+  dst.color.copy(src.color)
+  dst.map = src.map
+  dst.lightMap = src.lightMap
+  dst.lightMapIntensity = src.lightMapIntensity
+  dst.aoMap = src.aoMap
+  dst.aoMapIntensity = src.aoMapIntensity
+  dst.emissive.copy(src.emissive)
+  dst.emissiveMap = src.emissiveMap
+  dst.emissiveIntensity = src.emissiveIntensity
+  dst.bumpMap = src.bumpMap
+  dst.bumpScale = src.bumpScale
+  dst.normalMap = src.normalMap
+  dst.normalScale.copy(src.normalScale)
+  dst.displacementMap = src.displacementMap
+  dst.displacementScale = src.displacementScale
+  dst.displacementBias = src.displacementBias
+  dst.roughnessMap = src.roughnessMap
+  dst.metalnessMap = src.metalnessMap
+  dst.alphaMap = src.alphaMap
+  dst.envMap = src.envMap
+  dst.envMapIntensity = src.envMapIntensity
+  dst.transparent = src.transparent
+  dst.opacity = src.opacity
+  dst.side = src.side
+  dst.wireframe = src.wireframe
+  dst.vertexColors = src.vertexColors
+  dst.fog = src.fog
+  dst.roughness = src.roughness
+  dst.metalness = src.metalness
+  dst.flatShading = src.flatShading
+  if (src.defines) dst.defines = { ...src.defines }
+
+  dst.needsUpdate = true
+  return dst
+}
+
+function phongToStandard(src: THREE.MeshPhongMaterial): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
 
   dst.color.copy(src.color)
   dst.map = src.map
@@ -161,8 +202,8 @@ function phongToStandard(src: THREE.MeshPhongMaterial): THREE.MeshStandardMateri
 
 function lambertToStandard(
   src: THREE.MeshLambertMaterial,
-): THREE.MeshStandardMaterial {
-  const dst = new THREE.MeshStandardMaterial()
+): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
 
   dst.color.copy(src.color)
   dst.map = src.map
@@ -183,6 +224,8 @@ function lambertToStandard(
   dst.side = src.side
   dst.vertexColors = src.vertexColors
   dst.fog = src.fog
+  dst.envMap = src.envMap
+  dst.envMapIntensity = src.envMapIntensity
 
   dst.roughness = 0.9
   dst.metalness = 0.0
@@ -193,8 +236,8 @@ function lambertToStandard(
 
 function basicToStandard(
   src: THREE.MeshBasicMaterial,
-): THREE.MeshStandardMaterial {
-  const dst = new THREE.MeshStandardMaterial()
+): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
 
   dst.color.copy(src.color)
   dst.map = src.map
@@ -204,6 +247,8 @@ function basicToStandard(
   dst.side = src.side
   dst.vertexColors = src.vertexColors
   dst.fog = src.fog
+  dst.envMap = src.envMap
+  dst.envMapIntensity = src.envMapIntensity
 
   dst.roughness = 1.0
   dst.metalness = 0.0
@@ -212,8 +257,8 @@ function basicToStandard(
   return dst
 }
 
-function toonToStandard(src: THREE.MeshToonMaterial): THREE.MeshStandardMaterial {
-  const dst = new THREE.MeshStandardMaterial()
+function toonToStandard(src: THREE.MeshToonMaterial): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
 
   dst.color.copy(src.color)
   dst.map = src.map
@@ -235,6 +280,8 @@ function toonToStandard(src: THREE.MeshToonMaterial): THREE.MeshStandardMaterial
   dst.lightMapIntensity = src.lightMapIntensity
   dst.aoMap = src.aoMap
   dst.aoMapIntensity = src.aoMapIntensity
+  dst.envMap = src.envMap
+  dst.envMapIntensity = src.envMapIntensity
 
   dst.roughness = 0.6
   dst.metalness = 0.0
@@ -245,8 +292,8 @@ function toonToStandard(src: THREE.MeshToonMaterial): THREE.MeshStandardMaterial
 
 function matcapToStandard(
   src: THREE.MeshMatcapMaterial,
-): THREE.MeshStandardMaterial {
-  const dst = new THREE.MeshStandardMaterial()
+): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
 
   dst.color.copy(src.color)
   dst.map = src.map
@@ -264,8 +311,8 @@ function matcapToStandard(
   return dst
 }
 
-function fallbackToStandard(src: THREE.Material): THREE.MeshStandardMaterial {
-  const dst = new THREE.MeshStandardMaterial()
+function fallbackToStandard(src: THREE.Material): THREE.MeshPhysicalMaterial {
+  const dst = new THREE.MeshPhysicalMaterial()
 
   if ('color' in src && src.color instanceof THREE.Color) {
     dst.color.copy(src.color)
@@ -276,6 +323,12 @@ function fallbackToStandard(src: THREE.Material): THREE.MeshStandardMaterial {
   }
   if ('side' in src && typeof src.side === 'number') {
     dst.side = src.side as THREE.Side
+  }
+  if ('envMap' in src && src.envMap instanceof THREE.Texture) {
+    dst.envMap = src.envMap
+  }
+  if ('envMapIntensity' in src && typeof src.envMapIntensity === 'number') {
+    dst.envMapIntensity = src.envMapIntensity
   }
   dst.roughness = 0.5
   dst.metalness = 0.0

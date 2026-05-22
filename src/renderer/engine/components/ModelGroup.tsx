@@ -435,6 +435,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 position={mesh.position}
                 material={meshMaterials[i] ?? undefined}
                 morphTargetInfluences={morphInfluenceArrays[i]}
+                castShadow
+                receiveShadow
                 userData={{
                   partId,
                   meshIndex: i,
@@ -472,6 +474,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               position={mesh.position}
               material={mat ?? undefined}
               morphTargetInfluences={morphInfluenceArrays[i]}
+              castShadow
+              receiveShadow
               userData={{
                 partId,
                 meshIndex: i,
@@ -479,7 +483,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               }}
             >
               {mat == null && !isMeshOnly && (
-                <meshStandardMaterial
+                <meshPhysicalMaterial
                   color="#9BA6AE"
                   roughness={0.35}
                   metalness={0.1}
@@ -489,7 +493,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 />
               )}
               {isMeshOnly && (
-                <meshStandardMaterial
+                <meshPhysicalMaterial
                   color={matColor}
                   roughness={0.4}
                   metalness={0.1}
@@ -514,7 +518,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   if (displayMode === 'wireframe') {
     return (
       <group ref={ref as unknown as React.Ref<THREE.Group>}>
-        <mesh geometry={mergedGeometry}>
+        <mesh geometry={mergedGeometry} castShadow receiveShadow>
           <meshBasicMaterial
             color={'#cccccc'}
             transparent
@@ -529,8 +533,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   return (
     <group ref={ref as unknown as React.Ref<THREE.Group>}>
-      <mesh geometry={mergedGeometry}>
-        <meshStandardMaterial
+      <mesh geometry={mergedGeometry} castShadow receiveShadow>
+        <meshPhysicalMaterial
           color={'#9BA6AE'}
           roughness={0.35}
           metalness={0.1}

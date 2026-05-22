@@ -233,6 +233,7 @@ export default function ViewportContainer() {
   useEffect(() => {
     if (loadedFiles.length === 0 && prevFileCountRef.current > 0) {
       largestBoxRef.current = null
+      useEngineStore.getState().setModelBbox(null)
     }
     prevFileCountRef.current = loadedFiles.length
   }, [loadedFiles])
@@ -394,6 +395,10 @@ export default function ViewportContainer() {
         largestBoxRef.current = box.clone()
       }
     }
+    // Store bbox for ShadowFloor positioning
+    const b = largestBoxRef.current
+    useEngineStore.getState().setModelBbox([b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z])
+
     const controls = controlsRef.current
     if (!controls) {
       pendingBoxRef.current = largestBoxRef.current.clone()
@@ -462,8 +467,10 @@ export default function ViewportContainer() {
         style={{ width: '100%', height: '100%', background: canvasBackground }}
         scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
         camera={{ fov: 50, near: 0.001, far: 10000, position: [5, -5, 3], up: [0, 0, 1] as [number, number, number] }}
+        shadows="accumulative"
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         onCreated={({ camera, scene, gl }) => {
+          gl.shadowMap.type = THREE.PCFSoftShadowMap
           useEngineStore.getState().setEngineObjects({ camera, scene, gl })
           window.__r3f_dev = { camera, scene, gl }
         }}
