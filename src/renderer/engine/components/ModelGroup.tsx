@@ -54,7 +54,7 @@ function setSkinningFlag(
 }
 
 // ---- multi-mesh rendering constants ----
-const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm']
+const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm', 'wrl']
 
 /** If the tree has a single root node, rename it to the base file name (without extension). */
 function applySinglePartName(nodes: SceneTreeNode[]): SceneTreeNode[] {

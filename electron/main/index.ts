@@ -35,7 +35,11 @@ function setupProtocol(): void {
     }
 
     const asarPath = join(__dirname, '..', 'renderer', relWin)
-    return net.fetch('file:///' + asarPath.replace(/\\/g, '/'))
+    const fileUrl = 'file:///' + asarPath.replace(/\\/g, '/')
+    return net.fetch(fileUrl).catch((err) => {
+      console.error('[Protocol] FAILED —', request.url, '→', fileUrl, String(err))
+      throw err
+    })
   })
 }
 
