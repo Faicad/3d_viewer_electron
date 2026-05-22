@@ -12,3 +12,5 @@ export function flattenVisibility(tree: SceneTreeNode[]): Map<string, boolean> {
   }
   return map
 }
+
+

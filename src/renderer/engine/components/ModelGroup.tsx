@@ -56,6 +56,17 @@ function setSkinningFlag(
 // ---- multi-mesh rendering constants ----
 const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm']
 
+/** If the tree has a single root node, rename it to the base file name (without extension). */
+function applySinglePartName(nodes: SceneTreeNode[]): SceneTreeNode[] {
+  if (nodes.length === 1) {
+    const glbUrl = useModelStore.getState().glbUrl
+    if (glbUrl) {
+      nodes[0] = { ...nodes[0], name: glbUrl.replace(/\.[^.]+$/, '') }
+    }
+  }
+  return nodes
+}
+
 function buildSceneTree(root: THREE.Object3D, partInfos: GlbPartInfo[]): SceneTreeNode[] {
   const meshIndexMap = new Map<string, number>()
   for (const info of partInfos) {
@@ -169,7 +180,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setMeshMaterials([])
           setMergedGeometry(null)
           setGlbPartInfos([])
-          updateSceneTree([{ id: `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }])
+          updateSceneTree(applySinglePartName([{ id: `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }]))
 
           // Compute bounding box from all objects (Points, Lines, Bones, etc.)
           const box = new THREE.Box3()
@@ -269,6 +280,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 expanded: true,
                 meshIndex: info.meshIndex,
               }))
+
+          applySinglePartName(sceneTree)
           updateSceneTree(sceneTree)
 
           const finalBox = new THREE.Box3()
@@ -288,7 +301,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setGlbMeshes([])
           setObjects([])
           setGlbPartInfos([])
-          updateSceneTree([{ id: `${format}-model`, name: format.toUpperCase(), visible: true, expanded: true }])
+          updateSceneTree(applySinglePartName([{ id: `${format}-model`, name: format.toUpperCase(), visible: true, expanded: true }]))
           geo.computeBoundingBox()
           if (geo.boundingBox) onLoadedRef.current?.(geo.boundingBox.clone())
           setLoadingPhase('done')
