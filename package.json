@@ -89,7 +89,7 @@
   "build": {
     "appId": "com.faicad.3d_viewer",
     "productName": "3D Model Viewer",
-    "publish": null,
+    "publish": ["github"],
     "directories": {
       "output": "dist",
       "buildResources": "resources"
@@ -118,7 +118,7 @@
     "linux": {
       "target": [
         {
-          "target": "dir",
+          "target": "AppImage",
           "arch": [
             "x64"
           ]
@@ -128,7 +128,7 @@
     "mac": {
       "target": [
         {
-          "target": "dir",
+          "target": "dmg",
           "arch": [
             "x64",
             "arm64"
