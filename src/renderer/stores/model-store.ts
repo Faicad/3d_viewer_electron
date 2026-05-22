@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { FormatId, FileGroup, UnitSystem, UpAxis } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { clearAllResults, releaseResult, clearLoaded } from '@/engine/loaderResultCache'
+import { useHistoryStore } from '@/stores/history-store'
 
 export interface SceneTreeNode {
   id: string
@@ -322,15 +323,17 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   },
 
   // Multi-file actions
-  addLoadedFile: (file) =>
-    set((state) => {
+  addLoadedFile: (file) => {
+    useHistoryStore.getState().addEntry(file.filePath, file.fileName, file.mtimeMs)
+    return set((state) => {
       const newFiles = [...state.loadedFiles, file]
       const isFirst = state.loadedFiles.length === 0
       return {
         loadedFiles: newFiles,
         ...(isFirst ? syncActiveFileFields(file, newFiles, state.sceneTree) : { sceneTree: buildCombinedTree(newFiles, state.sceneTree) }),
       }
-    }),
+    })
+  },
 
   removeLoadedFile: (id) => {
     releaseResult(id)

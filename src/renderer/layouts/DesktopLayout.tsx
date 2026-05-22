@@ -21,11 +21,12 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3,
+  Cuboid, Grid3x3, Clock,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
 import ModelInfoPanel from '@/components/ModelInfoPanel'
+import HistoryPanel from '@/components/HistoryPanel'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
 
@@ -441,6 +442,21 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
         </Tooltip>
 
+        {/* History */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.historyPanelOpen ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={ui.toggleHistoryPanel}
+              aria-label={t('toolbar.history')}
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.history')}</TooltipContent>
+        </Tooltip>
+
         <div className="flex-1" />
 
         {/* Fullscreen */}
@@ -511,11 +527,17 @@ export default function DesktopLayout() {
         </div>
 
         {/* Right Panel */}
-        {(ui.rightPanelOpen || ui.modelInfoOpen) && (
+        {(ui.rightPanelOpen || ui.modelInfoOpen || ui.historyPanelOpen) && (
           <>
             <ResizeHandle onMouseDown={() => setResizing('right')} />
             <aside style={{ width: `${rightPanelPct}%` } as React.CSSProperties} className="border-l flex flex-col shrink-0">
-              {ui.modelInfoOpen ? <ModelInfoPanel /> : <FileListPanel />}
+              {ui.historyPanelOpen ? (
+                <HistoryPanel onClose={() => useUIStore.getState().toggleHistoryPanel()} />
+              ) : ui.modelInfoOpen ? (
+                <ModelInfoPanel />
+              ) : (
+                <FileListPanel />
+              )}
             </aside>
           </>
         )}
