@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.1.0...v1.1.1) (2026-05-22)
+
+
+### Documentation
+
+* add versioning and commit conventions documentation ([edaa1ce](https://github.com/YOUR_ORG/3d_viewer_electron/commits/edaa1cebe8991527371ad37ba81f26007c5a205d))
+
 ## 1.1.0 (2026-05-22)
 
 
