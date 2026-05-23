@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/immutability */
 
 import { useEffect, useRef } from 'react'
+import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
@@ -50,7 +51,7 @@ export default function SceneSetup() {
   // envRotation-only: update the Euler without re-loading the texture
   useEffect(() => {
     if (!scene.environment) return
-    scene.environmentRotation.set(-Math.PI / 2, 0, envRotation, 'YXZ')
+    scene.environmentRotation.set(Math.PI / 2, 0, envRotation, 'YXZ')
     envRef.current?.setBackgroundRotation(scene, envRotation)
   }, [envRotation, scene])
 
@@ -62,10 +63,9 @@ export default function SceneSetup() {
   }, [envBackground, scene])
 
   useEffect(() => {
-    const unsub = useEngineStore.subscribe(
-      (s) => s.envIntensity,
-      (v) => { scene.environmentIntensity = v },
-    )
+    const unsub = useEngineStore.subscribe((state) => {
+      scene.environmentIntensity = state.envIntensity
+    })
     return unsub
   }, [scene])
 
@@ -75,63 +75,88 @@ export default function SceneSetup() {
     const floor = new ShadowFloor()
     scene.add(floor.group)
     shadowFloorRef.current = floor
+
+    // Apply initial state immediately — subscriptions may fire before the ref
+    // is captured, so we read current values directly.
+    const s = useEngineStore.getState()
+    if (s.modelBbox) floor.configure(s.modelBbox, 'z')
+    floor.setEnabled(s.shadowFloorEnabled)
+    floor.setOpacity(s.shadowOpacity)
+
     return () => { scene.remove(floor.group); floor.dispose(); shadowFloorRef.current = null }
   }, [scene])
   useEffect(() => {
-    const unsub = useEngineStore.subscribe((s) => s.modelBbox, (bbox) => {
-      if (!bbox || !shadowFloorRef.current) return
-      shadowFloorRef.current.configure(bbox, 'z')
-    }, { fireImmediately: true })
-    return unsub
-  }, [scene])
-  useEffect(() => {
-    const unsub = useEngineStore.subscribe((s) => s.shadowFloorEnabled, (v) => { shadowFloorRef.current?.setEnabled(v) }, { fireImmediately: true })
+    const unsub = useEngineStore.subscribe((state) => {
+      if (!state.modelBbox || !shadowFloorRef.current) return
+      shadowFloorRef.current.configure(state.modelBbox, 'z')
+    })
     return unsub
   }, [])
   useEffect(() => {
-    const unsub = useEngineStore.subscribe((s) => s.shadowOpacity, (v) => { shadowFloorRef.current?.setOpacity(v) })
+    const unsub = useEngineStore.subscribe((state) => { shadowFloorRef.current?.setEnabled(state.shadowFloorEnabled) })
+    return unsub
+  }, [])
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state) => { shadowFloorRef.current?.setOpacity(state.shadowOpacity) })
     return unsub
   }, [])
 
   // Re-apply environment when 4K toggle changes
   useEffect(() => {
-    const unsub = useEngineStore.subscribe(
-      (s) => s.use4kEnvMaps,
-      (use4k) => {
-        const mgr = envRef.current
-        const env = useEngineStore.getState().selectedEnv
-        if (!mgr || !env) return
-        let cancelled = false
-        mgr.setEnvironment(env, use4k).then((tex) => {
-          if (cancelled) return
-          scene.environment = tex
-          scene.environmentRotation.set(-Math.PI / 2, 0, useEngineStore.getState().envRotation, 'YXZ')
-          scene.environmentIntensity = useEngineStore.getState().envIntensity
-          mgr.applyBackground(scene, useEngineStore.getState().envRotation)
-        })
-        return () => { cancelled = true }
-      },
-    )
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      if (state.use4kEnvMaps === prevState.use4kEnvMaps) return
+      const mgr = envRef.current
+      const env = state.selectedEnv
+      if (!mgr || !env) return
+      let cancelled = false
+      mgr.setEnvironment(env, state.use4kEnvMaps).then((tex) => {
+        if (cancelled) return
+        scene.environment = tex
+        scene.environmentRotation.set(Math.PI / 2, 0, useEngineStore.getState().envRotation, 'YXZ')
+        scene.environmentIntensity = useEngineStore.getState().envIntensity
+        mgr.applyBackground(scene, useEngineStore.getState().envRotation)
+      })
+      return () => { cancelled = true }
+    })
     return unsub
   }, [scene])
 
   // Anisotropy: sync engine-store → TextureCache
   useEffect(() => {
-    const unsub = useEngineStore.subscribe(
-      (s) => s.anisotropy,
-      (v) => { getSharedTextureCache().maxAnisotropy = v },
-    )
+    const unsub = useEngineStore.subscribe((state) => { getSharedTextureCache().maxAnisotropy = state.anisotropy })
+    return unsub
+  }, [])
+
+  const dirLightRef = useRef<THREE.DirectionalLight>(null)
+
+  // Dynamically size the shadow camera frustum to match the model
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state) => {
+      const bbox = state.modelBbox
+      const light = dirLightRef.current
+      if (!bbox || !light) return
+      const extent = Math.max(
+        bbox[3] - bbox[0],
+        bbox[4] - bbox[1],
+        bbox[5] - bbox[2],
+      )
+      const half = Math.max(extent * 3, 0.5)
+      light.shadow.camera.left = -half
+      light.shadow.camera.right = half
+      light.shadow.camera.top = half
+      light.shadow.camera.bottom = -half
+      light.shadow.camera.updateProjectionMatrix()
+    })
     return unsub
   }, [])
 
   return (
     <directionalLight
+      ref={dirLightRef}
       color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={[0, 0, 1]}
       castShadow
       shadow-mapSize-width={1024} shadow-mapSize-height={1024}
       shadow-camera-near={0.5} shadow-camera-far={500}
-      shadow-camera-left={-50} shadow-camera-right={50}
-      shadow-camera-top={50} shadow-camera-bottom={-50}
       shadow-bias={-0.001}
     />
   )

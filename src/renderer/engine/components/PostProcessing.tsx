@@ -48,39 +48,17 @@ export default function PostProcessing() {
 
   // Store subscriptions
   useEffect(() => {
-    const unsub1 = useEngineStore.subscribe(
-      (s) => s.ssaoEnabled,
-      (v) => composerRef.current?.setSsaoEnabled(v),
-    )
-    const unsub2 = useEngineStore.subscribe(
-      (s) => s.smaaEnabled,
-      (v) => composerRef.current?.setSmaaEnabled(v),
-    )
-    const unsub3 = useEngineStore.subscribe(
-      (s) => s.aoIntensity,
-      (v) => {
-        const c = composerRef.current
-        if (!c) return
-        c.setSsaoEnabled(v > 0)
-        c.setAoIntensity(v)
-      },
-    )
-    const unsub4 = useEngineStore.subscribe(
-      (s) => s.shadowIntensity,
-      (v) => {
-        const c = composerRef.current
-        if (!c) return
-        c.setShadowMaskEnabled(v > 0)
-        c.setShadowMaskOpacity(v / 100)
-      },
-    )
-    const unsub5 = useEngineStore.subscribe(
-      (s) => s.shadowSoftness,
-      (v) => {
-        composerRef.current?.setShadowMaskSoftness(v / 100)
-      },
-    )
-    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5() }
+    const unsub = useEngineStore.subscribe((state) => {
+      const c = composerRef.current
+      if (!c) return
+      c.setSsaoEnabled(state.ssaoEnabled)
+      c.setSmaaEnabled(state.smaaEnabled)
+      c.setAoIntensity(state.aoIntensity)
+      c.setShadowMaskEnabled(state.shadowIntensity > 0)
+      c.setShadowMaskOpacity(state.shadowIntensity / 100)
+      c.setShadowMaskSoftness(state.shadowSoftness / 100)
+    })
+    return unsub
   }, [])
 
   // Interaction degradation via OrbitControls events
