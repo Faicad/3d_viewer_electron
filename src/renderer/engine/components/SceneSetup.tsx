@@ -32,18 +32,28 @@ export default function SceneSetup() {
     }
   }, [gl, scene])
 
+  const applyEnvToScene = (mgr: EnvironmentManager, rot: number) => {
+    scene.environment = mgr.currentTexture
+    scene.environmentRotation.set(Math.PI / 2, 0, rot, 'YXZ')
+    scene.environmentIntensity = useEngineStore.getState().envIntensity
+    mgr.applyBackground(scene, rot)
+  }
+
   useEffect(() => {
     const mgr = envRef.current
     if (!mgr || !selectedEnv) return
     let cancelled = false
     const use4k = useEngineStore.getState().use4kEnvMaps
-    mgr.setEnvironment(selectedEnv, use4k).then((tex) => {
+    mgr.setEnvironment(selectedEnv, use4k).then((_tex) => {
       if (cancelled) return
       const rot = useEngineStore.getState().envRotation
-      scene.environment = tex
-      scene.environmentRotation.set(Math.PI / 2, 0, rot, 'YXZ')
-      scene.environmentIntensity = useEngineStore.getState().envIntensity
-      mgr.applyBackground(scene, rot)
+      applyEnvToScene(mgr, rot)
+
+      // When switching to studio with a model already loaded, adapt floor height
+      if ((selectedEnv === 'studio' || selectedEnv === '__cleanroom__') && useEngineStore.getState().modelBbox) {
+        mgr.adaptStudioToModel(useEngineStore.getState().modelBbox!)
+        applyEnvToScene(mgr, rot)
+      }
     })
     return () => { cancelled = true }
   }, [selectedEnv, scene])
@@ -86,9 +96,24 @@ export default function SceneSetup() {
     return () => { scene.remove(floor.group); floor.dispose(); shadowFloorRef.current = null }
   }, [scene])
   useEffect(() => {
+    let prevKey = ''
     const unsub = useEngineStore.subscribe((state) => {
       if (!state.modelBbox || !shadowFloorRef.current) return
-      shadowFloorRef.current.configure(state.modelBbox, 'z')
+      const b = state.modelBbox
+      const key = `${b[0]},${b[1]},${b[2]},${b[3]},${b[4]},${b[5]}`
+      if (key === prevKey) return
+      prevKey = key
+
+      shadowFloorRef.current.configure(b, 'z')
+
+      // Adapt the procedural studio floor to model size
+      const mgr = envRef.current
+      if (!mgr) return
+      const env = useEngineStore.getState().selectedEnv
+      if (env !== 'studio' && env !== '__cleanroom__') return
+
+      mgr.adaptStudioToModel(b)
+      applyEnvToScene(mgr, useEngineStore.getState().envRotation)
     })
     return unsub
   }, [])

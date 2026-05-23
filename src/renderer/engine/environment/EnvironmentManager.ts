@@ -67,6 +67,53 @@ export class EnvironmentManager {
   }
 
   // ---------------------------------------------------------------------------
+  // Procedural studio — dynamic floor height
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Re-bake the clean-room cubemap so the floor sits at a height adapted to
+   * the model size.  Returns the new PMREM texture.
+   *
+   * @param bbox  Model bounding box [minX, minY, minZ, maxX, maxY, maxZ]
+   *              in Z‑up scene coordinates.
+   */
+  adaptStudioToModel(bbox: [number, number, number, number, number, number]): THREE.Texture {
+    const extent = Math.max(
+      bbox[3] - bbox[0],
+      bbox[4] - bbox[1],
+      bbox[5] - bbox[2],
+    )
+
+    // Internal floor offset inside the Y‑up room (room-center to floor)
+    const INTERNAL_FLOOR_Y = -0.9335
+
+    // Target: floor at model bottom minus 15 % of model extent
+    const targetFloorZ = bbox[2] - extent * 0.15
+    // Convert scene‑Z target back to room position.y
+    //   sceneZ = INTERNAL_FLOOR_Y + position.y  ⇒  position.y = sceneZ - INTERNAL_FLOOR_Y
+    let positionY = targetFloorZ - INTERNAL_FLOOR_Y
+
+    // Clamp so the capture point stays inside the room
+    positionY = Math.max(-2, Math.min(3, positionY))
+
+    // Dispose previous clean-room texture
+    if (this._cleanRoomTex) {
+      this._cleanRoomTex.dispose()
+    }
+
+    const room = new CleanRoomEnvironment()
+    room.position.y = positionY
+    const rt = this._pmrem.fromScene(room, 0, 0.1, 100, { size: 2048 })
+    this._cleanRoomTex = rt.texture
+    this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
+    this._currentTex = this._cleanRoomTex
+    this._currentBgTex = null
+    room.dispose()
+
+    return this._cleanRoomTex
+  }
+
+  // ---------------------------------------------------------------------------
   // Environment loading
   // ---------------------------------------------------------------------------
 
