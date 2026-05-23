@@ -45,12 +45,22 @@ export default function PostProcessing() {
 
   // Store subscriptions
   useEffect(() => {
+    let prevSsao = useEngineStore.getState().aoIntensity > 0
+    let prevSmaa = useEngineStore.getState().smaaEnabled
+    let prevAo = useEngineStore.getState().aoIntensity
     const unsub = useEngineStore.subscribe((state) => {
       const c = composerRef.current
       if (!c) return
-      c.setSsaoEnabled(state.aoIntensity > 0)
-      c.setSmaaEnabled(state.smaaEnabled)
-      c.setAoIntensity(state.aoIntensity)
+      const ssao = state.aoIntensity > 0
+      const smaa = state.smaaEnabled
+      const ao = state.aoIntensity
+      if (ssao === prevSsao && smaa === prevSmaa && ao === prevAo) return
+      prevSsao = ssao
+      prevSmaa = smaa
+      prevAo = ao
+      c.setSsaoEnabled(ssao)
+      c.setSmaaEnabled(smaa)
+      c.setAoIntensity(ao)
     })
     return unsub
   }, [])

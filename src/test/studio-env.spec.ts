@@ -25,6 +25,7 @@ test('procedural studio shows room box with lights when rotated', async () => {
   const app = await _electron.launch({
     executablePath: EXE,
     args: ['--no-sandbox', '--disable-gpu-sandbox'],
+    env: { ...process.env, E2E: '1' },
   })
   const page = await app.firstWindow()
 

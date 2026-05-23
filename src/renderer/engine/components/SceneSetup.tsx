@@ -74,7 +74,10 @@ export default function SceneSetup() {
   }, [envBackground, scene])
 
   useEffect(() => {
+    let prev = useEngineStore.getState().envIntensity
     const unsub = useEngineStore.subscribe((state) => {
+      if (state.envIntensity === prev) return
+      prev = state.envIntensity
       scene.environmentIntensity = state.envIntensity
     })
     return unsub
@@ -119,11 +122,21 @@ export default function SceneSetup() {
     return unsub
   }, [])
   useEffect(() => {
-    const unsub = useEngineStore.subscribe((state) => { shadowFloorRef.current?.setEnabled(state.shadowFloorEnabled) })
+    let prev = useEngineStore.getState().shadowFloorEnabled
+    const unsub = useEngineStore.subscribe((state) => {
+      if (state.shadowFloorEnabled === prev) return
+      prev = state.shadowFloorEnabled
+      shadowFloorRef.current?.setEnabled(state.shadowFloorEnabled)
+    })
     return unsub
   }, [])
   useEffect(() => {
-    const unsub = useEngineStore.subscribe((state) => { shadowFloorRef.current?.setOpacity(state.shadowOpacity) })
+    let prev = useEngineStore.getState().shadowOpacity
+    const unsub = useEngineStore.subscribe((state) => {
+      if (state.shadowOpacity === prev) return
+      prev = state.shadowOpacity
+      shadowFloorRef.current?.setOpacity(state.shadowOpacity)
+    })
     return unsub
   }, [])
 
@@ -149,7 +162,12 @@ export default function SceneSetup() {
 
   // Anisotropy: sync engine-store → TextureCache
   useEffect(() => {
-    const unsub = useEngineStore.subscribe((state) => { getSharedTextureCache().maxAnisotropy = state.anisotropy })
+    let prev = useEngineStore.getState().anisotropy
+    const unsub = useEngineStore.subscribe((state) => {
+      if (state.anisotropy === prev) return
+      prev = state.anisotropy
+      getSharedTextureCache().maxAnisotropy = state.anisotropy
+    })
     return unsub
   }, [])
 
@@ -158,10 +176,14 @@ export default function SceneSetup() {
 
   // Dynamically size the shadow camera frustum and near/far to match the model.
   useEffect(() => {
+    let prevKey = ''
     const unsub = useEngineStore.subscribe((state) => {
       const bbox = state.modelBbox
       const light = dirLightRef.current
       if (!bbox || !light) return
+      const key = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},${bbox[4]},${bbox[5]}`
+      if (key === prevKey) return
+      prevKey = key
       const f = computeShadowFrustum(bbox, light.position)
       light.shadow.camera.left = f.left
       light.shadow.camera.right = f.right
@@ -179,7 +201,10 @@ export default function SceneSetup() {
     const s = useEngineStore.getState()
     const light = dirLightRef.current
     if (light) light.shadow.radius = (s.shadowSoftness / 100) * 5
+    let prev = s.shadowSoftness
     const unsub = useEngineStore.subscribe((state) => {
+      if (state.shadowSoftness === prev) return
+      prev = state.shadowSoftness
       const l = dirLightRef.current
       if (l) l.shadow.radius = (state.shadowSoftness / 100) * 5
     })
@@ -191,7 +216,10 @@ export default function SceneSetup() {
     const s = useEngineStore.getState()
     const ambient = ambientRef.current
     if (ambient) ambient.intensity = (1 - s.shadowIntensity / 100) * 0.3
+    let prev = s.shadowIntensity
     const unsub = useEngineStore.subscribe((state) => {
+      if (state.shadowIntensity === prev) return
+      prev = state.shadowIntensity
       const a = ambientRef.current
       if (a) a.intensity = (1 - state.shadowIntensity / 100) * 0.3
     })

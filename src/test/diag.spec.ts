@@ -9,7 +9,11 @@ const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
 
 test('full IBL diagnostic', async () => {
   test.setTimeout(60000)
-  const app = await _electron.launch({ executablePath: EXE, args: ['--no-sandbox', '--disable-gpu-sandbox'] })
+  const app = await _electron.launch({
+    executablePath: EXE,
+    args: ['--no-sandbox', '--disable-gpu-sandbox'],
+    env: { ...process.env, E2E: '1' },
+  })
   const page = await app.firstWindow()
 
   // Capture ALL console messages
