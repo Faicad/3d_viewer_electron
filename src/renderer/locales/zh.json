@@ -20,6 +20,8 @@
   "history.empty": "暂无历史模型",
   "history.loadingMore": "加载更多...",
   "toolbar.cache": "缓存",
+  "toolbar.leftPanel": "切换左侧面板",
+  "toolbar.rightPanel": "切换右侧面板",
   "cache.title": "缓存管理",
   "cache.memory": "内存缓存",
   "cache.disk": "磁盘缓存",

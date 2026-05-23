@@ -549,12 +549,22 @@ export default function DesktopLayout() {
         </Tooltip>
 
         {/* Panel toggles */}
-        <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel}>
-          {ui.leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-        </Button>
-        <Button variant="ghost" size="icon" onClick={ui.toggleRightPanel}>
-          {ui.rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel} aria-label={t('toolbar.leftPanel')}>
+              {ui.leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.leftPanel')}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={ui.toggleRightPanel} aria-label={t('toolbar.rightPanel')}>
+              {ui.rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.rightPanel')}</TooltipContent>
+        </Tooltip>
 
         {/* Environment */}
         <Tooltip>
@@ -573,7 +583,7 @@ export default function DesktopLayout() {
 
         <CacheManager />
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <SettingsDialog />
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.settings')}</TooltipContent>

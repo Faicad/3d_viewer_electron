@@ -20,6 +20,8 @@
   "history.empty": "No history yet",
   "history.loadingMore": "Loading more...",
   "toolbar.cache": "Cache",
+  "toolbar.leftPanel": "Toggle Left Panel",
+  "toolbar.rightPanel": "Toggle Right Panel",
   "cache.title": "Cache Manager",
   "cache.memory": "Memory Cache",
   "cache.disk": "Disk Cache",
