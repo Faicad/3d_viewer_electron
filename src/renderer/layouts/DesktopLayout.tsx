@@ -21,7 +21,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -55,6 +55,7 @@ function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu }: {
   return (
     <>
       <div
+        data-testid={isPartNode ? 'scene-tree-part' : isFileNode ? 'scene-tree-file' : 'scene-tree-group'}
         className={cn(
           'flex items-center gap-1 text-sm py-1 px-1 rounded hover:bg-accent cursor-pointer group whitespace-nowrap',
           isFileNode && 'font-semibold',

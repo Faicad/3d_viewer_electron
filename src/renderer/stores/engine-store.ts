@@ -96,11 +96,11 @@ export const useEngineStore = create<EngineStore>((set) => ({
   // Post-processing defaults
   smaaEnabled: true,
   setSmaaEnabled: (v) => set({ smaaEnabled: v }),
-  aoIntensity: 5,
+  aoIntensity: 0,
   setAoIntensity: (v) => set({ aoIntensity: v }),
-  shadowIntensity: 50,
+  shadowIntensity: 80,
   setShadowIntensity: (v) => set({ shadowIntensity: v }),
-  shadowSoftness: 20,
+  shadowSoftness: 80,
   setShadowSoftness: (v) => set({ shadowSoftness: v }),
 
   // Texture mapping defaults
