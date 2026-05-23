@@ -14,7 +14,7 @@ function useUILanguage() {
   return language as 'zh' | 'en'
 }
 
-export function SettingsDialog({ children }: { children?: React.ReactNode }) {
+export function SettingsDialog({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) {
   const isZh = useUILanguage()
 
   const labels = {
@@ -32,7 +32,7 @@ export function SettingsDialog({ children }: { children?: React.ReactNode }) {
     <Dialog>
       <DialogTrigger asChild>
         {children ?? (
-          <button className="flex items-center gap-2 text-sm cursor-pointer">
+          <button {...props} className="flex items-center gap-2 text-sm cursor-pointer">
             <Settings className="h-4 w-4" />
           </button>
         )}

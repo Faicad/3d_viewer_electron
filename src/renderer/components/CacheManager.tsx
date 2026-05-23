@@ -10,7 +10,6 @@ import {
   memCache as thumbMemCache,
 } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useThemeColors } from '@/components/settings/useThemeColors'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 type CacheKind = 'step' | 'thumbnail'
 
@@ -73,7 +72,7 @@ interface CacheManagerProps {
   children?: React.ReactNode
 }
 
-export function CacheManager({ children }: CacheManagerProps) {
+export function CacheManager({ children, ...props }: CacheManagerProps & Record<string, unknown>) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [entries, setEntries] = useState<CacheEntry[]>([])
@@ -263,27 +262,23 @@ export function CacheManager({ children }: CacheManagerProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children ?? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: 'transparent',
-                  color: colors.textInactive,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                <Database size={14} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{t('cache.title')}</TooltipContent>
-          </Tooltip>
+          <button
+            {...props}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '6px 10px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: colors.textInactive,
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+          >
+            <Database size={14} />
+          </button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
