@@ -28,7 +28,13 @@ interface UIStore {
   theme: 'light' | 'dark' | 'system'
   cameraMode: CameraMode
   enablePreview: boolean
+  isFullscreen: boolean
+  headerVisible: boolean
+  bottomVisible: boolean
 
+  setFullscreen: (v: boolean) => void
+  setHeaderVisible: (v: boolean) => void
+  setBottomVisible: (v: boolean) => void
   toggleLeftPanel: () => void
   toggleRightPanel: () => void
   toggleModelInfo: () => void
@@ -56,7 +62,13 @@ export const useUIStore = create<UIStore>()(
       theme: 'system',
       cameraMode: 'perspective',
       enablePreview: true,
+      isFullscreen: false,
+      headerVisible: true,
+      bottomVisible: true,
 
+      setFullscreen: (v) => set({ isFullscreen: v }),
+      setHeaderVisible: (v) => set({ headerVisible: v }),
+      setBottomVisible: (v) => set({ bottomVisible: v }),
       toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen })),
       toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
       toggleModelInfo: () => set((s) => ({ modelInfoOpen: !s.modelInfoOpen })),

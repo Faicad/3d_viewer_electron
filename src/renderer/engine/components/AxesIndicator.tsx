@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import ArrowLine from './ArrowLine'
 import { useThemeColors } from '@/components/settings/useThemeColors'
 import { useModelStore } from '@/stores/model-store'
+import { useUIStore } from '@/stores/ui-store'
 
 const AXIS_LENGTH = 0.6
 const LABEL_OFFSET = 0.2
@@ -85,6 +86,8 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
 
 export default function AxesIndicator({ mainCamera }: AxesIndicatorOverlayProps) {
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
+  const isFullscreen = useUIStore((s) => s.isFullscreen)
+  const bottomVisible = useUIStore((s) => s.bottomVisible)
 
   return (
     <div
@@ -96,6 +99,9 @@ export default function AxesIndicator({ mainCamera }: AxesIndicatorOverlayProps)
         height: 120,
         pointerEvents: 'none',
         zIndex: 1,
+        transform: isFullscreen && !bottomVisible ? 'translateY(100%)' : 'translateY(0)',
+        opacity: isFullscreen && !bottomVisible ? 0 : 1,
+        transition: isFullscreen ? 'transform 0.5s ease-in-out, opacity 0.5s ease-in-out' : 'none',
       }}
       data-testid="axes-indicator"
     >

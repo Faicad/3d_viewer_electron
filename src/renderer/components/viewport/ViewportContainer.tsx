@@ -214,6 +214,8 @@ export default function ViewportContainer() {
   const activeToolMode = useToolStore((s) => s.activeToolMode)
   const centeringOffset = useModelStore((s) => s.modelCenteringOffset)
   const theme = useUIStore((s) => s.theme)
+  const isFullscreen = useUIStore((s) => s.isFullscreen)
+  const bottomVisible = useUIStore((s) => s.bottomVisible)
 
   const canvasBackground = useMemo(() => {
     const isDark = theme === 'system'
@@ -598,6 +600,9 @@ export default function ViewportContainer() {
           display: 'flex',
           gap: 8,
           zIndex: 10,
+          transform: isFullscreen && !bottomVisible ? 'translateY(calc(100% + 16px))' : 'translateY(0)',
+          opacity: isFullscreen && !bottomVisible ? 0 : 1,
+          transition: isFullscreen ? 'transform 0.5s ease-in-out, opacity 0.5s ease-in-out' : 'none',
         }}
       >
         <SelectionToolbar hasTopology={hasTopology} hasEdges={hasEdges} />

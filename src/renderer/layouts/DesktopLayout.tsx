@@ -244,17 +244,42 @@ export default function DesktopLayout() {
     useUIStore.setState({ leftPanelOpen: !isCompactViewport })
   }, [isCompactViewport])
 
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const isFullscreen = useUIStore((s) => s.isFullscreen)
+  const setHeaderVisible = useUIStore((s) => s.setHeaderVisible)
+  const setBottomVisible = useUIStore((s) => s.setBottomVisible)
+  const headerVisible = useUIStore((s) => s.headerVisible)
 
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onFullscreenChanged(setIsFullscreen)
+    const unsubscribe = window.electronAPI.onFullscreenChanged((v) => {
+      useUIStore.getState().setFullscreen(v)
+    })
     return unsubscribe
   }, [])
 
   const handleToggleFullscreen = useCallback(async () => {
     const result = await window.electronAPI.toggleFullscreen()
-    setIsFullscreen(result)
+    useUIStore.getState().setFullscreen(result)
   }, [])
+
+  // Fullscreen auto-hide: top toolbar hides upward, bottom controls hide downward
+  useEffect(() => {
+    if (!isFullscreen) {
+      setHeaderVisible(true)
+      setBottomVisible(true)
+      return
+    }
+
+    setHeaderVisible(false)
+    setBottomVisible(false)
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setHeaderVisible(e.clientY <= 40)
+      setBottomVisible(e.clientY >= window.innerHeight - 80)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [isFullscreen, setHeaderVisible, setBottomVisible])
 
   // Keyboard navigation for file list
   useEffect(() => {
@@ -431,7 +456,21 @@ export default function DesktopLayout() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* TopBar */}
-      <header className="h-10 border-b flex items-center px-2 gap-2 shrink-0 overflow-x-auto">
+      <header
+        className={cn(
+          "flex items-center gap-2 overflow-x-auto transition-all duration-500 ease-in-out border-b",
+          isFullscreen && !headerVisible && "overflow-hidden border-b-0",
+        )}
+        style={{
+          height: isFullscreen && !headerVisible ? 0 : 40,
+          opacity: isFullscreen && !headerVisible ? 0 : 1,
+          paddingLeft: isFullscreen && !headerVisible ? 0 : 8,
+          paddingRight: isFullscreen && !headerVisible ? 0 : 8,
+          paddingTop: isFullscreen && !headerVisible ? 0 : undefined,
+          paddingBottom: isFullscreen && !headerVisible ? 0 : undefined,
+          flexShrink: isFullscreen && !headerVisible ? 1 : 0,
+        }}
+      >
         <span className="font-semibold text-sm px-2 shrink-0">{t('app.name')}</span>
         <Separator orientation="vertical" className="h-5 shrink-0" />
 

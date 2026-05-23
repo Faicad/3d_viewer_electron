@@ -82,10 +82,16 @@ vi.mock('@/stores/ui-store', () => {
     rightPanelOpen: false,
     modelInfoOpen: false,
     cameraMode: 'perspective',
+    isFullscreen: false,
+    headerVisible: true,
+    bottomVisible: true,
     toggleLeftPanel: vi.fn(),
     toggleRightPanel: vi.fn(),
     toggleModelInfo: vi.fn(),
     setCameraMode: vi.fn(),
+    setFullscreen: vi.fn(),
+    setHeaderVisible: vi.fn(),
+    setBottomVisible: vi.fn(),
   }
   const useUIStore = Object.assign(
     (selector?: (s: typeof state) => any) => (selector ? selector(state) : state),
