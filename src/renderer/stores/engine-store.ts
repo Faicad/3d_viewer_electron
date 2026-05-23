@@ -80,7 +80,7 @@ export const useEngineStore = create<EngineStore>((set) => ({
   setEnvIntensity: (v) => set({ envIntensity: v }),
   envRotation: 0,
   setEnvRotation: (v) => set({ envRotation: v }),
-  selectedEnv: 'empty_warehouse_01',
+  selectedEnv: 'studio',
   setSelectedEnv: (v) => set({ selectedEnv: v }),
   envBackground: 'environment',
   setEnvBackground: (v) => set({ envBackground: v }),

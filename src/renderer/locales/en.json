@@ -15,6 +15,7 @@
   "toolbar.modelInfo": "Model Info",
   "toolbar.history": "History",
   "toolbar.environment": "Environment",
+  "toolbar.settings": "Settings",
   "history.title": "History",
   "history.empty": "No history yet",
   "history.loadingMore": "Loading more...",

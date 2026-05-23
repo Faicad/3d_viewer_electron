@@ -520,21 +520,6 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.history')}</TooltipContent>
         </Tooltip>
 
-        {/* Environment */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={ui.environmentPanelOpen ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={ui.toggleEnvironmentPanel}
-              aria-label={t('toolbar.environment')}
-            >
-              <Sun className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('toolbar.environment')}</TooltipContent>
-        </Tooltip>
-
         <div className="flex-1" />
 
         {/* Fullscreen */}
@@ -571,8 +556,28 @@ export default function DesktopLayout() {
           {ui.rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
         </Button>
 
+        {/* Environment */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.environmentPanelOpen ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={ui.toggleEnvironmentPanel}
+              aria-label={t('toolbar.environment')}
+            >
+              <Sun className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.environment')}</TooltipContent>
+        </Tooltip>
+
         <CacheManager />
-        <SettingsDialog />
+        <Tooltip>
+          <TooltipTrigger>
+            <SettingsDialog />
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.settings')}</TooltipContent>
+        </Tooltip>
       </header>
 
       {/* Main Content */}

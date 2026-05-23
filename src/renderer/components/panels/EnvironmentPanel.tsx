@@ -77,7 +77,6 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const envIntensity = useEngineStore((s) => s.envIntensity)
   const envRotation = useEngineStore((s) => s.envRotation)
   const selectedEnv = useEngineStore((s) => s.selectedEnv)
-  const use4k = useEngineStore((s) => s.use4kEnvMaps)
   const smaaEnabled = useEngineStore((s) => s.smaaEnabled)
   const aoIntensity = useEngineStore((s) => s.aoIntensity)
   const shadowIntensity = useEngineStore((s) => s.shadowIntensity)
@@ -89,7 +88,6 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const setEnvIntensity = useEngineStore((s) => s.setEnvIntensity)
   const setEnvRotation = useEngineStore((s) => s.setEnvRotation)
   const setSelectedEnv = useEngineStore((s) => s.setSelectedEnv)
-  const setUse4k = useEngineStore((s) => s.setUse4kEnvMaps)
   const setSmaaEnabled = useEngineStore((s) => s.setSmaaEnabled)
   const setAoIntensity = useEngineStore((s) => s.setAoIntensity)
   const setShadowIntensity = useEngineStore((s) => s.setShadowIntensity)
@@ -115,11 +113,9 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       <ScrollArea className="flex-1 px-3 py-2">
-        {/* Environment Map */}
-        <SectionHeader label="Environment Map" />
-        <div className="mt-2 space-y-3">
+        <div className="space-y-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground">Preset</span>
+            <span className="text-xs text-muted-foreground">Env Preset</span>
             <select
               value={selectedEnv}
               onChange={(e) => setSelectedEnv(e.target.value)}
@@ -131,10 +127,8 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
             </select>
           </div>
 
-          <ToggleRow label="4K Resolution" checked={use4k} onChange={setUse4k} />
-
           <SliderRow
-            label="Intensity"
+            label="Env Intensity"
             value={Math.round(envIntensity * 100)}
             min={0} max={300} step={1}
             suffix="%"
@@ -142,7 +136,7 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
           />
 
           <SliderRow
-            label="Rotation"
+            label="Env Rotation"
             value={Math.round((envRotation * 180) / Math.PI)}
             min={0} max={360} step={1}
             suffix="°"
