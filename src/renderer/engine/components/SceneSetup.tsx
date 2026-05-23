@@ -40,7 +40,7 @@ export default function SceneSetup() {
       if (cancelled) return
       const rot = useEngineStore.getState().envRotation
       scene.environment = tex
-      scene.environmentRotation.set(-Math.PI / 2, 0, rot, 'YXZ')
+      scene.environmentRotation.set(Math.PI / 2, 0, rot, 'YXZ')
       scene.environmentIntensity = useEngineStore.getState().envIntensity
       mgr.applyBackground(scene, rot)
     })
@@ -126,7 +126,7 @@ export default function SceneSetup() {
 
   return (
     <directionalLight
-      color="#FFFFFF" intensity={0.8} position={[5, 0, 10]}
+      color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={[0, 0, 1]}
       castShadow
       shadow-mapSize-width={1024} shadow-mapSize-height={1024}
       shadow-camera-near={0.5} shadow-camera-far={500}
