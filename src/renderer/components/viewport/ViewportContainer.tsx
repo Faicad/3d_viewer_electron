@@ -14,6 +14,7 @@ import type { SnapCandidate } from '@/lib/topology/snap'
 import { extractSelectorBundle } from '@/lib/topology/parse-glb-topology'
 import { buildSelectorRuntime } from '@/lib/topology/build-selector-runtime'
 import SceneSetup from '@/engine/components/SceneSetup'
+import PostProcessing from '@/engine/components/PostProcessing'
 import ModelGroup from '@/engine/components/ModelGroup'
 import TopologyOverlay from '@/engine/components/TopologyOverlay'
 import SelectionHighlight from '@/engine/components/SelectionHighlight'
@@ -465,6 +466,7 @@ export default function ViewportContainer() {
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
         style={{ width: '100%', height: '100%', background: canvasBackground }}
+        frameloop="demand"
         scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
         camera={{ fov: 50, near: 0.001, far: 10000, position: [5, -5, 3], up: [0, 0, 1] as [number, number, number] }}
         shadows="accumulative"
@@ -489,6 +491,7 @@ export default function ViewportContainer() {
         />
         <CameraModeSwitcher />
         <SceneSetup />
+        <PostProcessing />
         <ModelTransformTracker modelRef={modelGroupRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
