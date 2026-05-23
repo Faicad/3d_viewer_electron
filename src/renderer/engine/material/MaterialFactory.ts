@@ -4,6 +4,31 @@ import { TextureCache, getMapColorSpace, TEXTURE_MAP_KEYS } from './TextureCache
 
 const SRGB = THREE.SRGBColorSpace
 
+// ---- Shared singletons ----
+
+let _instance: MaterialFactory | null = null
+let _textureCacheInstance: TextureCache | null = null
+
+export function getSharedMaterialFactory(): MaterialFactory {
+  if (!_instance) {
+    _instance = new MaterialFactory()
+    _instance.setTextureCache(getSharedTextureCache())
+  }
+  return _instance
+}
+
+export function getSharedTextureCache(): TextureCache {
+  if (!_textureCacheInstance) _textureCacheInstance = new TextureCache()
+  return _textureCacheInstance
+}
+
+export function disposeSharedMaterialFactory(): void {
+  _instance?.dispose()
+  _instance = null
+  _textureCacheInstance?.dispose()
+  _textureCacheInstance = null
+}
+
 /**
  * Builds `MeshPhysicalMaterial` instances from `MaterialAppearance` descriptors.
  *

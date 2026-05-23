@@ -21,6 +21,7 @@ interface UIStore {
   rightPanelOpen: boolean
   modelInfoOpen: boolean
   historyPanelOpen: boolean
+  environmentPanelOpen: boolean
   mobileDrawerOpen: boolean
   mobileChatOpen: boolean
   language: SupportedLanguage | 'system'
@@ -32,6 +33,7 @@ interface UIStore {
   toggleRightPanel: () => void
   toggleModelInfo: () => void
   toggleHistoryPanel: () => void
+  toggleEnvironmentPanel: () => void
   setMobileDrawerOpen: (open: boolean) => void
   setMobileChatOpen: (open: boolean) => void
   setLanguage: (lang: SupportedLanguage | 'system') => void
@@ -47,6 +49,7 @@ export const useUIStore = create<UIStore>()(
       rightPanelOpen: true,
       modelInfoOpen: false,
       historyPanelOpen: false,
+      environmentPanelOpen: false,
       mobileDrawerOpen: false,
       mobileChatOpen: false,
       language: (safeLocalStorage.getItem('lang') as SupportedLanguage | 'system') || 'zh',
@@ -58,6 +61,7 @@ export const useUIStore = create<UIStore>()(
       toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
       toggleModelInfo: () => set((s) => ({ modelInfoOpen: !s.modelInfoOpen })),
       toggleHistoryPanel: () => set((s) => ({ historyPanelOpen: !s.historyPanelOpen })),
+      toggleEnvironmentPanel: () => set((s) => ({ environmentPanelOpen: !s.environmentPanelOpen })),
       setMobileDrawerOpen: (open) => set({ mobileDrawerOpen: open }),
       setMobileChatOpen: (open) => set({ mobileChatOpen: open }),
       setLanguage: (language) => {

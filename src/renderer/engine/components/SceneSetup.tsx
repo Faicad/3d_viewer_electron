@@ -5,6 +5,7 @@ import { useThree } from '@react-three/fiber'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
 import { useEngineStore } from '@/stores/engine-store'
+import { getSharedTextureCache } from '../material/MaterialFactory'
 
 export default function SceneSetup() {
   const { gl, scene } = useThree()
@@ -82,6 +83,37 @@ export default function SceneSetup() {
   }, [])
   useEffect(() => {
     const unsub = useEngineStore.subscribe((s) => s.shadowOpacity, (v) => { shadowFloorRef.current?.setOpacity(v) })
+    return unsub
+  }, [])
+
+  // Re-apply environment when 4K toggle changes
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe(
+      (s) => s.use4kEnvMaps,
+      (use4k) => {
+        const mgr = envRef.current
+        const env = useEngineStore.getState().selectedEnv
+        if (!mgr || !env) return
+        let cancelled = false
+        mgr.setEnvironment(env, use4k).then((tex) => {
+          if (cancelled) return
+          scene.environment = tex
+          scene.environmentRotation = useEngineStore.getState().envRotation
+          scene.environmentIntensity = useEngineStore.getState().envIntensity
+          mgr.applyBackground(scene, useEngineStore.getState().envRotation)
+        })
+        return () => { cancelled = true }
+      },
+    )
+    return unsub
+  }, [scene])
+
+  // Anisotropy: sync engine-store → TextureCache
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe(
+      (s) => s.anisotropy,
+      (v) => { getSharedTextureCache().maxAnisotropy = v },
+    )
     return unsub
   }, [])
 

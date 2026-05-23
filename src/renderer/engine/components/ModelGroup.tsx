@@ -14,6 +14,8 @@ import { getDefaultUpAxis } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderResultCache'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
 import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor } from './cloneMaterial'
+import { useMaterialStore } from '@/stores/material-store'
+import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
 
 // ---- types ----
 
@@ -278,11 +280,22 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             if (hasSkinning && mat) {
               setSkinningFlag(mat, true)
             }
-            materials.push(mat)
 
             const partId = src.userData?.partId || src.name || `part-${i}`
+            const overrideKey = fileId ? `${fileId}:${String(partId)}` : ''
+            const { materialOverrides, overrideMaterial } = useMaterialStore.getState()
+            const overrideAppearance = overrideMaterial && overrideKey
+              ? materialOverrides[overrideKey]
+              : undefined
+            const finalMat = overrideAppearance
+              ? getSharedMaterialFactory().createMaterial(overrideAppearance)
+              : mat
+            materials.push(finalMat)
+
             const mesh = new THREE.Mesh(geo)
             initMorphTargets(mesh)
+            mesh.userData._originalMaterial = overrideAppearance ? mat : null
+            mesh.userData._overrideKey = overrideKey || undefined
             processed.push(mesh)
             partInfos.push({
               partId: String(partId),
@@ -377,6 +390,46 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       useEngineStore.getState().setModelGroup(null)
     }
   }, [glbMeshes, mergedGeometry, objects])
+
+  // Read material overrides from store for reactive updates
+  const materialOverrides = useMaterialStore((s) => s.materialOverrides)
+  const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
+
+  // Apply material overrides whenever the store changes
+  useEffect(() => {
+    if (!fileId || glbMeshes.length === 0) return
+
+    setMeshMaterials((prev) => {
+      const next = [...prev]
+      let changed = false
+
+      for (const partInfo of glbPartInfos) {
+        const key = `${fileId}:${String(partInfo.partId)}`
+        const override = materialOverrides[key]
+
+        if (overrideMaterial && override) {
+          const newMat = getSharedMaterialFactory().createMaterial(override)
+          if (next[partInfo.meshIndex] !== newMat) {
+            next[partInfo.meshIndex] = newMat
+            changed = true
+          }
+        } else {
+          // Restore original material if currently overridden
+          const group = (ref as React.RefObject<THREE.Group | null>)?.current
+          if (group) {
+            const mesh = group.children[partInfo.meshIndex] as THREE.Mesh | undefined
+            const orig = mesh?.userData?._originalMaterial as THREE.Material | undefined
+            if (orig && next[partInfo.meshIndex] !== orig) {
+              next[partInfo.meshIndex] = orig
+              changed = true
+            }
+          }
+        }
+      }
+
+      return changed ? next : prev
+    })
+  }, [materialOverrides, overrideMaterial, fileId, glbPartInfos, glbMeshes])
 
   if (error) {
     return null

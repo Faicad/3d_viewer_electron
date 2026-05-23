@@ -21,16 +21,26 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock,
+  Cuboid, Grid3x3, Clock, Palette, Copy, ClipboardPaste,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
 import ModelInfoPanel from '@/components/ModelInfoPanel'
 import HistoryPanel from '@/components/HistoryPanel'
+import EnvironmentPanel from '@/components/panels/EnvironmentPanel'
+import MaterialEditor from '@/components/panels/MaterialEditor'
+import { useMaterialStore } from '@/stores/material-store'
+import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
+import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
 
-function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) {
+function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu }: {
+  node: SceneTreeNode
+  depth: number
+  parentFileId?: string
+  onPartContextMenu?: (e: React.MouseEvent, partId: string, fileId: string) => void
+}) {
   const hasChildren = node.children && node.children.length > 0
   const toggleExpanded = useModelStore((s) => s.toggleNodeExpanded)
   const toggleVisible = useModelStore((s) => s.toggleNodeVisible)
@@ -39,7 +49,8 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
   const selectedReferenceIds = useSelectionStore((s) => s.selectedReferenceIds)
   const isSelected = selectedReferenceIds.includes(node.id)
   const isFileNode = node.id.startsWith('file:')
-  const fileId = isFileNode ? node.id.slice(5) : null
+  const fileId = isFileNode ? node.id.slice(5) : parentFileId
+  const isPartNode = node.meshIndex !== undefined && fileId != null
 
   return (
     <>
@@ -58,6 +69,12 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
           }
           const { setSelectedReference } = useSelectionStore.getState()
           setSelectedReference(node.id, { shiftKey: e.shiftKey })
+        }}
+        onContextMenu={(e) => {
+          if (isPartNode && onPartContextMenu && fileId) {
+            e.preventDefault()
+            onPartContextMenu(e, node.id, fileId)
+          }
         }}
       >
         {/* Expand/collapse chevron */}
@@ -112,7 +129,13 @@ function SceneTreeItem({ node, depth }: { node: SceneTreeNode; depth: number }) 
       {/* Recursive children */}
       {hasChildren && node.expanded &&
         node.children!.map((child) => (
-          <SceneTreeItem key={child.id} node={child} depth={depth + 1} />
+          <SceneTreeItem
+            key={child.id}
+            node={child}
+            depth={depth + 1}
+            parentFileId={fileId ?? parentFileId}
+            onPartContextMenu={onPartContextMenu}
+          />
         ))}
     </>
   )
@@ -151,6 +174,48 @@ export default function DesktopLayout() {
   const [leftPanelPct, setLeftPanelPct] = useState(15)
   const [rightPanelPct, setRightPanelPct] = useState(15)
   const [resizing, setResizing] = useState<'left' | 'right' | null>(null)
+
+  // Context menu state
+  const [ctxMenu, setCtxMenu] = useState<{
+    x: number; y: number; items: ContextMenuItemDef[];
+  } | null>(null)
+
+  const handlePartContextMenu = useCallback((e: React.MouseEvent, partId: string, fileId: string) => {
+    const store = useMaterialStore.getState()
+    const app = store.getEffectiveAppearance(fileId, partId)
+    e.preventDefault()
+    e.stopPropagation()
+    setCtxMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: 'Edit Material',
+          icon: Palette,
+          action: () => {
+            const key = `${fileId}:${partId}`
+            store.openMaterialEditor([key])
+          },
+        },
+        {
+          label: 'Copy Material',
+          icon: Copy,
+          action: () => {
+            if (app) store.copyMaterialToClipboard(app)
+          },
+          disabled: !app,
+        },
+        {
+          label: 'Paste Material',
+          icon: ClipboardPaste,
+          action: () => {
+            store.pasteMaterialFromClipboard(fileId, partId)
+          },
+          disabled: !store.materialClipboard,
+        },
+      ],
+    })
+  }, [])
 
   useEffect(() => {
     if (!resizing) return
@@ -455,6 +520,21 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.history')}</TooltipContent>
         </Tooltip>
 
+        {/* Environment */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.environmentPanelOpen ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={ui.toggleEnvironmentPanel}
+              aria-label={t('toolbar.environment')}
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.environment')}</TooltipContent>
+        </Tooltip>
+
         <div className="flex-1" />
 
         {/* Fullscreen */}
@@ -508,7 +588,7 @@ export default function DesktopLayout() {
                 ) : (
                   <div className="p-2 min-w-max">
                     {sceneTree.map((node) => (
-                      <SceneTreeItem key={node.id} node={node} depth={0} />
+                      <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} />
                     ))}
                   </div>
                 )}
@@ -525,11 +605,13 @@ export default function DesktopLayout() {
         </div>
 
         {/* Right Panel */}
-        {(ui.rightPanelOpen || ui.modelInfoOpen || ui.historyPanelOpen) && (
+        {(ui.rightPanelOpen || ui.modelInfoOpen || ui.historyPanelOpen || ui.environmentPanelOpen) && (
           <>
             <ResizeHandle onMouseDown={() => setResizing('right')} />
             <aside style={{ width: `${rightPanelPct}%` } as React.CSSProperties} className="border-l flex flex-col shrink-0">
-              {ui.historyPanelOpen ? (
+              {ui.environmentPanelOpen ? (
+                <EnvironmentPanel onClose={() => useUIStore.getState().toggleEnvironmentPanel()} />
+              ) : ui.historyPanelOpen ? (
                 <HistoryPanel onClose={() => useUIStore.getState().toggleHistoryPanel()} />
               ) : ui.modelInfoOpen ? (
                 <ModelInfoPanel />
@@ -540,6 +622,18 @@ export default function DesktopLayout() {
           </>
         )}
       </div>
+
+      {/* Material Editor (floating) */}
+      <MaterialEditor />
+
+      {/* Context Menu */}
+      {ctxMenu && (
+        <ContextMenuUI
+          position={{ x: ctxMenu.x, y: ctxMenu.y }}
+          items={ctxMenu.items}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   )
 }

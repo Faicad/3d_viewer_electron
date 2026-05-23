@@ -23,6 +23,10 @@ export default function PostProcessing() {
     // Apply initial store values
     composer.setSsaoEnabled(useEngineStore.getState().ssaoEnabled)
     composer.setSmaaEnabled(useEngineStore.getState().smaaEnabled)
+    const s = useEngineStore.getState()
+    composer.setShadowMaskEnabled(s.shadowIntensity > 0)
+    composer.setShadowMaskOpacity(s.shadowIntensity / 100)
+    composer.setShadowMaskSoftness(s.shadowSoftness / 100)
     composerRef.current = composer
     return () => {
       gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -52,7 +56,31 @@ export default function PostProcessing() {
       (s) => s.smaaEnabled,
       (v) => composerRef.current?.setSmaaEnabled(v),
     )
-    return () => { unsub1(); unsub2() }
+    const unsub3 = useEngineStore.subscribe(
+      (s) => s.aoIntensity,
+      (v) => {
+        const c = composerRef.current
+        if (!c) return
+        c.setSsaoEnabled(v > 0)
+        c.setAoIntensity(v)
+      },
+    )
+    const unsub4 = useEngineStore.subscribe(
+      (s) => s.shadowIntensity,
+      (v) => {
+        const c = composerRef.current
+        if (!c) return
+        c.setShadowMaskEnabled(v > 0)
+        c.setShadowMaskOpacity(v / 100)
+      },
+    )
+    const unsub5 = useEngineStore.subscribe(
+      (s) => s.shadowSoftness,
+      (v) => {
+        composerRef.current?.setShadowMaskSoftness(v / 100)
+      },
+    )
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5() }
   }, [])
 
   // Interaction degradation via OrbitControls events

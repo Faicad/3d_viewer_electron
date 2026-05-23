@@ -45,6 +45,18 @@ interface EngineStore {
   setSsaoEnabled: (v: boolean) => void
   smaaEnabled: boolean
   setSmaaEnabled: (v: boolean) => void
+  aoIntensity: number
+  setAoIntensity: (v: number) => void
+  shadowIntensity: number
+  setShadowIntensity: (v: number) => void
+  shadowSoftness: number
+  setShadowSoftness: (v: number) => void
+
+  // ---------------------------------------------------------------------------
+  // Texture mapping
+  // ---------------------------------------------------------------------------
+  anisotropy: number
+  setAnisotropy: (v: number) => void
 
   // ---------------------------------------------------------------------------
   // Engine objects
@@ -88,6 +100,16 @@ export const useEngineStore = create<EngineStore>((set) => ({
   setSsaoEnabled: (v) => set({ ssaoEnabled: v }),
   smaaEnabled: true,
   setSmaaEnabled: (v) => set({ smaaEnabled: v }),
+  aoIntensity: 5,
+  setAoIntensity: (v) => set({ aoIntensity: v }),
+  shadowIntensity: 50,
+  setShadowIntensity: (v) => set({ shadowIntensity: v }),
+  shadowSoftness: 20,
+  setShadowSoftness: (v) => set({ shadowSoftness: v }),
+
+  // Texture mapping defaults
+  anisotropy: 16,
+  setAnisotropy: (v) => set({ anisotropy: v }),
   setEngineObjects: ({ camera, scene, gl }) =>
     set({ camera: camera as THREE.PerspectiveCamera, scene, gl }),
   clearEngineObjects: () => set({ camera: null, scene: null, gl: null, modelTransform: null, modelGroup: null }),

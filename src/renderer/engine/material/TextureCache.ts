@@ -81,6 +81,11 @@ export class TextureCache {
     return this._cache.has(url)
   }
 
+  /** Number of cached textures. */
+  cacheCount(): number {
+    return this._cache.size
+  }
+
   /** Dispose all cached textures and clear in-flight requests. */
   dispose(): void {
     for (const tex of this._cache.values()) tex.dispose()

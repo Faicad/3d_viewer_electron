@@ -151,6 +151,24 @@ export class AdaptiveComposer {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // AO intensity
+  // ---------------------------------------------------------------------------
+
+  setAoIntensity(intensity: number): void {
+    if (this._n8aoPass) {
+      this._n8aoPass.configuration.intensity = intensity
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shadow mask softness
+  // ---------------------------------------------------------------------------
+
+  setShadowMaskSoftness(softness: number): void {
+    this._shadowMask.setSoftness(Math.max(0, Math.min(1, softness)))
+  }
+
   /** Direct exposure control (maps to renderer.toneMappingExposure). */
   setExposure(value: number): void {
     const renderer = this._composer.getRenderer()
