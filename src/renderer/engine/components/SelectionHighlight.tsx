@@ -154,9 +154,6 @@ export default function SelectionHighlight({
           depthTest={false}
           depthWrite={false}
           toneMapped={false}
-          polygonOffset
-          polygonOffsetFactor={-1}
-          polygonOffsetUnits={-1}
         />
       </mesh>
     )
@@ -169,12 +166,9 @@ export default function SelectionHighlight({
         transparent
         opacity={opacity}
         side={THREE.DoubleSide}
-        depthTest
+        depthTest={false}
         depthWrite={false}
         toneMapped={false}
-        polygonOffset
-        polygonOffsetFactor={-1}
-        polygonOffsetUnits={-1}
       />
     </mesh>
   )
