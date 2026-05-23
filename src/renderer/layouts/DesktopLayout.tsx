@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -34,6 +34,52 @@ import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
+
+/** Find the first part node (meshIndex !== undefined) in a scene tree recursively */
+function findFirstPartInTree(node: SceneTreeNode): { partId: string; partName: string } | null {
+  if (node.meshIndex !== undefined) {
+    return { partId: node.id, partName: node.name }
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findFirstPartInTree(child)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+/** Find the fileId ancestor for a given node ID in the scene tree */
+function findFileIdForNode(tree: SceneTreeNode[], nodeId: string): string | null {
+  for (const node of tree) {
+    if (node.id.startsWith('file:')) {
+      const fileId = node.id.slice(5)
+      // Check if nodeId is this file node itself
+      if (node.id === nodeId) return fileId
+      // Check children recursively
+      if (node.children) {
+        const found = findInChildren(node.children, nodeId)
+        if (found) return fileId
+      }
+    } else {
+      // Non-file root node
+      if (node.id === nodeId) return null
+      if (node.children) {
+        const found = findInChildren(node.children, nodeId)
+        if (found) return null // shouldn't happen without file parent
+      }
+    }
+  }
+  return null
+}
+
+function findInChildren(children: SceneTreeNode[], nodeId: string): boolean {
+  for (const child of children) {
+    if (child.id === nodeId) return true
+    if (child.children && findInChildren(child.children, nodeId)) return true
+  }
+  return false
+}
 
 function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu }: {
   node: SceneTreeNode
@@ -182,8 +228,13 @@ export default function DesktopLayout() {
   } | null>(null)
 
   const handlePartContextMenu = useCallback((e: React.MouseEvent, partId: string, fileId: string) => {
-    const store = useMaterialStore.getState()
-    const app = store.getEffectiveAppearance(fileId, partId)
+    const materialStore = useMaterialStore.getState()
+    const modelStore = useModelStore.getState()
+    const app = materialStore.getEffectiveAppearance(fileId, partId)
+    const file = modelStore.loadedFiles.find(f => f.id === fileId)
+    const fileName = file?.fileName ?? fileId
+    const partName = partId
+    const title = `${fileName} / ${partName}`
     e.preventDefault()
     e.stopPropagation()
     setCtxMenu({
@@ -195,14 +246,14 @@ export default function DesktopLayout() {
           icon: Palette,
           action: () => {
             const key = `${fileId}:${partId}`
-            store.openMaterialEditor([key])
+            materialStore.openMaterialEditor([key], title)
           },
         },
         {
           label: 'Copy Material',
           icon: Copy,
           action: () => {
-            if (app) store.copyMaterialToClipboard(app)
+            if (app) materialStore.copyMaterialToClipboard(app)
           },
           disabled: !app,
         },
@@ -210,13 +261,102 @@ export default function DesktopLayout() {
           label: 'Paste Material',
           icon: ClipboardPaste,
           action: () => {
-            store.pasteMaterialFromClipboard(fileId, partId)
+            materialStore.pasteMaterialFromClipboard(fileId, partId)
           },
-          disabled: !store.materialClipboard,
+          disabled: !materialStore.materialClipboard,
         },
       ],
     })
   }, [])
+
+  // Open material editor from toolbar — selects first part if no selection, or default material if no files
+  const handleOpenMaterialEditor = useCallback(() => {
+    const materialStore = useMaterialStore.getState()
+    const modelStore = useModelStore.getState()
+    const selectionStore = useSelectionStore.getState()
+
+    // If already open, close it (toggle behavior)
+    if (materialStore.materialEditorVisible) {
+      materialStore.closeMaterialEditor()
+      return
+    }
+
+    // Check if a part is currently selected
+    const selectedId = selectionStore.selectedReferenceIds[0]
+    if (selectedId) {
+      const fileId = findFileIdForNode(modelStore.sceneTree, selectedId)
+      if (fileId) {
+        const file = modelStore.loadedFiles.find(f => f.id === fileId)
+        const fileName = file?.fileName ?? fileId
+        const title = `${fileName} / ${selectedId}`
+        materialStore.openMaterialEditor([`${fileId}:${selectedId}`], title)
+        return
+      }
+    }
+
+    // No valid selection — find first part of first file
+    if (modelStore.loadedFiles.length > 0) {
+      const firstFile = modelStore.loadedFiles[0]
+      // Find the file node in the combined tree
+      const fileNode = modelStore.sceneTree.find(n => n.id === `file:${firstFile.id}`)
+      if (fileNode) {
+        const firstPart = findFirstPartInTree(fileNode)
+        if (firstPart) {
+          const title = `${firstFile.fileName} / ${firstPart.partName}`
+          materialStore.openMaterialEditor([`${firstFile.id}:${firstPart.partId}`], title)
+          return
+        }
+      }
+    }
+
+    // No files loaded — manage default material
+    materialStore.openDefaultMaterialEditor()
+  }, [])
+
+  // Auto-switch editing target when selection changes while material editor is open
+  const selectedIds = useSelectionStore((s) => s.selectedReferenceIds)
+  const materialEditorVisible = useMaterialStore((s) => s.materialEditorVisible)
+  const prevSelectedRef = useRef<string[]>([])
+  useEffect(() => {
+    if (!materialEditorVisible) return
+    // Compare by value to avoid reacting to same-selection re-renders
+    const prev = prevSelectedRef.current
+    if (prev.length === selectedIds.length && prev.every((id, i) => id === selectedIds[i])) return
+    prevSelectedRef.current = selectedIds
+
+    const materialStore = useMaterialStore.getState()
+    if (materialStore.isEditingDefault && selectedIds.length === 0) return
+
+    const selectedId = selectedIds[0]
+    if (!selectedId) return
+
+    const modelStore = useModelStore.getState()
+    const fileId = findFileIdForNode(modelStore.sceneTree, selectedId)
+    if (!fileId) return
+
+    // Find part name from the tree
+    let partName = selectedId
+    const findName = (nodes: SceneTreeNode[]): string | null => {
+      for (const n of nodes) {
+        if (n.id === selectedId) return n.name
+        if (n.children) {
+          const r = findName(n.children)
+          if (r) return r
+        }
+      }
+      return null
+    }
+    const found = findName(modelStore.sceneTree)
+    if (found) partName = found
+
+    const file = modelStore.loadedFiles.find(f => f.id === fileId)
+    const fileName = file?.fileName ?? fileId
+    const title = `${fileName} / ${partName}`
+    const key = `${fileId}:${selectedId}`
+    const currentKeys = materialStore.editingOverrideKeys
+    if (currentKeys.length === 1 && currentKeys[0] === key) return // already editing this part
+    materialStore.openMaterialEditor([key], title)
+  }, [selectedIds, materialEditorVisible])
 
   useEffect(() => {
     if (!resizing) return
@@ -560,6 +700,21 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.history')}</TooltipContent>
         </Tooltip>
 
+        {/* Material Editor */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleOpenMaterialEditor}
+              aria-label={t('toolbar.materialEditor')}
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.materialEditor')}</TooltipContent>
+        </Tooltip>
+
         <div className="flex-1" />
 
         {/* Fullscreen */}
@@ -621,7 +776,12 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.environment')}</TooltipContent>
         </Tooltip>
 
-        <CacheManager />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <CacheManager />
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.cache')}</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <SettingsDialog />

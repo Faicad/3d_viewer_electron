@@ -138,7 +138,7 @@ describe('material-store', () => {
   describe('editor state', () => {
     it('opens and closes', () => {
       reset()
-      useMaterialStore.getState().openMaterialEditor(['f1:p1'])
+      useMaterialStore.getState().openMaterialEditor(['f1:p1'], 'Test / p1')
       expect(useMaterialStore.getState().materialEditorVisible).toBe(true)
       expect(useMaterialStore.getState().editingOverrideKeys).toEqual(['f1:p1'])
 

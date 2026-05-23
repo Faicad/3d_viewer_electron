@@ -29,6 +29,11 @@ interface MaterialStore {
   // ---- 浮窗状态 ----
   materialEditorVisible: boolean
   materialEditorPosition: { x: number; y: number }
+  materialEditorTitle: string
+  isEditingDefault: boolean
+
+  // ---- 默认材质 ----
+  defaultMaterial: MaterialAppearance | null
 
   // ---- Actions ----
   setMaterialOverride: (fileId: string, partId: string, appearance: MaterialAppearance) => void
@@ -43,9 +48,11 @@ interface MaterialStore {
   pasteMaterialFromClipboard: (fileId: string, partId: string) => void
   clearClipboard: () => void
 
-  openMaterialEditor: (keys: string[]) => void
+  openMaterialEditor: (keys: string[], title: string) => void
+  openDefaultMaterialEditor: () => void
   closeMaterialEditor: () => void
   setMaterialEditorPosition: (pos: { x: number; y: number }) => void
+  setDefaultMaterial: (appearance: MaterialAppearance) => void
 
   getEffectiveAppearance: (fileId: string, partId: string) => MaterialAppearance | null
 }
@@ -63,6 +70,10 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
 
   materialEditorVisible: false,
   materialEditorPosition: { x: 100, y: 100 },
+  materialEditorTitle: '',
+  isEditingDefault: false,
+
+  defaultMaterial: null,
 
   // ---- Actions ----
   setMaterialOverride: (fileId, partId, appearance) => {
@@ -112,10 +123,15 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
 
   clearClipboard: () => set({ materialClipboard: null }),
 
-  openMaterialEditor: (keys) =>
-    set({ materialEditorVisible: true, editingOverrideKeys: keys }),
+  openMaterialEditor: (keys, title) =>
+    set({ materialEditorVisible: true, editingOverrideKeys: keys, materialEditorTitle: title, isEditingDefault: false }),
 
-  closeMaterialEditor: () => set({ materialEditorVisible: false }),
+  openDefaultMaterialEditor: () =>
+    set({ materialEditorVisible: true, editingOverrideKeys: [], materialEditorTitle: '', isEditingDefault: true }),
+
+  closeMaterialEditor: () => set({ materialEditorVisible: false, isEditingDefault: false }),
+
+  setDefaultMaterial: (appearance) => set({ defaultMaterial: appearance }),
 
   setMaterialEditorPosition: (pos) => set({ materialEditorPosition: pos }),
 

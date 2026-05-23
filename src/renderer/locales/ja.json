@@ -7,6 +7,7 @@
   "app.emptySceneTree": "モデルがありません",
   "toolbar.modelInfo": "Model Info",
   "toolbar.openFile": "ファイルを開く",
+  "toolbar.materialEditor": "Material",
   "toolbar.fullscreen": "フルスクリーン",
   "sceneTree.title": "シーン",
   "sceneTree.visible": "表示",

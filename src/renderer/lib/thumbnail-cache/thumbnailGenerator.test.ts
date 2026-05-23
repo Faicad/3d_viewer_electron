@@ -16,7 +16,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  const { requestAnimationFrame, HTMLImageElement, HTMLCanvasElement } =
+  const { requestAnimationFrame } =
     globalThis as Record<string, unknown>
   if (requestAnimationFrame && typeof requestAnimationFrame === 'function') {
     // Restore would require saving originals; this is fine for test isolation

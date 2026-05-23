@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMaterialStore } from '@/stores/material-store'
 import type { MaterialAppearance } from '@/engine/material/types'
 import { MATERIAL_PRESETS, MATERIAL_PRESET_NAMES } from '@/engine/material/presets'
@@ -113,68 +114,75 @@ function SectionLabel({ label }: { label: string }) {
   )
 }
 
-// ---- main component ----
+// ---- inner form (keyed so state resets when editing target changes) ----
 
-export default function MaterialEditor() {
-  const visible = useMaterialStore((s) => s.materialEditorVisible)
-  const position = useMaterialStore((s) => s.materialEditorPosition)
-  const editingKeys = useMaterialStore((s) => s.editingOverrideKeys)
-  const overrides = useMaterialStore((s) => s.materialOverrides)
-  const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
-  const presetRefs = useMaterialStore((s) => s.overridePresetRefs)
+interface MaterialEditorInnerProps {
+  appearance: MaterialAppearance | undefined
+  activePresetId: string | null
+  primaryKey: string
+  editingKeys: string[]
+  isEditingDefault: boolean
+  overrideMaterial: boolean
+  disabled: boolean
+  multiEdit: boolean
+  title: string
+  position: { x: number; y: number }
+  onClose: () => void
+  onPositionChange: (pos: { x: number; y: number }) => void
+}
+
+function MaterialEditorInner({
+  appearance,
+  activePresetId,
+  primaryKey,
+  editingKeys,
+  isEditingDefault,
+  overrideMaterial,
+  disabled,
+  multiEdit,
+  title,
+  position,
+  onClose,
+  onPositionChange,
+}: MaterialEditorInnerProps) {
+  const { t } = useTranslation()
 
   const setOverride = useMaterialStore((s) => s.setMaterialOverride)
   const setOverrideBatch = useMaterialStore((s) => s.setMaterialOverrideBatch)
   const removeOverride = useMaterialStore((s) => s.removeMaterialOverride)
   const setOverrideMaterial = useMaterialStore((s) => s.setOverrideMaterial)
-  const closeEditor = useMaterialStore((s) => s.closeMaterialEditor)
-  const setPosition = useMaterialStore((s) => s.setMaterialEditorPosition)
+  const setDefaultMaterial = useMaterialStore((s) => s.setDefaultMaterial)
 
-  // Resolve effective appearance from the first editing key
-  const primaryKey = editingKeys[0] ?? ''
-  const appearance: MaterialAppearance | undefined = primaryKey ? overrides[primaryKey] : undefined
-  const activePresetId = primaryKey ? (presetRefs[primaryKey] ?? null) : null
-
-  // Build a working copy for the form (only re-init when primaryKey or override changes)
-  const [draft, setDraft] = useState<MaterialAppearance>({ name: 'Custom' })
-  // Track preset dropdown value separately from activePresetId
+  // Local form state, naturally reset when key prop changes (component remounts)
+  const [draft, setDraft] = useState<MaterialAppearance>(appearance ?? { name: 'Custom' })
   const [presetValue, setPresetValue] = useState<string>(activePresetId ?? 'custom')
-
-  // Sync draft when editing key changes
-  const initRef = useRef<string>('')
-  useEffect(() => {
-    if (primaryKey !== initRef.current) {
-      initRef.current = primaryKey
-      const a = primaryKey ? overrides[primaryKey] : undefined
-      setDraft(a ?? { name: 'Custom' })
-      setPresetValue(primaryKey ? (presetRefs[primaryKey] ?? 'custom') : 'custom')
-    }
-  }, [primaryKey, overrides, presetRefs])
 
   // Apply changes to the store
   const apply = useCallback((updates: Partial<MaterialAppearance>) => {
-    const next = { ...draft, ...updates }
-    setDraft(next)
+    setDraft((prev) => {
+      const next = { ...prev, ...updates }
 
-    // Clear preset reference when manually editing
-    if (primaryKey) {
-      useMaterialStore.setState((s) => ({
-        overridePresetRefs: { ...s.overridePresetRefs, [primaryKey]: null },
-      }))
-      setPresetValue('custom')
-    }
-
-    // Apply to all editing keys
-    if (editingKeys.length > 0) {
-      // Parse fileId:partId from each key for the per-key setter
-      for (const key of editingKeys) {
-        const idx = key.indexOf(':')
-        const fileId = key.slice(0, idx)
-        const partId = key.slice(idx + 1)
-        setOverride(fileId, partId, next)
+      // Clear preset reference when manually editing
+      if (primaryKey && !isEditingDefault) {
+        useMaterialStore.setState((s) => ({
+          overridePresetRefs: { ...s.overridePresetRefs, [primaryKey]: null },
+        }))
+        setPresetValue('custom')
       }
-    }
-  }, [draft, primaryKey, editingKeys, setOverride])
+
+      if (isEditingDefault) {
+        setDefaultMaterial(next)
+      } else if (editingKeys.length > 0) {
+        for (const key of editingKeys) {
+          const idx = key.indexOf(':')
+          const fileId = key.slice(0, idx)
+          const partId = key.slice(idx + 1)
+          setOverride(fileId, partId, next)
+        }
+      }
+      return next
+    })
+  }, [primaryKey, editingKeys, setOverride, isEditingDefault, setDefaultMaterial])
 
   // Preset selection
   const handlePresetChange = useCallback((presetId: string) => {
@@ -186,8 +194,9 @@ export default function MaterialEditor() {
 
     setDraft(preset)
 
-    // Apply to all editing keys and record preset ref
-    if (editingKeys.length > 0) {
+    if (isEditingDefault) {
+      setDefaultMaterial(preset)
+    } else if (editingKeys.length > 0) {
       setOverrideBatch(editingKeys, preset)
       useMaterialStore.setState((s) => {
         const nextRefs = { ...s.overridePresetRefs }
@@ -197,10 +206,16 @@ export default function MaterialEditor() {
         return { overridePresetRefs: nextRefs }
       })
     }
-  }, [editingKeys, setOverrideBatch])
+  }, [editingKeys, setOverrideBatch, isEditingDefault, setDefaultMaterial])
 
   // Reset to original
   const handleReset = useCallback(() => {
+    if (isEditingDefault) {
+      setDefaultMaterial(null)
+      setDraft({ name: 'Custom' })
+      setPresetValue('custom')
+      return
+    }
     for (const key of editingKeys) {
       const idx = key.indexOf(':')
       const fileId = key.slice(0, idx)
@@ -209,7 +224,7 @@ export default function MaterialEditor() {
     }
     setDraft({ name: 'Custom' })
     setPresetValue('custom')
-  }, [editingKeys, removeOverride])
+  }, [editingKeys, removeOverride, isEditingDefault, setDefaultMaterial])
 
   // Drag
   const dragging = useRef(false)
@@ -221,7 +236,7 @@ export default function MaterialEditor() {
 
     const onMove = (ev: MouseEvent) => {
       if (!dragging.current) return
-      setPosition({ x: ev.clientX - dragOffset.current.x, y: ev.clientY - dragOffset.current.y })
+      onPositionChange({ x: ev.clientX - dragOffset.current.x, y: ev.clientY - dragOffset.current.y })
     }
     const onUp = () => {
       dragging.current = false
@@ -230,17 +245,7 @@ export default function MaterialEditor() {
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
-  }, [position, setPosition])
-
-  const disabled = !overrideMaterial
-  const multiEdit = editingKeys.length > 1
-  const partLabel = editingKeys.length === 0
-    ? ''
-    : editingKeys.length === 1
-      ? primaryKey.slice(primaryKey.indexOf(':') + 1)
-      : `${editingKeys.length} parts`
-
-  if (!visible) return null
+  }, [position, onPositionChange])
 
   return (
     <div
@@ -253,12 +258,10 @@ export default function MaterialEditor() {
         onMouseDown={onDragStart}
       >
         <GripHorizontal className="h-3 w-3 text-muted-foreground/50" />
-        <span className="text-xs font-semibold flex-1 truncate">
-          {multiEdit ? `${editingKeys.length} parts` : partLabel || 'Material Editor'}
-        </span>
+        <span className="text-xs font-semibold flex-1 truncate">{title}</span>
         <button
           className="h-4 w-4 flex items-center justify-center rounded hover:bg-muted"
-          onClick={closeEditor}
+          onClick={onClose}
           aria-label="close material editor"
         >
           <X className="h-3 w-3" />
@@ -270,7 +273,7 @@ export default function MaterialEditor() {
         {/* Global toggle */}
         <div className="mb-2">
           <ToggleRow
-            label="Override Material"
+            label={t('materialEditor.overrideMaterial')}
             checked={overrideMaterial}
             onChange={setOverrideMaterial}
           />
@@ -278,14 +281,14 @@ export default function MaterialEditor() {
 
         {/* Preset selector */}
         <div className="flex flex-col gap-0.5 mb-2">
-          <span className="text-[11px] text-muted-foreground">Preset</span>
+          <span className="text-[11px] text-muted-foreground">{t('materialEditor.preset')}</span>
           <select
             value={presetValue}
             disabled={disabled}
             onChange={(e) => handlePresetChange(e.target.value)}
             className="h-7 rounded-md border bg-background px-1.5 text-[11px] disabled:opacity-40"
           >
-            <option value="custom">Custom</option>
+            <option value="custom">{t('materialEditor.custom')}</option>
             {MATERIAL_PRESET_NAMES.map((id) => {
               const p = MATERIAL_PRESETS[id]
               return (
@@ -296,10 +299,10 @@ export default function MaterialEditor() {
         </div>
 
         {/* Base */}
-        <SectionLabel label="Base" />
+        <SectionLabel label={t('materialEditor.base')} />
         <div className="space-y-1.5 mt-1">
           <ColorRow
-            label="Color"
+            label={t('materialEditor.color')}
             color={(appearance?.color ?? draft.color ?? [0.6, 0.65, 0.7]).slice(0, 3) as [number, number, number]}
             onChange={(rgb) => {
               const alpha = draft.color?.[3] ?? 1.0
@@ -308,7 +311,7 @@ export default function MaterialEditor() {
             disabled={disabled}
           />
           <SliderRow
-            label="Opacity"
+            label={t('materialEditor.opacity')}
             value={draft.color?.[3] ?? 1.0}
             min={0} max={1} step={0.01}
             onChange={(v) => {
@@ -318,14 +321,14 @@ export default function MaterialEditor() {
             disabled={disabled}
           />
           <SliderRow
-            label="Roughness"
+            label={t('materialEditor.roughness')}
             value={draft.roughness ?? 0.5}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ roughness: v })}
             disabled={disabled}
           />
           <SliderRow
-            label="Metalness"
+            label={t('materialEditor.metalness')}
             value={draft.metalness ?? 0.0}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ metalness: v })}
@@ -334,17 +337,17 @@ export default function MaterialEditor() {
         </div>
 
         {/* Clearcoat */}
-        <SectionLabel label="Clearcoat" />
+        <SectionLabel label={t('materialEditor.clearcoat')} />
         <div className="space-y-1.5 mt-1">
           <SliderRow
-            label="Clearcoat"
+            label={t('materialEditor.clearcoat')}
             value={draft.clearcoat ?? 0}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ clearcoat: v })}
             disabled={disabled}
           />
           <SliderRow
-            label="Clearcoat Roughness"
+            label={t('materialEditor.clearcoatRoughness')}
             value={draft.clearcoatRoughness ?? 0}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ clearcoatRoughness: v })}
@@ -353,23 +356,23 @@ export default function MaterialEditor() {
         </div>
 
         {/* Sheen */}
-        <SectionLabel label="Sheen" />
+        <SectionLabel label={t('materialEditor.sheen')} />
         <div className="space-y-1.5 mt-1">
           <SliderRow
-            label="Sheen"
+            label={t('materialEditor.sheen')}
             value={draft.sheen ?? 0}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ sheen: v })}
             disabled={disabled}
           />
           <ColorRow
-            label="Sheen Color"
+            label={t('materialEditor.sheenColor')}
             color={draft.sheenColor ?? [1, 1, 1]}
             onChange={(rgb) => apply({ sheenColor: rgb })}
             disabled={disabled}
           />
           <SliderRow
-            label="Sheen Roughness"
+            label={t('materialEditor.sheenRoughness')}
             value={draft.sheenRoughness ?? 0}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ sheenRoughness: v })}
@@ -378,24 +381,24 @@ export default function MaterialEditor() {
         </div>
 
         {/* Transmission */}
-        <SectionLabel label="Transmission" />
+        <SectionLabel label={t('materialEditor.transmission')} />
         <div className="space-y-1.5 mt-1">
           <SliderRow
-            label="Transmission"
+            label={t('materialEditor.transmission')}
             value={draft.transmission ?? 0}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ transmission: v })}
             disabled={disabled}
           />
           <SliderRow
-            label="Thickness"
+            label={t('materialEditor.thickness')}
             value={draft.thickness ?? 0}
             min={0} max={5} step={0.1}
             onChange={(v) => apply({ thickness: v })}
             disabled={disabled}
           />
           <SliderRow
-            label="IOR"
+            label={t('materialEditor.ior')}
             value={draft.ior ?? 1.5}
             min={1.0} max={3.0} step={0.01}
             onChange={(v) => apply({ ior: v })}
@@ -404,16 +407,16 @@ export default function MaterialEditor() {
         </div>
 
         {/* Emissive */}
-        <SectionLabel label="Emissive" />
+        <SectionLabel label={t('materialEditor.emissive')} />
         <div className="space-y-1.5 mt-1">
           <ColorRow
-            label="Emissive Color"
+            label={t('materialEditor.emissiveColor')}
             color={draft.emissive ?? [0, 0, 0]}
             onChange={(rgb) => apply({ emissive: rgb })}
             disabled={disabled}
           />
           <SliderRow
-            label="Emissive Intensity"
+            label={t('materialEditor.emissiveIntensity')}
             value={draft.emissiveIntensity ?? 0}
             min={0} max={5} step={0.1}
             onChange={(v) => apply({ emissiveIntensity: v })}
@@ -422,16 +425,16 @@ export default function MaterialEditor() {
         </div>
 
         {/* Misc */}
-        <SectionLabel label="Misc" />
+        <SectionLabel label={t('materialEditor.misc')} />
         <div className="space-y-1.5 mt-1 pb-1">
           <ToggleRow
-            label="Double Sided"
+            label={t('materialEditor.doubleSided')}
             checked={draft.doubleSided ?? false}
             onChange={(v) => apply({ doubleSided: v })}
             disabled={disabled}
           />
           <ToggleRow
-            label="Unlit"
+            label={t('materialEditor.unlit')}
             checked={draft.unlit ?? false}
             onChange={(v) => apply({ unlit: v })}
             disabled={disabled}
@@ -439,7 +442,7 @@ export default function MaterialEditor() {
 
           {/* Alpha mode */}
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">Alpha Mode</span>
+            <span className="text-[11px] text-muted-foreground">{t('materialEditor.alphaMode')}</span>
             <select
               value={draft.alphaMode ?? 'OPAQUE'}
               disabled={disabled}
@@ -454,7 +457,7 @@ export default function MaterialEditor() {
 
           {(draft.alphaMode === 'MASK') && (
             <SliderRow
-              label="Alpha Cutoff"
+              label={t('materialEditor.alphaCutoff')}
               value={draft.alphaCutoff ?? 0.5}
               min={0} max={1} step={0.01}
               onChange={(v) => apply({ alphaCutoff: v })}
@@ -470,12 +473,68 @@ export default function MaterialEditor() {
           className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted transition-colors"
           onClick={handleReset}
         >
-          Reset to Original
+          {t('materialEditor.resetToOriginal')}
         </button>
         {multiEdit && (
-          <span className="text-[11px] text-muted-foreground">{editingKeys.length} parts selected</span>
+          <span className="text-[11px] text-muted-foreground">
+            {t('materialEditor.partsSelected_other', { count: editingKeys.length })}
+          </span>
         )}
       </div>
     </div>
+  )
+}
+
+// ---- outer component (reads store, passes props to keyed inner form) ----
+
+export default function MaterialEditor() {
+  const { t } = useTranslation()
+  const visible = useMaterialStore((s) => s.materialEditorVisible)
+  const position = useMaterialStore((s) => s.materialEditorPosition)
+  const editingKeys = useMaterialStore((s) => s.editingOverrideKeys)
+  const overrides = useMaterialStore((s) => s.materialOverrides)
+  const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
+  const presetRefs = useMaterialStore((s) => s.overridePresetRefs)
+  const editorTitle = useMaterialStore((s) => s.materialEditorTitle)
+  const isEditingDefault = useMaterialStore((s) => s.isEditingDefault)
+  const defaultMaterial = useMaterialStore((s) => s.defaultMaterial)
+
+  const closeEditor = useMaterialStore((s) => s.closeMaterialEditor)
+  const setPosition = useMaterialStore((s) => s.setMaterialEditorPosition)
+
+  if (!visible) return null
+
+  // Resolve effective appearance from the first editing key (or default material)
+  const primaryKey = editingKeys[0] ?? ''
+  const appearance: MaterialAppearance | undefined = isEditingDefault
+    ? (defaultMaterial ?? undefined)
+    : primaryKey ? overrides[primaryKey] : undefined
+  const activePresetId = primaryKey ? (presetRefs[primaryKey] ?? null) : null
+
+  const disabled = !overrideMaterial
+  const multiEdit = editingKeys.length > 1
+  const title = isEditingDefault
+    ? t('materialEditor.defaultMaterial')
+    : editorTitle || t('materialEditor.defaultMaterial')
+
+  // Build a stable key for remounting the inner form when editing target changes
+  const editorKey = isEditingDefault ? '__default__' : primaryKey || '__empty__'
+
+  return (
+    <MaterialEditorInner
+      key={editorKey}
+      appearance={appearance}
+      activePresetId={activePresetId}
+      primaryKey={primaryKey}
+      editingKeys={editingKeys}
+      isEditingDefault={isEditingDefault}
+      overrideMaterial={overrideMaterial}
+      disabled={disabled}
+      multiEdit={multiEdit}
+      title={title}
+      position={position}
+      onClose={closeEditor}
+      onPositionChange={setPosition}
+    />
   )
 }

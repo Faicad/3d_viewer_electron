@@ -7,6 +7,7 @@
   "app.emptySceneTree": "모델 없음",
   "toolbar.modelInfo": "Model Info",
   "toolbar.openFile": "파일 열기",
+  "toolbar.materialEditor": "Material",
   "toolbar.fullscreen": "전체 화면",
   "sceneTree.title": "씬",
   "sceneTree.visible": "표시",

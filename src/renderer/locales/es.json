@@ -7,6 +7,7 @@
   "app.emptySceneTree": "Sin modelos todavía",
   "toolbar.modelInfo": "Model Info",
   "toolbar.openFile": "Abrir archivo",
+  "toolbar.materialEditor": "Material",
   "toolbar.fullscreen": "Pantalla completa",
   "sceneTree.title": "Escena",
   "sceneTree.visible": "Visible",

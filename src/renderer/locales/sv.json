@@ -7,6 +7,7 @@
   "app.emptySceneTree": "Inga modeller ännu",
   "toolbar.modelInfo": "Model Info",
   "toolbar.openFile": "Öppna fil",
+  "toolbar.materialEditor": "Material",
   "toolbar.fullscreen": "Helskärm",
   "sceneTree.title": "Scen",
   "sceneTree.visible": "Synlig",
