@@ -7,6 +7,7 @@ import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
 import { useEngineStore } from '@/stores/engine-store'
 import { getSharedTextureCache } from '../material/MaterialFactory'
+import { computeShadowFrustum } from './shadowFrustum'
 
 export default function SceneSetup() {
   const { gl, scene } = useThree()
@@ -154,25 +155,19 @@ export default function SceneSetup() {
 
   const dirLightRef = useRef<THREE.DirectionalLight>(null)
 
-  // Dynamically size the shadow camera frustum to match the model.
-  // Keep a generous minimum so tiny models still get usable shadow-map coverage.
+  // Dynamically size the shadow camera frustum and near/far to match the model.
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state) => {
       const bbox = state.modelBbox
       const light = dirLightRef.current
       if (!bbox || !light) return
-      const extent = Math.max(
-        bbox[3] - bbox[0],
-        bbox[4] - bbox[1],
-        bbox[5] - bbox[2],
-      )
-      // Scale frustum so the shadow extends well beyond the model footprint,
-      // with a minimum of ±3 so the ortho depth range stays balanced.
-      const half = Math.max(extent * 4, 3)
-      light.shadow.camera.left = -half
-      light.shadow.camera.right = half
-      light.shadow.camera.top = half
-      light.shadow.camera.bottom = -half
+      const f = computeShadowFrustum(bbox, light.position)
+      light.shadow.camera.left = f.left
+      light.shadow.camera.right = f.right
+      light.shadow.camera.top = f.top
+      light.shadow.camera.bottom = f.bottom
+      light.shadow.camera.near = f.near
+      light.shadow.camera.far = f.far
       light.shadow.camera.updateProjectionMatrix()
     })
     return unsub

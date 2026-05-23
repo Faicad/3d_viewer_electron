@@ -322,6 +322,24 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           materialsRef.current = materials
           onPartInfosChangeRef.current(partInfos)
 
+          // Ensure scene-tree node IDs match mesh partIds by setting
+          // userData.partId on the original THREE.Mesh objects before
+          // buildSceneTree walks the hierarchy. Without this, unnamed
+          // meshes get tree IDs from child.uuid while mesh partIds use
+          // "part-N", causing visibility toggle to fail.
+          if (result.sceneRoot) {
+            const partIdBySrc = new Map<THREE.Object3D, string>()
+            for (let i = 0; i < meshes.length; i++) {
+              partIdBySrc.set(meshes[i], String(partInfos[i].partId))
+            }
+            result.sceneRoot.traverse((obj) => {
+              const pid = partIdBySrc.get(obj)
+              if (pid !== undefined) {
+                obj.userData.partId = pid
+              }
+            })
+          }
+
           const tree = result.sceneRoot
             ? buildSceneTree(result.sceneRoot, partInfos)
             : partInfos.map((info) => ({

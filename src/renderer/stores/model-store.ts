@@ -380,10 +380,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
       )
       const newTree = buildCombinedTree(newFiles, state.sceneTree)
       const syncedFiles = syncCombinedToFiles(newTree, newFiles)
-      const synced = state.activeFileId === fileId
-        ? { sceneTree: newTree }
-        : {}
-      return { loadedFiles: syncedFiles, ...synced }
+      return { loadedFiles: syncedFiles, sceneTree: newTree }
     }),
 
   updateFilePartInfos: (fileId, infos) =>
