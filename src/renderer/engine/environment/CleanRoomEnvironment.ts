@@ -1,182 +1,194 @@
-import * as THREE from 'three'
-
-const ROOM_SIZE = 10
-const ROOM_HEIGHT = 8
-const COVE_RADIUS = 1.5
-
 /**
- * Procedural studio environment for PMREM-based IBL.
+ * Clean room environment for Studio mode PMREM generation.
  *
- * Builds an inside-out room scene with emissive area lights and infinity-cove
- * floor-wall transitions.  The resulting scene is fed to
- * `PMREMGenerator.fromScene()` to produce diffuse + specular environment maps.
+ * Based on Three.js RoomEnvironment (which is based on Google model-viewer's
+ * EnvironmentScene), but with the 6 decorative boxes removed and an infinity
+ * cove (quarter-cylinder) at the -z wall-floor junction for a clean cyclorama.
  */
-export class CleanRoomEnvironment {
-  readonly scene: THREE.Scene
+import {
+  BackSide,
+  BoxGeometry,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Mesh,
+  MeshLambertMaterial,
+  MeshStandardMaterial,
+  PointLight,
+  Scene,
+} from 'three'
 
+class CleanRoomEnvironment extends Scene {
   constructor() {
-    this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0xeeeeee)
+    super()
 
-    this._buildRoom()
-    this._buildAreaLights()
-    this._buildInfinityCoves()
+    this.name = 'CleanRoomEnvironment'
+    this.position.y = -3.5
+    this.rotation.y = (45 * Math.PI) / 180
 
-    // Rotate 45° so the cleanest wall-floor edge faces the default camera
-    this.scene.rotation.y = Math.PI / 4
+    const geometry = new BoxGeometry()
+    geometry.deleteAttribute('uv')
+
+    const roomMaterial = new MeshStandardMaterial({ side: BackSide })
+
+    const mainLight = new PointLight(0xffffff, 900, 28, 2)
+    mainLight.position.set(0.418, 16.199, 0.3)
+    this.add(mainLight)
+
+    const room = new Mesh(geometry, roomMaterial)
+    room.position.set(-0.757, 13.219, 0.717)
+    room.scale.set(31.713, 28.305, 28.591)
+    this.add(room)
+
+    // Infinity cove (quarter-cylinder sweep) at the -z wall-floor junction.
+    // Eliminates the sharp 90° corner visible in reflections.
+    //
+    // Room bounds (inner faces of BackSide box):
+    const cx = -0.757
+    const cy = 13.219
+    const cz = 0.717
+    const hx = 31.713 / 2
+    const hy = 28.305 / 2
+    const hz = 28.591 / 2
+    const floorY = cy - hy
+    const wallMinX = cx - hx
+    const wallMinZ = cz - hz
+    const R = 6
+
+    // Single infinity cove on the -z wall (faces default camera after 45° rotation)
+    const cove = new Mesh(createCove(hx * 2, R, 12, '-z'), roomMaterial)
+    cove.position.set(wallMinX, floorY, wallMinZ + R)
+    this.add(cove)
+
+    // Area lights on walls and ceiling
+
+    // -x right
+    const light1 = new Mesh(geometry, createAreaLightMaterial(50))
+    light1.position.set(-16.116, 14.37, 8.208)
+    light1.scale.set(0.1, 2.428, 2.739)
+    this.add(light1)
+
+    // -x left
+    const light2 = new Mesh(geometry, createAreaLightMaterial(50))
+    light2.position.set(-16.109, 18.021, -8.207)
+    light2.scale.set(0.1, 2.425, 2.751)
+    this.add(light2)
+
+    // +x
+    const light3 = new Mesh(geometry, createAreaLightMaterial(17))
+    light3.position.set(14.904, 12.198, -1.832)
+    light3.scale.set(0.15, 4.265, 6.331)
+    this.add(light3)
+
+    // +z
+    const light4 = new Mesh(geometry, createAreaLightMaterial(43))
+    light4.position.set(-0.462, 8.89, 14.52)
+    light4.scale.set(4.38, 5.441, 0.088)
+    this.add(light4)
+
+    // -z
+    const light5 = new Mesh(geometry, createAreaLightMaterial(20))
+    light5.position.set(3.235, 11.486, -12.541)
+    light5.scale.set(2.5, 2.0, 0.1)
+    this.add(light5)
+
+    // +y (ceiling)
+    const light6 = new Mesh(geometry, createAreaLightMaterial(100))
+    light6.position.set(0.0, 20.0, 0.0)
+    light6.scale.set(1.0, 0.1, 1.0)
+    this.add(light6)
   }
 
   dispose(): void {
-    this.scene.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry?.dispose()
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m.dispose())
-        } else {
-          obj.material?.dispose()
+    const resources = new Set<{ dispose(): void }>()
+    this.traverse((object) => {
+      if ('isMesh' in object && object.isMesh) {
+        const mesh = object as Mesh
+        resources.add(mesh.geometry)
+        if (!Array.isArray(mesh.material)) {
+          resources.add(mesh.material)
         }
       }
     })
+    for (const resource of resources) {
+      resource.dispose()
+    }
   }
+}
 
-  // ---------------------------------------------------------------------------
-  // Internal builders
-  // ---------------------------------------------------------------------------
+/**
+ * Quarter-cylinder for infinity cove — no rotation needed.
+ *
+ * @param length   Extrusion length along the wall edge
+ * @param radius   Cove radius
+ * @param segments Arc subdivisions
+ * @param wall     Which wall: "-x"|"+x"|"-z"|"+z"
+ *
+ * The arc sweeps from floor-tangent (horizontal) to wall-tangent (vertical).
+ * Winding is set so BackSide material renders the concave interior.
+ */
+function createCove(
+  length: number,
+  radius: number,
+  segments: number,
+  wall: '-x' | '+x' | '-z' | '+z',
+): BufferGeometry {
+  const positions: number[] = []
+  const normals: number[] = []
+  const indices: number[] = []
 
-  /**
-   * Inside-out room box.  `THREE.BackSide` means the camera (sitting inside)
-   * sees the interior walls.  Floor colour is slightly warmer than walls/ceiling
-   * to simulate a studio cove floor.
-   */
-  private _buildRoom(): void {
-    const geom = new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, ROOM_SIZE)
-    // Emissive is REQUIRED for PMREM baking — without scene lights, only
-    // emissive contributes to the cubemap. Non-emissive walls render black.
-    const wall = (color: number, roughness: number, ei: number) =>
-      new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: ei, roughness, side: THREE.BackSide })
-    const materials: THREE.MeshStandardMaterial[] = [
-      wall(0xf0f0f0, 0.85, 0.8),  // +X right wall
-      wall(0xf0f0f0, 0.85, 0.8),  // -X left wall
-      wall(0xfafafa, 0.9,  1.2),  // +Y ceiling — brighter
-      wall(0xe8e4e0, 0.8,  0.6),  // -Y floor — warmer, dimmer
-      wall(0xf0f0f0, 0.85, 0.8),  // +Z back wall
-      wall(0xf0f0f0, 0.85, 0.8),  // -Z front wall
-    ]
-    const mesh = new THREE.Mesh(geom, materials)
-    mesh.name = 'roomBox'
-    this.scene.add(mesh)
-  }
+  // sign: which direction the arc curves toward the wall
+  // axis: 0 = arc in XY extruded along Z, 1 = arc in ZY extruded along X
+  const axis = wall === '-x' || wall === '+x' ? 0 : 1
+  const sign = wall === '-x' || wall === '-z' ? -1 : 1
 
-  /**
-   * Six rectangular emissive quads simulating photo-studio softboxes.
-   * They are positioned close to the walls / ceiling and provide the
-   * directional high-frequency detail that gets baked into the PMREM.
-   */
-  private _buildAreaLights(): void {
-    const half = ROOM_SIZE / 2 - 0.2
-    const top = ROOM_HEIGHT / 2 - 0.3
+  for (let i = 0; i <= segments; i++) {
+    const angle = ((i / segments) * Math.PI) / 2
+    const h = sign * radius * Math.sin(angle) // horizontal offset toward wall
+    const y = radius * (1 - Math.cos(angle)) // vertical offset above floor
+    const nh = sign * Math.sin(angle) // normal toward wall
+    const ny = -Math.cos(angle) // normal downward
 
-    const lights: { pos: [number, number, number]; rot: [number, number, number]; size: [number, number]; color: number; intensity: number }[] = [
-      // Ceiling — large soft source, dominant
-      { pos: [0, top, 0], rot: [-Math.PI / 2, 0, 0], size: [5, 4], color: 0xffffff, intensity: 12 },
-      // Right wall — key softbox
-      { pos: [half, 1.5, 1.5], rot: [0, -Math.PI / 2, 0], size: [3, 2.5], color: 0xfff8f0, intensity: 8 },
-      // Left wall — fill softbox
-      { pos: [-half, 1.2, -1], rot: [0, Math.PI / 2, 0], size: [3, 2.5], color: 0xf0f4ff, intensity: 5 },
-      // Back wall — rim
-      { pos: [0, 2, half], rot: [0, Math.PI, 0], size: [3.5, 2.5], color: 0xf0ffff, intensity: 4 },
-      // Front wall — subtle fill
-      { pos: [0, 1.8, -half], rot: [0, 0, 0], size: [3.5, 2.5], color: 0xfffaf5, intensity: 3 },
-      // Floor bounce — warm
-      { pos: [0, -half + 0.15, 0], rot: [Math.PI / 2, 0, 0], size: [4, 3], color: 0xfff0e0, intensity: 2 },
-    ]
-
-    for (const l of lights) {
-      const geom = new THREE.PlaneGeometry(l.size[0], l.size[1])
-      const mat = new THREE.MeshStandardMaterial({
-        color: l.color,
-        emissive: l.color,
-        emissiveIntensity: l.intensity,
-        roughness: 1.0,
-        metalness: 0.0,
-        side: THREE.DoubleSide,
-      })
-      const mesh = new THREE.Mesh(geom, mat)
-      mesh.name = 'areaLight'
-      mesh.position.set(...l.pos)
-      mesh.rotation.set(...l.rot)
-      this.scene.add(mesh)
+    if (axis === 0) {
+      // Arc in XY, extruded along Z (for ±x walls)
+      positions.push(h, y, 0)
+      normals.push(nh, ny, 0)
+      positions.push(h, y, length)
+      normals.push(nh, ny, 0)
+    } else {
+      // Arc in ZY, extruded along X (for ±z walls)
+      positions.push(0, y, h)
+      normals.push(0, ny, nh)
+      positions.push(length, y, h)
+      normals.push(0, ny, nh)
     }
   }
 
-  /**
-   * Quarter-cylinder sweeps along the four floor-wall edges.
-   *
-   * CylinderGeometry creates a pipe along Y with cross-section in XZ.
-   * For edges that run along Z (+X / -X walls): RotX(+π/2) orients the
-   * pipe so it runs along Z with the quarter-arc in the XY plane.
-   * For edges that run along X (+Z / -Z walls): RotZ(+π/2) orients the
-   * pipe so it runs along X with the quarter-arc in the YZ plane.
-   *
-   * thetaStart / thetaLength select which quadrant of the cylinder
-   * produces the cove, ensuring the arc faces the correct wall-to-floor
-   * corner.
-   */
-  private _buildInfinityCoves(): void {
-    const half = ROOM_SIZE / 2
-    const bottom = -ROOM_HEIGHT / 2
-    const h = ROOM_SIZE
-    const segs = 32
-
-    const coveMat = new THREE.MeshStandardMaterial({
-      color: 0xf2f0ec,
-      roughness: 0.75,
-      metalness: 0.0,
-    })
-
-    // +X edge — arc from +X (wall) to -Y (floor), axis along Z
-    this.scene.add(this._makeCove(
-      new THREE.CylinderGeometry(COVE_RADIUS, COVE_RADIUS, h, segs, 1, true, 0, Math.PI / 2),
-      [Math.PI / 2, 0, 0],
-      [half - COVE_RADIUS, bottom + COVE_RADIUS, 0],
-      coveMat,
-    ))
-
-    // -X edge — arc from -Y (floor) to -X (wall), axis along Z
-    this.scene.add(this._makeCove(
-      new THREE.CylinderGeometry(COVE_RADIUS, COVE_RADIUS, h, segs, 1, true, Math.PI / 2, Math.PI / 2),
-      [Math.PI / 2, 0, 0],
-      [-half + COVE_RADIUS, bottom + COVE_RADIUS, 0],
-      coveMat,
-    ))
-
-    // +Z edge — arc from -Y (floor) to +Z (wall), axis along X
-    this.scene.add(this._makeCove(
-      new THREE.CylinderGeometry(COVE_RADIUS, COVE_RADIUS, h, segs, 1, true, 0, Math.PI / 2),
-      [0, 0, Math.PI / 2],
-      [0, bottom + COVE_RADIUS, half - COVE_RADIUS],
-      coveMat,
-    ))
-
-    // -Z edge — arc from -Z (wall) to -Y (floor), axis along X
-    this.scene.add(this._makeCove(
-      new THREE.CylinderGeometry(COVE_RADIUS, COVE_RADIUS, h, segs, 1, true, -Math.PI / 2, Math.PI / 2),
-      [0, 0, Math.PI / 2],
-      [0, bottom + COVE_RADIUS, -half + COVE_RADIUS],
-      coveMat,
-    ))
+  for (let i = 0; i < segments; i++) {
+    const a = i * 2
+    const b = a + 1
+    const c = a + 2
+    const d = a + 3
+    const flip = sign > 0 !== (axis === 1)
+    if (flip) {
+      indices.push(a, c, b, b, c, d)
+    } else {
+      indices.push(a, b, c, b, d, c)
+    }
   }
 
-  private _makeCove(
-    geom: THREE.CylinderGeometry,
-    rotation: [number, number, number],
-    position: [number, number, number],
-    mat: THREE.MeshStandardMaterial,
-  ): THREE.Mesh {
-    const mesh = new THREE.Mesh(geom, mat)
-    mesh.name = 'infinityCove'
-    mesh.rotation.set(...rotation)
-    mesh.position.set(...position)
-    return mesh
-  }
+  const geom = new BufferGeometry()
+  geom.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  geom.setAttribute('normal', new Float32BufferAttribute(normals, 3))
+  geom.setIndex(indices)
+  return geom
 }
+
+function createAreaLightMaterial(intensity: number): MeshLambertMaterial {
+  return new MeshLambertMaterial({
+    color: 0x000000,
+    emissive: 0xffffff,
+    emissiveIntensity: intensity,
+  })
+}
+
+export { CleanRoomEnvironment }

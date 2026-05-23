@@ -3,122 +3,89 @@ import * as THREE from 'three'
 import { CleanRoomEnvironment } from './CleanRoomEnvironment'
 
 describe('CleanRoomEnvironment', () => {
-  it('creates a scene with non-null background', () => {
+  it('is a THREE.Scene', () => {
     const env = new CleanRoomEnvironment()
-    expect(env.scene).toBeInstanceOf(THREE.Scene)
-    expect(env.scene.background).toBeInstanceOf(THREE.Color)
+    expect(env).toBeInstanceOf(THREE.Scene)
     env.dispose()
   })
 
-  it('scene is rotated 45° around Y', () => {
+  it('scene position.y is -3.5 and rotation.y is 45°', () => {
     const env = new CleanRoomEnvironment()
-    expect(env.scene.rotation.y).toBeCloseTo(Math.PI / 4, 4)
+    expect(env.position.y).toBeCloseTo(-3.5, 1)
+    expect(env.rotation.y).toBeCloseTo((45 * Math.PI) / 180, 4)
     env.dispose()
   })
 
-  it('contains exactly one room box', () => {
+  it('contains one PointLight', () => {
     const env = new CleanRoomEnvironment()
-    const boxes = env.scene.children.filter(
-      (c) => c.name === 'roomBox' && c instanceof THREE.Mesh,
+    const lights = env.children.filter((c) => c instanceof THREE.PointLight)
+    expect(lights).toHaveLength(1)
+    const light = lights[0] as THREE.PointLight
+    expect(light.intensity).toBe(900)
+    env.dispose()
+  })
+
+  it('contains one room BoxGeometry with BackSide material', () => {
+    const env = new CleanRoomEnvironment()
+    // The room mesh is the first Mesh that's not an area light (largest scale)
+    const meshes = env.children.filter(
+      (c) => c instanceof THREE.Mesh,
+    ) as THREE.Mesh[]
+    // Room is the largest mesh
+    const room = meshes.reduce((a, b) =>
+      a.scale.x * a.scale.y * a.scale.z > b.scale.x * b.scale.y * b.scale.z ? a : b,
     )
-    expect(boxes).toHaveLength(1)
+    expect(room.geometry).toBeInstanceOf(THREE.BoxGeometry)
 
-    const box = boxes[0] as THREE.Mesh
-    expect(box.geometry).toBeInstanceOf(THREE.BoxGeometry)
-    // BoxGeometry params are approximately (10, 8, 10)
-    const bbox = new THREE.Box3().setFromObject(box)
-    expect(bbox.max.x - bbox.min.x).toBeCloseTo(10, 0)
-    expect(bbox.max.y - bbox.min.y).toBeCloseTo(8, 0)
-    expect(bbox.max.z - bbox.min.z).toBeCloseTo(10, 0)
+    const mat = room.material as THREE.MeshStandardMaterial
+    expect(mat.side).toBe(THREE.BackSide)
     env.dispose()
   })
 
-  it('room box uses BackSide materials', () => {
+  it('contains 6 area lights with MeshLambertMaterial', () => {
     const env = new CleanRoomEnvironment()
-    const box = env.scene.children.find(
-      (c) => c.name === 'roomBox' && c instanceof THREE.Mesh,
-    ) as THREE.Mesh
+    const areaLights = env.children.filter(
+      (c) => c instanceof THREE.Mesh && (c.material as THREE.Material).type === 'MeshLambertMaterial',
+    )
+    expect(areaLights).toHaveLength(6)
 
-    const mats = Array.isArray(box.material) ? box.material : [box.material]
-    expect(mats).toHaveLength(6)
-    for (const mat of mats) {
-      expect((mat as THREE.MeshStandardMaterial).side).toBe(THREE.BackSide)
-    }
-    env.dispose()
-  })
-
-  it('contains 6 area lights', () => {
-    const env = new CleanRoomEnvironment()
-    const lights = env.scene.children.filter((c) => c.name === 'areaLight')
-    expect(lights).toHaveLength(6)
-
-    for (const light of lights) {
+    for (const light of areaLights) {
       const mesh = light as THREE.Mesh
-      expect(mesh.geometry).toBeInstanceOf(THREE.PlaneGeometry)
+      expect(mesh.geometry).toBeInstanceOf(THREE.BoxGeometry)
 
-      const mat = mesh.material as THREE.MeshStandardMaterial
+      const mat = mesh.material as THREE.MeshLambertMaterial
       expect(mat.emissive).toBeInstanceOf(THREE.Color)
       expect(mat.emissiveIntensity).toBeGreaterThan(0)
     }
     env.dispose()
   })
 
-  it('contains 4 infinity coves', () => {
+  it('contains one infinity cove on the -z wall', () => {
     const env = new CleanRoomEnvironment()
-    const coves = env.scene.children.filter((c) => c.name === 'infinityCove')
-    expect(coves).toHaveLength(4)
+    // Cove is the mesh with BufferGeometry (not BoxGeometry)
+    const meshes = env.children.filter(
+      (c) => c instanceof THREE.Mesh,
+    ) as THREE.Mesh[]
+    const coves = meshes.filter(
+      (m) => m.geometry instanceof THREE.BufferGeometry && !(m.geometry instanceof THREE.BoxGeometry),
+    )
+    expect(coves).toHaveLength(1)
 
-    for (const cove of coves) {
-      const mesh = cove as THREE.Mesh
-      expect(mesh.geometry).toBeInstanceOf(THREE.CylinderGeometry)
-
-      // Each cove should be positioned at the floor level
-      expect(mesh.position.y).toBeLessThan(0)
-    }
+    const cove = coves[0]
+    // Cove should be positioned at the -z wall
+    expect(cove.position.z).toBeLessThan(0)
     env.dispose()
   })
 
-  it('infinity coves are positioned at floor-wall junctions', () => {
+  it('total child count is 1 PointLight + 1 room + 1 cove + 6 area lights = 9', () => {
     const env = new CleanRoomEnvironment()
-    const coves = env.scene.children.filter((c) => c.name === 'infinityCove') as THREE.Mesh[]
-
-    // Cove Y position: bottom + COVE_RADIUS = -4 + 1.5 = -2.5
-    for (const cove of coves) {
-      expect(cove.position.y).toBeCloseTo(-2.5, 1)
-    }
-
-    // One cove per wall edge: +X, -X, +Z, -Z
-    const positions = coves.map((c) => [c.position.x, c.position.z])
-    const halfMinusR = 5 - 1.5 // 3.5
-
-    // +X edge: x ≈ 3.5, z ≈ 0
-    expect(positions.some(([x, z]) => Math.abs(x! - halfMinusR) < 0.1 && Math.abs(z!) < 0.1)).toBe(true)
-    // -X edge: x ≈ -3.5, z ≈ 0
-    expect(positions.some(([x, z]) => Math.abs(x! + halfMinusR) < 0.1 && Math.abs(z!) < 0.1)).toBe(true)
-    // +Z edge: x ≈ 0, z ≈ 3.5
-    expect(positions.some(([x, z]) => Math.abs(x!) < 0.1 && Math.abs(z! - halfMinusR) < 0.1)).toBe(true)
-    // -Z edge: x ≈ 0, z ≈ -3.5
-    expect(positions.some(([x, z]) => Math.abs(x!) < 0.1 && Math.abs(z! + halfMinusR) < 0.1)).toBe(true)
-
+    expect(env.children).toHaveLength(9)
     env.dispose()
   })
 
   it('dispose cleans up geometries and materials', () => {
     const env = new CleanRoomEnvironment()
-    env.dispose()
-
-    // After dispose, scene children still exist but geometries are disposed
-    for (const child of env.scene.children) {
-      if (child instanceof THREE.Mesh) {
-        // Not checking geometry — it was shared in some cases
-        // but all materials should be disposed
-      }
-    }
-  })
-
-  it('total child count is 1 room + 6 lights + 4 coves = 11', () => {
-    const env = new CleanRoomEnvironment()
-    expect(env.scene.children).toHaveLength(11)
-    env.dispose()
+    // Should not throw
+    expect(() => env.dispose()).not.toThrow()
   })
 })

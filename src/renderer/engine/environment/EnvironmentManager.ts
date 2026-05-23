@@ -162,8 +162,14 @@ export class EnvironmentManager {
         if (this._currentBgTex) {
           scene.background = this._currentBgTex
           scene.backgroundRotation.set(0, envRotation, 0, 'YXZ')
+        } else if (this._currentTex) {
+          // Procedural studio: use the PMREM cubemap (CubeUVReflectionMapping)
+          // directly as background. Three.js r184 routes CubeUVReflectionMapping
+          // textures through the cubemap skybox path, which supports
+          // backgroundRotation correctly (unlike the equirect flat-plane path).
+          scene.background = this._currentTex
+          scene.backgroundRotation.set(0, envRotation, 0, 'YXZ')
         } else {
-          // CleanRoom has no equirect source — fall back to gradient
           scene.background = this._createGradientBg()
         }
         break
@@ -208,7 +214,7 @@ export class EnvironmentManager {
   private _getOrCreateCleanRoom(): THREE.Texture {
     if (!this._cleanRoomTex) {
       const room = new CleanRoomEnvironment()
-      const rt = this._pmrem.fromScene(room.scene, 0.04)
+      const rt = this._pmrem.fromScene(room, 0, 0.1, 100, { size: 2048 })
       this._cleanRoomTex = rt.texture
       this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
       room.dispose()
