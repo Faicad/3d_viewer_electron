@@ -54,7 +54,7 @@ export class ShadowFloor {
       maxZ - minZ,
     )
     const size = extent * 6
-    const epsilon = extent * 0.001
+    const epsilon = Math.max(extent * 0.01, 0.015)
 
     // Remove existing plane
     if (this._plane) {

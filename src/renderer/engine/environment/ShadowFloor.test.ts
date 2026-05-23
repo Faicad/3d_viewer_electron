@@ -53,7 +53,7 @@ describe('ShadowFloor', () => {
     // Centered in XZ, at lowest Y minus epsilon
     expect(plane.position.x).toBeCloseTo(0)
     expect(plane.position.z).toBeCloseTo(0)
-    // Lowest Y is -1, with small epsilon offset
+    // Lowest Y is -1, with epsilon offset
     expect(plane.position.y).toBeLessThan(-1)
     expect(plane.position.y).toBeGreaterThan(-1.1)
   })
@@ -67,6 +67,7 @@ describe('ShadowFloor', () => {
     // Centered in XY, at lowest Z minus epsilon
     expect(plane.position.x).toBeCloseTo(0)
     expect(plane.position.y).toBeCloseTo(0)
+    // Lowest Z is -1, with epsilon offset
     expect(plane.position.z).toBeLessThan(-1)
     expect(plane.position.z).toBeGreaterThan(-1.1)
   })

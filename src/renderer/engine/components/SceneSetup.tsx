@@ -154,7 +154,8 @@ export default function SceneSetup() {
 
   const dirLightRef = useRef<THREE.DirectionalLight>(null)
 
-  // Dynamically size the shadow camera frustum to match the model
+  // Dynamically size the shadow camera frustum to match the model.
+  // Keep a generous minimum so tiny models still get usable shadow-map coverage.
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state) => {
       const bbox = state.modelBbox
@@ -165,7 +166,9 @@ export default function SceneSetup() {
         bbox[4] - bbox[1],
         bbox[5] - bbox[2],
       )
-      const half = Math.max(extent * 3, 0.5)
+      // Scale frustum so the shadow extends well beyond the model footprint,
+      // with a minimum of ±3 so the ortho depth range stays balanced.
+      const half = Math.max(extent * 4, 3)
       light.shadow.camera.left = -half
       light.shadow.camera.right = half
       light.shadow.camera.top = half
