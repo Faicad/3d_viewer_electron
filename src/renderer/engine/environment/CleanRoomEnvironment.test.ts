@@ -9,10 +9,10 @@ describe('CleanRoomEnvironment', () => {
     env.dispose()
   })
 
-  it('scene position.y is -3.5 and rotation.y is 45°', () => {
+  it('scene position.y is 0 and rotation.y is 0°', () => {
     const env = new CleanRoomEnvironment()
-    expect(env.position.y).toBeCloseTo(-3.5, 1)
-    expect(env.rotation.y).toBeCloseTo((45 * Math.PI) / 180, 4)
+    expect(env.position.y).toBeCloseTo(0, 1)
+    expect(env.rotation.y).toBeCloseTo(0, 4)
     env.dispose()
   })
 

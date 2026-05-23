@@ -22,8 +22,8 @@ class CleanRoomEnvironment extends Scene {
     super()
 
     this.name = 'CleanRoomEnvironment'
-    this.position.y = -3.5
-    this.rotation.y = (45 * Math.PI) / 180
+    this.position.y = 0
+    this.rotation.y = 0
 
     const geometry = new BoxGeometry()
     geometry.deleteAttribute('uv')

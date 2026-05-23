@@ -38,7 +38,7 @@ const fragmentShader = /* glsl */ `
 export class ShadowMaskEffect extends Effect {
   private _lightDir = new THREE.Vector3()
 
-  constructor(lightDirection: THREE.Vector3 = new THREE.Vector3(0.3, -0.8, 0.5)) {
+  constructor(lightDirection: THREE.Vector3 = new THREE.Vector3(0.3, -0.5, 0.8)) {
     super('ShadowMaskEffect', fragmentShader, {
       uniforms: new Map([
         ['lightDirection', new THREE.Uniform(lightDirection.clone())],

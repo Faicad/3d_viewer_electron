@@ -40,7 +40,7 @@ export default function SceneSetup() {
       if (cancelled) return
       const rot = useEngineStore.getState().envRotation
       scene.environment = tex
-      scene.environmentRotation.set(0, rot, 0)
+      scene.environmentRotation.set(-Math.PI / 2, 0, rot, 'YXZ')
       scene.environmentIntensity = useEngineStore.getState().envIntensity
       mgr.applyBackground(scene, rot)
     })
@@ -50,7 +50,7 @@ export default function SceneSetup() {
   // envRotation-only: update the Euler without re-loading the texture
   useEffect(() => {
     if (!scene.environment) return
-    scene.environmentRotation.set(0, envRotation, 0)
+    scene.environmentRotation.set(-Math.PI / 2, 0, envRotation, 'YXZ')
     envRef.current?.setBackgroundRotation(scene, envRotation)
   }, [envRotation, scene])
 
@@ -80,7 +80,7 @@ export default function SceneSetup() {
   useEffect(() => {
     const unsub = useEngineStore.subscribe((s) => s.modelBbox, (bbox) => {
       if (!bbox || !shadowFloorRef.current) return
-      shadowFloorRef.current.configure(bbox, 'y')
+      shadowFloorRef.current.configure(bbox, 'z')
     }, { fireImmediately: true })
     return unsub
   }, [scene])
@@ -105,7 +105,7 @@ export default function SceneSetup() {
         mgr.setEnvironment(env, use4k).then((tex) => {
           if (cancelled) return
           scene.environment = tex
-          scene.environmentRotation.set(0, useEngineStore.getState().envRotation, 0)
+          scene.environmentRotation.set(-Math.PI / 2, 0, useEngineStore.getState().envRotation, 'YXZ')
           scene.environmentIntensity = useEngineStore.getState().envIntensity
           mgr.applyBackground(scene, useEngineStore.getState().envRotation)
         })
@@ -126,7 +126,7 @@ export default function SceneSetup() {
 
   return (
     <directionalLight
-      color="#FFFFFF" intensity={0.8} position={[5, 5, 10]}
+      color="#FFFFFF" intensity={0.8} position={[5, 0, 10]}
       castShadow
       shadow-mapSize-width={1024} shadow-mapSize-height={1024}
       shadow-camera-near={0.5} shadow-camera-far={500}
