@@ -20,7 +20,7 @@ export function computeShadowFrustum(
     bbox[5] - bbox[2],
   )
 
-  const half = Math.max(extent * 4, 3)
+  const half = Math.max(extent * 3, 3)
 
   // Tighten near/far so the shadow map depth range is not wasted on empty space.
   // The old static near=0.5 / far=500 (ratio 1000:1) destroyed depth precision

@@ -178,7 +178,7 @@ export default function SceneSetup() {
       ref={dirLightRef}
       color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={[0, 0, 1]}
       castShadow
-      shadow-mapSize-width={1024} shadow-mapSize-height={1024}
+      shadow-mapSize-width={4096} shadow-mapSize-height={4096}
       shadow-camera-near={0.5} shadow-camera-far={500}
       shadow-bias={-0.001}
     />

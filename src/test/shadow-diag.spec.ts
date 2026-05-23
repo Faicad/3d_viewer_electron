@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { getElectronPath } from './utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
-const GLB = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
+const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_boss.glb'))
 
 test('shadow visibility diagnostic', async () => {
   test.setTimeout(90000)
@@ -24,8 +24,12 @@ test('shadow visibility diagnostic', async () => {
     { timeout: 15000 },
   ).catch(() => {})
 
-  // Wait for render
-  await page.waitForTimeout(1000)
+  // Wait for camera auto-fit to settle
+  await page.waitForFunction(() => {
+    const es = (window as any).__engineStore
+    if (!es) return false
+    return es.getState().__animActive === false || es.getState().__animActive === undefined
+  }, { timeout: 10000 }).catch(() => {})
 
   // Increase shadow opacity for better visibility
   await page.evaluate(() => {
@@ -33,7 +37,9 @@ test('shadow visibility diagnostic', async () => {
     es.getState().setShadowOpacity(0.9)
     es.getState().setEnvBackground('grey')
   })
-  await page.waitForTimeout(500)
+
+  // Wait a frame for shadow to render
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)))
 
   // --- Full shadow diagnostic ---
   const diag = await page.evaluate(() => {
@@ -146,7 +152,7 @@ test('shadow visibility diagnostic', async () => {
   // Take screenshot for visual inspection
   await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag.png') })
 
-  // --- Pixel-level shadow check ---
+  // --- Pixel-level shadow check (dense sampling, matches shadow-fit approach) ---
   const pixelCheck = await page.evaluate(() => {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement | null
     if (!canvas) return { err: 'no canvas' }
@@ -159,20 +165,6 @@ test('shadow visibility diagnostic', async () => {
     const ctx = offscreen.getContext('2d')!
     ctx.drawImage(canvas, 0, 0)
 
-    // Sample a grid of pixels in the lower-center region where shadows would fall
-    const samples: { x: number; y: number; r: number; g: number; b: number; brightness: number }[] = []
-    const startX = Math.floor(w * 0.3)
-    const endX = Math.floor(w * 0.7)
-    const startY = Math.floor(h * 0.5)
-    const endY = Math.floor(h * 0.9)
-
-    for (let x = startX; x < endX; x += Math.floor((endX - startX) / 8)) {
-      for (let y = startY; y < endY; y += Math.floor((endY - startY) / 8)) {
-        const px = ctx.getImageData(x, y, 1, 1).data
-        samples.push({ x, y, r: px[0], g: px[1], b: px[2], brightness: (px[0] + px[1] + px[2]) / 3 })
-      }
-    }
-
     // Background reference: sample corners
     const cornerPixels: number[] = []
     for (const [cx, cy] of [[10, 10], [w - 10, 10], [10, h - 10], [w - 10, h - 10]]) {
@@ -180,15 +172,36 @@ test('shadow visibility diagnostic', async () => {
       cornerPixels.push((px[0] + px[1] + px[2]) / 3)
     }
     const bgBrightness = cornerPixels.reduce((a, b) => a + b, 0) / cornerPixels.length
+    const threshold = bgBrightness * 0.7
 
-    const minBrightness = Math.min(...samples.map(s => s.brightness))
-    const maxBrightness = Math.max(...samples.map(s => s.brightness))
-    const hasDarkPixels = samples.some(s => s.brightness < bgBrightness * 0.7)
+    // Dense sampling over the lower-center region
+    let darkCount = 0
+    const all: number[] = []
+    for (let x = Math.floor(w * 0.25); x < w * 0.75; x += 2) {
+      for (let y = Math.floor(h * 0.5); y < h; y += 2) {
+        const px = ctx.getImageData(x, y, 1, 1).data
+        const b = (px[0] + px[1] + px[2]) / 3
+        all.push(b)
+        if (b < threshold) darkCount++
+      }
+    }
+    let histMin = 255
+    const hist = [0, 0, 0, 0, 0]
+    for (const b of all) {
+      if (b < histMin) histMin = b
+      if (b < 50) hist[0]++
+      else if (b < 100) hist[1]++
+      else if (b < 150) hist[2]++
+      else if (b < 200) hist[3]++
+      else hist[4]++
+    }
+    const minBrightness = histMin
+    const hasDarkPixels = darkCount > 50
 
-    return { samples, bgBrightness, minBrightness, maxBrightness, hasDarkPixels }
+    return { bgBrightness, darkCount, sampleCount: all.length, minBrightness, brightnessHistogram: hist, hasDarkPixels }
   })
 
-  console.log('PIXEL SAMPLES:', JSON.stringify(pixelCheck, null, 2))
+  console.log('PIXEL CHECK:', JSON.stringify(pixelCheck, null, 2))
 
   // Basic assertions
   test.expect(diag.shadowMapEnabled, 'shadowMap should be enabled').toBe(true)
@@ -210,9 +223,9 @@ test('shadow visibility diagnostic', async () => {
 
   // Verify shadow pixels exist (darker regions below the model)
   console.log(`\nBackground brightness: ${pixelCheck.bgBrightness.toFixed(0)}`)
-  console.log(`Sample min brightness: ${pixelCheck.minBrightness.toFixed(0)}`)
-  console.log(`Sample max brightness: ${pixelCheck.maxBrightness.toFixed(0)}`)
-  console.log(`Has dark pixels (shadow): ${pixelCheck.hasDarkPixels}`)
+  console.log(`Dark pixels: ${pixelCheck.darkCount}/${pixelCheck.sampleCount}`)
+  console.log(`Min brightness: ${pixelCheck.minBrightness.toFixed(0)}`)
+  console.log(`Brightness histogram: ${JSON.stringify(pixelCheck.brightnessHistogram)}`)
 
   test.expect(pixelCheck.hasDarkPixels, 'should have dark pixels indicating shadows on the ground').toBe(true)
 

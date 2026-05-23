@@ -46,8 +46,11 @@ test('procedural studio shows room box with lights when rotated', async () => {
     es.getState().setEnvBackground('environment')
     es.getState().setSelectedEnv('studio')
   })
-  // Wait for R3F to re-render with the new environment + background
-  await page.waitForTimeout(500)
+  // Wait until scene.background is set to a texture (env has loaded + applied)
+  await page.waitForFunction(() => {
+    const bg = (window as any).__r3f_dev?.scene?.background
+    return bg && bg.isTexture
+  }, { timeout: 10000 })
 
   // --- Verify scene state ---
   const state0 = await page.evaluate(() => {
@@ -80,7 +83,11 @@ test('procedural studio shows room box with lights when rotated', async () => {
     const es = (window as any).__engineStore
     es.getState().setEnvRotation(Math.PI / 2) // 90°
   })
-  await page.waitForTimeout(500)
+  // Wait until scene.environmentRotation.z reflects the new value
+  await page.waitForFunction(() => {
+    const rz = (window as any).__r3f_dev?.scene?.environmentRotation?.z
+    return Math.abs(rz - Math.PI / 2) < 0.01
+  }, { timeout: 5000 })
 
   // Take screenshot at rotation 90
   const shot1 = await page.screenshot()
