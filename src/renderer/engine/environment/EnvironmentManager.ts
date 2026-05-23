@@ -28,6 +28,8 @@ export class EnvironmentManager {
   private _renderer: THREE.WebGLRenderer
   private _pmrem: THREE.PMREMGenerator
   private _cache = new Map<string, THREE.Texture>()
+  /** Caches equirectangular textures for background display (keyed by source). */
+  private _bgCache = new Map<string, THREE.Texture>()
   private _inflight = new Map<string, Promise<THREE.Texture>>()
   private _cleanRoomTex: THREE.Texture | null = null
   private _currentTex: THREE.Texture | null = null
@@ -78,17 +80,19 @@ export class EnvironmentManager {
     // Tier 1 sentinel
     if (source === CLEANROOM_KEY || source === 'studio') {
       this._currentTex = this._getOrCreateCleanRoom()
-      if (this._currentBgTex) { this._currentBgTex.dispose(); this._currentBgTex = null }
+      this._currentBgTex = null
       return this._currentTex
     }
 
     // Resolve preset ID → CDN URL (or use source as raw URL if not a known preset)
     const url = this._resolveSource(source, use4k)
 
-    // Cache hit
+    // Cache hit — restore both PMREM and equirectangular background
     const cached = this._cache.get(source)
     if (cached) {
       this._currentTex = cached
+      const cachedBg = this._bgCache.get(source)
+      if (cachedBg) this._currentBgTex = cachedBg
       return cached
     }
 
@@ -110,6 +114,9 @@ export class EnvironmentManager {
     try {
       const tex = await promise
       this._cache.set(source, tex)
+      if (this._currentBgTex) {
+        this._bgCache.set(source, this._currentBgTex)
+      }
       this._currentTex = tex
       return tex
     } catch {
@@ -133,6 +140,9 @@ export class EnvironmentManager {
   /**
    * Apply the current background mode to *scene*.
    * Call this whenever the mode or the active environment changes.
+   *
+   * Only replaces `scene.background` when the texture/mode actually changes.
+   * Rotation-only updates should use `setBackgroundRotation` instead.
    */
   applyBackground(scene: THREE.Scene, envRotation: number): void {
     switch (this._backgroundMode) {
@@ -150,9 +160,8 @@ export class EnvironmentManager {
         break
       case 'environment':
         if (this._currentBgTex) {
-          const bgTex = this._currentBgTex.clone()
-          scene.background = bgTex
-          scene.backgroundRotation = new THREE.Euler(0, envRotation, 0, 'YXZ')
+          scene.background = this._currentBgTex
+          scene.backgroundRotation.set(0, envRotation, 0, 'YXZ')
         } else {
           // CleanRoom has no equirect source — fall back to gradient
           scene.background = this._createGradientBg()
@@ -161,6 +170,13 @@ export class EnvironmentManager {
       case 'transparent':
         scene.background = null
         break
+    }
+  }
+
+  /** Update only the background rotation without replacing the texture. */
+  setBackgroundRotation(scene: THREE.Scene, envRotation: number): void {
+    if (this._backgroundMode === 'environment' && scene.background instanceof THREE.Texture) {
+      scene.backgroundRotation.set(0, envRotation, 0, 'YXZ')
     }
   }
 
@@ -173,15 +189,15 @@ export class EnvironmentManager {
   // ---------------------------------------------------------------------------
 
   dispose(): void {
-    for (const tex of this._cache.values()) {
-      tex.dispose()
-    }
+    for (const tex of this._cache.values()) tex.dispose()
     this._cache.clear()
+    for (const tex of this._bgCache.values()) tex.dispose()
+    this._bgCache.clear()
     this._inflight.clear()
     this._pmrem.dispose()
     this._cleanRoomTex = null
     this._currentTex = null
-    if (this._currentBgTex) { this._currentBgTex.dispose(); this._currentBgTex = null }
+    this._currentBgTex = null
     this._rgbeLoader = null
   }
 
@@ -219,9 +235,8 @@ export class EnvironmentManager {
     ])
 
     const rt = this._pmrem.fromEquirectangular(equirectTex)
-    // Keep the original equirectangular texture for background display;
-    // the PMREM result (rt.texture) is used for IBL lighting only.
-    if (this._currentBgTex) this._currentBgTex.dispose()
+    // The equirectangular source is kept for background display (cached in _bgCache).
+    // PMREM result (rt.texture) is used for IBL lighting only.
     this._currentBgTex = equirectTex
     return rt.texture
   }
@@ -231,7 +246,11 @@ export class EnvironmentManager {
       this._rgbeLoader = new RGBELoader()
       this._rgbeLoader.setDataType(THREE.HalfFloatType)
     }
-    return this._rgbeLoader.loadAsync(url)
+    return this._rgbeLoader.loadAsync(url).then((tex) => {
+      // HDRLoader does not set mapping — must be set explicitly for 360° background
+      tex.mapping = THREE.EquirectangularReflectionMapping
+      return tex
+    })
   }
 
   // ---------------------------------------------------------------------------

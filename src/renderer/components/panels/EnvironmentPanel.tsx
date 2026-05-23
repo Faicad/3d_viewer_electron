@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { useUIStore } from '@/stores/ui-store'
 import { useEngineStore } from '@/stores/engine-store'
 import { getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { HDR_PRESETS } from '@/engine/environment/hdrPresets'

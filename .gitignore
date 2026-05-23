@@ -30,4 +30,5 @@ build/
 release/
 out/
 *.hdr
+!src/renderer/public/env/*.hdr
 docs/outdated/

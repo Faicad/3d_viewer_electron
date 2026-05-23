@@ -108,7 +108,7 @@ describe('EnvironmentManager', () => {
   it('_resolveSource maps "studio_small_08" preset to local path', () => {
     const mgr = new EnvironmentManager(renderer)
     const url = mgr._resolveSource('studio_small_08', false)
-    expect(url).toBe('/env/studio_small_08_2k.hdr')
+    expect(url).toBe('./env/studio_small_08_2k.hdr')
     mgr.dispose()
   })
 

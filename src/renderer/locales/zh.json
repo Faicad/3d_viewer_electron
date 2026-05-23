@@ -14,7 +14,7 @@
   "toolbar.fullscreen": "全屏",
   "toolbar.modelInfo": "模型信息",
   "toolbar.history": "历史模型",
-  "toolbar.environment": "环境设置",
+  "toolbar.environment": "渲染设置",
   "history.title": "历史模型",
   "history.empty": "暂无历史模型",
   "history.loadingMore": "加载更多...",

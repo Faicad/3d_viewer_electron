@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useMaterialStore } from '@/stores/material-store'
 import type { MaterialAppearance } from '@/engine/material/types'
 import { MATERIAL_PRESETS, MATERIAL_PRESET_NAMES } from '@/engine/material/presets'
@@ -117,8 +116,6 @@ function SectionLabel({ label }: { label: string }) {
 // ---- main component ----
 
 export default function MaterialEditor() {
-  const { t } = useTranslation()
-
   const visible = useMaterialStore((s) => s.materialEditorVisible)
   const position = useMaterialStore((s) => s.materialEditorPosition)
   const editingKeys = useMaterialStore((s) => s.editingOverrideKeys)

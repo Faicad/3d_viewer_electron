@@ -38,21 +38,28 @@ export default function SceneSetup() {
     const use4k = useEngineStore.getState().use4kEnvMaps
     mgr.setEnvironment(selectedEnv, use4k).then((tex) => {
       if (cancelled) return
+      const rot = useEngineStore.getState().envRotation
       scene.environment = tex
-      scene.environmentRotation = envRotation
+      scene.environmentRotation.set(0, rot, 0)
       scene.environmentIntensity = useEngineStore.getState().envIntensity
-      // Re-apply background so it picks up the new equirectangular texture
-      mgr.applyBackground(scene, envRotation)
+      mgr.applyBackground(scene, rot)
     })
     return () => { cancelled = true }
-  }, [selectedEnv, envRotation, scene])
+  }, [selectedEnv, scene])
+
+  // envRotation-only: update the Euler without re-loading the texture
+  useEffect(() => {
+    if (!scene.environment) return
+    scene.environmentRotation.set(0, envRotation, 0)
+    envRef.current?.setBackgroundRotation(scene, envRotation)
+  }, [envRotation, scene])
 
   useEffect(() => {
     const mgr = envRef.current
     if (!mgr) return
     mgr.setBackgroundMode(envBackground as Parameters<EnvironmentManager['setBackgroundMode']>[0])
     mgr.applyBackground(scene, envRotation)
-  }, [envBackground, envRotation, scene])
+  }, [envBackground, scene])
 
   useEffect(() => {
     const unsub = useEngineStore.subscribe(
@@ -78,7 +85,7 @@ export default function SceneSetup() {
     return unsub
   }, [scene])
   useEffect(() => {
-    const unsub = useEngineStore.subscribe((s) => s.shadowFloorEnabled, (v) => { shadowFloorRef.current?.setEnabled(v) })
+    const unsub = useEngineStore.subscribe((s) => s.shadowFloorEnabled, (v) => { shadowFloorRef.current?.setEnabled(v) }, { fireImmediately: true })
     return unsub
   }, [])
   useEffect(() => {
@@ -98,7 +105,7 @@ export default function SceneSetup() {
         mgr.setEnvironment(env, use4k).then((tex) => {
           if (cancelled) return
           scene.environment = tex
-          scene.environmentRotation = useEngineStore.getState().envRotation
+          scene.environmentRotation.set(0, useEngineStore.getState().envRotation, 0)
           scene.environmentIntensity = useEngineStore.getState().envIntensity
           mgr.applyBackground(scene, useEngineStore.getState().envRotation)
         })

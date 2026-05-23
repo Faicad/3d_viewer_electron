@@ -21,7 +21,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Palette, Copy, ClipboardPaste,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -529,7 +529,7 @@ export default function DesktopLayout() {
               onClick={ui.toggleEnvironmentPanel}
               aria-label={t('toolbar.environment')}
             >
-              <Palette className="h-4 w-4" />
+              <Sun className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.environment')}</TooltipContent>
