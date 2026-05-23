@@ -8,11 +8,6 @@ const mockComposerSetSize = vi.fn()
 const mockGetRenderer = vi.fn()
 const mockSmaaSetEnabled = vi.fn()
 const mockToneMappingSetMode = vi.fn()
-const mockN8aoDispose = vi.fn()
-const mockN8aoSetSize = vi.fn()
-const mockSetQualityMode = vi.fn()
-
-let mockN8aoConfig: Record<string, unknown> = {}
 
 // Postprocessing mocks must be constructors
 class MockEffectComposer {
@@ -52,27 +47,6 @@ vi.mock('postprocessing', () => ({
   ToneMappingMode: { NEUTRAL: 0, ACES_FILMIC: 1, LINEAR: 2 },
   Effect: vi.fn(),
   EffectAttribute: { NONE: 0 },
-}))
-
-class MockN8AOPostPass {
-  configuration = mockN8aoConfig
-  dispose = mockN8aoDispose
-  setSize = mockN8aoSetSize
-  setQualityMode = mockSetQualityMode
-}
-
-vi.mock('n8ao', () => ({
-  N8AOPostPass: vi.fn().mockImplementation(function (this: MockN8AOPostPass) {
-    mockN8aoConfig = {
-      aoRadius: 0,
-      distanceFalloff: 0,
-      intensity: 0,
-      halfRes: false,
-      depthAwareUpsampling: false,
-      gammaCorrection: false,
-    }
-    Object.assign(this, new MockN8AOPostPass())
-  }),
 }))
 
 import * as THREE from 'three'
@@ -154,63 +128,10 @@ describe('AdaptiveComposer', () => {
   })
 
   // ---------------------------------------------------------------------------
-  // Interaction degradation
-  // ---------------------------------------------------------------------------
-
-  it('onInteractionStart sets interacting flag', () => {
-    composer.enableSsao(scene, camera)
-    composer.onInteractionStart()
-    expect(mockRemovePass).toHaveBeenCalled()
-  })
-
-  it('onInteractionEnd re-inserts SSAO after 300ms', async () => {
-    vi.useFakeTimers()
-    composer.enableSsao(scene, camera)
-    composer.onInteractionStart()
-    mockAddPass.mockClear()
-
-    composer.onInteractionEnd()
-    expect(mockAddPass).not.toHaveBeenCalled()
-
-    vi.advanceTimersByTime(300)
-    expect(mockAddPass).toHaveBeenCalled()
-    vi.useRealTimers()
-  })
-
-  it('onInteractionStart cancels pending re-insert timeout', async () => {
-    vi.useFakeTimers()
-    composer.enableSsao(scene, camera)
-    composer.onInteractionStart()
-    composer.onInteractionEnd()
-    mockAddPass.mockClear()
-
-    composer.onInteractionStart()
-    vi.advanceTimersByTime(300)
-    expect(mockAddPass).not.toHaveBeenCalled()
-    vi.useRealTimers()
-  })
-
-  // ---------------------------------------------------------------------------
-  // N8AO configuration
-  // ---------------------------------------------------------------------------
-
-  it('enableSsao creates N8AOPostPass with correct config', () => {
-    composer.enableSsao(scene, camera)
-    expect(mockN8aoConfig.aoRadius).toBe(2.0)
-    expect(mockN8aoConfig.distanceFalloff).toBe(0.5)
-    expect(mockN8aoConfig.intensity).toBe(1.5)
-    expect(mockN8aoConfig.halfRes).toBe(true)
-    expect(mockN8aoConfig.depthAwareUpsampling).toBe(true)
-    expect(mockN8aoConfig.gammaCorrection).toBe(false)
-    expect(mockSetQualityMode).toHaveBeenCalledWith('Medium')
-  })
-
-  // ---------------------------------------------------------------------------
   // Dispose
   // ---------------------------------------------------------------------------
 
-  it('dispose cleans up composer and N8AO pass', () => {
-    composer.enableSsao(scene, camera)
+  it('dispose cleans up composer', () => {
     composer.dispose()
     expect(mockComposerDispose).toHaveBeenCalled()
   })

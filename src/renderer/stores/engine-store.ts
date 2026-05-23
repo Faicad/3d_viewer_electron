@@ -43,8 +43,6 @@ interface EngineStore {
   // ---------------------------------------------------------------------------
   smaaEnabled: boolean
   setSmaaEnabled: (v: boolean) => void
-  aoIntensity: number
-  setAoIntensity: (v: number) => void
   shadowIntensity: number
   setShadowIntensity: (v: number) => void
   shadowSoftness: number
@@ -96,8 +94,6 @@ export const useEngineStore = create<EngineStore>((set) => ({
   // Post-processing defaults
   smaaEnabled: true,
   setSmaaEnabled: (v) => set({ smaaEnabled: v }),
-  aoIntensity: 0,
-  setAoIntensity: (v) => set({ aoIntensity: v }),
   shadowIntensity: 80,
   setShadowIntensity: (v) => set({ shadowIntensity: v }),
   shadowSoftness: 80,

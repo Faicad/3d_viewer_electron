@@ -78,7 +78,6 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const envRotation = useEngineStore((s) => s.envRotation)
   const selectedEnv = useEngineStore((s) => s.selectedEnv)
   const smaaEnabled = useEngineStore((s) => s.smaaEnabled)
-  const aoIntensity = useEngineStore((s) => s.aoIntensity)
   const shadowIntensity = useEngineStore((s) => s.shadowIntensity)
   const shadowSoftness = useEngineStore((s) => s.shadowSoftness)
   const shadowFloorEnabled = useEngineStore((s) => s.shadowFloorEnabled)
@@ -89,7 +88,6 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const setEnvRotation = useEngineStore((s) => s.setEnvRotation)
   const setSelectedEnv = useEngineStore((s) => s.setSelectedEnv)
   const setSmaaEnabled = useEngineStore((s) => s.setSmaaEnabled)
-  const setAoIntensity = useEngineStore((s) => s.setAoIntensity)
   const setShadowIntensity = useEngineStore((s) => s.setShadowIntensity)
   const setShadowSoftness = useEngineStore((s) => s.setShadowSoftness)
   const setShadowFloorEnabled = useEngineStore((s) => s.setShadowFloorEnabled)
@@ -149,13 +147,6 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
           <SectionHeader label="Post Processing" />
           <div className="mt-1.5 space-y-2">
             <ToggleRow label="SMAA Antialiasing" checked={smaaEnabled} onChange={setSmaaEnabled} />
-
-            <SliderRow
-              label="AO Intensity"
-              value={aoIntensity}
-              min={0} max={30} step={1}
-              onChange={(v) => setAoIntensity(v)}
-            />
 
             <SliderRow
               label="Shadow Intensity"
