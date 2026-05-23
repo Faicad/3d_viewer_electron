@@ -29,4 +29,5 @@ test-results/
 build/
 release/
 out/
+*.hdr
 docs/outdated/

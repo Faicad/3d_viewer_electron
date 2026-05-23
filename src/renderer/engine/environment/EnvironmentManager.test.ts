@@ -105,23 +105,17 @@ describe('EnvironmentManager', () => {
   // HDR preset → URL resolution
   // -----------------------------------------------------------------------
 
-  it('_resolveSource maps "studio_small_08" preset to CDN URL', () => {
+  it('_resolveSource maps "studio_small_08" preset to local path', () => {
     const mgr = new EnvironmentManager(renderer)
     const url = mgr._resolveSource('studio_small_08', false)
-    expect(url).toContain('dl.polyhaven.org')
-    expect(url).toContain('studio_small_08')
-    expect(url).toContain('.hdr')
-    expect(url).toContain('/2k/')
+    expect(url).toBe('/env/studio_small_08_2k.hdr')
     mgr.dispose()
   })
 
-  it('_resolveSource maps "sunset_02" preset to CDN URL', () => {
+  it('_resolveSource returns unknown preset id as-is', () => {
     const mgr = new EnvironmentManager(renderer)
     const url = mgr._resolveSource('sunset_02', true)
-    expect(url).toContain('dl.polyhaven.org')
-    expect(url).toContain('sunset_02')
-    expect(url).toContain('.hdr')
-    expect(url).toContain('/4k/')
+    expect(url).toBe('sunset_02')
     mgr.dispose()
   })
 
