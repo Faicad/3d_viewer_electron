@@ -112,8 +112,9 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-2">
-        <div className="space-y-3">
+      <ScrollArea className="flex-1 py-2">
+        <div className="px-[6px] space-y-4">
+        <div className="bg-muted rounded-lg p-2 space-y-2">
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-muted-foreground">Env Preset</span>
             <select
@@ -144,70 +145,74 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        {/* Post Processing */}
-        <SectionHeader label="Post Processing" />
-        <div className="mt-2 space-y-3">
-          <ToggleRow label="SMAA Antialiasing" checked={smaaEnabled} onChange={setSmaaEnabled} />
+        <div className="bg-muted rounded-lg p-2">
+          <SectionHeader label="Post Processing" />
+          <div className="mt-1.5 space-y-2">
+            <ToggleRow label="SMAA Antialiasing" checked={smaaEnabled} onChange={setSmaaEnabled} />
 
-          <SliderRow
-            label="AO Intensity"
-            value={aoIntensity}
-            min={0} max={30} step={1}
-            onChange={(v) => setAoIntensity(v)}
-          />
+            <SliderRow
+              label="AO Intensity"
+              value={aoIntensity}
+              min={0} max={30} step={1}
+              onChange={(v) => setAoIntensity(v)}
+            />
 
-          <SliderRow
-            label="Shadow Intensity"
-            value={shadowIntensity}
-            min={0} max={100} step={1}
-            suffix="%"
-            onChange={(v) => setShadowIntensity(v)}
-          />
+            <SliderRow
+              label="Shadow Intensity"
+              value={shadowIntensity}
+              min={0} max={100} step={1}
+              suffix="%"
+              onChange={(v) => setShadowIntensity(v)}
+            />
 
-          <SliderRow
-            label="Shadow Softness"
-            value={shadowSoftness}
-            min={0} max={100} step={1}
-            suffix="%"
-            onChange={(v) => setShadowSoftness(v)}
-          />
-        </div>
-
-        {/* Shadow Floor */}
-        <SectionHeader label="Shadow Floor" />
-        <div className="mt-2 space-y-3">
-          <ToggleRow label="Enabled" checked={shadowFloorEnabled} onChange={setShadowFloorEnabled} />
-
-          <SliderRow
-            label="Opacity"
-            value={Math.round(shadowOpacity * 100)}
-            min={0} max={100} step={5}
-            suffix="%"
-            onChange={(v) => setShadowOpacity(v / 100)}
-          />
-        </div>
-
-        {/* Texture Mapping */}
-        <SectionHeader label="Texture Mapping" />
-        <div className="mt-2 space-y-3 pb-4">
-          <SliderRow
-            label="Anisotropy"
-            value={anisotropy}
-            min={1} max={16} step={1}
-            onChange={(v) => setAnisotropy(v)}
-          />
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Cached Textures</span>
-            <span className="text-xs text-foreground tabular-nums">{cachedCount}</span>
+            <SliderRow
+              label="Shadow Softness"
+              value={shadowSoftness}
+              min={0} max={100} step={1}
+              suffix="%"
+              onChange={(v) => setShadowSoftness(v)}
+            />
           </div>
+        </div>
 
-          <button
-            className="w-full rounded-md border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-            onClick={() => getSharedTextureCache().dispose()}
-          >
-            Clear Texture Cache
-          </button>
+        <div className="bg-muted rounded-lg p-2">
+          <SectionHeader label="Shadow Floor" />
+          <div className="mt-1.5 space-y-2">
+            <ToggleRow label="Enabled" checked={shadowFloorEnabled} onChange={setShadowFloorEnabled} />
+
+            <SliderRow
+              label="Opacity"
+              value={Math.round(shadowOpacity * 100)}
+              min={0} max={100} step={5}
+              suffix="%"
+              onChange={(v) => setShadowOpacity(v / 100)}
+            />
+          </div>
+        </div>
+
+        <div className="bg-muted rounded-lg p-2">
+          <SectionHeader label="Texture Mapping" />
+          <div className="mt-1.5 space-y-2">
+            <SliderRow
+              label="Anisotropy"
+              value={anisotropy}
+              min={1} max={16} step={1}
+              onChange={(v) => setAnisotropy(v)}
+            />
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Cached Textures</span>
+              <span className="text-xs text-foreground tabular-nums">{cachedCount}</span>
+            </div>
+
+            <button
+              className="w-full rounded-md border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={() => getSharedTextureCache().dispose()}
+            >
+              Clear Texture Cache
+            </button>
+          </div>
+        </div>
         </div>
       </ScrollArea>
     </div>
