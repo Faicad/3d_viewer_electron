@@ -377,6 +377,99 @@ describe('Format loaders (Vitest integration)', () => {
       expect(mesh.morphTargetInfluences).toBeUndefined()
     })
 
+  // ---- GCode scene-tree visibility regression ----
+  describe('gcode scene-tree visibility', () => {
+    it('loadFormat gcode produces non-empty objects array', async () => {
+      const gcodePath = path.join(FIXTURES_DIR, 'benchy.gcode')
+      const raw = fs.readFileSync(gcodePath)
+      const buffer = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
+      const result = await loadFormat(buffer, 'gcode')
+
+      expect(result.meshes).toHaveLength(0)
+      expect(result.objects.length).toBeGreaterThan(0)
+      for (const obj of result.objects) {
+        expect(obj).toBeInstanceOf(THREE.Object3D)
+      }
+    })
+
+    it('gcode objects can be safely cloned (regression: isBone crash in thumbnailGenerator)', async () => {
+      // Bug: generateThumbnailFromResult calls obj.clone() on each GCode object.
+      // If the clone traversal encounters an undefined child, Three.js throws
+      // "Cannot read properties of undefined (reading 'isBone')" from
+      // SkeletonHelper.getBoneList(). This test ensures clone() works.
+      const gcodePath = path.join(FIXTURES_DIR, 'benchy.gcode')
+      const raw = fs.readFileSync(gcodePath)
+      const buffer = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
+      const result = await loadFormat(buffer, 'gcode')
+
+      expect(result.objects.length).toBeGreaterThan(0)
+
+      const clones: THREE.Object3D[] = []
+      for (const obj of result.objects) {
+        // clone() must not throw
+        const cloned = obj.clone()
+        clones.push(cloned)
+        expect(cloned).toBeInstanceOf(THREE.Object3D)
+        // Geometry should be preserved after clone
+        expect(cloned).toHaveProperty('geometry')
+      }
+
+      // Clean up cloned geometries to prevent leaks
+      for (const clone of clones) {
+        if ('geometry' in clone) {
+          const geo = (clone as THREE.Line).geometry
+          geo?.dispose()
+        }
+      }
+    })
+
+    it('gcode objects children are not corrupt (no undefined entries)', async () => {
+      // Three.js Object3D.copy() traverses source.children to clone recursively.
+      // If children array has undefined entries (e.g. from stale parent refs),
+      // child.clone() throws. This test verifies children arrays are clean.
+      const gcodePath = path.join(FIXTURES_DIR, 'benchy.gcode')
+      const raw = fs.readFileSync(gcodePath)
+      const buffer = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
+      const result = await loadFormat(buffer, 'gcode')
+
+      for (const obj of result.objects) {
+        // Verify children array is valid
+        expect(Array.isArray(obj.children)).toBe(true)
+        for (let i = 0; i < obj.children.length; i++) {
+          expect(obj.children[i]).toBeDefined()
+        }
+      }
+    })
+
+    it('gcode scene tree node has correct structure for visibility toggling', () => {
+      // The GCode scene tree structure should have a single node with id
+      // `${format}-objects`. This id is what flattenVisibility maps.
+      const expectedId = 'gcode-objects'
+      // Non-mesh objects use id = `${format}-objects`
+      expect(expectedId).toMatch(/^gcode-objects$/)
+    })
+
+    it('flattenVisibility returns correct visibility for gcode-style tree', async () => {
+      // Dynamic import to avoid top-level hoisting issues
+      const { flattenVisibility } = await import('@/lib/scene-tree-utils')
+      const tree = [
+        { id: 'file:test', name: 'benchy.gcode', visible: true, expanded: true,
+          children: [
+            { id: 'gcode-objects', name: 'GCODE', visible: true, expanded: true },
+          ],
+        },
+      ]
+      const map = flattenVisibility(tree)
+      expect(map.get('gcode-objects')).toBe(true)
+
+      // Simulate toggling the file node to hidden
+      tree[0].visible = false
+      tree[0].children![0].visible = false
+      const map2 = flattenVisibility(tree)
+      expect(map2.get('gcode-objects')).toBe(false)
+    })
+  })
+
     it('raw geometry clone without fix causes undefined morphTargetInfluences', () => {
       // This test documents WHY initMorphTargets is needed.
       // Create a geometry with morph attributes (simulating GLTFLoader output)

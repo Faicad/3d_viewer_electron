@@ -178,6 +178,59 @@ function meshPartId(src: { userData?: { partId?: string }; name?: string }, inde
     expect(visMap.get(meshPartId)).toBe(false)
   })
 
+  describe('non-mesh format visibility (GCode / point-cloud)', () => {
+    it('flattenVisibility maps format-objects node id for gcode-style tree', () => {
+      // Non-mesh formats (GCode, PCD, XYZ, etc.) produce a single flat tree node
+      // with id `${format}-objects`. ModelGroup reads visibility from the map
+      // using this id to set the visible prop on <primitive> elements.
+      const tree: SceneTreeNode[] = [
+        { id: 'gcode-objects', name: 'GCODE', visible: true, expanded: true },
+      ]
+      const map = flattenVisibility(tree)
+      expect(map.get('gcode-objects')).toBe(true)
+    })
+
+    it('toggleNodeInTree sets non-mesh node to invisible', () => {
+      const tree: SceneTreeNode[] = [
+        { id: 'gcode-objects', name: 'GCODE', visible: true, expanded: true },
+      ]
+      const toggled = toggleNodeInTree(tree, 'gcode-objects', 'visible')
+      expect(toggled[0].visible).toBe(false)
+    })
+
+    it('flat non-mesh node visibility propagates through combined tree (file-level toggle)', () => {
+      // Simulates the full flow: file with non-mesh content gets hidden via
+      // the combined tree, then synced back to the file's sceneTree.
+      const fileTree: SceneTreeNode[] = [
+        { id: 'gcode-objects', name: 'GCODE', visible: true, expanded: true },
+      ]
+      const combined = buildCombinedTree([{ id: 'abc', name: 'benchy.gcode', tree: fileTree }])
+
+      // Toggle file-level node
+      const toggled = toggleNodeInTree(combined, 'file:abc', 'visible')
+
+      // Sync back to file tree (what syncCombinedToFiles does)
+      const synced = syncChildren(toggled, 'abc')
+      expect(synced[0].visible).toBe(false)
+
+      // flattenVisibility returns the correct visibility for the primitive
+      const visMap = flattenVisibility(synced)
+      expect(visMap.get('gcode-objects')).toBe(false)
+
+      // This is what ModelGroup would compute:
+      const nodeId = synced[0]?.id ?? 'gcode-objects'
+      const vis = visMap.get(nodeId) ?? true
+      expect(vis).toBe(false)
+    })
+
+    it('non-mesh node defaults to visible when id not in map', () => {
+      // If the tree is empty or id doesn't match, default to visible
+      const map = flattenVisibility([])
+      const vis = map.get('gcode-objects') ?? true
+      expect(vis).toBe(true)
+    })
+  })
+
   it('mesh partId is NOT in visibility map when IDs diverge (empty name case)', () => {
     // Simulate unnamed meshes: buildSceneTree used uuid, partIds use "part-N"
     // The visibility map won't contain the mesh partId.

@@ -455,10 +455,15 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   // Render non-mesh objects (GCode lines, BVH skeleton helper, etc.)
   if (objects.length > 0) {
+    // The scene tree for non-mesh formats has a single flat node whose id
+    // is `${format}-objects`.  Resolve visibility from the map so that the
+    // eye icon in the scene tree actually hides/shows the primitives.
+    const nodeId = sceneTree[0]?.id ?? (format ? `${format}-objects` : 'objects')
+    const vis = visibilityMap.get(nodeId) ?? true
     return (
       <group ref={ref as unknown as React.Ref<THREE.Group>}>
         {objects.map((obj, i) => (
-          <primitive key={i} object={obj} />
+          <primitive key={i} object={obj} visible={vis} />
         ))}
       </group>
     )

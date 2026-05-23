@@ -57,6 +57,48 @@ function setupLighting(scene: THREE.Scene): void {
   scene.add(dir3)
 }
 
+async function waitForTextures(root: THREE.Object3D, timeout = 3000): Promise<void> {
+  const textures: THREE.Texture[] = []
+  root.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) {
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
+      for (const mat of materials) {
+        if (!mat) continue
+        for (const key of Object.keys(mat)) {
+          const value = (mat as Record<string, unknown>)[key]
+          if (value instanceof THREE.Texture) {
+            textures.push(value)
+          }
+        }
+      }
+    }
+  })
+  if (textures.length === 0) return
+
+  return new Promise<void>((resolve) => {
+    const start = Date.now()
+    const poll = () => {
+      const allReady = textures.every((t) => {
+        const img = t.image
+        if (!img) return false
+        if (img instanceof HTMLImageElement) {
+          return img.complete
+        }
+        return true
+      })
+      if (allReady || Date.now() - start > timeout) {
+        for (const t of textures) {
+          t.needsUpdate = true
+        }
+        resolve()
+      } else {
+        requestAnimationFrame(poll)
+      }
+    }
+    requestAnimationFrame(poll)
+  })
+}
+
 function disposeScene(scene: THREE.Scene): void {
   scene.traverse((obj) => {
     if (obj instanceof THREE.Mesh) {
@@ -141,7 +183,14 @@ export async function generateThumbnailFromResult(
 
     const group = new THREE.Group()
     for (const obj of allObjects) {
-      group.add(obj.clone())
+      // Defensive: if the object's scene-graph state is corrupt (e.g. stale
+      // parent refs leaving undefined entries in children), clone() may throw.
+      // Skip the problematic object rather than failing the entire thumbnail.
+      try {
+        group.add(obj.clone())
+      } catch (e) {
+        console.warn('[thumbnailGenerator] clone failed for object, skipping:', e)
+      }
     }
     scene.add(group)
 
@@ -157,6 +206,7 @@ export async function generateThumbnailFromResult(
       camera.lookAt(0, 0, 0)
     }
 
+    await waitForTextures(group)
     r.render(scene, camera)
 
     const blob = await new Promise<Blob | null>((resolve) => {
