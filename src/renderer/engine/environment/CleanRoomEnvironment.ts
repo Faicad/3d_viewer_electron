@@ -50,19 +50,17 @@ export class CleanRoomEnvironment {
    */
   private _buildRoom(): void {
     const geom = new THREE.BoxGeometry(ROOM_SIZE, ROOM_HEIGHT, ROOM_SIZE)
+    // Emissive is REQUIRED for PMREM baking — without scene lights, only
+    // emissive contributes to the cubemap. Non-emissive walls render black.
+    const wall = (color: number, roughness: number, ei: number) =>
+      new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: ei, roughness, side: THREE.BackSide })
     const materials: THREE.MeshStandardMaterial[] = [
-      // +X (right wall)
-      new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.85, side: THREE.BackSide }),
-      // -X (left wall)
-      new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.85, side: THREE.BackSide }),
-      // +Y (ceiling)
-      new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.9, side: THREE.BackSide }),
-      // -Y (floor)
-      new THREE.MeshStandardMaterial({ color: 0xe8e4e0, roughness: 0.8, side: THREE.BackSide }),
-      // +Z (back wall)
-      new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.85, side: THREE.BackSide }),
-      // -Z (front wall)
-      new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.85, side: THREE.BackSide }),
+      wall(0xf0f0f0, 0.85, 0.8),  // +X right wall
+      wall(0xf0f0f0, 0.85, 0.8),  // -X left wall
+      wall(0xfafafa, 0.9,  1.2),  // +Y ceiling — brighter
+      wall(0xe8e4e0, 0.8,  0.6),  // -Y floor — warmer, dimmer
+      wall(0xf0f0f0, 0.85, 0.8),  // +Z back wall
+      wall(0xf0f0f0, 0.85, 0.8),  // -Z front wall
     ]
     const mesh = new THREE.Mesh(geom, materials)
     mesh.name = 'roomBox'

@@ -12,11 +12,14 @@ export interface HdrPreset {
   label: string
   /** Poly Haven slug used to build CDN URLs */
   slug: string
+  /** Optional local path (served from public/) — takes priority over CDN */
+  localPath?: string
 }
 
 const CDN_BASE = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr'
 
 export function getPresetUrl(preset: HdrPreset, use4k: boolean): string {
+  if (preset.localPath) return preset.localPath
   const res = use4k ? '4k' : '2k'
   return `${CDN_BASE}/${res}/${preset.slug}_${res}.hdr`
 }
@@ -27,6 +30,7 @@ export function getPresetUrl(preset: HdrPreset, use4k: boolean): string {
  */
 export const HDR_PRESETS: HdrPreset[] = [
   { id: 'studio',           label: 'Studio (Procedural)', slug: '' },   // Tier-1 sentinel
+  { id: 'empty_warehouse_01', label: 'Empty Warehouse 01', slug: 'empty_warehouse_01', localPath: '/env/empty_warehouse_01_2k.hdr' },
   { id: 'studio_small_08',  label: 'Studio Small 08',    slug: 'studio_small_08' },
   { id: 'studio_small_03',  label: 'Studio Small 03',    slug: 'studio_small_03' },
   { id: 'white_studio_05',  label: 'White Studio 05',    slug: 'white_studio_05' },

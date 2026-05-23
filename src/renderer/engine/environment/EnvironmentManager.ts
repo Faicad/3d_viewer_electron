@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 import { CleanRoomEnvironment } from './CleanRoomEnvironment'
+import { HDR_PRESETS, getPresetUrl } from './hdrPresets'
 
 export type BackgroundMode =
   | 'grey'
@@ -30,6 +31,8 @@ export class EnvironmentManager {
   private _inflight = new Map<string, Promise<THREE.Texture>>()
   private _cleanRoomTex: THREE.Texture | null = null
   private _currentTex: THREE.Texture | null = null
+  /** Original equirectangular texture kept for background display. */
+  private _currentBgTex: THREE.Texture | null = null
   private _backgroundMode: BackgroundMode = 'grey'
   private _rgbeLoader: RGBELoader | null = null
 
@@ -41,6 +44,11 @@ export class EnvironmentManager {
   /** The currently active PMREM environment texture. */
   get currentTexture(): THREE.Texture | null {
     return this._currentTex
+  }
+
+  /** The original equirectangular texture for background display, or null. */
+  get backgroundTexture(): THREE.Texture | null {
+    return this._currentBgTex
   }
 
   get backgroundMode(): BackgroundMode {
@@ -66,12 +74,16 @@ export class EnvironmentManager {
    *
    * Returns the PMREM texture that was applied (or the fallback on error).
    */
-  async setEnvironment(source: string): Promise<THREE.Texture> {
+  async setEnvironment(source: string, use4k = false): Promise<THREE.Texture> {
     // Tier 1 sentinel
     if (source === CLEANROOM_KEY || source === 'studio') {
       this._currentTex = this._getOrCreateCleanRoom()
+      if (this._currentBgTex) { this._currentBgTex.dispose(); this._currentBgTex = null }
       return this._currentTex
     }
+
+    // Resolve preset ID → CDN URL (or use source as raw URL if not a known preset)
+    const url = this._resolveSource(source, use4k)
 
     // Cache hit
     const cached = this._cache.get(source)
@@ -92,7 +104,7 @@ export class EnvironmentManager {
     }
 
     // Kick off a new load
-    const promise = this._loadWithTimeout(source)
+    const promise = this._loadWithTimeout(url)
     this._inflight.set(source, promise)
 
     try {
@@ -105,6 +117,13 @@ export class EnvironmentManager {
     } finally {
       this._inflight.delete(source)
     }
+  }
+
+  /** Convert a preset ID to its CDN URL, or return the input unchanged if it's a raw URL. */
+  _resolveSource(source: string, use4k = false): string {
+    const preset = HDR_PRESETS.find((p) => p.id === source && p.slug)
+    if (preset) return getPresetUrl(preset, use4k)
+    return source
   }
 
   // ---------------------------------------------------------------------------
@@ -130,12 +149,13 @@ export class EnvironmentManager {
         scene.background = this._createGradientBg()
         break
       case 'environment':
-        if (this._currentTex) {
-          // Clone so we can rotate independently for background
-          const bgTex = this._currentTex.clone()
-          bgTex.mapping = THREE.EquirectangularReflectionMapping
+        if (this._currentBgTex) {
+          const bgTex = this._currentBgTex.clone()
           scene.background = bgTex
-          scene.backgroundRotation = new THREE.Euler(0, envRotation, 0)
+          scene.backgroundRotation = new THREE.Euler(0, envRotation, 0, 'YXZ')
+        } else {
+          // CleanRoom has no equirect source — fall back to gradient
+          scene.background = this._createGradientBg()
         }
         break
       case 'transparent':
@@ -161,6 +181,7 @@ export class EnvironmentManager {
     this._pmrem.dispose()
     this._cleanRoomTex = null
     this._currentTex = null
+    if (this._currentBgTex) { this._currentBgTex.dispose(); this._currentBgTex = null }
     this._rgbeLoader = null
   }
 
@@ -198,7 +219,10 @@ export class EnvironmentManager {
     ])
 
     const rt = this._pmrem.fromEquirectangular(equirectTex)
-    equirectTex.dispose()
+    // Keep the original equirectangular texture for background display;
+    // the PMREM result (rt.texture) is used for IBL lighting only.
+    if (this._currentBgTex) this._currentBgTex.dispose()
+    this._currentBgTex = equirectTex
     return rt.texture
   }
 

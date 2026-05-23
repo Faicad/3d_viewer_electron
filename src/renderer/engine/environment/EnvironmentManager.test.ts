@@ -35,12 +35,13 @@ vi.mock('three', async () => {
   }
 })
 
-vi.mock('three/examples/jsm/loaders/RGBELoader.js', async () => {
-  const { Texture } = await vi.importActual<typeof import('three')>('three')
+vi.mock('three/examples/jsm/loaders/RGBELoader.js', () => {
+  // Minimal Texture-like object for mock — avoids importActual in sync context
+  const fakeTex = { isTexture: true, dispose: vi.fn(), uuid: 'mock-tex' }
   return {
     RGBELoader: vi.fn().mockImplementation(() => ({
       setDataType: vi.fn(),
-      loadAsync: vi.fn().mockResolvedValue(new Texture()),
+      loadAsync: vi.fn().mockResolvedValue(fakeTex),
     })),
   }
 })
@@ -96,7 +97,45 @@ describe('EnvironmentManager', () => {
     const mgr = new EnvironmentManager(renderer)
     const tex1 = await mgr.setEnvironment('studio')
     const tex2 = await mgr.setEnvironment('studio')
-    expect(tex2).toBe(tex1) // same reference from cache
+    expect(tex2).toBe(tex1)
+    mgr.dispose()
+  })
+
+  // -----------------------------------------------------------------------
+  // HDR preset → URL resolution
+  // -----------------------------------------------------------------------
+
+  it('_resolveSource maps "studio_small_08" preset to CDN URL', () => {
+    const mgr = new EnvironmentManager(renderer)
+    const url = mgr._resolveSource('studio_small_08', false)
+    expect(url).toContain('dl.polyhaven.org')
+    expect(url).toContain('studio_small_08')
+    expect(url).toContain('.hdr')
+    expect(url).toContain('/2k/')
+    mgr.dispose()
+  })
+
+  it('_resolveSource maps "sunset_02" preset to CDN URL', () => {
+    const mgr = new EnvironmentManager(renderer)
+    const url = mgr._resolveSource('sunset_02', true)
+    expect(url).toContain('dl.polyhaven.org')
+    expect(url).toContain('sunset_02')
+    expect(url).toContain('.hdr')
+    expect(url).toContain('/4k/')
+    mgr.dispose()
+  })
+
+  it('_resolveSource returns raw URL unchanged', () => {
+    const mgr = new EnvironmentManager(renderer)
+    const url = mgr._resolveSource('https://example.com/env.hdr')
+    expect(url).toBe('https://example.com/env.hdr')
+    mgr.dispose()
+  })
+
+  it('_resolveSource returns unknown string as-is', () => {
+    const mgr = new EnvironmentManager(renderer)
+    const url = mgr._resolveSource('some_unknown_key')
+    expect(url).toBe('some_unknown_key')
     mgr.dispose()
   })
 
@@ -141,7 +180,6 @@ describe('EnvironmentManager', () => {
     mgr.setBackgroundMode('environment')
     const scene = new THREE.Scene()
     mgr.applyBackground(scene, 0)
-    // Background should be set to a clone of the current env texture
     expect(scene.background).toBeInstanceOf(THREE.Texture)
     mgr.dispose()
   })

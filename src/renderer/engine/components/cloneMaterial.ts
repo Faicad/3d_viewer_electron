@@ -66,7 +66,7 @@ export function getMaterialColor(
 
   // For textured materials, fall back to a neutral grey rather than guessing
   // an average colour from pixel data.
-  if ('map' in target && (target as THREE.MeshStandardMaterial).map) return null
+  if ('map' in target && (target as THREE.MeshPhysicalMaterial).map) return null
 
   // MeshNormalMaterial — use a distinctive blue
   if (target instanceof THREE.MeshNormalMaterial) return '#4488ff'
@@ -115,7 +115,7 @@ function convertSingle(src: THREE.Material): THREE.Material {
 // ---------------------------------------------------------------------------
 
 function standardToPhysical(
-  src: THREE.MeshStandardMaterial,
+  src: THREE.MeshPhysicalMaterial,
 ): THREE.MeshPhysicalMaterial {
   const dst = new THREE.MeshPhysicalMaterial()
 

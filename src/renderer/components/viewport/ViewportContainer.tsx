@@ -470,9 +470,12 @@ export default function ViewportContainer() {
         shadows="accumulative"
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         onCreated={({ camera, scene, gl }) => {
+          gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
+          gl.shadowMap.needsUpdate = true
           useEngineStore.getState().setEngineObjects({ camera, scene, gl })
           window.__r3f_dev = { camera, scene, gl }
+          window.__engineStore = useEngineStore
         }}
       >
         <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !animActive} />

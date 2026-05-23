@@ -68,15 +68,15 @@ export const useEngineStore = create<EngineStore>((set) => ({
   setEnvIntensity: (v) => set({ envIntensity: v }),
   envRotation: 0,
   setEnvRotation: (v) => set({ envRotation: v }),
-  selectedEnv: 'studio',
+  selectedEnv: 'empty_warehouse_01',
   setSelectedEnv: (v) => set({ selectedEnv: v }),
-  envBackground: 'grey',
+  envBackground: 'environment',
   setEnvBackground: (v) => set({ envBackground: v }),
   use4kEnvMaps: false,
   setUse4kEnvMaps: (v) => set({ use4kEnvMaps: v }),
 
   // Shadow floor defaults
-  shadowFloorEnabled: false,
+  shadowFloorEnabled: true,
   setShadowFloorEnabled: (v) => set({ shadowFloorEnabled: v }),
   shadowOpacity: 0.5,
   setShadowOpacity: (v) => set({ shadowOpacity: v }),
