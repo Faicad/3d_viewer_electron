@@ -93,8 +93,11 @@ export class EnvironmentManager {
     //   sceneZ = INTERNAL_FLOOR_Y + position.y  ⇒  position.y = sceneZ - INTERNAL_FLOOR_Y
     let positionY = targetFloorZ - INTERNAL_FLOOR_Y
 
-    // Clamp so the capture point stays inside the room
-    positionY = Math.max(-2, Math.min(3, positionY))
+    // Keep the floor at least 0.15 units below the capture point so it is
+    // never clipped by the PMREM near plane (0.01).
+    //   floorY = INTERNAL_FLOOR_Y + positionY  <  -0.15
+    //   positionY  <  -0.15 - INTERNAL_FLOOR_Y  =  -0.15 + 0.9335  =  0.7835
+    positionY = Math.max(-2, Math.min(0.78, positionY))
 
     // Dispose previous clean-room texture
     if (this._cleanRoomTex) {
@@ -103,7 +106,7 @@ export class EnvironmentManager {
 
     const room = new CleanRoomEnvironment()
     room.position.y = positionY
-    const rt = this._pmrem.fromScene(room, 0, 0.1, 100, { size: 2048 })
+    const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: 2048 })
     this._cleanRoomTex = rt.texture
     this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
     this._currentTex = this._cleanRoomTex
@@ -261,7 +264,7 @@ export class EnvironmentManager {
   private _getOrCreateCleanRoom(): THREE.Texture {
     if (!this._cleanRoomTex) {
       const room = new CleanRoomEnvironment()
-      const rt = this._pmrem.fromScene(room, 0, 0.1, 100, { size: 2048 })
+      const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: 2048 })
       this._cleanRoomTex = rt.texture
       this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
       room.dispose()
