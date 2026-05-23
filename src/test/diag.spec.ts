@@ -2,8 +2,9 @@ import { test, _electron } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { getElectronPath } from './utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const EXE = path.join(__dirname, '..', '..', 'dist', 'win-unpacked', '3D_Viewer.exe')
+const EXE = getElectronPath()
 const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
 
 test('full IBL diagnostic', async () => {

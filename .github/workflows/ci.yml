@@ -49,8 +49,11 @@ jobs:
         if: runner.os == 'macOS'
         run: pnpm run build:unpacked:mac
 
-      - name: Unit tests
+      - name: Unit tests (node)
         run: pnpm exec vitest run
+
+      - name: Component & integration tests (jsdom)
+        run: pnpm exec vitest run --config vitest.jsdom.config.ts
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
