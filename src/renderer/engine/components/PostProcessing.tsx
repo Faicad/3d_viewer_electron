@@ -35,11 +35,11 @@ export default function PostProcessing() {
     composerRef.current?.setSize(size.width, size.height)
   }, [size.width, size.height])
 
-  // Render loop — frameloop="demand" means useFrame still fires but R3F
-  // skips its default render, so the composer is the sole renderer.
+  // Render loop — priority > 0 disables R3F's internal gl.render() so
+  // the composer is the sole renderer. State is still flushed each frame.
   useFrame((_, delta) => {
     composerRef.current?.render(delta)
-  })
+  }, 1)
 
   // Store subscriptions
   useEffect(() => {

@@ -466,7 +466,6 @@ export default function ViewportContainer() {
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
         style={{ width: '100%', height: '100%', background: canvasBackground }}
-        frameloop="demand"
         scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
         camera={{ fov: 50, near: 0.001, far: 10000, position: [5, -5, 3], up: [0, 0, 1] as [number, number, number] }}
         shadows="accumulative"
