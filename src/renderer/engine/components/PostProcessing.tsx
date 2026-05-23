@@ -21,12 +21,9 @@ export default function PostProcessing() {
       composer.enableSsao(scene, camera as THREE.PerspectiveCamera)
     }
     // Apply initial store values
-    composer.setSsaoEnabled(useEngineStore.getState().ssaoEnabled)
-    composer.setSmaaEnabled(useEngineStore.getState().smaaEnabled)
     const s = useEngineStore.getState()
-    composer.setShadowMaskEnabled(s.shadowIntensity > 0)
-    composer.setShadowMaskOpacity(s.shadowIntensity / 100)
-    composer.setShadowMaskSoftness(s.shadowSoftness / 100)
+    composer.setSsaoEnabled(s.aoIntensity > 0)
+    composer.setSmaaEnabled(s.smaaEnabled)
     composerRef.current = composer
     return () => {
       gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -51,12 +48,9 @@ export default function PostProcessing() {
     const unsub = useEngineStore.subscribe((state) => {
       const c = composerRef.current
       if (!c) return
-      c.setSsaoEnabled(state.ssaoEnabled)
+      c.setSsaoEnabled(state.aoIntensity > 0)
       c.setSmaaEnabled(state.smaaEnabled)
       c.setAoIntensity(state.aoIntensity)
-      c.setShadowMaskEnabled(state.shadowIntensity > 0)
-      c.setShadowMaskOpacity(state.shadowIntensity / 100)
-      c.setShadowMaskSoftness(state.shadowSoftness / 100)
     })
     return unsub
   }, [])

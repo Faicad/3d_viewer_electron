@@ -154,6 +154,7 @@ export default function SceneSetup() {
   }, [])
 
   const dirLightRef = useRef<THREE.DirectionalLight>(null)
+  const ambientRef = useRef<THREE.AmbientLight>(null)
 
   // Dynamically size the shadow camera frustum and near/far to match the model.
   useEffect(() => {
@@ -173,14 +174,41 @@ export default function SceneSetup() {
     return unsub
   }, [])
 
+  // Shadow softness: maps UI 0–100% to light.shadow.radius (0–5)
+  useEffect(() => {
+    const s = useEngineStore.getState()
+    const light = dirLightRef.current
+    if (light) light.shadow.radius = (s.shadowSoftness / 100) * 5
+    const unsub = useEngineStore.subscribe((state) => {
+      const l = dirLightRef.current
+      if (l) l.shadow.radius = (state.shadowSoftness / 100) * 5
+    })
+    return unsub
+  }, [])
+
+  // Shadow intensity: maps UI 0–100% to ambient light (inverse, 0–0.3)
+  useEffect(() => {
+    const s = useEngineStore.getState()
+    const ambient = ambientRef.current
+    if (ambient) ambient.intensity = (1 - s.shadowIntensity / 100) * 0.3
+    const unsub = useEngineStore.subscribe((state) => {
+      const a = ambientRef.current
+      if (a) a.intensity = (1 - state.shadowIntensity / 100) * 0.3
+    })
+    return unsub
+  }, [])
+
   return (
-    <directionalLight
-      ref={dirLightRef}
-      color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={[0, 0, 1]}
-      castShadow
-      shadow-mapSize-width={4096} shadow-mapSize-height={4096}
-      shadow-camera-near={0.5} shadow-camera-far={500}
-      shadow-bias={-0.001}
-    />
+    <>
+      <directionalLight
+        ref={dirLightRef}
+        color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={[0, 0, 1]}
+        castShadow
+        shadow-mapSize-width={4096} shadow-mapSize-height={4096}
+        shadow-camera-near={0.5} shadow-camera-far={500}
+        shadow-bias={-0.001}
+      />
+      <ambientLight ref={ambientRef} color="#FFFFFF" intensity={0.15} />
+    </>
   )
 }

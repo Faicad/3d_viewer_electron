@@ -41,8 +41,6 @@ interface EngineStore {
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
-  ssaoEnabled: boolean
-  setSsaoEnabled: (v: boolean) => void
   smaaEnabled: boolean
   setSmaaEnabled: (v: boolean) => void
   aoIntensity: number
@@ -96,8 +94,6 @@ export const useEngineStore = create<EngineStore>((set) => ({
   setModelBbox: (b) => set({ modelBbox: b }),
 
   // Post-processing defaults
-  ssaoEnabled: false,
-  setSsaoEnabled: (v) => set({ ssaoEnabled: v }),
   smaaEnabled: true,
   setSmaaEnabled: (v) => set({ smaaEnabled: v }),
   aoIntensity: 5,

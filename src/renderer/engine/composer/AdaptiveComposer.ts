@@ -8,17 +8,16 @@ import {
   ToneMappingMode,
 } from 'postprocessing'
 import { N8AOPostPass } from 'n8ao'
-import { ShadowMaskEffect } from './ShadowMaskEffect'
 
 /**
  * Adaptive post-processing composer.
  *
- * Pass chain: RenderPass → N8AOPostPass (SSAO) → EffectPass (ShadowMask + ToneMapping + SMAA)
+ * Pass chain: RenderPass → N8AOPostPass (SSAO) → EffectPass (ToneMapping + SMAA)
  *
  * Features:
  * - HalfFloat FBO for HDR tone mapping
  * - SSAO pauses during camera interaction, resumes 300 ms after idle
- * - SMAA, SSAO and ShadowMask can be toggled at runtime
+ * - SMAA and SSAO can be toggled at runtime
  */
 export class AdaptiveComposer {
   private _composer: EffectComposer
@@ -26,7 +25,6 @@ export class AdaptiveComposer {
   private _n8aoPass: N8AOPostPass | null = null
   private _toneMapping: ToneMappingEffect
   private _smaa: SMAAEffect
-  private _shadowMask: ShadowMaskEffect
   private _effectPass: EffectPass
 
   private _interactionTimeout: ReturnType<typeof setTimeout> | null = null
@@ -34,7 +32,6 @@ export class AdaptiveComposer {
 
   private _ssaoEnabled = true
   private _smaaEnabled = true
-  private _shadowEnabled = false
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -58,11 +55,8 @@ export class AdaptiveComposer {
     // SMAA
     this._smaa = new SMAAEffect()
 
-    // Shadow mask — starts disabled (opacity 0 = pass-through)
-    this._shadowMask = new ShadowMaskEffect()
-
-    // Effect pass: shadow mask → tone mapping → SMAA
-    this._effectPass = new EffectPass(camera, this._shadowMask, this._toneMapping, this._smaa)
+    // Effect pass: tone mapping → SMAA
+    this._effectPass = new EffectPass(camera, this._toneMapping, this._smaa)
     this._composer.addPass(this._effectPass)
 
   }
@@ -117,23 +111,6 @@ export class AdaptiveComposer {
   }
 
   // ---------------------------------------------------------------------------
-  // Shadow mask
-  // ---------------------------------------------------------------------------
-
-  setShadowMaskEnabled(enabled: boolean): void {
-    this._shadowEnabled = enabled
-    this._shadowMask.setOpacity(enabled ? 0.5 : 0)
-  }
-
-  setShadowMaskOpacity(opacity: number): void {
-    this._shadowMask.setOpacity(opacity)
-  }
-
-  setShadowMaskDirection(dir: THREE.Vector3): void {
-    this._shadowMask.setLightDirection(dir)
-  }
-
-  // ---------------------------------------------------------------------------
   // Tone mapping
   // ---------------------------------------------------------------------------
 
@@ -159,14 +136,6 @@ export class AdaptiveComposer {
     if (this._n8aoPass) {
       this._n8aoPass.configuration.intensity = intensity
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Shadow mask softness
-  // ---------------------------------------------------------------------------
-
-  setShadowMaskSoftness(softness: number): void {
-    this._shadowMask.setSoftness(Math.max(0, Math.min(1, softness)))
   }
 
   /** Direct exposure control (maps to renderer.toneMappingExposure). */
