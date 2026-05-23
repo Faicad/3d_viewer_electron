@@ -57,7 +57,7 @@ function setupLighting(scene: THREE.Scene): void {
   scene.add(dir3)
 }
 
-async function waitForTextures(root: THREE.Object3D, timeout = 3000): Promise<void> {
+export async function waitForTextures(root: THREE.Object3D, timeout = 3000): Promise<void> {
   const textures: THREE.Texture[] = []
   root.traverse((obj) => {
     if (obj instanceof THREE.Mesh) {
