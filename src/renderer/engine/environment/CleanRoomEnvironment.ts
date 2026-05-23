@@ -77,18 +77,18 @@ export class CleanRoomEnvironment {
     const top = ROOM_HEIGHT / 2 - 0.3
 
     const lights: { pos: [number, number, number]; rot: [number, number, number]; size: [number, number]; color: number; intensity: number }[] = [
-      // Ceiling — large soft source
-      { pos: [0, top, 0], rot: [-Math.PI / 2, 0, 0], size: [5, 4], color: 0xffffff, intensity: 2.5 },
+      // Ceiling — large soft source, dominant
+      { pos: [0, top, 0], rot: [-Math.PI / 2, 0, 0], size: [5, 4], color: 0xffffff, intensity: 12 },
       // Right wall — key softbox
-      { pos: [half, 1.5, 1.5], rot: [0, -Math.PI / 2, 0], size: [3, 2.5], color: 0xfff8f0, intensity: 2.0 },
+      { pos: [half, 1.5, 1.5], rot: [0, -Math.PI / 2, 0], size: [3, 2.5], color: 0xfff8f0, intensity: 8 },
       // Left wall — fill softbox
-      { pos: [-half, 1.2, -1], rot: [0, Math.PI / 2, 0], size: [3, 2.5], color: 0xf0f4ff, intensity: 1.5 },
+      { pos: [-half, 1.2, -1], rot: [0, Math.PI / 2, 0], size: [3, 2.5], color: 0xf0f4ff, intensity: 5 },
       // Back wall — rim
-      { pos: [0, 2, half], rot: [0, Math.PI, 0], size: [3.5, 2.5], color: 0xf0ffff, intensity: 1.2 },
+      { pos: [0, 2, half], rot: [0, Math.PI, 0], size: [3.5, 2.5], color: 0xf0ffff, intensity: 4 },
       // Front wall — subtle fill
-      { pos: [0, 1.8, -half], rot: [0, 0, 0], size: [3.5, 2.5], color: 0xfffaf5, intensity: 1.0 },
+      { pos: [0, 1.8, -half], rot: [0, 0, 0], size: [3.5, 2.5], color: 0xfffaf5, intensity: 3 },
       // Floor bounce — warm
-      { pos: [0, -half + 0.15, 0], rot: [Math.PI / 2, 0, 0], size: [4, 3], color: 0xfff0e0, intensity: 0.6 },
+      { pos: [0, -half + 0.15, 0], rot: [Math.PI / 2, 0, 0], size: [4, 3], color: 0xfff0e0, intensity: 2 },
     ]
 
     for (const l of lights) {

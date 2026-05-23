@@ -13,12 +13,13 @@ export default function PostProcessing() {
 
   // Create composer on mount
   useEffect(() => {
-    if (!(camera instanceof THREE.PerspectiveCamera)) return
-    const composer = new AdaptiveComposer(gl, scene, camera)
+    const composer = new AdaptiveComposer(gl, scene, camera as THREE.PerspectiveCamera)
     // Disable renderer tone mapping — composer handles it
     gl.toneMapping = THREE.NoToneMapping
-    // Lazy-init SSAO
-    composer.enableSsao(scene, camera)
+    // SSAO requires PerspectiveCamera
+    if (camera.isPerspectiveCamera) {
+      composer.enableSsao(scene, camera as THREE.PerspectiveCamera)
+    }
     // Apply initial store values
     composer.setSsaoEnabled(useEngineStore.getState().ssaoEnabled)
     composer.setSmaaEnabled(useEngineStore.getState().smaaEnabled)

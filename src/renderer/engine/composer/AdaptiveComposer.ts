@@ -39,7 +39,7 @@ export class AdaptiveComposer {
   constructor(
     renderer: THREE.WebGLRenderer,
     scene: THREE.Scene,
-    camera: THREE.PerspectiveCamera,
+    camera: THREE.Camera,
   ) {
     // Composer with HalfFloat FBO
     this._composer = new EffectComposer(renderer, {

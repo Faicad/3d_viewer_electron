@@ -252,7 +252,7 @@ export class EnvironmentManager {
     ctx.fillRect(0, 0, 2, size)
 
     const tex = new THREE.CanvasTexture(canvas)
-    tex.mapping = THREE.EquirectangularRefractionMapping
+    tex.mapping = THREE.EquirectangularReflectionMapping
     tex.minFilter = THREE.LinearFilter
     tex.magFilter = THREE.LinearFilter
     tex.generateMipmaps = false
