@@ -155,11 +155,8 @@ function createCapMaterial(
       uCapColor: { value: new THREE.Color(color) },
     },
     side: THREE.DoubleSide,
-    depthTest: true,
+    depthTest: false,
     depthWrite: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -10,
-    polygonOffsetUnits: -10,
   })
 }
 
@@ -227,6 +224,26 @@ export default function CrossSectionController() {
 
   return (
     <>
+      {/* Back-face fill: renders model interior with BackSide.
+          Global clipping (gl.clippingPlanes) clips these back faces
+          the same way as the model front faces. When front faces are
+          clipped away, back faces fill the interior so it looks solid. */}
+      <group renderOrder={0}>
+        {meshData.map((md, i) => (
+          <mesh key={`bf-${i}`} geometry={md.geometry}
+            matrix={md.matrixWorld} matrixAutoUpdate={false}
+            frustumCulled={false}
+            userData={{ _crossSectionInternal: true }}>
+            <meshStandardMaterial
+              side={THREE.BackSide}
+              color="#aaaaaa"
+              roughness={0.6}
+              metalness={0.1}
+            />
+          </mesh>
+        ))}
+      </group>
+
       {activePlanes.map((ap, planeIdx) => {
         const capColor = useObjectColor ? '#cccccc' : PLANE_COLORS[ap.axis]
         const otherPlanes = activePlanes.filter((_, j) => j !== planeIdx).map((p) => p.plane)
