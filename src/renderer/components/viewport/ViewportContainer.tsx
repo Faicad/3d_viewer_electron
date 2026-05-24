@@ -266,8 +266,24 @@ export default function ViewportContainer() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('solid')
   const [debugSelectedFaceRow, setDebugSelectedFaceRow] = useState<number | null>(null)
   const [debugSelectedEdgeRow, setDebugSelectedEdgeRow] = useState<number | null>(null)
+  const savedShadowFloorRef = useRef<boolean | null>(null)
 
   const handleDisplayModeChange = useCallback((mode: DisplayMode) => {
+    const isWireframeOrMesh = mode === 'wireframe' || mode === 'mesh'
+    const store = useEngineStore.getState()
+
+    if (isWireframeOrMesh) {
+      if (savedShadowFloorRef.current === null) {
+        savedShadowFloorRef.current = store.shadowFloorEnabled
+      }
+      store.setShadowFloorEnabled(false)
+    } else {
+      if (savedShadowFloorRef.current !== null) {
+        store.setShadowFloorEnabled(savedShadowFloorRef.current)
+        savedShadowFloorRef.current = null
+      }
+    }
+
     setDisplayMode(mode)
     if (mode !== 'debug') {
       setDebugSelectedFaceRow(null)
