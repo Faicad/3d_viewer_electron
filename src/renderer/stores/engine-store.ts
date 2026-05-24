@@ -25,9 +25,6 @@ interface EngineStore {
   setSelectedEnv: (v: string) => void
   envBackground: string
   setEnvBackground: (v: string) => void
-  use4kEnvMaps: boolean
-  setUse4kEnvMaps: (v: boolean) => void
-
   // ---------------------------------------------------------------------------
   // Shadow floor
   // ---------------------------------------------------------------------------
@@ -80,9 +77,6 @@ export const useEngineStore = create<EngineStore>((set) => ({
   setSelectedEnv: (v) => set({ selectedEnv: v }),
   envBackground: 'environment',
   setEnvBackground: (v) => set({ envBackground: v }),
-  use4kEnvMaps: false,
-  setUse4kEnvMaps: (v) => set({ use4kEnvMaps: v }),
-
   // Shadow floor defaults
   shadowFloorEnabled: true,
   setShadowFloorEnabled: (v) => set({ shadowFloorEnabled: v }),

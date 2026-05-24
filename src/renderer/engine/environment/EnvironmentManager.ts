@@ -126,7 +126,7 @@ export class EnvironmentManager {
    *
    * Returns the PMREM texture that was applied (or the fallback on error).
    */
-  async setEnvironment(source: string, use4k = false): Promise<THREE.Texture> {
+  async setEnvironment(source: string): Promise<THREE.Texture> {
     // Tier 1 sentinel
     if (source === CLEANROOM_KEY || source === 'studio') {
       this._currentTex = this._getOrCreateCleanRoom()
@@ -135,7 +135,7 @@ export class EnvironmentManager {
     }
 
     // Resolve preset ID → CDN URL (or use source as raw URL if not a known preset)
-    const url = this._resolveSource(source, use4k)
+    const url = this._resolveSource(source)
 
     // Cache hit — restore both PMREM and equirectangular background
     const cached = this._cache.get(source)
@@ -177,9 +177,9 @@ export class EnvironmentManager {
   }
 
   /** Convert a preset ID to its CDN URL, or return the input unchanged if it's a raw URL. */
-  _resolveSource(source: string, use4k = false): string {
+  _resolveSource(source: string): string {
     const preset = HDR_PRESETS.find((p) => p.id === source && p.slug)
-    if (preset) return getPresetUrl(preset, use4k)
+    if (preset) return getPresetUrl(preset)
     return source
   }
 

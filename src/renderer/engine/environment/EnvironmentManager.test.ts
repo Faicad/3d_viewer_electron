@@ -107,14 +107,14 @@ describe('EnvironmentManager', () => {
 
   it('_resolveSource maps "studio_small_08" preset to local path', () => {
     const mgr = new EnvironmentManager(renderer)
-    const url = mgr._resolveSource('studio_small_08', false)
+    const url = mgr._resolveSource('studio_small_08')
     expect(url).toBe('./env/studio_small_08_2k.hdr')
     mgr.dispose()
   })
 
   it('_resolveSource returns unknown preset id as-is', () => {
     const mgr = new EnvironmentManager(renderer)
-    const url = mgr._resolveSource('sunset_02', true)
+    const url = mgr._resolveSource('sunset_02')
     expect(url).toBe('sunset_02')
     mgr.dispose()
   })

@@ -95,7 +95,7 @@
 3. **HDR 预设**
    - 11 个预设（来源 three-cad-viewer）: `studio_small_08`, `studio_small_03`, `white_studio_05` 等
    - 通过 CDN 引用或打包进 `src/renderer/public/env/`
-   - 支持 2K/4K 切换
+   - 2K HDR 预设
 
 4. **Zustand store** — 在现有 `engine-store.ts` 中新增环境相关字段:
    ```ts
@@ -103,7 +103,6 @@
    envRotation: number        // 默认 0
    selectedEnv: string        // 默认 "studio"
    envBackground: string      // 背景模式
-   use4kEnvMaps: boolean      // 默认 false
    ```
 
 5. **光照系统重构** — IBL 启用后，现有光照系统需要从物理正确性角度重新设计，而非简单调参。

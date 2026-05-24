@@ -9,7 +9,7 @@ export interface HdrPreset {
 
 const CDN_BASE = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr'
 
-export function getPresetUrl(preset: HdrPreset, _use4k: boolean): string {
+export function getPresetUrl(preset: HdrPreset): string {
   if (preset.localPath) return preset.localPath
   // CDN fallback for presets without local files
   return `${CDN_BASE}/2k/${preset.slug}_2k.hdr`

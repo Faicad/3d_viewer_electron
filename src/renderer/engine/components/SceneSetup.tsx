@@ -44,8 +44,7 @@ export default function SceneSetup() {
     const mgr = envRef.current
     if (!mgr || !selectedEnv) return
     let cancelled = false
-    const use4k = useEngineStore.getState().use4kEnvMaps
-    mgr.setEnvironment(selectedEnv, use4k).then((_tex) => {
+    mgr.setEnvironment(selectedEnv).then((_tex) => {
       if (cancelled) return
       const rot = useEngineStore.getState().envRotation
       applyEnvToScene(mgr, rot)
@@ -135,26 +134,6 @@ export default function SceneSetup() {
     })
     return unsub
   }, [])
-
-  // Re-apply environment when 4K toggle changes
-  useEffect(() => {
-    const unsub = useEngineStore.subscribe((state, prevState) => {
-      if (state.use4kEnvMaps === prevState.use4kEnvMaps) return
-      const mgr = envRef.current
-      const env = state.selectedEnv
-      if (!mgr || !env) return
-      let cancelled = false
-      mgr.setEnvironment(env, state.use4kEnvMaps).then((tex) => {
-        if (cancelled) return
-        scene.environment = tex
-        scene.environmentRotation.set(Math.PI / 2, 0, useEngineStore.getState().envRotation, 'YXZ')
-        scene.environmentIntensity = useEngineStore.getState().envIntensity
-        mgr.applyBackground(scene, useEngineStore.getState().envRotation)
-      })
-      return () => { cancelled = true }
-    })
-    return unsub
-  }, [scene])
 
   // Anisotropy: sync engine-store → TextureCache
   useEffect(() => {
