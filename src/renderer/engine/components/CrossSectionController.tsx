@@ -85,10 +85,7 @@ function buildPlanes(
   ]
 }
 
-// Custom shader for cross-section caps.
-// Highlights fragments whose world-space distance to the clipping plane is
-// within a small epsilon threshold. Uses DoubleSide so both front- and back-
-// facing fragments near the plane are visible, producing a complete outline.
+// Shared vertex shader — passes interpolated world position to fragment shader.
 const CAP_VERTEX_SHADER = /* glsl */`
   varying vec3 vWorldPosition;
   void main() {
@@ -98,7 +95,41 @@ const CAP_VERTEX_SHADER = /* glsl */`
   }
 `
 
-const CAP_FRAGMENT_SHADER = /* glsl */`
+// Fill shader: renders back faces on the clipped side to fill the cross-section interior.
+// No epsilon — keeps ALL back faces on the clipped side. BackSide ensures only
+// faces pointing away from the camera (the interior surface) are rendered.
+const FILL_FRAGMENT_SHADER = /* glsl */`
+  varying vec3 vWorldPosition;
+  uniform vec3 uCapPlaneNormal;
+  uniform float uCapPlaneConstant;
+  uniform vec4 uOtherPlane0;
+  uniform vec4 uOtherPlane1;
+  uniform int uOtherPlaneCount;
+  uniform vec3 uCapColor;
+
+  void main() {
+    float dCap = dot(uCapPlaneNormal, vWorldPosition) + uCapPlaneConstant;
+
+    // Keep fragments on the clipped side only (d < 0)
+    if (dCap >= 0.0) discard;
+
+    // Discard fragments on the clipped side of any OTHER active plane
+    if (uOtherPlaneCount >= 1) {
+      float d0 = dot(uOtherPlane0.xyz, vWorldPosition) + uOtherPlane0.w;
+      if (d0 < 0.0) discard;
+    }
+    if (uOtherPlaneCount >= 2) {
+      float d1 = dot(uOtherPlane1.xyz, vWorldPosition) + uOtherPlane1.w;
+      if (d1 < 0.0) discard;
+    }
+
+    gl_FragColor = vec4(uCapColor, 1.0);
+  }
+`
+
+// Outline shader: renders all faces within epsilon of the plane to form
+// the complete cross-section contour. DoubleSide prevents missing edges.
+const OUTLINE_FRAGMENT_SHADER = /* glsl */`
   varying vec3 vWorldPosition;
   uniform vec3 uCapPlaneNormal;
   uniform float uCapPlaneConstant;
@@ -111,8 +142,7 @@ const CAP_FRAGMENT_SHADER = /* glsl */`
   void main() {
     float dCap = dot(uCapPlaneNormal, vWorldPosition) + uCapPlaneConstant;
 
-    // Only render fragments whose distance to the plane is within epsilon.
-    // These fragments lie on the model surface at the cross-section boundary.
+    // Only render fragments within epsilon distance of the plane
     if (abs(dCap) > uEpsilon) discard;
 
     // Discard fragments on the clipped side of any OTHER active plane
@@ -129,7 +159,36 @@ const CAP_FRAGMENT_SHADER = /* glsl */`
   }
 `
 
-function createCapMaterial(
+function createFillMaterial(
+  capPlane: THREE.Plane,
+  otherPlanes: THREE.Plane[],
+  color: string,
+): THREE.ShaderMaterial {
+  const op0 = otherPlanes.length >= 1
+    ? new THREE.Vector4(otherPlanes[0].normal.x, otherPlanes[0].normal.y, otherPlanes[0].normal.z, otherPlanes[0].constant)
+    : new THREE.Vector4(0, 0, 0, 0)
+  const op1 = otherPlanes.length >= 2
+    ? new THREE.Vector4(otherPlanes[1].normal.x, otherPlanes[1].normal.y, otherPlanes[1].normal.z, otherPlanes[1].constant)
+    : new THREE.Vector4(0, 0, 0, 0)
+
+  return new THREE.ShaderMaterial({
+    vertexShader: CAP_VERTEX_SHADER,
+    fragmentShader: FILL_FRAGMENT_SHADER,
+    uniforms: {
+      uCapPlaneNormal: { value: capPlane.normal.clone() },
+      uCapPlaneConstant: { value: capPlane.constant },
+      uOtherPlane0: { value: op0 },
+      uOtherPlane1: { value: op1 },
+      uOtherPlaneCount: { value: otherPlanes.length },
+      uCapColor: { value: new THREE.Color(color) },
+    },
+    side: THREE.BackSide,
+    depthTest: true,
+    depthWrite: true,
+  })
+}
+
+function createOutlineMaterial(
   capPlane: THREE.Plane,
   otherPlanes: THREE.Plane[],
   color: string,
@@ -144,7 +203,7 @@ function createCapMaterial(
 
   return new THREE.ShaderMaterial({
     vertexShader: CAP_VERTEX_SHADER,
-    fragmentShader: CAP_FRAGMENT_SHADER,
+    fragmentShader: OUTLINE_FRAGMENT_SHADER,
     uniforms: {
       uCapPlaneNormal: { value: capPlane.normal.clone() },
       uCapPlaneConstant: { value: capPlane.constant },
@@ -224,33 +283,21 @@ export default function CrossSectionController() {
 
   return (
     <>
-      {/* Back-face fill: renders model interior with BackSide.
-          Global clipping (gl.clippingPlanes) clips these back faces
-          the same way as the model front faces. When front faces are
-          clipped away, back faces fill the interior so it looks solid. */}
-      <group renderOrder={0}>
-        {meshData.map((md, i) => (
-          <mesh key={`bf-${i}`} geometry={md.geometry}
-            matrix={md.matrixWorld} matrixAutoUpdate={false}
-            frustumCulled={false}
-            userData={{ _crossSectionInternal: true }}>
-            <meshStandardMaterial
-              side={THREE.BackSide}
-              color="#aaaaaa"
-              roughness={0.6}
-              metalness={0.1}
-            />
-          </mesh>
-        ))}
-      </group>
-
       {activePlanes.map((ap, planeIdx) => {
         const capColor = useObjectColor ? '#cccccc' : PLANE_COLORS[ap.axis]
         const otherPlanes = activePlanes.filter((_, j) => j !== planeIdx).map((p) => p.plane)
         const size = new THREE.Vector3(bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y, bbox.max.z - bbox.min.z)
         const minDim = Math.min(size.x, size.y, size.z)
-        const epsilon = minDim > 0 ? minDim * 0.03 : 0.01
-        const capMat = createCapMaterial(ap.plane, otherPlanes, capColor, epsilon)
+
+        // Fill material: BackSide, renders back faces on the clipped side (d < 0).
+        // These form the solid cross-section interior.
+        const fillMat = createFillMaterial(ap.plane, otherPlanes, capColor)
+
+        // Outline material: DoubleSide, renders all faces within epsilon of the plane.
+        // This produces the complete cross-section contour.
+        const outlineEpsilon = minDim > 0 ? minDim * 0.03 : 0.01
+        const outlineMat = createOutlineMaterial(ap.plane, otherPlanes, capColor, outlineEpsilon)
+
         let geomW: number, geomH: number
         let rotation: [number, number, number]
         if (ap.axis === 'x') { geomW = size.z; geomH = size.y; rotation = [0, Math.PI / 2, 0] }
@@ -271,11 +318,21 @@ export default function CrossSectionController() {
 
         return (
           <group key={`cs-${ap.axis}`}>
-            {/* Cap: model interior faces on the clipped side, colored as the cross-section surface */}
+            {/* Fill pass: back faces on the clipped side → solid cross-section interior */}
             {meshData.map((md, i) => (
-              <mesh key={`cap-${ap.axis}-${i}`} geometry={md.geometry}
+              <mesh key={`fill-${ap.axis}-${i}`} geometry={md.geometry}
                 matrix={md.matrixWorld} matrixAutoUpdate={false}
-                material={capMat}
+                material={fillMat}
+                renderOrder={planeIdx * 3 + 0}
+                frustumCulled={false}
+                userData={{ _crossSectionInternal: true }}
+              />
+            ))}
+            {/* Outline pass: all faces within epsilon → complete cross-section contour */}
+            {meshData.map((md, i) => (
+              <mesh key={`outline-${ap.axis}-${i}`} geometry={md.geometry}
+                matrix={md.matrixWorld} matrixAutoUpdate={false}
+                material={outlineMat}
                 renderOrder={planeIdx * 3 + 1}
                 frustumCulled={false}
                 userData={{ _crossSectionInternal: true }}
