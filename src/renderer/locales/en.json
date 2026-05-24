@@ -21,6 +21,7 @@
   "history.loadingMore": "Loading more...",
   "toolbar.cache": "Cache",
   "toolbar.materialEditor": "Material",
+  "toolbar.crossSection": "Cross Section",
   "toolbar.leftPanel": "Toggle Left Panel",
   "toolbar.rightPanel": "Toggle Right Panel",
   "cache.title": "Cache Manager",
@@ -147,5 +148,9 @@
   "materialEditor.alphaCutoff": "Alpha Cutoff",
   "materialEditor.resetToOriginal": "Reset to Original",
   "materialEditor.partsSelected_one": "{{count}} part selected",
-  "materialEditor.partsSelected_other": "{{count}} parts selected"
+  "materialEditor.partsSelected_other": "{{count}} parts selected",
+
+  "crossSection.title": "Cross Section",
+  "crossSection.showClipPlane": "Show Clip Plane",
+  "crossSection.useObjectColor": "Use Object Color"
 }

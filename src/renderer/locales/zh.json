@@ -21,6 +21,7 @@
   "history.loadingMore": "加载更多...",
   "toolbar.cache": "缓存",
   "toolbar.materialEditor": "材质管理",
+  "toolbar.crossSection": "剖面显示",
   "toolbar.leftPanel": "切换左侧面板",
   "toolbar.rightPanel": "切换右侧面板",
   "cache.title": "缓存管理",
@@ -146,5 +147,9 @@
   "materialEditor.alphaMode": "透明度模式",
   "materialEditor.alphaCutoff": "透明度阈值",
   "materialEditor.resetToOriginal": "恢复原始材质",
-  "materialEditor.partsSelected_other": "已选择 {{count}} 个零件"
+  "materialEditor.partsSelected_other": "已选择 {{count}} 个零件",
+
+  "crossSection.title": "剖面显示",
+  "crossSection.showClipPlane": "显示剖面平面",
+  "crossSection.useObjectColor": "使用物体颜色"
 }

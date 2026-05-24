@@ -5,6 +5,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AdaptiveComposer } from '../composer/AdaptiveComposer'
 import { useEngineStore } from '@/stores/engine-store'
+import { useCrossSectionStore } from '@/stores/cross-section-store'
 
 export default function PostProcessing() {
   const { gl, scene, camera, size } = useThree()
@@ -43,7 +44,24 @@ export default function PostProcessing() {
       const c = composerRef.current
       if (!c) return
       if (state.smaaEnabled === prevState.smaaEnabled) return
+      // Respect cross-section override
+      if (useCrossSectionStore.getState().panelOpen) return
       c.setSmaaEnabled(state.smaaEnabled)
+    })
+    return unsub
+  }, [])
+
+  // Disable SMAA while cross-section is active (stencil buffer conflicts)
+  useEffect(() => {
+    const unsub = useCrossSectionStore.subscribe((state, prevState) => {
+      if (state.panelOpen === prevState.panelOpen) return
+      const c = composerRef.current
+      if (!c) return
+      if (state.panelOpen) {
+        c.setSmaaEnabled(false)
+      } else {
+        c.setSmaaEnabled(useEngineStore.getState().smaaEnabled)
+      }
     })
     return unsub
   }, [])

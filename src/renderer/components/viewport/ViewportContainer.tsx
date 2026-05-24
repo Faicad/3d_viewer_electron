@@ -23,6 +23,8 @@ import DisplayModeDropdown from '@/engine/components/DisplayModeDropdown'
 import DebugTopologyOverlay from '@/engine/components/DebugTopologyOverlay'
 import type { DisplayMode } from '@/engine/components/DisplayModeDropdown'
 import SelectionInfoOverlay from '@/engine/components/SelectionInfoOverlay'
+import CrossSectionController from '@/engine/components/CrossSectionController'
+import CrossSectionPanel from '@/engine/components/CrossSectionPanel'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -487,7 +489,7 @@ export default function ViewportContainer() {
         scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
         camera={{ fov: 50, near: 0.001, far: 10000, position: [5, -5, 3], up: [0, 0, 1] as [number, number, number] }}
         shadows="accumulative"
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
+        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, stencil: true }}
         onCreated={({ camera, scene, gl }) => {
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
@@ -588,6 +590,7 @@ export default function ViewportContainer() {
             renderOrder={resolvedDisplayMode === 'wireframe' ? 5 : 2}
           />
         ))}
+        <CrossSectionController />
         {clickWorldPoint && selectionMode === 'face' && (
           <points
             position={clickWorldPoint}
@@ -683,6 +686,8 @@ export default function ViewportContainer() {
       <SelectionInfoOverlay reference={selectedReference} />
 
       <AxesIndicator mainCamera={mainCamera} />
+
+      <CrossSectionPanel />
     </div>
   )
 }

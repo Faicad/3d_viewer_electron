@@ -6,6 +6,7 @@ import { useThree } from '@react-three/fiber'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
 import { useEngineStore } from '@/stores/engine-store'
+import { useCrossSectionStore } from '@/stores/cross-section-store'
 import { getSharedTextureCache } from '../material/MaterialFactory'
 import { computeShadowFrustum } from './shadowFrustum'
 
@@ -131,6 +132,21 @@ export default function SceneSetup() {
     const unsub = useEngineStore.subscribe((state, prevState) => {
       if (state.shadowOpacity === prevState.shadowOpacity) return
       shadowFloorRef.current?.setOpacity(state.shadowOpacity)
+    })
+    return unsub
+  }, [])
+
+  // Disable shadow floor while cross-section is active
+  useEffect(() => {
+    const unsub = useCrossSectionStore.subscribe((state, prevState) => {
+      if (state.panelOpen === prevState.panelOpen) return
+      const floor = shadowFloorRef.current
+      if (!floor) return
+      if (state.panelOpen) {
+        floor.setEnabled(false)
+      } else {
+        floor.setEnabled(useEngineStore.getState().shadowFloorEnabled)
+      }
     })
     return unsub
   }, [])
