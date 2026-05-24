@@ -13,7 +13,7 @@ import { FORMAT_MAP } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderResultCache'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
-import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor } from './cloneMaterial'
+import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
 import { useMaterialStore } from '@/stores/material-store'
 import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
 
@@ -294,7 +294,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
             const mesh = new THREE.Mesh(geo)
             initMorphTargets(mesh)
-            mesh.userData._originalMaterial = overrideAppearance ? mat : null
+            mesh.userData._originalMaterial = mat
             mesh.userData._overrideKey = overrideKey || undefined
             processed.push(mesh)
             partInfos.push({
@@ -321,6 +321,23 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setMeshMaterials(materials)
           materialsRef.current = materials
           onPartInfosChangeRef.current(partInfos)
+
+          // Store original material appearances for the material editor
+          if (fileId) {
+            const originals: Record<string, MaterialAppearance> = {}
+            for (const info of partInfos) {
+              const origMesh = processed[info.meshIndex]
+              const origMat = origMesh.userData._originalMaterial as
+                | THREE.Material
+                | THREE.Material[]
+                | null
+              const app = materialToAppearance(origMat, info.name)
+              if (app) {
+                originals[info.partId] = app
+              }
+            }
+            useMaterialStore.getState().setMaterialOriginalsForFile(fileId, originals)
+          }
 
           // Ensure scene-tree node IDs match mesh partIds by setting
           // userData.partId on the original THREE.Mesh objects before
@@ -433,14 +450,12 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           }
         } else {
           // Restore original material if currently overridden
-          const group = (ref as React.RefObject<THREE.Group | null>)?.current
-          if (group) {
-            const mesh = group.children[partInfo.meshIndex] as THREE.Mesh | undefined
-            const orig = mesh?.userData?._originalMaterial as THREE.Material | undefined
-            if (orig && next[partInfo.meshIndex] !== orig) {
-              next[partInfo.meshIndex] = orig
-              changed = true
-            }
+          const origMesh = glbMeshes[partInfo.meshIndex]
+          const orig = origMesh?.userData?._originalMaterial as THREE.Material | THREE.Material[] | null | undefined
+          const origMat = Array.isArray(orig) ? orig[0] : orig
+          if (origMat && next[partInfo.meshIndex] !== origMat) {
+            next[partInfo.meshIndex] = origMat
+            changed = true
           }
         }
       }
@@ -517,6 +532,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                   partId,
                   meshIndex: i,
                   faceIds: meshFaceIds[i] || undefined,
+                  _originalMaterial: mesh.userData._originalMaterial,
+                  _overrideKey: mesh.userData._overrideKey,
                 }}
               >
                 <meshBasicMaterial
@@ -556,6 +573,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 partId,
                 meshIndex: i,
                 faceIds: meshFaceIds[i] || undefined,
+                _originalMaterial: mesh.userData._originalMaterial,
+                _overrideKey: mesh.userData._overrideKey,
               }}
             >
               {mat == null && !isMeshOnly && (

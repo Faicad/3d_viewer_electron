@@ -495,6 +495,7 @@ export default function MaterialEditor() {
   const overrides = useMaterialStore((s) => s.materialOverrides)
   const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
   const presetRefs = useMaterialStore((s) => s.overridePresetRefs)
+  const materialOriginals = useMaterialStore((s) => s.materialOriginals)
   const editorTitle = useMaterialStore((s) => s.materialEditorTitle)
   const isEditingDefault = useMaterialStore((s) => s.isEditingDefault)
   const defaultMaterial = useMaterialStore((s) => s.defaultMaterial)
@@ -508,7 +509,7 @@ export default function MaterialEditor() {
   const primaryKey = editingKeys[0] ?? ''
   const appearance: MaterialAppearance | undefined = isEditingDefault
     ? (defaultMaterial ?? undefined)
-    : primaryKey ? overrides[primaryKey] : undefined
+    : primaryKey ? (overrides[primaryKey] ?? materialOriginals[primaryKey]) : undefined
   const activePresetId = primaryKey ? (presetRefs[primaryKey] ?? null) : null
 
   const disabled = !overrideMaterial

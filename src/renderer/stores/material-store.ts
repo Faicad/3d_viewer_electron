@@ -32,6 +32,9 @@ interface MaterialStore {
   materialEditorTitle: string
   isEditingDefault: boolean
 
+  // ---- 原始材质外观（从模型文件中提取） ----
+  materialOriginals: Record<string, MaterialAppearance>
+
   // ---- 默认材质 ----
   defaultMaterial: MaterialAppearance | null
 
@@ -52,7 +55,10 @@ interface MaterialStore {
   openDefaultMaterialEditor: () => void
   closeMaterialEditor: () => void
   setMaterialEditorPosition: (pos: { x: number; y: number }) => void
-  setDefaultMaterial: (appearance: MaterialAppearance) => void
+  setDefaultMaterial: (appearance: MaterialAppearance | null) => void
+
+  setMaterialOriginalsForFile: (fileId: string, originals: Record<string, MaterialAppearance>) => void
+  clearMaterialOriginalsForFile: (fileId: string) => void
 
   getEffectiveAppearance: (fileId: string, partId: string) => MaterialAppearance | null
 }
@@ -74,6 +80,8 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   isEditingDefault: false,
 
   defaultMaterial: null,
+
+  materialOriginals: {},
 
   // ---- Actions ----
   setMaterialOverride: (fileId, partId, appearance) => {
@@ -134,6 +142,35 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   setDefaultMaterial: (appearance) => set({ defaultMaterial: appearance }),
 
   setMaterialEditorPosition: (pos) => set({ materialEditorPosition: pos }),
+
+  setMaterialOriginalsForFile: (fileId, originals) => {
+    set((s) => {
+      const prefix = `${fileId}:`
+      const next: Record<string, MaterialAppearance> = {}
+      for (const key of Object.keys(s.materialOriginals)) {
+        if (!key.startsWith(prefix)) {
+          next[key] = s.materialOriginals[key]
+        }
+      }
+      for (const [partId, app] of Object.entries(originals)) {
+        next[`${fileId}:${partId}`] = app
+      }
+      return { materialOriginals: next }
+    })
+  },
+
+  clearMaterialOriginalsForFile: (fileId) => {
+    set((s) => {
+      const prefix = `${fileId}:`
+      const next: Record<string, MaterialAppearance> = {}
+      for (const key of Object.keys(s.materialOriginals)) {
+        if (!key.startsWith(prefix)) {
+          next[key] = s.materialOriginals[key]
+        }
+      }
+      return { materialOriginals: next }
+    })
+  },
 
   getEffectiveAppearance: (fileId, partId) => {
     const key = makeOverrideKey(fileId, partId)

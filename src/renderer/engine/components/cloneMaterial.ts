@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -72,6 +73,71 @@ export function getMaterialColor(
   if (target instanceof THREE.MeshNormalMaterial) return '#4488ff'
 
   return null
+}
+
+/**
+ * Extract a MaterialAppearance descriptor from a Three.js material.
+ * Returns null when no meaningful appearance can be extracted.
+ */
+export function materialToAppearance(
+  mat: THREE.Material | THREE.Material[] | null | undefined,
+  name: string,
+): MaterialAppearance | null {
+  if (mat == null) return null
+  const target = Array.isArray(mat) ? mat[0] : mat
+  if (!target) return null
+
+  const a: MaterialAppearance = { name }
+
+  if ('color' in target && target.color instanceof THREE.Color) {
+    a.color = [target.color.r, target.color.g, target.color.b, target.opacity]
+  }
+
+  if (
+    target instanceof THREE.MeshPhysicalMaterial ||
+    target instanceof THREE.MeshStandardMaterial
+  ) {
+    a.roughness = target.roughness
+    a.metalness = target.metalness
+  }
+
+  if (target instanceof THREE.MeshPhysicalMaterial) {
+    a.clearcoat = target.clearcoat
+    a.clearcoatRoughness = target.clearcoatRoughness
+    a.sheen = target.sheen
+    if (target.sheenColor) {
+      a.sheenColor = [target.sheenColor.r, target.sheenColor.g, target.sheenColor.b]
+    }
+    a.sheenRoughness = target.sheenRoughness
+    a.transmission = target.transmission
+    a.thickness = target.thickness
+    a.ior = target.ior
+  }
+
+  if ('emissive' in target && target.emissive instanceof THREE.Color) {
+    const e = target.emissive
+    if (e.r !== 0 || e.g !== 0 || e.b !== 0) {
+      a.emissive = [e.r, e.g, e.b]
+    }
+  }
+  if ('emissiveIntensity' in target && typeof target.emissiveIntensity === 'number') {
+    a.emissiveIntensity = target.emissiveIntensity
+  }
+
+  if (target instanceof THREE.MeshStandardMaterial && target.side === THREE.DoubleSide) {
+    a.doubleSided = true
+  }
+
+  if (target.transparent) {
+    if ((target as THREE.MeshStandardMaterial).alphaTest > 0) {
+      a.alphaMode = 'MASK' as AlphaMode
+      a.alphaCutoff = (target as THREE.MeshStandardMaterial).alphaTest
+    } else {
+      a.alphaMode = 'BLEND' as AlphaMode
+    }
+  }
+
+  return a
 }
 
 // ---------------------------------------------------------------------------
