@@ -35,8 +35,14 @@ interface MaterialStore {
   // ---- 原始材质外观（从模型文件中提取） ----
   materialOriginals: Record<string, MaterialAppearance>
 
+  // ---- 纹理缩略图（per-part, per-slot 20×20 thumbnails） ----
+  textureThumbnails: Record<string, Record<string, string>>
+
   // ---- 默认材质 ----
   defaultMaterial: MaterialAppearance | null
+
+  // ---- A/B 对比 ----
+  viewingOriginal: boolean
 
   // ---- Actions ----
   setMaterialOverride: (fileId: string, partId: string, appearance: MaterialAppearance) => void
@@ -59,7 +65,10 @@ interface MaterialStore {
 
   setMaterialOriginalsForFile: (fileId: string, originals: Record<string, MaterialAppearance>) => void
   clearMaterialOriginalsForFile: (fileId: string) => void
+  setTextureThumbnailsForFile: (fileId: string, thumbs: Record<string, Record<string, string>>) => void
+  clearTextureThumbnailsForFile: (fileId: string) => void
 
+  toggleViewingOriginal: () => void
   getEffectiveAppearance: (fileId: string, partId: string) => MaterialAppearance | null
 }
 
@@ -82,6 +91,10 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   defaultMaterial: null,
 
   materialOriginals: {},
+
+  textureThumbnails: {},
+
+  viewingOriginal: false,
 
   // ---- Actions ----
   setMaterialOverride: (fileId, partId, appearance) => {
@@ -171,6 +184,33 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
       return { materialOriginals: next }
     })
   },
+
+  setTextureThumbnailsForFile: (fileId, thumbs) => {
+    set((s) => {
+      const prefix = `${fileId}:`
+      const next: Record<string, Record<string, string>> = {}
+      for (const key of Object.keys(s.textureThumbnails)) {
+        if (!key.startsWith(prefix)) next[key] = s.textureThumbnails[key]
+      }
+      for (const [partId, slotThumbs] of Object.entries(thumbs)) {
+        next[`${fileId}:${partId}`] = slotThumbs
+      }
+      return { textureThumbnails: next }
+    })
+  },
+
+  clearTextureThumbnailsForFile: (fileId) => {
+    set((s) => {
+      const prefix = `${fileId}:`
+      const next: Record<string, Record<string, string>> = {}
+      for (const key of Object.keys(s.textureThumbnails)) {
+        if (!key.startsWith(prefix)) next[key] = s.textureThumbnails[key]
+      }
+      return { textureThumbnails: next }
+    })
+  },
+
+  toggleViewingOriginal: () => set((s) => ({ viewingOriginal: !s.viewingOriginal })),
 
   getEffectiveAppearance: (fileId, partId) => {
     const key = makeOverrideKey(fileId, partId)

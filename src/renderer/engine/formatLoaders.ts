@@ -9,6 +9,7 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js'
 import { TDSLoader } from 'three/examples/jsm/loaders/TDSLoader.js'
 import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
 import { BVHLoader } from 'three/examples/jsm/loaders/BVHLoader.js'
 import { VTKLoader } from 'three/examples/jsm/loaders/VTKLoader.js'
 import { XYZLoader } from 'three/examples/jsm/loaders/XYZLoader.js'
@@ -200,6 +201,27 @@ function extractAllObjects(root: THREE.Object3D): THREE.Object3D[] {
   return objs
 }
 
+// ---- Shared GLTFLoader with Draco + KTX2 support ----
+
+let _sharedGltfLoader: GLTFLoader | null = null
+
+function getGltfLoader(): GLTFLoader {
+  if (_sharedGltfLoader) return _sharedGltfLoader
+
+  const loader = new GLTFLoader()
+
+  const dracoLoader = new DRACOLoader()
+  dracoLoader.setDecoderPath('/wasm/draco/')
+  loader.setDRACOLoader(dracoLoader)
+
+  const ktx2Loader = new KTX2Loader()
+  ktx2Loader.setTranscoderPath('/wasm/basis/')
+  loader.setKTX2Loader(ktx2Loader)
+
+  _sharedGltfLoader = loader
+  return loader
+}
+
 /**
  * Central dispatcher: parse any supported format's ArrayBuffer into meshes/objects.
  * Returns { meshes, objects } ready for rendering.
@@ -218,7 +240,7 @@ export async function loadFormat(
       return { meshes: [mesh], objects: [] }
     }
     case 'glb': {
-      const gltf = await new GLTFLoader().parseAsync(buffer, '')
+      const gltf = await getGltfLoader().parseAsync(buffer, '')
       const meshes = extractMeshes(gltf.scene)
       return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter' }
     }
@@ -231,7 +253,7 @@ export async function loadFormat(
       // No file path — try parsing directly (works if glTF has only data URIs or
       // if pre-resolved by test helpers)
       const gltfText = bufferToText(buffer)
-      const gltf = await new GLTFLoader().parseAsync(gltfText, '')
+      const gltf = await getGltfLoader().parseAsync(gltfText, '')
       const meshes = extractMeshes(gltf.scene)
       return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter' }
     }

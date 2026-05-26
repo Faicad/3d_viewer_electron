@@ -25,7 +25,7 @@ function hexToRgb(hex: string): [number, number, number] {
 
 // ---- sub-components ----
 
-function SliderRow({ label, value, min, max, step, onChange, disabled }: {
+function SliderRow({ label, value, min, max, step, onChange, disabled, textureThumb }: {
   label: string
   value: number
   min: number
@@ -33,12 +33,23 @@ function SliderRow({ label, value, min, max, step, onChange, disabled }: {
   step: number
   onChange: (v: number) => void
   disabled?: boolean
+  textureThumb?: string
 }) {
+  const hasTex = !!textureThumb
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex justify-between text-[11px]">
+      <div className="flex items-center justify-between text-[11px]">
         <span className="text-muted-foreground">{label}</span>
-        <span className="text-foreground tabular-nums">{Math.round(value * 100) / 100}</span>
+        <div className="flex items-center gap-[5px]">
+          <span className="text-foreground tabular-nums">
+            {Math.round(value * 100) / 100}{hasTex ? ' x' : ''}
+          </span>
+          {hasTex && (
+            <div className="w-5 h-5 shrink-0 rounded-sm overflow-hidden bg-muted">
+              <img src={textureThumb} alt="" className="w-full h-full object-cover" />
+            </div>
+          )}
+        </div>
       </div>
       <input
         type="range"
@@ -85,23 +96,32 @@ function ToggleRow({ label, checked, onChange, disabled }: {
   )
 }
 
-function ColorRow({ label, color, onChange, disabled }: {
+function ColorRow({ label, color, onChange, disabled, textureThumb }: {
   label: string
   color: [number, number, number]
   onChange: (rgb: [number, number, number]) => void
   disabled?: boolean
+  textureThumb?: string
 }) {
+  const hasTex = !!textureThumb
   return (
     <div className="flex items-center justify-between">
       <span className="text-[11px] text-muted-foreground">{label}</span>
-      <input
-        type="color"
-        value={rgbToHex(...color)}
-        disabled={disabled}
-        onChange={(e) => onChange(hexToRgb(e.target.value))}
-        className="h-5 w-8 cursor-pointer rounded border-0 bg-transparent p-0
-          disabled:opacity-40 disabled:cursor-not-allowed"
-      />
+      <div className="flex items-center gap-[5px]">
+        <input
+          type="color"
+          value={rgbToHex(...color)}
+          disabled={disabled}
+          onChange={(e) => onChange(hexToRgb(e.target.value))}
+          className="h-5 w-7 cursor-pointer rounded border-0 bg-transparent p-0
+            disabled:opacity-40 disabled:cursor-not-allowed"
+        />
+        {hasTex && (
+          <div className="w-5 h-5 shrink-0 rounded-sm overflow-hidden bg-muted">
+            <img src={textureThumb} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -111,6 +131,40 @@ function SectionLabel({ label }: { label: string }) {
     <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2 first:pt-0 pb-0.5">
       {label}
     </h4>
+  )
+}
+
+type AlphaMode = 'OPAQUE' | 'MASK' | 'BLEND'
+
+function AlphaModeSegmented({ mode, onChange, disabled }: {
+  mode: AlphaMode
+  onChange: (m: AlphaMode) => void
+  disabled?: boolean
+}) {
+  const modes: { key: AlphaMode; label: string }[] = [
+    { key: 'OPAQUE', label: '不透明' },
+    { key: 'MASK', label: '遮罩' },
+    { key: 'BLEND', label: '混合' },
+  ]
+  return (
+    <div className="flex items-center gap-0.5 text-[10px]">
+      {modes.map((m) => (
+        <button
+          key={m.key}
+          disabled={disabled}
+          onClick={() => onChange(m.key)}
+          className={`px-1.5 py-0.5 rounded transition-colors ${
+            disabled ? 'opacity-40 cursor-not-allowed' : ''
+          } ${
+            mode === m.key
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground hover:bg-muted-foreground/15'
+          }`}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -152,6 +206,12 @@ function MaterialEditorInner({
   const removeOverride = useMaterialStore((s) => s.removeMaterialOverride)
   const setOverrideMaterial = useMaterialStore((s) => s.setOverrideMaterial)
   const setDefaultMaterial = useMaterialStore((s) => s.setDefaultMaterial)
+  const viewingOriginal = useMaterialStore((s) => s.viewingOriginal)
+  const toggleViewingOriginal = useMaterialStore((s) => s.toggleViewingOriginal)
+  const textureThumbnails = useMaterialStore((s) => s.textureThumbnails)
+
+  // Current part's texture thumbnails (keyed by slot name)
+  const currentThumbs: Record<string, string> = primaryKey ? (textureThumbnails[primaryKey] ?? {}) : {}
 
   // Local form state, naturally reset when key prop changes (component remounts)
   const [draft, setDraft] = useState<MaterialAppearance>(appearance ?? { name: 'Custom' })
@@ -208,23 +268,10 @@ function MaterialEditorInner({
     }
   }, [editingKeys, setOverrideBatch, isEditingDefault, setDefaultMaterial])
 
-  // Reset to original
+  // A/B toggle: switch between original and modified
   const handleReset = useCallback(() => {
-    if (isEditingDefault) {
-      setDefaultMaterial(null)
-      setDraft({ name: 'Custom' })
-      setPresetValue('custom')
-      return
-    }
-    for (const key of editingKeys) {
-      const idx = key.indexOf(':')
-      const fileId = key.slice(0, idx)
-      const partId = key.slice(idx + 1)
-      removeOverride(fileId, partId)
-    }
-    setDraft({ name: 'Custom' })
-    setPresetValue('custom')
-  }, [editingKeys, removeOverride, isEditingDefault, setDefaultMaterial])
+    toggleViewingOriginal()
+  }, [toggleViewingOriginal])
 
   // Drag
   const dragging = useRef(false)
@@ -270,15 +317,6 @@ function MaterialEditorInner({
 
       {/* Body */}
       <ScrollArea className="flex-1 px-2.5 py-2">
-        {/* Global toggle */}
-        <div className="mb-2">
-          <ToggleRow
-            label={t('materialEditor.overrideMaterial')}
-            checked={overrideMaterial}
-            onChange={setOverrideMaterial}
-          />
-        </div>
-
         {/* Preset selector */}
         <div className="flex flex-col gap-0.5 mb-2">
           <span className="text-[11px] text-muted-foreground">{t('materialEditor.preset')}</span>
@@ -309,23 +347,57 @@ function MaterialEditorInner({
               apply({ color: [rgb[0], rgb[1], rgb[2], alpha] })
             }}
             disabled={disabled}
+            textureThumb={currentThumbs['map']}
           />
-          <SliderRow
-            label={t('materialEditor.opacity')}
-            value={draft.color?.[3] ?? 1.0}
-            min={0} max={1} step={0.01}
-            onChange={(v) => {
-              const c = draft.color ?? [0.6, 0.65, 0.7, 1.0]
-              apply({ color: [c[0], c[1], c[2], v] })
-            }}
-            disabled={disabled}
-          />
+          {/* Alpha mode + slider integrated */}
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">{t('materialEditor.opacity')}</span>
+              <AlphaModeSegmented
+                mode={(draft.alphaMode as AlphaMode) ?? 'OPAQUE'}
+                onChange={(m) => apply({ alphaMode: m })}
+                disabled={disabled}
+              />
+            </div>
+            {(draft.alphaMode === 'OPAQUE' || !draft.alphaMode) ? (
+              <SliderRow
+                label={t('materialEditor.opacity')}
+                value={1}
+                min={0} max={1} step={0.01}
+                onChange={() => {}}
+                disabled={true}
+                textureThumb={currentThumbs['alphaMap']}
+              />
+            ) : draft.alphaMode === 'MASK' ? (
+              <SliderRow
+                label={t('materialEditor.alphaCutoff')}
+                value={draft.alphaCutoff ?? 0.5}
+                min={0} max={1} step={0.01}
+                onChange={(v) => apply({ alphaCutoff: v })}
+                disabled={disabled}
+                textureThumb={currentThumbs['alphaMap']}
+              />
+            ) : (
+              <SliderRow
+                label={t('materialEditor.opacity')}
+                value={draft.color?.[3] ?? 1.0}
+                min={0} max={1} step={0.01}
+                onChange={(v) => {
+                  const c = draft.color ?? [0.6, 0.65, 0.7, 1.0]
+                  apply({ color: [c[0], c[1], c[2], v] })
+                }}
+                disabled={disabled}
+                textureThumb={currentThumbs['alphaMap']}
+              />
+            )}
+          </div>
           <SliderRow
             label={t('materialEditor.roughness')}
             value={draft.roughness ?? 0.5}
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ roughness: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['roughnessMap']}
           />
           <SliderRow
             label={t('materialEditor.metalness')}
@@ -333,6 +405,7 @@ function MaterialEditorInner({
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ metalness: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['metalnessMap']}
           />
         </div>
 
@@ -345,6 +418,7 @@ function MaterialEditorInner({
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ clearcoat: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['clearcoatMap']}
           />
           <SliderRow
             label={t('materialEditor.clearcoatRoughness')}
@@ -352,6 +426,7 @@ function MaterialEditorInner({
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ clearcoatRoughness: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['clearcoatNormalMap']}
           />
         </div>
 
@@ -389,6 +464,7 @@ function MaterialEditorInner({
             min={0} max={1} step={0.01}
             onChange={(v) => apply({ transmission: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['transmissionMap']}
           />
           <SliderRow
             label={t('materialEditor.thickness')}
@@ -396,6 +472,7 @@ function MaterialEditorInner({
             min={0} max={5} step={0.1}
             onChange={(v) => apply({ thickness: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['thicknessMap']}
           />
           <SliderRow
             label={t('materialEditor.ior')}
@@ -414,6 +491,7 @@ function MaterialEditorInner({
             color={draft.emissive ?? [0, 0, 0]}
             onChange={(rgb) => apply({ emissive: rgb })}
             disabled={disabled}
+            textureThumb={currentThumbs['emissiveMap']}
           />
           <SliderRow
             label={t('materialEditor.emissiveIntensity')}
@@ -421,6 +499,7 @@ function MaterialEditorInner({
             min={0} max={5} step={0.1}
             onChange={(v) => apply({ emissiveIntensity: v })}
             disabled={disabled}
+            textureThumb={currentThumbs['emissiveMap']}
           />
         </div>
 
@@ -440,40 +519,17 @@ function MaterialEditorInner({
             disabled={disabled}
           />
 
-          {/* Alpha mode */}
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">{t('materialEditor.alphaMode')}</span>
-            <select
-              value={draft.alphaMode ?? 'OPAQUE'}
-              disabled={disabled}
-              onChange={(e) => apply({ alphaMode: e.target.value as 'OPAQUE' | 'MASK' | 'BLEND' })}
-              className="h-6 rounded border bg-background px-1 text-[11px] disabled:opacity-40"
-            >
-              <option value="OPAQUE">OPAQUE</option>
-              <option value="MASK">MASK</option>
-              <option value="BLEND">BLEND</option>
-            </select>
-          </div>
-
-          {(draft.alphaMode === 'MASK') && (
-            <SliderRow
-              label={t('materialEditor.alphaCutoff')}
-              value={draft.alphaCutoff ?? 0.5}
-              min={0} max={1} step={0.01}
-              onChange={(v) => apply({ alphaCutoff: v })}
-              disabled={disabled}
-            />
-          )}
         </div>
       </ScrollArea>
 
       {/* Footer */}
       <div className="px-2.5 py-1.5 border-t flex items-center justify-between shrink-0">
         <button
-          className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted transition-colors"
+          className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={handleReset}
+          disabled={disabled}
         >
-          {t('materialEditor.resetToOriginal')}
+          {viewingOriginal ? t('materialEditor.restoreModified') : t('materialEditor.restoreOriginal')}
         </button>
         {multiEdit && (
           <span className="text-[11px] text-muted-foreground">

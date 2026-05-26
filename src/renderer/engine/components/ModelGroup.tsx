@@ -15,7 +15,8 @@ import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderRes
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
 import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
 import { useMaterialStore } from '@/stores/material-store'
-import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
+import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
+import { getMapColorSpace } from '@/engine/material/TextureCache'
 
 // ---- types ----
 
@@ -325,18 +326,51 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           // Store original material appearances for the material editor
           if (fileId) {
             const originals: Record<string, MaterialAppearance> = {}
+            const textureThumbs: Record<string, Record<string, string>> = {}
+            const thumbCache = new WeakMap<object, string>()
             for (const info of partInfos) {
               const origMesh = processed[info.meshIndex]
               const origMat = origMesh.userData._originalMaterial as
                 | THREE.Material
                 | THREE.Material[]
                 | null
-              const app = materialToAppearance(origMat, info.name)
+              const { appearance: app, textures } = materialToAppearance(origMat, info.name, thumbCache)
               if (app) {
                 originals[info.partId] = app
+                // Collect per-slot thumbnails
+                const slotThumbs: Record<string, string> = {}
+                for (const [slot, info] of Object.entries(textures)) {
+                  if (info.thumbnail) slotThumbs[slot] = info.thumbnail
+                }
+                if (Object.keys(slotThumbs).length > 0) {
+                  textureThumbs[info.partId] = slotThumbs
+                }
               }
             }
             useMaterialStore.getState().setMaterialOriginalsForFile(fileId, originals)
+            useMaterialStore.getState().setTextureThumbnailsForFile(fileId, textureThumbs)
+
+            // Pre-load all extracted textures into the shared cache so future
+            // MaterialFactory.createMaterial() calls (e.g. when user changes
+            // alphaMode) can synchronously apply textures via _applyCachedTextures.
+            // Without this, switching alphaMode strips all textures — the object
+            // renders with just its base colour (white for default baseColorFactor).
+            const textureCache = getSharedTextureCache()
+            const textureUrls = new Set<string>()
+            for (const app of Object.values(originals)) {
+              for (const key of ['map', 'metalnessMap', 'roughnessMap', 'normalMap', 'aoMap',
+                  'emissiveMap', 'transmissionMap', 'thicknessMap', 'clearcoatMap',
+                  'clearcoatNormalMap', 'alphaMap'] as const) {
+                const url = (app as Record<string, unknown>)[key]
+                if (typeof url === 'string' && url.length > 0 && !textureUrls.has(url)) {
+                  textureUrls.add(url)
+                  const cs = getMapColorSpace(key)
+                  textureCache.load(url, cs === 'sRGB' ? 'sRGB' : 'linear').catch((err) => {
+                    console.warn('[ModelGroup] texture pre-cache failed for', key, err)
+                  })
+                }
+              }
+            }
           }
 
           // Ensure scene-tree node IDs match mesh partIds by setting
@@ -429,6 +463,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   // Read material overrides from store for reactive updates
   const materialOverrides = useMaterialStore((s) => s.materialOverrides)
   const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
+  const viewingOriginal = useMaterialStore((s) => s.viewingOriginal)
 
   // Apply material overrides whenever the store changes
   useEffect(() => {
@@ -442,7 +477,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         const key = `${fileId}:${String(partInfo.partId)}`
         const override = materialOverrides[key]
 
-        if (overrideMaterial && override) {
+        if (overrideMaterial && override && !viewingOriginal) {
           const newMat = getSharedMaterialFactory().createMaterial(override)
           if (next[partInfo.meshIndex] !== newMat) {
             next[partInfo.meshIndex] = newMat
@@ -462,7 +497,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
       return changed ? next : prev
     })
-  }, [materialOverrides, overrideMaterial, fileId, glbPartInfos, glbMeshes])
+  }, [materialOverrides, overrideMaterial, viewingOriginal, fileId, glbPartInfos, glbMeshes])
 
   if (error) {
     return null

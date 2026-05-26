@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useModelStore } from '@/stores/model-store'
+import { useMaterialStore } from '@/stores/material-store'
 import { clearStepCache } from '@/lib/step-converter'
 import { initLogger } from '@/lib/logger'
 import App from './App'
@@ -16,6 +17,7 @@ initLogger()
 
 // Expose state for E2E test access
 window.__modelStore = useModelStore
+window.__materialStore = useMaterialStore
 window.__errors = []
 window.__clearStepCache = clearStepCache
 

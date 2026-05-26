@@ -14,11 +14,29 @@ npm run build        # Build all processes (main + preload + renderer)
 npm run build:unpacked  # Build + package as unpacked dir (dist/win-unpacked/)
 npm run build:win     # Build + package as NSIS installer (dist/)
 npm run lint          # Run ESLint
+npm run ci            # Full CI: tsc + vitest (all) + playwright (all)
 npx vitest run        # Run unit tests
 npx playwright test   # Run integration tests
 ```
 
 **Single test file**: `npx vitest run src/renderer/lib/step-converter/stepToGlb.test.ts`
+
+## Development Workflow
+
+### Daily development (feature / bug fix)
+
+1. Write code, then run **related Playwright tests** + **all vitest unit tests**.
+2. Only proceed once those pass — never run the full Playwright suite during development (too time-consuming).
+
+### Pre-commit (final gate)
+
+```bash
+npm run ci   # tsc + vitest (all) + playwright (all)
+```
+
+**Must pass `npm run ci` before `git commit`. No exceptions.** CI is the final gate; don't run it frequently during development.
+
+Tests must not use `window.waitForTimeout` or similar brute-force delays.
 
 ## Architecture
 
@@ -79,14 +97,12 @@ Commit message format determines version bump:
 - electron-builder (packaging)
 
 
-强调：任务完成前/代码提交到git前，必须跑scripts下面的ci脚本。windows环境，要跑scripts/ci.ps1, Linux跑scripts/ci.sh。
-一定要保证ci通过才能提交git，没有任何借口，绝对不存在已有的错误不管这回事。
+This is an open-source project — never expose local development environment paths, keys, or other private information in docs or code.
 
-本项目是开源项目，所以文档/代码里不能暴露本机开发环境/路径/密钥等私密信息。
+## wireframe vs mesh (project UI definitions)
 
-测试代码里，禁止用window.waitForTimeout，或者类似的粗暴延时的代码。
+These are definitions specific to this project's UI layer. The terms may carry different meanings in Three.js and other 3D libraries.
 
-注意区分wireframe和mesh：
-wireframe显示模型的拓扑线条，如果不是step等格式，就没有拓扑线条。
-mesh显示的是模型的三角网格，所有文件格式都有mesh网格。
-它们的显示效果都是线条。
+- **wireframe** — topology lines from the CAD model. Only available for STEP/STP formats (which carry topological data).
+- **mesh** — triangle mesh edge rendering. Available for all file formats.
+- Both display as lines in the viewport, but they come from different data sources.

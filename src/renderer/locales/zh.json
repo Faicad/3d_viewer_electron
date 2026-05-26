@@ -146,5 +146,7 @@
   "materialEditor.alphaMode": "透明度模式",
   "materialEditor.alphaCutoff": "透明度阈值",
   "materialEditor.resetToOriginal": "恢复原始材质",
+  "materialEditor.restoreOriginal": "恢复原始材质",
+  "materialEditor.restoreModified": "恢复为最新修改",
   "materialEditor.partsSelected_other": "已选择 {{count}} 个零件"
 }

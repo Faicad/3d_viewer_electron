@@ -2,6 +2,105 @@ import * as THREE from 'three'
 import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
 
 // ---------------------------------------------------------------------------
+// Texture serialisation
+// ---------------------------------------------------------------------------
+
+/** Texture slots tracked on every material. */
+const TEXTURE_SLOTS = [
+  'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap',
+  'emissiveMap', 'transmissionMap', 'thicknessMap', 'clearcoatMap',
+  'clearcoatNormalMap', 'alphaMap',
+] as const
+
+type TextureSlot = (typeof TEXTURE_SLOTS)[number]
+
+/** Lightweight info extracted from a THREE.Texture. */
+export interface TextureSlotInfo {
+  dataUri: string
+  thumbnail: string
+  width: number
+  height: number
+}
+
+const THUMB_SIZE = 20
+
+/**
+ * Draw the texture image into a canvas and return a data-URI.
+ * Works with HTMLImageElement, ImageBitmap, and HTMLCanvasElement.
+ */
+function textureImageToDataUri(
+  image: HTMLImageElement | HTMLCanvasElement | ImageBitmap,
+  mimeType = 'image/png',
+  quality?: number,
+): string | undefined {
+  try {
+    const canvas = document.createElement('canvas')
+    const w = 'naturalWidth' in image ? (image as HTMLImageElement).naturalWidth : image.width
+    const h = 'naturalHeight' in image ? (image as HTMLImageElement).naturalHeight : image.height
+    if (!w || !h) return undefined
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return undefined
+    ctx.drawImage(image as CanvasImageSource, 0, 0)
+    return canvas.toDataURL(mimeType, quality)
+  } catch {
+    return undefined
+  }
+}
+
+/** Generate a 20×20 thumbnail data-URI from a texture. */
+export function textureThumbnail(texture: THREE.Texture): string | undefined {
+  const image = texture.image as HTMLImageElement | HTMLCanvasElement | ImageBitmap | undefined
+  if (!image) return undefined
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = THUMB_SIZE
+    canvas.height = THUMB_SIZE
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return undefined
+    ctx.drawImage(image as CanvasImageSource, 0, 0, THUMB_SIZE, THUMB_SIZE)
+    return canvas.toDataURL('image/png')
+  } catch {
+    return undefined
+  }
+}
+
+/** Deduplicated thumbnail cache keyed by image reference for the current extraction pass. */
+function extractTexturesFromMaterial(
+  mat: THREE.Material,
+  thumbCache: WeakMap<object, string>,
+): Record<string, TextureSlotInfo> {
+  const result: Record<string, TextureSlotInfo> = {}
+  for (const slot of TEXTURE_SLOTS) {
+    const tex = (mat as Record<string, unknown>)[slot] as THREE.Texture | null | undefined
+    if (!tex?.image) continue
+    const image = tex.image as HTMLImageElement | HTMLCanvasElement | ImageBitmap
+
+    // thumbnail — deduped by image reference
+    let thumb = thumbCache.get(image)
+    if (!thumb) {
+      thumb = textureThumbnail(tex)
+      if (thumb) thumbCache.set(image, thumb)
+    }
+    if (!thumb) continue
+
+    // full data-URI — use JPEG for non-alpha slots to save memory
+    const w = 'naturalWidth' in image ? (image as HTMLImageElement).naturalWidth : image.width
+    const h = 'naturalHeight' in image ? (image as HTMLImageElement).naturalHeight : image.height
+    const dataUri = textureImageToDataUri(image, 'image/jpeg', 0.85)
+
+    result[slot] = {
+      dataUri: dataUri ?? thumb, // fallback to thumbnail if full fails
+      thumbnail: thumb,
+      width: w ?? 0,
+      height: h ?? 0,
+    }
+  }
+  return result
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -82,10 +181,13 @@ export function getMaterialColor(
 export function materialToAppearance(
   mat: THREE.Material | THREE.Material[] | null | undefined,
   name: string,
-): MaterialAppearance | null {
-  if (mat == null) return null
+  thumbCache?: WeakMap<object, string>,
+): { appearance: MaterialAppearance | null; textures: Record<string, TextureSlotInfo> } {
+  if (mat == null) return { appearance: null, textures: {} }
   const target = Array.isArray(mat) ? mat[0] : mat
-  if (!target) return null
+  if (!target) return { appearance: null, textures: {} }
+
+  const textures = thumbCache != null ? extractTexturesFromMaterial(target, thumbCache) : {}
 
   const a: MaterialAppearance = { name }
 
@@ -137,7 +239,20 @@ export function materialToAppearance(
     }
   }
 
-  return a
+  // Populate texture data-URIs from extracted textures (for override support)
+  if (textures.map) a.map = textures.map.dataUri
+  if (textures.normalMap) a.normalMap = textures.normalMap.dataUri
+  if (textures.roughnessMap) a.roughnessMap = textures.roughnessMap.dataUri
+  if (textures.metalnessMap) a.metalnessMap = textures.metalnessMap.dataUri
+  if (textures.aoMap) a.aoMap = textures.aoMap.dataUri
+  if (textures.emissiveMap) a.emissiveMap = textures.emissiveMap.dataUri
+  if (textures.transmissionMap) a.transmissionMap = textures.transmissionMap.dataUri
+  if (textures.thicknessMap) a.thicknessMap = textures.thicknessMap.dataUri
+  if (textures.clearcoatMap) a.clearcoatMap = textures.clearcoatMap.dataUri
+  if (textures.clearcoatNormalMap) a.clearcoatNormalMap = textures.clearcoatNormalMap.dataUri
+  if (textures.alphaMap) a.alphaMap = textures.alphaMap.dataUri
+
+  return { appearance: a, textures }
 }
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,16 @@
 // Guarded: when @vitest-environment node is used, window is not defined
 
 if (typeof window !== 'undefined') {
+  // ResizeObserver — required by Radix ScrollArea
+  if (typeof globalThis.ResizeObserver === 'undefined') {
+    class MockResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    ;(globalThis as Record<string, unknown>).ResizeObserver = MockResizeObserver
+    ;(window as Record<string, unknown>).ResizeObserver = MockResizeObserver
+  }
   // Mock electronAPI
   ;(window as Record<string, unknown>).electronAPI = {
     readDirectory: async () => [],

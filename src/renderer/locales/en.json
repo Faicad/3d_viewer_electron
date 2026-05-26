@@ -146,6 +146,8 @@
   "materialEditor.alphaMode": "Alpha Mode",
   "materialEditor.alphaCutoff": "Alpha Cutoff",
   "materialEditor.resetToOriginal": "Reset to Original",
+  "materialEditor.restoreOriginal": "Restore Original",
+  "materialEditor.restoreModified": "Restore Modified",
   "materialEditor.partsSelected_one": "{{count}} part selected",
   "materialEditor.partsSelected_other": "{{count}} parts selected"
 }
