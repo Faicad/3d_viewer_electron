@@ -33,9 +33,9 @@ pnpm exec tsc --noEmit
 
 echo ""
 echo "========================================"
-echo "  2/7  Lint (eslint)"
+echo "  2/7  Lint (eslint --max-warnings 0)"
 echo "========================================"
-pnpm run lint
+pnpm exec eslint . --max-warnings 0
 
 echo ""
 echo "========================================"

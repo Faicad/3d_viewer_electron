@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMaterialStore } from '@/stores/material-store'
@@ -82,7 +82,7 @@ describe('MaterialEditor alpha mode colour preservation', () => {
     await user.click(screen.getByText('混合'))
 
     // After BLEND — colour MUST be intact
-    let afterBlend = getStoreColor(key)
+    const afterBlend = getStoreColor(key)
     expect(afterBlend, 'colour must NOT change when switching to BLEND').toEqual(originalColor)
     expect(useMaterialStore.getState().materialOverrides[key].alphaMode).toBe('BLEND')
 
@@ -90,7 +90,7 @@ describe('MaterialEditor alpha mode colour preservation', () => {
     await user.click(screen.getByText('不透明'))
 
     // After roundtrip — colour MUST equal original
-    let afterRoundtrip = getStoreColor(key)
+    const afterRoundtrip = getStoreColor(key)
     expect(afterRoundtrip, 'colour must NOT change after OPAQUE→BLEND→OPAQUE roundtrip').toEqual(originalColor)
   })
 
@@ -145,7 +145,7 @@ describe('MaterialEditor alpha mode colour preservation', () => {
 
     // OPAQUE: slider disabled, value locked at 1
     const sliders = () => document.querySelectorAll('input[type="range"]')
-    let opacitySlider = Array.from(sliders()).find((s) => (s as HTMLInputElement).disabled)
+    const opacitySlider = Array.from(sliders()).find((s) => (s as HTMLInputElement).disabled)
     expect(opacitySlider, 'OPAQUE slider should be disabled').toBeDefined()
     expect((opacitySlider as HTMLInputElement).value).toBe('1')
 
@@ -165,8 +165,6 @@ describe('MaterialEditor alpha mode colour preservation', () => {
     render(<MaterialEditorTestWrapper />)
 
     // Without textures, no " x" suffix should appear in the DOM
-    const allText = document.body.textContent ?? ''
-    // The value should NOT have " x" suffix (no texture)
     // Just check that the rough label exists (basic render check)
     expect(screen.getByText('materialEditor.roughness')).toBeDefined()
   })

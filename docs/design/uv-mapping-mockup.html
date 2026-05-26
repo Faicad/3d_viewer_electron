@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纹理大图弹窗 — Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #1a1a2e;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+  #viewport { position: fixed; inset: 0; z-index: 1; }
+  #viewport canvas { display: block; }
+
+  .axes { position: fixed; bottom: 20px; left: 20px; z-index: 2; pointer-events: none; }
+
+  .dialog {
+    position: fixed; z-index: 100;
+    background: #1e1e2e; border: 1px solid #444; border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+    display: flex; flex-direction: column;
+    min-width: 320px; min-height: 280px;
+    resize: both; overflow: hidden;
+    top: 60px; left: 60px; width: 520px; height: 480px;
+  }
+  .dialog:hover { border-color: #5577ff55; }
+
+  .titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; background: #252535; border-bottom: 1px solid #333;
+    cursor: move; flex-shrink: 0;
+  }
+  .titlebar-text { color: #ccc; font-size: 13px; }
+  .titlebar-text b { color: #fff; }
+  .titlebar-close {
+    background: none; border: none; color: #888; font-size: 18px;
+    cursor: pointer; padding: 2px 6px; border-radius: 4px; line-height: 1;
+  }
+  .titlebar-close:hover { background: #444; color: #fff; }
+
+  .content {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: #1a1a1a; position: relative; overflow: hidden; min-height: 0;
+  }
+  .content canvas { display: block; }
+
+  .bottombar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px; background: #252535; border-top: 1px solid #333; flex-shrink: 0;
+  }
+  .bottombar label {
+    display: flex; align-items: center; gap: 6px;
+    color: #aaa; font-size: 13px; cursor: pointer;
+  }
+  .bottombar input[type="checkbox"] {
+    accent-color: #5577ff; width: 15px; height: 15px; cursor: pointer;
+  }
+  .btn-bb {
+    background: #333; border: 1px solid #555; color: #ccc;
+    font-size: 12px; padding: 4px 12px; border-radius: 5px; cursor: pointer;
+  }
+  .btn-bb:hover { background: #444; color: #fff; }
+  .btn-bb:active { background: #555; }
+  .spacer { flex: 1; }
+
+  .dialog::after {
+    content: ''; position: absolute; bottom: 0; right: 0;
+    width: 14px; height: 14px;
+    background: linear-gradient(135deg, transparent 50%, #555 50%);
+    border-radius: 0 0 10px 0; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="viewport"></div>
+
+<svg class="axes" width="60" height="60" viewBox="0 0 60 60">
+  <line x1="30" y1="30" x2="55" y2="30" stroke="#ff4444" stroke-width="1.5"/>
+  <line x1="30" y1="30" x2="30" y2="5" stroke="#44ff44" stroke-width="1.5"/>
+  <line x1="30" y1="30" x2="13" y2="47" stroke="#4444ff" stroke-width="1.5"/>
+  <text x="57" y="34" fill="#ff4444" font-size="9">X</text>
+  <text x="32" y="7" fill="#44ff44" font-size="9">Y</text>
+  <text x="5" y="56" fill="#4444ff" font-size="9">Z</text>
+</svg>
+
+<div class="dialog" id="dialog">
+  <div class="titlebar" id="titlebar">
+    <span class="titlebar-text">Base Color → <b>map</b></span>
+    <button class="titlebar-close" id="btnClose">&times;</button>
+  </div>
+
+  <div class="content" id="contentArea">
+    <canvas id="texCanvas"></canvas>
+  </div>
+
+  <div class="bottombar">
+    <label><input type="checkbox" id="chkChecker"> 棋盘格纹理</label>
+    <span class="spacer"></span>
+    <button class="btn-bb" id="btnSwap">换图</button>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp" style="display:none">
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─── 3D Viewport ────────────────────────────────────────────
+const viewport = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewport.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#1a1a2e');
+const camera = new THREE.PerspectiveCamera(50, 2, 0.1, 100);
+camera.position.set(3, -2, 2.5); camera.up.set(0, 0, 1);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0); controls.enableDamping = true; controls.update();
+
+scene.add(new THREE.AmbientLight('#ffffff', 0.6));
+const dir = new THREE.DirectionalLight('#ffffff', 1.5);
+dir.position.set(5, -5, 5); dir.castShadow = true; scene.add(dir);
+scene.add(new THREE.DirectionalLight('#8899cc', 0.4).position.set(-3, 2, -2));
+scene.add(new THREE.GridHelper(6, 20, '#333344', '#222233'));
+
+// ─── Model ──────────────────────────────────────────────────
+const modelGroup = new THREE.Group(); scene.add(modelGroup);
+const sphereGeo = new THREE.SphereGeometry(0.7, 64, 48);
+const boxGeo = new THREE.BoxGeometry(0.55, 0.55, 0.55);
+const matSphere = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.4, metalness: 0.05 });
+const sphere = new THREE.Mesh(sphereGeo, matSphere);
+sphere.position.set(-0.8, 0, 0.75); sphere.castShadow = true; modelGroup.add(sphere);
+const matBox = new THREE.MeshStandardMaterial({ color: '#cccccc', roughness: 0.35, metalness: 0.1 });
+const box = new THREE.Mesh(boxGeo, matBox);
+box.position.set(0.8, 0, 0.55); box.rotation.set(Math.PI/7, Math.PI/5, 0); box.castShadow = true; modelGroup.add(box);
+
+// ─── Checkerboard Texture ───────────────────────────────────
+function createCheckerTexture(size = 1024, grids = 8) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d'), cell = size / grids;
+  const colors = ['#ffffff', '#dddddd'];
+  for (let r = 0; r < grids; r++) for (let col = 0; col < grids; col++) {
+    ctx.fillStyle = colors[(r + col) % 2]; ctx.fillRect(col*cell, r*cell, cell, cell);
+    const n = r * grids + col + 1;
+    ctx.fillStyle = '#999'; ctx.font = `${cell*0.35}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(n), col*cell+cell/2, r*cell+cell/2);
+  }
+  ctx.strokeStyle = '#666'; ctx.lineWidth = 1;
+  for (let i = 0; i <= grids; i++) {
+    ctx.beginPath(); ctx.moveTo(0,i*cell); ctx.lineTo(size,i*cell); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i*cell,0); ctx.lineTo(i*cell,size); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+  tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = true;
+  return tex;
+}
+const checkerTex = createCheckerTexture();
+
+// Current effective texture
+let currentSphereMap = matSphere.map;
+let currentBoxMap = matBox.map;
+
+// Saved texture before checkerboard toggle
+let savedSphereMap = currentSphereMap;
+let savedBoxMap = currentBoxMap;
+
+function setModelTexture(tex) {
+  matSphere.map = tex; matBox.map = tex;
+  matSphere.color.set('#ffffff'); matBox.color.set('#ffffff');
+  matSphere.needsUpdate = true; matBox.needsUpdate = true;
+}
+
+function updateDialogTex() {
+  const activeTex = document.getElementById('chkChecker').checked ? checkerTex : currentSphereMap;
+  if (activeTex && activeTex.image) {
+    texSrc = activeTex.image;
+  } else {
+    texSrc = defaultTexImg;
+  }
+  layoutTexPanel();
+}
+
+// ─── Dialog ──────────────────────────────────────────────────
+const dialog = document.getElementById('dialog');
+const titlebar = document.getElementById('titlebar');
+let dragging = false, offX = 0, offY = 0;
+titlebar.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'BUTTON') return;
+  dragging = true; const r = dialog.getBoundingClientRect();
+  offX = e.clientX - r.left; offY = e.clientY - r.top;
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const w = dialog.offsetWidth, h = dialog.offsetHeight;
+  dialog.style.left = Math.max(-w+60, Math.min(window.innerWidth-40, e.clientX-offX)) + 'px';
+  dialog.style.top = Math.max(0, Math.min(window.innerHeight-40, e.clientY-offY)) + 'px';
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+
+// Close button — uncheck checkerboard, keep texture changes
+document.getElementById('btnClose').addEventListener('click', () => {
+  document.getElementById('chkChecker').checked = false;
+  setModelTexture(currentSphereMap);
+  updateDialogTex();
+  dialog.style.display = 'none';
+});
+
+// ─── Dialog canvas ───────────────────────────────────────────
+const texCanvas = document.getElementById('texCanvas');
+const texCtx = texCanvas.getContext('2d');
+
+function genTexImg(size) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size; const t = c.getContext('2d'), cell = size / 8;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    t.fillStyle = (x+y)%2===0?'#3a3a4a':'#4a4a5a'; t.fillRect(x*cell,y*cell,cell,cell);
+    const n = y*8+x+1;
+    t.fillStyle = '#999'; t.font = `${cell*0.45}px monospace`;
+    t.textAlign = 'center'; t.textBaseline = 'middle'; t.fillText(n, x*cell+cell/2, y*cell+cell/2);
+  }
+  t.strokeStyle = '#555'; t.lineWidth = 0.5;
+  for (let i=0;i<=8;i++){t.beginPath();t.moveTo(0,i*cell);t.lineTo(size,i*cell);t.stroke();t.beginPath();t.moveTo(i*cell,0);t.lineTo(i*cell,size);t.stroke()}
+  return c;
+}
+const defaultTexImg = genTexImg(512);
+let texSrc = defaultTexImg;
+
+function drawTexPanel(w, h) {
+  texCtx.clearRect(0,0,w,h); texCtx.fillStyle='#1a1a1a'; texCtx.fillRect(0,0,w,h);
+  const s = Math.min((w-12)/texSrc.width, (h-12)/texSrc.height);
+  const dw = texSrc.width*s, dh = texSrc.height*s;
+  const dx = (w-dw)/2, dy = (h-dh)/2;
+  texCtx.drawImage(texSrc, dx, dy, dw, dh);
+  texCtx.strokeStyle='#444'; texCtx.lineWidth=1; texCtx.strokeRect(dx,dy,dw,dh);
+}
+
+function layoutTexPanel() {
+  const r = document.getElementById('contentArea').getBoundingClientRect();
+  texCanvas.width = r.width; texCanvas.height = r.height;
+  texCanvas.style.width = r.width+'px'; texCanvas.style.height = r.height+'px';
+  drawTexPanel(r.width, r.height);
+}
+new ResizeObserver(() => layoutTexPanel()).observe(document.getElementById('contentArea'));
+window.addEventListener('resize', () => {
+  const r = dialog.getBoundingClientRect();
+  if (r.right > window.innerWidth) dialog.style.left = Math.max(0, window.innerWidth - r.width - 10) + 'px';
+  if (r.bottom > window.innerHeight) dialog.style.top = Math.max(0, window.innerHeight - r.height - 10) + 'px';
+});
+
+// ─── Button handlers ─────────────────────────────────────────
+// □ 棋盘格纹理 — toggle checkerboard on/off
+document.getElementById('chkChecker').addEventListener('change', (e) => {
+  if (e.target.checked) {
+    savedSphereMap = currentSphereMap;
+    savedBoxMap = currentBoxMap;
+    setModelTexture(checkerTex);
+  } else {
+    currentSphereMap = savedSphereMap;
+    currentBoxMap = savedBoxMap;
+    setModelTexture(currentSphereMap);
+  }
+  updateDialogTex();
+});
+
+// [换图] — replace texture with local file (persistent)
+document.getElementById('btnSwap').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
+      c.getContext('2d').drawImage(img,0,0);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+      currentSphereMap = t; currentBoxMap = t;
+      setModelTexture(t);
+      document.getElementById('chkChecker').checked = false;
+      updateDialogTex();
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// ─── Render loop ─────────────────────────────────────────────
+function resize() {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize); resize();
+
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+layoutTexPanel();
+</script>
+</body>
+</html>

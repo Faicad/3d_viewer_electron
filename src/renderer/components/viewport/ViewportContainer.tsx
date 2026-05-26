@@ -8,6 +8,7 @@ import { useModelStore } from '@/stores/model-store'
 import type { UnitSystem, FileGroup } from '@/config/file-formats'
 import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
+import { useMaterialStore } from '@/stores/material-store'
 import { useToolStore } from '@/stores/tool-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import type { SnapCandidate } from '@/lib/topology/snap'
@@ -29,6 +30,10 @@ import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import AxesIndicator from '@/engine/components/AxesIndicator'
 import ToolOverlay from '@/engine/components/ToolOverlay'
 import TopologyPicker from '@/engine/components/TopologyPicker'
+import TexturePreviewDialog from '@/components/panels/TexturePreviewDialog'
+import { getCheckerDataUri } from '@/engine/material/checkerTexture'
+import { getSharedTextureCache } from '@/engine/material/MaterialFactory'
+import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { toast } from 'sonner'
 
 /** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
@@ -267,6 +272,90 @@ export default function ViewportContainer() {
   const [debugSelectedFaceRow, setDebugSelectedFaceRow] = useState<number | null>(null)
   const [debugSelectedEdgeRow, setDebugSelectedEdgeRow] = useState<number | null>(null)
   const savedShadowFloorRef = useRef<boolean | null>(null)
+
+  // Texture preview dialog state
+  const texturePreviewSlot = useMaterialStore((s) => s.texturePreviewSlot)
+  const texturePreviewLabel = useMaterialStore((s) => s.texturePreviewLabel)
+  const textureThumbnails = useMaterialStore((s) => s.textureThumbnails)
+  const materialOverrides = useMaterialStore((s) => s.materialOverrides)
+  const materialOriginals = useMaterialStore((s) => s.materialOriginals)
+  const editingOverrideKeys = useMaterialStore((s) => s.editingOverrideKeys)
+
+  // Auto-switch to solid mode when MaterialEditor opens
+  const materialEditorVisible = useMaterialStore((s) => s.materialEditorVisible)
+  const prevEditorVisible = useRef(materialEditorVisible)
+  useEffect(() => {
+    const justOpened = materialEditorVisible && !prevEditorVisible.current
+    prevEditorVisible.current = materialEditorVisible
+    if (justOpened && displayMode !== 'solid') {
+      setDisplayMode('solid')
+    }
+  }, [materialEditorVisible, displayMode])
+  const [checkerEnabled, setCheckerEnabled] = useState(false)
+  const [swappedDataUri, setSwappedDataUri] = useState<string | null>(null)
+
+  const closeTexturePreview = useCallback(() => {
+    useMaterialStore.getState().closeTexturePreview()
+    setCheckerEnabled(false)
+    setSwappedDataUri(null)
+  }, [])
+
+  const handleCheckerToggle = useCallback((enabled: boolean) => {
+    setCheckerEnabled(enabled)
+  }, [])
+
+  const handleSwapImage = useCallback(async (slot: string, dataUri: string) => {
+    setCheckerEnabled(false)
+    setSwappedDataUri(dataUri)
+
+    const primaryKey = editingOverrideKeys[0]
+    if (!primaryKey) return
+    const { fileId, partId } = (() => {
+      const idx = primaryKey.indexOf(':')
+      return { fileId: primaryKey.slice(0, idx), partId: primaryKey.slice(idx + 1) }
+    })()
+
+    // Pre-load the texture into the shared cache so that
+    // MaterialFactory._applyCachedTextures can find it synchronously
+    // when createMaterial() is called from the store override effect.
+    const cs = getMapColorSpace(slot)
+    await getSharedTextureCache().load(dataUri, cs)
+
+    // Read current override or original, update the texture slot
+    const store = useMaterialStore.getState()
+    const currentOverride = store.materialOverrides[primaryKey]
+    const original = store.materialOriginals[primaryKey]
+    const base = currentOverride ?? original
+    if (!base) return
+
+    const updated = { ...base }
+    ;(updated as Record<string, unknown>)[slot] = dataUri
+    store.setMaterialOverride(fileId, partId, updated)
+  }, [editingOverrideKeys])
+
+  // Compute the effective texture source for the preview dialog
+  const effectiveTextureSrc = useMemo(() => {
+    if (!texturePreviewSlot) return ''
+    if (checkerEnabled) return getCheckerDataUri()
+    if (swappedDataUri) return swappedDataUri
+    // Get original full texture data-URI from the appearance
+    const primaryKey = editingOverrideKeys[0]
+    if (!primaryKey) {
+      // Fall back to thumbnail
+      const thumbs = primaryKey ? textureThumbnails[primaryKey] : undefined
+      return thumbs?.[texturePreviewSlot] ?? ''
+    }
+    const override = materialOverrides[primaryKey]
+    const original = materialOriginals[primaryKey]
+    const appearance = override ?? original
+    if (appearance) {
+      const url = (appearance as Record<string, unknown>)[texturePreviewSlot]
+      if (typeof url === 'string' && url.length > 0) return url
+    }
+    // Fall back to thumbnail
+    const thumbs = textureThumbnails[primaryKey]
+    return thumbs?.[texturePreviewSlot] ?? ''
+  }, [texturePreviewSlot, checkerEnabled, swappedDataUri, editingOverrideKeys, materialOverrides, materialOriginals, textureThumbnails])
 
   const handleDisplayModeChange = useCallback((mode: DisplayMode) => {
     const isWireframeOrMesh = mode === 'wireframe' || mode === 'mesh'
@@ -531,6 +620,8 @@ export default function ViewportContainer() {
                 onError={handleModelError}
                 selectorRuntime={file.id === activeFileId ? selectorRuntime : null}
                 displayMode={resolvedDisplayMode}
+                checkerEnabled={checkerEnabled}
+                checkerSlot={checkerEnabled ? texturePreviewSlot : null}
               />
             </group>
           ))
@@ -552,6 +643,8 @@ export default function ViewportContainer() {
             onError={handleModelError}
             selectorRuntime={selectorRuntime}
             displayMode={resolvedDisplayMode}
+            checkerEnabled={checkerEnabled}
+            checkerSlot={checkerEnabled ? texturePreviewSlot : null}
           />
         )}
         <ToolOverlay modelRef={modelGroupRef} />
@@ -683,6 +776,19 @@ export default function ViewportContainer() {
       <SelectionInfoOverlay reference={selectedReference} />
 
       <AxesIndicator mainCamera={mainCamera} />
+
+      {/* Texture Preview Dialog */}
+      <TexturePreviewDialog
+        visible={texturePreviewSlot !== null}
+        onClose={closeTexturePreview}
+        textureSrc={effectiveTextureSrc}
+        slotName={texturePreviewSlot ?? ''}
+        pbrName={texturePreviewLabel ?? ''}
+        onSwapImage={handleSwapImage}
+        checkerEnabled={checkerEnabled}
+        onCheckerToggle={handleCheckerToggle}
+        checkerDisabled={displayMode !== 'solid'}
+      />
     </div>
   )
 }

@@ -2,6 +2,8 @@
 # Fast checks (~30s): typecheck + lint + unit tests + component tests
 # Slow checks (~3min): build + E2E tests
 
+$ErrorActionPreference = "Stop"
+
 Write-Host "========================================"  -ForegroundColor Cyan
 Write-Host "  1/7  Type check (tsc --noEmit)"       -ForegroundColor Cyan
 Write-Host "========================================"  -ForegroundColor Cyan
@@ -9,9 +11,9 @@ pnpm exec tsc --noEmit
 
 Write-Host ""
 Write-Host "========================================"  -ForegroundColor Cyan
-Write-Host "  2/7  Lint (eslint)"                    -ForegroundColor Cyan
+Write-Host "  2/7  Lint (eslint --max-warnings 0)"  -ForegroundColor Cyan
 Write-Host "========================================"  -ForegroundColor Cyan
-pnpm run lint
+pnpm exec eslint . --max-warnings 0
 
 Write-Host ""
 Write-Host "========================================"  -ForegroundColor Cyan

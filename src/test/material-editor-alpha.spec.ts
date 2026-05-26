@@ -5,13 +5,7 @@
  * change the base colour, roughness, or metalness of the material.
  */
 import { test, expect, _electron, ElectronApplication, Page } from '@playwright/test'
-import { readFileSync } from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import { getElectronPath } from './utils'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const TEST_GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
 
 function trackErrors(page: Page) {
   const pageErrors: string[] = []
@@ -54,9 +48,12 @@ test.describe('MaterialEditor alpha mode colour preservation', () => {
     const { assertNoErrors } = trackErrors(window)
     await window.waitForLoadState('domcontentloaded')
 
-    // Load the test GLB and open material editor for a part
-    // We verify the roundtrip by checking the material store state directly
-    await waitForLoadDone(window)
+    // Verify the material store is ready (this test exercises in-memory
+    // store operations, no model file needs to be loaded)
+    await window.waitForFunction(
+      () => window.__materialStore?.getState() != null,
+      { timeout: 10000 },
+    )
 
     // Check that the material store exists and has expected shape
     const hasViewingOriginal = await window.evaluate(() => {
@@ -67,27 +64,29 @@ test.describe('MaterialEditor alpha mode colour preservation', () => {
 
     // Verify store supports alpha mode roundtrip without colour corruption
     const roundtripOk = await window.evaluate(() => {
-      const store = window.__materialStore?.getState()
+      const ms = window.__materialStore
+      if (!ms) return false
+      const store = ms.getState()
       if (!store) return false
       const { setMaterialOriginalsForFile, setMaterialOverride } = store
 
       const brass = {
         name: 'Test',
-        color: [0.8 as number, 0.6 as number, 0.2 as number, 1.0 as number],
+        color: [0.8, 0.6, 0.2, 1.0],
         roughness: 0.3,
         metalness: 0.8,
       }
       setMaterialOriginalsForFile('__test__', { p1: brass })
 
-      // BLEND
-      setMaterialOverride('__test__', 'p1', { ...brass, alphaMode: 'BLEND' as const })
-      const blend = store.materialOverrides['__test__:p1']
-      if (blend.color?.[0] !== 0.8 || blend.color?.[1] !== 0.6) return false
+      // BLEND — get fresh state after mutation
+      setMaterialOverride('__test__', 'p1', { ...brass, alphaMode: 'BLEND' })
+      const blend = ms.getState().materialOverrides['__test__:p1']
+      if (!blend || blend.color?.[0] !== 0.8 || blend.color?.[1] !== 0.6) return false
 
-      // Back to OPAQUE
-      setMaterialOverride('__test__', 'p1', { ...brass, alphaMode: 'OPAQUE' as const })
-      const opaque = store.materialOverrides['__test__:p1']
-      if (opaque.color?.[0] !== 0.8) return false
+      // Back to OPAQUE — get fresh state after mutation
+      setMaterialOverride('__test__', 'p1', { ...brass, alphaMode: 'OPAQUE' })
+      const opaque = ms.getState().materialOverrides['__test__:p1']
+      if (!opaque || opaque.color?.[0] !== 0.8) return false
       if (opaque.roughness !== 0.3) return false
       if (opaque.metalness !== 0.8) return false
 

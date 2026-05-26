@@ -148,5 +148,8 @@
   "materialEditor.resetToOriginal": "恢复原始材质",
   "materialEditor.restoreOriginal": "恢复原始材质",
   "materialEditor.restoreModified": "恢复为最新修改",
-  "materialEditor.partsSelected_other": "已选择 {{count}} 个零件"
+  "materialEditor.partsSelected_other": "已选择 {{count}} 个零件",
+  "uv.checkerboard": "棋盘格纹理",
+  "uv.swapImage": "换图",
+  "uv.noTexture": "无纹理"
 }

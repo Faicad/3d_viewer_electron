@@ -220,7 +220,7 @@ describe('materialToAppearance', () => {
 
   it('extracts color from a standard material', () => {
     const mat = new THREE.MeshStandardMaterial({ color: 0xcc8844 })
-    const { appearance, textures } = materialToAppearance(mat, 'test')
+    const { appearance } = materialToAppearance(mat, 'test')
     expect(appearance).not.toBeNull()
     // Three.js converts sRGB colour to linear: srgb(0.8) ≈ linear(0.604)
     expect(appearance!.color![0]).toBeCloseTo(0.604, 1)

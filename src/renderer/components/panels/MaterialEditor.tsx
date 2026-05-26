@@ -25,7 +25,7 @@ function hexToRgb(hex: string): [number, number, number] {
 
 // ---- sub-components ----
 
-function SliderRow({ label, value, min, max, step, onChange, disabled, textureThumb }: {
+function SliderRow({ label, value, min, max, step, onChange, disabled, textureThumb, textureSlot, onTextureClick }: {
   label: string
   value: number
   min: number
@@ -34,6 +34,8 @@ function SliderRow({ label, value, min, max, step, onChange, disabled, textureTh
   onChange: (v: number) => void
   disabled?: boolean
   textureThumb?: string
+  textureSlot?: string
+  onTextureClick?: (slot: string) => void
 }) {
   const hasTex = !!textureThumb
   return (
@@ -45,7 +47,10 @@ function SliderRow({ label, value, min, max, step, onChange, disabled, textureTh
             {Math.round(value * 100) / 100}{hasTex ? ' x' : ''}
           </span>
           {hasTex && (
-            <div className="w-5 h-5 shrink-0 rounded-sm overflow-hidden bg-muted">
+            <div
+              className="w-5 h-5 shrink-0 rounded-sm overflow-hidden bg-muted cursor-pointer hover:ring-1 hover:ring-primary/50"
+              onClick={() => textureSlot && onTextureClick?.(textureSlot)}
+            >
               <img src={textureThumb} alt="" className="w-full h-full object-cover" />
             </div>
           )}
@@ -96,12 +101,14 @@ function ToggleRow({ label, checked, onChange, disabled }: {
   )
 }
 
-function ColorRow({ label, color, onChange, disabled, textureThumb }: {
+function ColorRow({ label, color, onChange, disabled, textureThumb, textureSlot, onTextureClick }: {
   label: string
   color: [number, number, number]
   onChange: (rgb: [number, number, number]) => void
   disabled?: boolean
   textureThumb?: string
+  textureSlot?: string
+  onTextureClick?: (slot: string) => void
 }) {
   const hasTex = !!textureThumb
   return (
@@ -117,7 +124,10 @@ function ColorRow({ label, color, onChange, disabled, textureThumb }: {
             disabled:opacity-40 disabled:cursor-not-allowed"
         />
         {hasTex && (
-          <div className="w-5 h-5 shrink-0 rounded-sm overflow-hidden bg-muted">
+          <div
+            className="w-5 h-5 shrink-0 rounded-sm overflow-hidden bg-muted cursor-pointer hover:ring-1 hover:ring-primary/50"
+            onClick={() => textureSlot && onTextureClick?.(textureSlot)}
+          >
             <img src={textureThumb} alt="" className="w-full h-full object-cover" />
           </div>
         )}
@@ -176,7 +186,6 @@ interface MaterialEditorInnerProps {
   primaryKey: string
   editingKeys: string[]
   isEditingDefault: boolean
-  overrideMaterial: boolean
   disabled: boolean
   multiEdit: boolean
   title: string
@@ -191,7 +200,6 @@ function MaterialEditorInner({
   primaryKey,
   editingKeys,
   isEditingDefault,
-  overrideMaterial,
   disabled,
   multiEdit,
   title,
@@ -201,10 +209,25 @@ function MaterialEditorInner({
 }: MaterialEditorInnerProps) {
   const { t } = useTranslation()
 
+  const SLOT_TO_LABEL_KEY: Record<string, string> = {
+    map: 'materialEditor.color',
+    roughnessMap: 'materialEditor.roughness',
+    metalnessMap: 'materialEditor.metalness',
+    alphaMap: 'materialEditor.opacity',
+    clearcoatMap: 'materialEditor.clearcoat',
+    clearcoatNormalMap: 'materialEditor.clearcoatRoughness',
+    transmissionMap: 'materialEditor.transmission',
+    thicknessMap: 'materialEditor.thickness',
+    emissiveMap: 'materialEditor.emissiveColor',
+  }
+
+  const handleTextureClick = useCallback((slot: string) => {
+    const labelKey = SLOT_TO_LABEL_KEY[slot] ?? slot
+    useMaterialStore.getState().openTexturePreview(slot, t(labelKey))
+  }, [t])
+
   const setOverride = useMaterialStore((s) => s.setMaterialOverride)
   const setOverrideBatch = useMaterialStore((s) => s.setMaterialOverrideBatch)
-  const removeOverride = useMaterialStore((s) => s.removeMaterialOverride)
-  const setOverrideMaterial = useMaterialStore((s) => s.setOverrideMaterial)
   const setDefaultMaterial = useMaterialStore((s) => s.setDefaultMaterial)
   const viewingOriginal = useMaterialStore((s) => s.viewingOriginal)
   const toggleViewingOriginal = useMaterialStore((s) => s.toggleViewingOriginal)
@@ -348,6 +371,8 @@ function MaterialEditorInner({
             }}
             disabled={disabled}
             textureThumb={currentThumbs['map']}
+            textureSlot="map"
+            onTextureClick={handleTextureClick}
           />
           {/* Alpha mode + slider integrated */}
           <div className="flex flex-col gap-0.5">
@@ -367,6 +392,8 @@ function MaterialEditorInner({
                 onChange={() => {}}
                 disabled={true}
                 textureThumb={currentThumbs['alphaMap']}
+                textureSlot="alphaMap"
+                onTextureClick={handleTextureClick}
               />
             ) : draft.alphaMode === 'MASK' ? (
               <SliderRow
@@ -376,6 +403,8 @@ function MaterialEditorInner({
                 onChange={(v) => apply({ alphaCutoff: v })}
                 disabled={disabled}
                 textureThumb={currentThumbs['alphaMap']}
+                textureSlot="alphaMap"
+                onTextureClick={handleTextureClick}
               />
             ) : (
               <SliderRow
@@ -388,6 +417,8 @@ function MaterialEditorInner({
                 }}
                 disabled={disabled}
                 textureThumb={currentThumbs['alphaMap']}
+                textureSlot="alphaMap"
+                onTextureClick={handleTextureClick}
               />
             )}
           </div>
@@ -398,6 +429,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ roughness: v })}
             disabled={disabled}
             textureThumb={currentThumbs['roughnessMap']}
+            textureSlot="roughnessMap"
+            onTextureClick={handleTextureClick}
           />
           <SliderRow
             label={t('materialEditor.metalness')}
@@ -406,6 +439,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ metalness: v })}
             disabled={disabled}
             textureThumb={currentThumbs['metalnessMap']}
+            textureSlot="metalnessMap"
+            onTextureClick={handleTextureClick}
           />
         </div>
 
@@ -419,6 +454,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ clearcoat: v })}
             disabled={disabled}
             textureThumb={currentThumbs['clearcoatMap']}
+            textureSlot="clearcoatMap"
+            onTextureClick={handleTextureClick}
           />
           <SliderRow
             label={t('materialEditor.clearcoatRoughness')}
@@ -427,6 +464,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ clearcoatRoughness: v })}
             disabled={disabled}
             textureThumb={currentThumbs['clearcoatNormalMap']}
+            textureSlot="clearcoatNormalMap"
+            onTextureClick={handleTextureClick}
           />
         </div>
 
@@ -465,6 +504,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ transmission: v })}
             disabled={disabled}
             textureThumb={currentThumbs['transmissionMap']}
+            textureSlot="transmissionMap"
+            onTextureClick={handleTextureClick}
           />
           <SliderRow
             label={t('materialEditor.thickness')}
@@ -473,6 +514,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ thickness: v })}
             disabled={disabled}
             textureThumb={currentThumbs['thicknessMap']}
+            textureSlot="thicknessMap"
+            onTextureClick={handleTextureClick}
           />
           <SliderRow
             label={t('materialEditor.ior')}
@@ -492,6 +535,8 @@ function MaterialEditorInner({
             onChange={(rgb) => apply({ emissive: rgb })}
             disabled={disabled}
             textureThumb={currentThumbs['emissiveMap']}
+            textureSlot="emissiveMap"
+            onTextureClick={handleTextureClick}
           />
           <SliderRow
             label={t('materialEditor.emissiveIntensity')}
@@ -500,6 +545,8 @@ function MaterialEditorInner({
             onChange={(v) => apply({ emissiveIntensity: v })}
             disabled={disabled}
             textureThumb={currentThumbs['emissiveMap']}
+            textureSlot="emissiveMap"
+            onTextureClick={handleTextureClick}
           />
         </div>
 
@@ -585,7 +632,6 @@ export default function MaterialEditor() {
       primaryKey={primaryKey}
       editingKeys={editingKeys}
       isEditingDefault={isEditingDefault}
-      overrideMaterial={overrideMaterial}
       disabled={disabled}
       multiEdit={multiEdit}
       title={title}

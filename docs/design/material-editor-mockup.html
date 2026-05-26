@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>材质编辑器 — UI Mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #f5f5f5;
+    --muted-fg: #737373; --primary: #1a1a1a; --border: #e5e5e5;
+  }
+  .dark {
+    --bg: #0a0a0a; --fg: #fafafa; --muted: #262626;
+    --muted-fg: #a3a3a3; --primary: #e5e5e5; --border: #262626;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 9999px; background: color-mix(in srgb, var(--muted-fg) 20%, transparent); cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+  input[type=range]:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body class="min-h-screen flex items-start justify-center gap-8 p-8 flex-wrap">
+
+<div class="fixed top-4 right-4 z-50">
+  <button onclick="document.documentElement.classList.toggle('dark')"
+    class="px-3 py-1 text-xs rounded border" style="border-color:var(--border); background:var(--bg); color:var(--fg)">
+    亮色 / 暗色
+  </button>
+</div>
+
+<!-- ============================================================ -->
+<!-- Panel 1: Body Material — has textures -->
+<!-- ============================================================ -->
+<div class="w-[260px] rounded-lg border shadow-xl flex flex-col shrink-0"
+     style="max-height:90vh; border-color:var(--border); background:var(--bg)">
+
+  <!-- Title bar -->
+  <div class="flex items-center gap-1 px-2 py-1.5 border-b cursor-grab shrink-0 select-none" style="border-color:var(--border)">
+    <svg class="h-3 w-3 shrink-0" style="color:var(--muted-fg)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/></svg>
+    <span class="text-xs font-semibold flex-1 truncate">Body Material</span>
+    <button class="h-4 w-4 flex items-center justify-center rounded hover:opacity-70" style="color:var(--muted-fg)">
+      <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-2.5 py-2">
+
+    <!-- Preset -->
+    <div class="flex flex-col gap-0.5 mb-2">
+      <span class="text-[11px]" style="color:var(--muted-fg)">预设</span>
+      <select class="h-7 rounded-md border px-1.5 text-[11px]" style="border-color:var(--border); background:var(--bg); color:var(--fg)">
+        <option value="custom">自定义</option>
+        <option value="aluminum">拉丝铝</option><option value="steel">不锈钢</option>
+        <option value="glass">玻璃</option><option value="plastic">塑料</option>
+        <option value="rubber">橡胶</option><option value="gold">黄金</option>
+      </select>
+    </div>
+
+    <!-- ===== BASE ===== -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pb-0.5" style="color:var(--muted-fg)">Base</h4>
+    <div class="space-y-1.5 mt-1">
+
+      <!-- Color + baseColor texture — thumb far right -->
+      <div class="flex items-center justify-between">
+        <span class="text-[11px]" style="color:var(--muted-fg)">颜色</span>
+        <div class="flex items-center gap-[5px]">
+          <input type="color" value="#ffffff" class="h-5 w-7 cursor-pointer rounded border-0 bg-transparent p-0">
+          <div class="w-5 h-5 rounded-sm" style="background:repeating-conic-gradient(#9ba6ae 0% 25%, #d0d4d8 0% 50%) 50%/5px 5px;" title="baseColor"></div>
+        </div>
+      </div>
+
+      <!-- Opacity + alphaMode integrated (OPAQUE mode, slider disabled at 1) -->
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px]" style="color:var(--muted-fg)">不透明度</span>
+          <div class="flex items-center gap-0.5 text-[10px]">
+            <button class="px-1.5 py-0.5 rounded" style="background:var(--primary); color:var(--bg)">不透明</button>
+            <button class="px-1.5 py-0.5 rounded" style="background:color-mix(in srgb,var(--muted-fg) 12%,transparent); color:var(--muted-fg)">遮罩</button>
+            <button class="px-1.5 py-0.5 rounded" style="background:color-mix(in srgb,var(--muted-fg) 12%,transparent); color:var(--muted-fg)">混合</button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px]" style="color:var(--muted-fg)">不透明度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">1</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="1" disabled class="mr-[48px] opacity-40 cursor-not-allowed">
+      </div>
+
+      <!-- Roughness + roughness texture — thumb far right -->
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px]" style="color:var(--muted-fg)">粗糙度</span>
+          <div class="flex items-center gap-[5px]">
+            <span class="text-[11px] tabular-nums">1 x</span>
+            <div class="w-5 h-5 rounded-sm" style="background:repeating-conic-gradient(#6b5b4b 0% 25%, #9b8b7b 0% 50%) 50%/5px 5px;" title="roughness"></div>
+          </div>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="1" class="mr-[48px]">
+      </div>
+
+      <!-- Metalness (no texture) -->
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px]" style="color:var(--muted-fg)">金属度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">0.1</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.1" class="mr-[48px]">
+      </div>
+    </div>
+
+    <!-- ===== CLEARCOAT ===== -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pt-2 pb-0.5" style="color:var(--muted-fg)">Clearcoat</h4>
+    <div class="space-y-1.5 mt-1">
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">清漆强度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">0.2</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.2" class="mr-[48px]">
+      </div>
+
+      <!-- Clearcoat roughness + texture — thumb far right -->
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px]" style="color:var(--muted-fg)">清漆粗糙度</span>
+          <div class="flex items-center gap-[5px]">
+            <span class="text-[11px] tabular-nums">0.4 x</span>
+            <div class="w-5 h-5 rounded-sm" style="background:repeating-conic-gradient(#888 0% 25%, #aaa 0% 50%) 50%/5px 5px;" title="clearcoatRoughness"></div>
+          </div>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.4" class="mr-[48px]">
+      </div>
+    </div>
+
+    <!-- ===== SHEEN ===== -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pt-2 pb-0.5" style="color:var(--muted-fg)">Sheen</h4>
+    <div class="space-y-1.5 mt-1">
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">光泽强度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">0</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0" class="mr-[48px]">
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">光泽颜色</span>
+        <input type="color" value="#ffffff" class="h-5 w-7 cursor-pointer rounded border-0 bg-transparent p-0 mr-[23px]">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">光泽粗糙度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">0</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0" class="mr-[48px]">
+      </div>
+    </div>
+
+    <!-- ===== TRANSMISSION ===== -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pt-2 pb-0.5" style="color:var(--muted-fg)">Transmission</h4>
+    <div class="space-y-1.5 mt-1">
+
+      <!-- Transmission + texture — thumb far right -->
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px]" style="color:var(--muted-fg)">透射强度</span>
+          <div class="flex items-center gap-[5px]">
+            <span class="text-[11px] tabular-nums">0.8 x</span>
+            <div class="w-5 h-5 rounded-sm" style="background:repeating-conic-gradient(#667 0% 25%, #889 0% 50%) 50%/5px 5px;" title="transmission"></div>
+          </div>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.8" class="mr-[48px]">
+      </div>
+
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">厚度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">0.3</span>
+        </div>
+        <input type="range" min="0" max="5" step="0.1" value="0.3" class="mr-[48px]">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">IOR</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">1.52</span>
+        </div>
+        <input type="range" min="1" max="3" step="0.01" value="1.52" class="mr-[48px]">
+      </div>
+    </div>
+
+    <!-- ===== EMISSIVE ===== -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pt-2 pb-0.5" style="color:var(--muted-fg)">Emissive</h4>
+    <div class="space-y-1.5 mt-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">自发光颜色</span>
+        <input type="color" value="#000000" class="h-5 w-7 cursor-pointer rounded border-0 bg-transparent p-0 mr-[23px]">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">自发光强度</span>
+          <span class="text-[11px] tabular-nums mr-[25px]">0</span>
+        </div>
+        <input type="range" min="0" max="5" step="0.1" value="0" class="mr-[48px]">
+      </div>
+    </div>
+
+    <!-- ===== MISC ===== -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pt-2 pb-0.5" style="color:var(--muted-fg)">Misc</h4>
+    <div class="space-y-1.5 mt-1 pb-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px]" style="color:var(--muted-fg)">双面渲染</span>
+        <button role="switch" aria-checked="false" class="relative h-3.5 w-6 rounded-full" style="background:color-mix(in srgb, var(--muted-fg) 25%, transparent)">
+          <span class="absolute top-0.5 left-[1px] h-2.5 w-2.5 rounded-full bg-white"></span>
+        </button>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-[11px]" style="color:var(--muted-fg)">无光照</span>
+        <button role="switch" aria-checked="false" class="relative h-3.5 w-6 rounded-full" style="background:color-mix(in srgb, var(--muted-fg) 25%, transparent)">
+          <span class="absolute top-0.5 left-[1px] h-2.5 w-2.5 rounded-full bg-white"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-2.5 py-1.5 border-t flex items-center justify-between shrink-0" style="border-color:var(--border)">
+    <button class="rounded px-2 py-0.5 text-[11px] hover:opacity-70 transition-opacity" style="color:var(--muted-fg)">恢复原始材质</button>
+    <span class="text-[10px]" style="color:var(--muted-fg)">4 张贴图</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Panel 2: Glass Material — no textures -->
+<!-- ============================================================ -->
+<div class="w-[260px] rounded-lg border shadow-xl flex flex-col shrink-0"
+     style="max-height:90vh; border-color:var(--border); background:var(--bg)">
+
+  <div class="flex items-center gap-1 px-2 py-1.5 border-b cursor-grab shrink-0 select-none" style="border-color:var(--border)">
+    <svg class="h-3 w-3 shrink-0" style="color:var(--muted-fg)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/></svg>
+    <span class="text-xs font-semibold flex-1 truncate">Glass Material</span>
+    <button class="h-4 w-4 flex items-center justify-center rounded hover:opacity-70" style="color:var(--muted-fg)">
+      <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-2.5 py-2">
+
+    <div class="flex flex-col gap-0.5 mb-2">
+      <span class="text-[11px]" style="color:var(--muted-fg)">预设</span>
+      <select class="h-7 rounded-md border px-1.5 text-[11px]" style="border-color:var(--border); background:var(--bg); color:var(--fg)">
+        <option value="custom">自定义</option><option value="glass" selected>玻璃</option>
+      </select>
+    </div>
+
+    <!-- Base — no textures -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pb-0.5" style="color:var(--muted-fg)">Base</h4>
+    <div class="space-y-1.5 mt-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">颜色</span>
+        <input type="color" value="#c8dce8" class="h-5 w-7 cursor-pointer rounded border-0 bg-transparent p-0">
+      </div>
+      <!-- Opacity + alphaMode integrated (BLEND mode, no texture) -->
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">不透明度</span>
+          <div class="flex items-center gap-0.5 text-[10px]">
+            <button class="px-1.5 py-0.5 rounded" style="background:color-mix(in srgb,var(--muted-fg) 12%,transparent); color:var(--muted-fg)">不透明</button>
+            <button class="px-1.5 py-0.5 rounded" style="background:color-mix(in srgb,var(--muted-fg) 12%,transparent); color:var(--muted-fg)">遮罩</button>
+            <button class="px-1.5 py-0.5 rounded" style="background:var(--primary); color:var(--bg)">混合</button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px]" style="color:var(--muted-fg)">不透明度</span>
+          <span class="text-[11px] tabular-nums">0.3</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.3">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">粗糙度</span>
+          <span class="text-[11px] tabular-nums">0.05</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.05">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">金属度</span>
+          <span class="text-[11px] tabular-nums">0</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0">
+      </div>
+    </div>
+
+    <!-- Transmission — no textures -->
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider pt-2 pb-0.5" style="color:var(--muted-fg)">Transmission</h4>
+    <div class="space-y-1.5 mt-1">
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">透射强度</span>
+          <span class="text-[11px] tabular-nums">0.95</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.01" value="0.95">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">厚度</span>
+          <span class="text-[11px] tabular-nums">0.5</span>
+        </div>
+        <input type="range" min="0" max="5" step="0.1" value="0.5">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] shrink-0" style="color:var(--muted-fg)">IOR</span>
+          <span class="text-[11px] tabular-nums">1.52</span>
+        </div>
+        <input type="range" min="1" max="3" step="0.01" value="1.52">
+      </div>
+    </div>
+
+  </div>
+
+  <div class="px-2.5 py-1.5 border-t flex items-center justify-between shrink-0" style="border-color:var(--border)">
+    <button class="rounded px-2 py-0.5 text-[11px] opacity-40 cursor-not-allowed" style="color:var(--muted-fg)" disabled>恢复原始材质</button>
+    <span class="text-[10px]" style="color:var(--muted-fg)">0 张贴图</span>
+  </div>
+</div>
+
+</body>
+</html>

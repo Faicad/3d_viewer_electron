@@ -14,6 +14,8 @@ function reset() {
     materialClipboard: null,
     materialEditorVisible: false,
     materialEditorPosition: { x: 100, y: 100 },
+    texturePreviewSlot: null,
+    texturePreviewLabel: null,
   })
 }
 
@@ -542,6 +544,31 @@ describe('material-store', () => {
       expect(matFinal.metalness).toBe(matOpaque.metalness)
 
       factory.dispose()
+    })
+  })
+
+  describe('texturePreview', () => {
+    it('starts with null slot and label', () => {
+      reset()
+      expect(useMaterialStore.getState().texturePreviewSlot).toBeNull()
+      expect(useMaterialStore.getState().texturePreviewLabel).toBeNull()
+    })
+
+    it('openTexturePreview sets slot and label', () => {
+      reset()
+      useMaterialStore.getState().openTexturePreview('map', 'Base Color')
+      expect(useMaterialStore.getState().texturePreviewSlot).toBe('map')
+      expect(useMaterialStore.getState().texturePreviewLabel).toBe('Base Color')
+    })
+
+    it('closeTexturePreview clears slot and label', () => {
+      reset()
+      useMaterialStore.getState().openTexturePreview('roughnessMap', 'Roughness')
+      expect(useMaterialStore.getState().texturePreviewSlot).toBe('roughnessMap')
+
+      useMaterialStore.getState().closeTexturePreview()
+      expect(useMaterialStore.getState().texturePreviewSlot).toBeNull()
+      expect(useMaterialStore.getState().texturePreviewLabel).toBeNull()
     })
   })
 })

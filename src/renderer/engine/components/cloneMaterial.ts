@@ -12,8 +12,6 @@ const TEXTURE_SLOTS = [
   'clearcoatNormalMap', 'alphaMap',
 ] as const
 
-type TextureSlot = (typeof TEXTURE_SLOTS)[number]
-
 /** Lightweight info extracted from a THREE.Texture. */
 export interface TextureSlotInfo {
   dataUri: string

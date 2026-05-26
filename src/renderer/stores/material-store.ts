@@ -44,7 +44,13 @@ interface MaterialStore {
   // ---- A/B 对比 ----
   viewingOriginal: boolean
 
+  // ---- 纹理预览弹窗 ----
+  texturePreviewSlot: string | null
+  texturePreviewLabel: string | null
+
   // ---- Actions ----
+  openTexturePreview: (slot: string, label: string) => void
+  closeTexturePreview: () => void
   setMaterialOverride: (fileId: string, partId: string, appearance: MaterialAppearance) => void
   setMaterialOverrideBatch: (keys: string[], appearance: MaterialAppearance) => void
   removeMaterialOverride: (fileId: string, partId: string) => void
@@ -96,7 +102,13 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
 
   viewingOriginal: false,
 
+  texturePreviewSlot: null,
+  texturePreviewLabel: null,
+
   // ---- Actions ----
+  openTexturePreview: (slot, label) => set({ texturePreviewSlot: slot, texturePreviewLabel: label }),
+  closeTexturePreview: () => set({ texturePreviewSlot: null, texturePreviewLabel: null }),
+
   setMaterialOverride: (fileId, partId, appearance) => {
     const key = makeOverrideKey(fileId, partId)
     set((s) => ({

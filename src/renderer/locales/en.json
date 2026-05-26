@@ -149,5 +149,8 @@
   "materialEditor.restoreOriginal": "Restore Original",
   "materialEditor.restoreModified": "Restore Modified",
   "materialEditor.partsSelected_one": "{{count}} part selected",
-  "materialEditor.partsSelected_other": "{{count}} parts selected"
+  "materialEditor.partsSelected_other": "{{count}} parts selected",
+  "uv.checkerboard": "Checker Texture",
+  "uv.swapImage": "Swap Image",
+  "uv.noTexture": "No texture"
 }

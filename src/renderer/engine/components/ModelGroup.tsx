@@ -17,6 +17,7 @@ import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToA
 import { useMaterialStore } from '@/stores/material-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
+import { createCheckerTexture } from '@/engine/material/checkerTexture'
 
 // ---- types ----
 
@@ -39,6 +40,8 @@ interface ModelGroupProps {
   onError?: (message: string) => void
   selectorRuntime?: SelectorRuntime | null
   displayMode?: DisplayMode
+  checkerEnabled?: boolean
+  checkerSlot?: string | null
 }
 
 
@@ -112,7 +115,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   { buffer, format, fileId, filePath, sceneTree, glbPartInfos, fileName,
     onSceneTreeChange, onPartInfosChange, onCenteringOffsetChange,
     onLoadingPhaseChange, onSourceUnitChange, onFileGroupChange,
-    onParsed, onLoaded, onError, selectorRuntime, displayMode = 'solid' },
+    onParsed, onLoaded, onError, selectorRuntime, displayMode = 'solid',
+    checkerEnabled = false, checkerSlot = null },
   ref,
 ) {
   const [glbMeshes, setGlbMeshes] = useState<THREE.Mesh[]>([])
@@ -465,6 +469,19 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
   const viewingOriginal = useMaterialStore((s) => s.viewingOriginal)
 
+  // Derive checker-applied materials (view-layer, does not touch store)
+  const checkerMaterials = useMemo(() => {
+    if (!checkerEnabled || !checkerSlot || meshMaterials.length === 0) return null
+    const checkerTex = createCheckerTexture()
+    return meshMaterials.map((mat) => {
+      if (!mat) return mat
+      const cloned = (Array.isArray(mat) ? mat[0] : mat).clone() as THREE.MeshPhysicalMaterial
+      ;(cloned as Record<string, unknown>)[checkerSlot] = checkerTex
+      cloned.needsUpdate = true
+      return cloned
+    })
+  }, [checkerEnabled, checkerSlot, meshMaterials])
+
   // Apply material overrides whenever the store changes
   useEffect(() => {
     if (!fileId || glbMeshes.length === 0) return
@@ -590,7 +607,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         {glbMeshes.map((mesh, i) => {
           const partId = glbPartInfos[i]?.partId || `part-${i}`
           const vis = visibilityMap.get(partId) ?? true
-          const mat = meshMaterials[i]
+          const effectiveMats = checkerMaterials ?? meshMaterials
+          const mat = effectiveMats[i]
           const matColor = isMeshOnly
             ? (getMaterialColor(mat) ?? '#cccccc')
             : undefined
