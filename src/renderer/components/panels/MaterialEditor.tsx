@@ -351,7 +351,7 @@ function MaterialEditorInner({
         </div>
 
         {/* Card: Color / Alpha / Roughness / Metalness */}
-        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2.5 mb-2.5">
+        <div className="bg-secondary-1 rounded-lg p-2.5 ring-1 ring-border space-y-2.5 mb-2.5">
           <ColorRow
             label={t('materialEditor.color')}
             color={(appearance?.color ?? draft.color ?? [0.6, 0.65, 0.7]).slice(0, 3) as [number, number, number]}
@@ -434,7 +434,7 @@ function MaterialEditorInner({
         </div>
 
         {/* Card: Clearcoat */}
-        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
+        <div className="bg-secondary-2 rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <SliderRow
             label={t('materialEditor.clearcoat')}
             value={draft.clearcoat ?? 0}
@@ -458,7 +458,7 @@ function MaterialEditorInner({
         </div>
 
         {/* Card: Sheen */}
-        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
+        <div className="bg-secondary-1 rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <SliderRow
             label={t('materialEditor.sheen')}
             value={draft.sheen ?? 0}
@@ -482,7 +482,7 @@ function MaterialEditorInner({
         </div>
 
         {/* Card: Transmission */}
-        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
+        <div className="bg-secondary-2 rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <SliderRow
             label={t('materialEditor.transmission')}
             value={draft.transmission ?? 0}
@@ -513,7 +513,7 @@ function MaterialEditorInner({
         </div>
 
         {/* Card: Emissive */}
-        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
+        <div className="bg-secondary-1 rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <ColorRow
             label={t('materialEditor.emissiveColor')}
             color={draft.emissive ?? [0, 0, 0]}
@@ -536,7 +536,7 @@ function MaterialEditorInner({
         </div>
 
         {/* Card: Double Sided / Unlit */}
-        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2">
+        <div className="bg-secondary-2 rounded-lg p-2.5 ring-1 ring-border space-y-2">
           <ToggleRow
             label={t('materialEditor.doubleSided')}
             checked={draft.doubleSided ?? false}

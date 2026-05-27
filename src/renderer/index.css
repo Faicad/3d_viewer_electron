@@ -162,3 +162,13 @@ html[lang="zh"] [class*="text-4xl"] {
   font-family: 'Source Han Serif CN', 'Noto Serif SC', 'SimSun', 'PingFang SC', serif;
   font-weight: 600;
 }
+
+.bg-secondary-1 {
+  background-color: color-mix(in oklch, var(--secondary), yellow 6%);
+}
+
+.bg-secondary-2 {
+  background-color: color-mix(in oklch, var(--secondary), red 3%);
+}
+
+
