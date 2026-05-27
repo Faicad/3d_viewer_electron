@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+/** @vitest-environment jsdom */
+
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMaterialStore } from '@/stores/material-store'
@@ -10,6 +12,22 @@ vi.mock('react-i18next', () => ({
     i18n: { language: 'zh', changeLanguage: () => Promise.resolve() },
   }),
 }))
+
+// jsdom does not provide ResizeObserver — required by Radix ScrollArea
+class ResizeObserverMock {
+  private callback: ResizeObserverCallback
+  constructor(callback: ResizeObserverCallback) { this.callback = callback }
+  observe(target: Element) {
+    this.callback(
+      [{ contentRect: target.getBoundingClientRect() as DOMRectReadOnly, target } as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    )
+  }
+  unobserve() {}
+  disconnect() {}
+}
+beforeAll(() => { vi.stubGlobal('ResizeObserver', ResizeObserverMock) })
+afterAll(() => { vi.unstubAllGlobals() })
 
 const brassColor: [number, number, number, number] = [0.8, 0.6, 0.2, 1.0]
 
@@ -167,5 +185,42 @@ describe('MaterialEditor alpha mode colour preservation', () => {
     // Without textures, no " x" suffix should appear in the DOM
     // Just check that the rough label exists (basic render check)
     expect(screen.getByText('materialEditor.roughness')).toBeDefined()
+  })
+
+  it('scroll area uses CSS grid layout for constrained height', () => {
+    openEditor('f1', 'p1', brassMaterial)
+    render(<MaterialEditorTestWrapper />)
+
+    // Verify the outer panel uses grid layout (not flex) with overflow hidden
+    const panel = document.querySelector('.fixed.z-50') as HTMLElement | null
+    expect(panel, 'Outer panel must exist').toBeDefined()
+    expect(panel!.className, 'Panel must use grid').toMatch(/\bgrid\b/)
+    expect(panel!.className, 'Panel must have overflow-hidden').toMatch(/overflow-hidden/)
+
+    // Panel must define grid-template-rows: auto 1fr auto via inline style
+    expect(panel!.style.gridTemplateRows, 'Must define grid rows').toBe('auto 1fr auto')
+
+    // Panel must have an explicit height (not just max-height) so that the
+    // 1fr grid track resolves to a definite value for scroll to work
+    expect(panel!.style.height, 'Must have explicit height').toBeTruthy()
+
+    // ScrollArea must have min-h-0 to allow shrinking within the grid row
+    const scrollRoot = panel!.querySelector('[data-radix-scroll-area-viewport]')?.parentElement
+    expect(scrollRoot, 'ScrollArea root must exist').toBeDefined()
+    expect(scrollRoot!.className, 'ScrollArea must have min-h-0').toMatch(/min-h-0/)
+
+    // Radix viewport must exist
+    const viewport = scrollRoot!.querySelector('[data-radix-scroll-area-viewport]')
+    expect(viewport, 'Radix ScrollArea viewport must be rendered').toBeDefined()
+
+    // Radix scrollbar thumb must be rendered
+    const thumb = scrollRoot!.querySelector('[data-radix-scroll-area-thumb]')
+    expect(thumb, 'Radix scrollbar thumb must be rendered').toBeDefined()
+  })
+
+  it('scroll area is absent when editor is hidden', () => {
+    render(<MaterialEditorTestWrapper />)
+    const viewport = document.querySelector('[data-radix-scroll-area-viewport]')
+    expect(viewport, 'ScrollArea must not be rendered when editor is hidden').toBeNull()
   })
 })

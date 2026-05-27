@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useMaterialStore } from '@/stores/material-store'
 import type { MaterialAppearance } from '@/engine/material/types'
 import { MATERIAL_PRESETS, MATERIAL_PRESET_NAMES } from '@/engine/material/presets'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { X, GripHorizontal } from 'lucide-react'
 
 // ---- helpers ----
@@ -39,7 +38,7 @@ function SliderRow({ label, value, min, max, step, onChange, disabled, textureTh
 }) {
   const hasTex = !!textureThumb
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-[3px]">
       <div className="flex items-center justify-between text-[11px]">
         <span className="text-muted-foreground">{label}</span>
         <div className="flex items-center gap-[5px]">
@@ -133,14 +132,6 @@ function ColorRow({ label, color, onChange, disabled, textureThumb, textureSlot,
         )}
       </div>
     </div>
-  )
-}
-
-function SectionLabel({ label }: { label: string }) {
-  return (
-    <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2 first:pt-0 pb-0.5">
-      {label}
-    </h4>
   )
 }
 
@@ -319,12 +310,12 @@ function MaterialEditorInner({
 
   return (
     <div
-      className="fixed z-50 w-64 rounded-lg border bg-background shadow-xl flex flex-col max-h-[80vh]"
-      style={{ left: position.x, top: position.y }}
+      className="fixed z-50 w-64 rounded-lg border bg-background shadow-xl grid overflow-hidden"
+      style={{ left: position.x, top: position.y, gridTemplateColumns: '100%', gridTemplateRows: 'auto 1fr auto', height: '80vh' }}
     >
       {/* Title bar with drag handle */}
       <div
-        className="flex items-center gap-1 px-2 py-1.5 border-b cursor-grab active:cursor-grabbing shrink-0"
+        className="flex items-center gap-1 px-2 py-1.5 border-b cursor-grab active:cursor-grabbing min-w-0"
         onMouseDown={onDragStart}
       >
         <GripHorizontal className="h-3 w-3 text-muted-foreground/50" />
@@ -339,15 +330,15 @@ function MaterialEditorInner({
       </div>
 
       {/* Body */}
-      <ScrollArea className="flex-1 px-2.5 py-2">
-        {/* Preset selector */}
-        <div className="flex flex-col gap-0.5 mb-2">
-          <span className="text-[11px] text-muted-foreground">{t('materialEditor.preset')}</span>
+      <div className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden px-2.5 py-2.5">
+        {/* Preset: label + dropdown inline */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[11px] text-muted-foreground shrink-0">{t('materialEditor.preset')}</span>
           <select
             value={presetValue}
             disabled={disabled}
             onChange={(e) => handlePresetChange(e.target.value)}
-            className="h-7 rounded-md border bg-background px-1.5 text-[11px] disabled:opacity-40"
+            className="flex-1 h-7 rounded-md border bg-background px-1.5 text-[11px] disabled:opacity-40"
           >
             <option value="custom">{t('materialEditor.custom')}</option>
             {MATERIAL_PRESET_NAMES.map((id) => {
@@ -359,9 +350,8 @@ function MaterialEditorInner({
           </select>
         </div>
 
-        {/* Base */}
-        <SectionLabel label={t('materialEditor.base')} />
-        <div className="space-y-1.5 mt-1">
+        {/* Card: Color / Alpha / Roughness / Metalness */}
+        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2.5 mb-2.5">
           <ColorRow
             label={t('materialEditor.color')}
             color={(appearance?.color ?? draft.color ?? [0.6, 0.65, 0.7]).slice(0, 3) as [number, number, number]}
@@ -374,10 +364,9 @@ function MaterialEditorInner({
             textureSlot="map"
             onTextureClick={handleTextureClick}
           />
-          {/* Alpha mode + slider integrated */}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground">{t('materialEditor.opacity')}</span>
+              <span className="text-[11px] text-muted-foreground">{t('materialEditor.alphaMode')}</span>
               <AlphaModeSegmented
                 mode={(draft.alphaMode as AlphaMode) ?? 'OPAQUE'}
                 onChange={(m) => apply({ alphaMode: m })}
@@ -444,9 +433,8 @@ function MaterialEditorInner({
           />
         </div>
 
-        {/* Clearcoat */}
-        <SectionLabel label={t('materialEditor.clearcoat')} />
-        <div className="space-y-1.5 mt-1">
+        {/* Card: Clearcoat */}
+        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <SliderRow
             label={t('materialEditor.clearcoat')}
             value={draft.clearcoat ?? 0}
@@ -469,9 +457,8 @@ function MaterialEditorInner({
           />
         </div>
 
-        {/* Sheen */}
-        <SectionLabel label={t('materialEditor.sheen')} />
-        <div className="space-y-1.5 mt-1">
+        {/* Card: Sheen */}
+        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <SliderRow
             label={t('materialEditor.sheen')}
             value={draft.sheen ?? 0}
@@ -494,9 +481,8 @@ function MaterialEditorInner({
           />
         </div>
 
-        {/* Transmission */}
-        <SectionLabel label={t('materialEditor.transmission')} />
-        <div className="space-y-1.5 mt-1">
+        {/* Card: Transmission */}
+        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <SliderRow
             label={t('materialEditor.transmission')}
             value={draft.transmission ?? 0}
@@ -526,9 +512,8 @@ function MaterialEditorInner({
           />
         </div>
 
-        {/* Emissive */}
-        <SectionLabel label={t('materialEditor.emissive')} />
-        <div className="space-y-1.5 mt-1">
+        {/* Card: Emissive */}
+        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2 mb-2.5">
           <ColorRow
             label={t('materialEditor.emissiveColor')}
             color={draft.emissive ?? [0, 0, 0]}
@@ -550,9 +535,8 @@ function MaterialEditorInner({
           />
         </div>
 
-        {/* Misc */}
-        <SectionLabel label={t('materialEditor.misc')} />
-        <div className="space-y-1.5 mt-1 pb-1">
+        {/* Card: Double Sided / Unlit */}
+        <div className="bg-secondary rounded-lg p-2.5 ring-1 ring-border space-y-2">
           <ToggleRow
             label={t('materialEditor.doubleSided')}
             checked={draft.doubleSided ?? false}
@@ -565,12 +549,11 @@ function MaterialEditorInner({
             onChange={(v) => apply({ unlit: v })}
             disabled={disabled}
           />
-
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Footer */}
-      <div className="px-2.5 py-1.5 border-t flex items-center justify-between shrink-0">
+      <div className="px-2.5 py-1.5 border-t flex items-center justify-between min-w-0">
         <button
           className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={handleReset}
