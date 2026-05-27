@@ -10,6 +10,7 @@ import { TDSLoader } from 'three/examples/jsm/loaders/TDSLoader.js'
 import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
+import { GLTFAnimationPointerExtension } from '@needle-tools/three-animation-pointer'
 import { BVHLoader } from 'three/examples/jsm/loaders/BVHLoader.js'
 import { VTKLoader } from 'three/examples/jsm/loaders/VTKLoader.js'
 import { XYZLoader } from 'three/examples/jsm/loaders/XYZLoader.js'
@@ -38,6 +39,8 @@ export interface LoaderResult {
   sourceUnit?: UnitSystem
   /** Materials extracted from the scene (may differ from meshes[].material after processing) */
   materials?: (THREE.Material | THREE.Material[])[]
+  /** Animation clips extracted from GLTF (only for single-file GLB/glTF) */
+  animations?: THREE.AnimationClip[]
 }
 
 function bufferToText(buffer: ArrayBuffer): string {
@@ -218,6 +221,8 @@ function getGltfLoader(): GLTFLoader {
   ktx2Loader.setTranscoderPath('/wasm/basis/')
   loader.setKTX2Loader(ktx2Loader)
 
+  loader.register((parser) => new GLTFAnimationPointerExtension(parser))
+
   _sharedGltfLoader = loader
   return loader
 }
@@ -242,7 +247,7 @@ export async function loadFormat(
     case 'glb': {
       const gltf = await getGltfLoader().parseAsync(buffer, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter' }
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations }
     }
     case 'gltf': {
       if (resourcePath) {
@@ -255,7 +260,7 @@ export async function loadFormat(
       const gltfText = bufferToText(buffer)
       const gltf = await getGltfLoader().parseAsync(gltfText, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter' }
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations }
     }
     case '3mf': {
       const group = new ThreeMFLoader().parse(buffer)

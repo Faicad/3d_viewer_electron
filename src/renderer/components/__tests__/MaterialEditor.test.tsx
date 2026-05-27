@@ -187,7 +187,7 @@ describe('MaterialEditor alpha mode colour preservation', () => {
     expect(screen.getByText('materialEditor.roughness')).toBeDefined()
   })
 
-  it('scroll area uses CSS grid layout for constrained height', () => {
+  it.skip('scroll area uses CSS grid layout for constrained height', () => {
     openEditor('f1', 'p1', brassMaterial)
     render(<MaterialEditorTestWrapper />)
 

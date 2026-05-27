@@ -1,6 +1,7 @@
 import type * as THREE from 'three'
 import type { SelectorRuntime } from '@/lib/topology/types'
 import type { useModelStore } from '@/stores/model-store'
+import type { useAnimationStore } from '@/stores/animation-store'
 import type { useMaterialStore } from '@/stores/material-store'
 
 declare global {
@@ -9,6 +10,7 @@ declare global {
     __r3f_viewcube?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; hoveredFace?: string | null }
     __r3f_dev?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; selectorRuntime?: SelectorRuntime | null }
     __modelStore: typeof useModelStore
+    __animationStore: typeof useAnimationStore
     __materialStore: typeof useMaterialStore
     __clearStepCache: () => Promise<void>
   }

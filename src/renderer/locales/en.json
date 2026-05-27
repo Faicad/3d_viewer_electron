@@ -21,6 +21,7 @@
   "history.loadingMore": "Loading more...",
   "toolbar.cache": "Cache",
   "toolbar.materialEditor": "Material",
+  "toolbar.animationPlayer": "Play Animation",
   "toolbar.leftPanel": "Toggle Left Panel",
   "toolbar.rightPanel": "Toggle Right Panel",
   "cache.title": "Cache Manager",

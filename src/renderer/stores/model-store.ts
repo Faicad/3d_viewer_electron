@@ -3,6 +3,8 @@ import type { FormatId, FileGroup, UnitSystem, UpAxis } from '@/config/file-form
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { clearAllResults, releaseResult, clearLoaded } from '@/engine/loaderResultCache'
 import { useHistoryStore } from '@/stores/history-store'
+import { useAnimationStore } from '@/stores/animation-store'
+import * as THREE from 'three'
 
 export interface SceneTreeNode {
   id: string
@@ -33,6 +35,10 @@ export interface LoadedFileModel {
   sourceUnit: UnitSystem
   fileGroup: FileGroup
   loadingPhase: LoadingPhase
+  /** Original scene hierarchy from GLTFLoader (needed for AnimationMixer) */
+  sceneRoot?: THREE.Object3D
+  /** Animation clips from GLTF (only populated for single-file GLB/glTF) */
+  animations?: THREE.AnimationClip[]
 }
 
 export type FileSortMode = 'name' | 'type+name'
@@ -147,6 +153,12 @@ interface ModelStore {
   updateFilePartInfos: (fileId: string, infos: GlbPartInfo[]) => void
   updateFileCenteringOffset: (fileId: string, offset: [number, number, number] | null) => void
   updateFileLoadingPhase: (fileId: string, phase: LoadingPhase) => void
+  updateFileAnimations: (fileId: string, sceneRoot: THREE.Object3D, animations: THREE.AnimationClip[]) => void
+
+  // Animation dialog
+  animDialogFileId: string | null
+  openAnimDialog: (fileId: string) => void
+  closeAnimDialog: () => void
 
   /** Check if a file path is among the loaded files */
   isFileLoaded: (filePath: string) => boolean
@@ -254,6 +266,14 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   // Multi-file state
   loadedFiles: [],
   activeFileId: null,
+
+  // Animation dialog
+  animDialogFileId: null,
+  openAnimDialog: (fileId) => set({ animDialogFileId: fileId }),
+  closeAnimDialog: () => {
+    set({ animDialogFileId: null })
+    useAnimationStore.getState().reset()
+  },
 
   setIsConverting: (v) => set({ isConverting: v }),
   setLoadingPhase: (phase) => set({ __loadingPhase: phase }),
@@ -415,6 +435,13 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
         : {}
       return { loadedFiles: newFiles, ...synced }
     }),
+
+  updateFileAnimations: (fileId, sceneRoot, animations) =>
+    set((state) => ({
+      loadedFiles: state.loadedFiles.map((f) =>
+        f.id === fileId ? { ...f, sceneRoot, animations } : f,
+      ),
+    })),
 
   isFileLoaded: (filePath) => {
     return get().loadedFiles.some((f) => f.filePath === filePath)

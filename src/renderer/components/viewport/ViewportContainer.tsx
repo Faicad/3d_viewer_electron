@@ -14,6 +14,7 @@ import { useSelectionStore } from '@/stores/selection-store'
 import type { SnapCandidate } from '@/lib/topology/snap'
 import { extractSelectorBundle } from '@/lib/topology/parse-glb-topology'
 import { buildSelectorRuntime } from '@/lib/topology/build-selector-runtime'
+import AnimationPlayerDialog from '@/components/panels/AnimationPlayerDialog'
 import SceneSetup from '@/engine/components/SceneSetup'
 import PostProcessing from '@/engine/components/PostProcessing'
 import ModelGroup from '@/engine/components/ModelGroup'
@@ -272,6 +273,14 @@ export default function ViewportContainer() {
   const [debugSelectedFaceRow, setDebugSelectedFaceRow] = useState<number | null>(null)
   const [debugSelectedEdgeRow, setDebugSelectedEdgeRow] = useState<number | null>(null)
   const savedShadowFloorRef = useRef<boolean | null>(null)
+
+  // Animation dialog state (shared with DesktopLayout via model-store)
+  const animDialogFileId = useModelStore((s) => s.animDialogFileId)
+  const closeAnimDialog = useModelStore((s) => s.closeAnimDialog)
+
+  const animDialogFile = animDialogFileId
+    ? loadedFiles.find((f) => f.id === animDialogFileId) ?? null
+    : null
 
   // Texture preview dialog state
   const texturePreviewSlot = useMaterialStore((s) => s.texturePreviewSlot)
@@ -618,6 +627,9 @@ export default function ViewportContainer() {
                 onParsed={makeHandleParsed(file.id)}
                 onLoaded={handleModelLoaded}
                 onError={handleModelError}
+                onAnimationsReady={(sceneRoot, animations) =>
+                  useModelStore.getState().updateFileAnimations(file.id, sceneRoot, animations)
+                }
                 selectorRuntime={file.id === activeFileId ? selectorRuntime : null}
                 displayMode={resolvedDisplayMode}
                 checkerEnabled={checkerEnabled}
@@ -788,6 +800,15 @@ export default function ViewportContainer() {
         checkerEnabled={checkerEnabled}
         onCheckerToggle={handleCheckerToggle}
         checkerDisabled={displayMode !== 'solid'}
+      />
+
+      {/* Animation Player Dialog */}
+      <AnimationPlayerDialog
+        open={animDialogFileId !== null}
+        onClose={closeAnimDialog}
+        sceneRoot={animDialogFile?.sceneRoot}
+        clips={animDialogFile?.animations ?? []}
+        fileName={animDialogFile?.fileName}
       />
     </div>
   )

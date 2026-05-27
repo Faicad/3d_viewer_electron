@@ -4,7 +4,7 @@
  * Verifies that toggling between OPAQUE → MASK → BLEND → OPAQUE does not
  * change the base colour, roughness, or metalness of the material.
  */
-import { test, expect, _electron, ElectronApplication, Page } from '@playwright/test'
+import { test, expect, _electron, ElectronApplication } from '@playwright/test'
 import { getElectronPath } from './utils'
 
 function trackErrors(page: Page) {
@@ -19,13 +19,6 @@ function trackErrors(page: Page) {
       expect(all, `Unexpected errors detected:\n${all.join('\n')}`).toEqual([])
     },
   }
-}
-
-async function waitForLoadDone(page: Page, timeout = 30000) {
-  await page.waitForFunction(
-    () => window.__modelStore?.getState().__loadingPhase === 'done',
-    { timeout },
-  )
 }
 
 test.describe('MaterialEditor alpha mode colour preservation', () => {

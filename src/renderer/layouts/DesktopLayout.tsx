@@ -21,7 +21,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -81,11 +81,12 @@ function findInChildren(children: SceneTreeNode[], nodeId: string): boolean {
   return false
 }
 
-function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu }: {
+function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu, onFileContextMenu }: {
   node: SceneTreeNode
   depth: number
   parentFileId?: string
   onPartContextMenu?: (e: React.MouseEvent, partId: string, fileId: string) => void
+  onFileContextMenu?: (e: React.MouseEvent, fileId: string) => void
 }) {
   const hasChildren = node.children && node.children.length > 0
   const toggleExpanded = useModelStore((s) => s.toggleNodeExpanded)
@@ -121,6 +122,9 @@ function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu }: {
           if (isPartNode && onPartContextMenu && fileId) {
             e.preventDefault()
             onPartContextMenu(e, node.id, fileId)
+          } else if (isFileNode && onFileContextMenu && fileId) {
+            e.preventDefault()
+            onFileContextMenu(e, fileId)
           }
         }}
       >
@@ -182,6 +186,7 @@ function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu }: {
             depth={depth + 1}
             parentFileId={fileId ?? parentFileId}
             onPartContextMenu={onPartContextMenu}
+            onFileContextMenu={onFileContextMenu}
           />
         ))}
     </>
@@ -212,6 +217,7 @@ export default function DesktopLayout() {
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
   const sceneTree = useModelStore((s) => s.sceneTree)
   const hasModel = useModelStore((s) => s.modelBuffer !== null || s.loadedFiles.length > 0)
+  const hasAnimations = useModelStore((s) => s.loadedFiles.some((f) => f.animations?.length))
   const folderFilesLen = useModelStore((s) => s.folderFiles.length)
   const selectedFileIndex = useModelStore((s) => s.selectedFileIndex)
   const setActiveUpAxis = useModelStore((s) => s.setActiveUpAxis)
@@ -264,6 +270,28 @@ export default function DesktopLayout() {
             materialStore.pasteMaterialFromClipboard(fileId, partId)
           },
           disabled: !materialStore.materialClipboard,
+        },
+      ],
+    })
+  }, [])
+
+  // File-level context menu — show "播放动画" for files with animations
+  const handleFileContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
+    const modelStore = useModelStore.getState()
+    const file = modelStore.loadedFiles.find(f => f.id === fileId)
+    if (!file?.animations?.length) return
+    e.preventDefault()
+    e.stopPropagation()
+    setCtxMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: '播放动画',
+          icon: Play,
+          action: () => {
+            modelStore.openAnimDialog(fileId)
+          },
         },
       ],
     })
@@ -715,6 +743,26 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.materialEditor')}</TooltipContent>
         </Tooltip>
 
+        {/* Animation Player — only enabled when a loaded file has animations */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!hasAnimations}
+              onClick={() => {
+                const file = useModelStore.getState().loadedFiles.find((f) => f.animations?.length)
+                if (file) useModelStore.getState().openAnimDialog(file.id)
+              }}
+              aria-label={t('toolbar.animationPlayer')}
+              data-testid="toolbar-animation-player"
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.animationPlayer')}</TooltipContent>
+        </Tooltip>
+
         <div className="flex-1" />
 
         {/* Fullscreen */}
@@ -803,7 +851,7 @@ export default function DesktopLayout() {
                 ) : (
                   <div className="p-2 min-w-max">
                     {sceneTree.map((node) => (
-                      <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} />
+                      <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} onFileContextMenu={handleFileContextMenu} />
                     ))}
                   </div>
                 )}

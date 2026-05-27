@@ -28,6 +28,7 @@
     "ci": "bash scripts/ci.sh"
   },
   "dependencies": {
+    "@needle-tools/three-animation-pointer": "^1.0.7",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-context-menu": "^2.2.16",
@@ -90,7 +91,9 @@
   "build": {
     "appId": "com.faicad.3d_viewer",
     "productName": "3D Model Viewer",
-    "publish": ["github"],
+    "publish": [
+      "github"
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "resources"

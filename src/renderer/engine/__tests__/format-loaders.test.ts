@@ -377,6 +377,61 @@ describe('Format loaders (Vitest integration)', () => {
       expect(mesh.morphTargetInfluences).toBeUndefined()
     })
 
+  // ---- Animation extraction ----
+  describe('animation extraction', () => {
+    it('extracts animations from animated glTF (AnimatedMorphSphere)', async () => {
+      const gltfPath = path.join(FIXTURES_DIR, 'AnimatedMorphSphere.gltf')
+      const glbBuffer = resolveGltfFixture(gltfPath)
+      const result = await loadFormat(glbBuffer, 'glb')
+      expect(result.animations).toBeDefined()
+      expect(result.animations!.length).toBeGreaterThan(0)
+      const anim = result.animations![0]
+      expect(anim).toBeInstanceOf(THREE.AnimationClip)
+      expect(anim.duration).toBeGreaterThan(0)
+      // Should contain morph target tracks
+      const hasMorphTrack = anim.tracks.some(
+        (t) => t.name.includes('morphTargetInfluences'),
+      )
+      expect(hasMorphTrack).toBe(true)
+    })
+
+    it('extracts skeletal + morph animations from RobotExpressive.glb', async () => {
+      const glbPath = path.join(FIXTURES_DIR, 'RobotExpressive.glb')
+      const raw = fs.readFileSync(glbPath)
+      const buf = new Uint8Array(raw).buffer
+      const result = await loadFormat(buf as ArrayBuffer, 'glb')
+      expect(result.animations).toBeDefined()
+      expect(result.animations!.length).toBeGreaterThan(0)
+
+      const animNames = result.animations!.map(a => a.name)
+      // RobotExpressive has multiple clips
+      expect(animNames.length).toBeGreaterThanOrEqual(1)
+
+      // Check for skeletal tracks (position/quaternion) and morph tracks
+      const allTracks = result.animations!.flatMap(a => a.tracks)
+      const hasSkeletalTrack = allTracks.some(
+        (t) => t.name.includes('position') || t.name.includes('quaternion'),
+      )
+      const hasMorphTrack = allTracks.some(
+        (t) => t.name.includes('morphTargetInfluences'),
+      )
+      expect(hasSkeletalTrack).toBe(true)
+      expect(hasMorphTrack).toBe(true)
+
+      // sceneRoot must be preserved for AnimationMixer
+      expect(result.sceneRoot).toBeDefined()
+      expect(result.sceneRoot).toBeInstanceOf(THREE.Object3D)
+    })
+
+    it('has no animations for non-animated OBJ', async () => {
+      const objPath = path.join(FIXTURES_DIR, 'Cerberus.obj')
+      const buf = fs.readFileSync(objPath).buffer
+      const result = await loadFormat(buf as ArrayBuffer, 'obj')
+      // OBJ has no animation data — animations field should be undefined
+      expect(result.animations).toBeUndefined()
+    })
+  })
+
   // ---- GCode scene-tree visibility regression ----
   describe('gcode scene-tree visibility', () => {
     it('loadFormat gcode produces non-empty objects array', async () => {

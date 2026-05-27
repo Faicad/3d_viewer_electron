@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@needle-tools/three-animation-pointer':
+        specifier: ^1.0.7
+        version: 1.0.7(three@0.184.0)
       '@radix-ui/react-avatar':
         specifier: ^1.1.11
         version: 1.1.11(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -650,6 +653,11 @@ packages:
     resolution: {integrity: sha512-2Z0FATFHaoYJ8b+Y4y4Hgfn3FRFwuU5zRrk+9dFWp4uGAdHGqVEdP7HP+gLA3X469KXHmfupJaUbKo1b/aDKIg==}
     peerDependencies:
       three: '>= 0.159.0'
+
+  '@needle-tools/three-animation-pointer@1.0.7':
+    resolution: {integrity: sha512-lvNeW8+Dy3iqndaIdsswskQl35p4zL7jUOIhmQVsSSrj3CXZMpMvtLlXClf+Qnrf5v09Fyvf8Oe4Qgtp+yRSLQ==}
+    peerDependencies:
+      three: '>=0.165.0'
 
   '@playwright/test@1.60.0':
     resolution: {integrity: sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==}
@@ -4543,6 +4551,10 @@ snapshots:
   '@monogrid/gainmap-js@3.4.0(three@0.184.0)':
     dependencies:
       promise-worker-transferable: 1.0.4
+      three: 0.184.0
+
+  '@needle-tools/three-animation-pointer@1.0.7(three@0.184.0)':
+    dependencies:
       three: 0.184.0
 
   '@playwright/test@1.60.0':

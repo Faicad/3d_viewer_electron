@@ -37,6 +37,7 @@ interface ModelGroupProps {
   onFileGroupChange?: (group: string) => void
   onParsed?: (meshes: THREE.Mesh[], objects: THREE.Object3D[], upAxis: 'y' | 'z') => void
   onLoaded?: (box: THREE.Box3) => void
+  onAnimationsReady?: (sceneRoot: THREE.Object3D, animations: THREE.AnimationClip[]) => void
   onError?: (message: string) => void
   selectorRuntime?: SelectorRuntime | null
   displayMode?: DisplayMode
@@ -115,7 +116,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   { buffer, format, fileId, filePath, sceneTree, glbPartInfos, fileName,
     onSceneTreeChange, onPartInfosChange, onCenteringOffsetChange,
     onLoadingPhaseChange, onSourceUnitChange, onFileGroupChange,
-    onParsed, onLoaded, onError, selectorRuntime, displayMode = 'solid',
+    onParsed, onLoaded, onAnimationsReady, onError, selectorRuntime, displayMode = 'solid',
     checkerEnabled = false, checkerSlot = null },
   ref,
 ) {
@@ -152,6 +153,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   onErrorRef.current = onError
   const onParsedRef = useRef(onParsed)
   onParsedRef.current = onParsed
+  const onAnimationsReadyRef = useRef(onAnimationsReady)
+  onAnimationsReadyRef.current = onAnimationsReady
   const onSceneTreeChangeRef = useRef(onSceneTreeChange)
   onSceneTreeChangeRef.current = onSceneTreeChange
   const onPartInfosChangeRef = useRef(onPartInfosChange)
@@ -207,6 +210,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           // Fire onParsed so caller generates thumbnail from this fresh parse
           const upAxis = getDefaultUpAxis(format, buffer)
           onParsedRef.current?.(result.meshes, result.objects, upAxis)
+        }
+        // Fire animations callback regardless of cache hit
+        if (result.sceneRoot && result.animations?.length) {
+          onAnimationsReadyRef.current?.(result.sceneRoot, result.animations)
         }
         if (cancelled) return
 
