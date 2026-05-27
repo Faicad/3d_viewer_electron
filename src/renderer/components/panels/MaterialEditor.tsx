@@ -496,7 +496,7 @@ function MaterialEditorInner({
           <SliderRow
             label={t('materialEditor.thickness')}
             value={draft.thickness ?? 0}
-            min={0} max={5} step={0.1}
+            min={0} max={1.5} step={0.01}
             onChange={(v) => apply({ thickness: v })}
             disabled={disabled}
             textureThumb={currentThumbs['thicknessMap']}

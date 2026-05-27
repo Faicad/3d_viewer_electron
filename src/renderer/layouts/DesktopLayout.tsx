@@ -234,7 +234,7 @@ export default function DesktopLayout() {
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
     const fileName = file?.fileName ?? fileId
     const partName = partId
-    const title = `${fileName} / ${partName}`
+    const title = `${partName} / ${fileName}`
     e.preventDefault()
     e.stopPropagation()
     setCtxMenu({
@@ -288,7 +288,7 @@ export default function DesktopLayout() {
       if (fileId) {
         const file = modelStore.loadedFiles.find(f => f.id === fileId)
         const fileName = file?.fileName ?? fileId
-        const title = `${fileName} / ${selectedId}`
+        const title = `${selectedId} / ${fileName}`
         materialStore.openMaterialEditor([`${fileId}:${selectedId}`], title)
         return
       }
@@ -302,7 +302,7 @@ export default function DesktopLayout() {
       if (fileNode) {
         const firstPart = findFirstPartInTree(fileNode)
         if (firstPart) {
-          const title = `${firstFile.fileName} / ${firstPart.partName}`
+          const title = `${firstPart.partName} / ${firstFile.fileName}`
           materialStore.openMaterialEditor([`${firstFile.id}:${firstPart.partId}`], title)
           return
         }
@@ -351,7 +351,7 @@ export default function DesktopLayout() {
 
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
     const fileName = file?.fileName ?? fileId
-    const title = `${fileName} / ${partName}`
+    const title = `${partName} / ${fileName}`
     const key = `${fileId}:${selectedId}`
     const currentKeys = materialStore.editingOverrideKeys
     if (currentKeys.length === 1 && currentKeys[0] === key) return // already editing this part
