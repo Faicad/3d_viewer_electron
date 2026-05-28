@@ -207,19 +207,6 @@ export default function FileListPanel() {
     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
   }
 
-  if (folderFiles.length === 0) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="p-2 text-xs font-semibold text-muted-foreground border-b">
-          {t('fileList.title')}
-        </div>
-        <ScrollArea className="flex-1 p-4">
-          <p className="text-xs text-muted-foreground text-center py-8">{t('fileList.empty')}</p>
-        </ScrollArea>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-2 text-xs font-semibold text-muted-foreground border-b flex items-center justify-between">
@@ -234,6 +221,8 @@ export default function FileListPanel() {
           >
             {enablePreview ? <Eye className={cn('h-3 w-3', enablePreview && 'text-primary')} /> : <EyeOff className="h-3 w-3" />}
           </Button>
+          {folderFiles.length > 0 && (
+          <>
           <Button
             variant="ghost"
             size="icon"
@@ -256,8 +245,17 @@ export default function FileListPanel() {
               <ArrowDownZA className="h-3 w-3" />
             )}
           </Button>
+          </>
+          )}
         </div>
       </div>
+
+      {folderFiles.length === 0 ? (
+        <ScrollArea className="flex-1 p-4">
+          <p className="text-xs text-muted-foreground text-center py-8">{t('fileList.empty')}</p>
+        </ScrollArea>
+      ) : (
+      <>
       {currentFolderPath && (
         <ScrollArea className="border-b">
           <div className="px-3 py-1.5 text-xs text-muted-foreground whitespace-nowrap min-w-max">
@@ -364,6 +362,8 @@ export default function FileListPanel() {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       )}
+    </>
+    )}
     </div>
   )
 }
