@@ -60,7 +60,7 @@ echo ""
 echo "========================================"
 echo "  6/7  E2E tests (playwright)"
 echo "========================================"
-pnpm exec playwright test
+pnpm exec playwright test --max-failures=1
 
 echo ""
 echo "========================================"

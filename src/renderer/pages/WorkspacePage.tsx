@@ -30,23 +30,6 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleNativeOpenFile = useCallback(async () => {
-    if (!window.electronAPI) {
-      fileInputRef.current?.click()
-      return
-    }
-    const result = await window.electronAPI.openFileDialog()
-    if (!result.success || !result.filePaths?.length) return
-
-    // Clear all currently loaded content before loading new files
-    useModelStore.getState().reset()
-
-    for (const filePath of result.filePaths) {
-      const fileName = filePath.split(/[/\\]/).pop() || filePath
-      await loadFilePath(filePath, fileName)
-    }
-  }, [])
-
   const loadFilePath = useCallback(async (filePath: string, fileName?: string) => {
     if (!window.electronAPI) return
 
@@ -111,6 +94,23 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     } catch (e) {
       useModelStore.getState().setIsConverting(false)
       toast.error('Load failed: ' + String(e))
+    }
+  }, [])
+
+  const handleNativeOpenFile = useCallback(async () => {
+    if (!window.electronAPI) {
+      fileInputRef.current?.click()
+      return
+    }
+    const result = await window.electronAPI.openFileDialog()
+    if (!result.success || !result.filePaths?.length) return
+
+    // Clear all currently loaded content before loading new files
+    useModelStore.getState().reset()
+
+    for (const filePath of result.filePaths) {
+      const fileName = filePath.split(/[/\\]/).pop() || filePath
+      await loadFilePath(filePath, fileName)
     }
   }, [])
 
