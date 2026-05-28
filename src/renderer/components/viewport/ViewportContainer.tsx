@@ -20,6 +20,7 @@ import PostProcessing from '@/engine/components/PostProcessing'
 import ModelGroup from '@/engine/components/ModelGroup'
 import TopologyOverlay from '@/engine/components/TopologyOverlay'
 import SelectionHighlight from '@/engine/components/SelectionHighlight'
+import SelectionBoundingBox from '@/engine/components/SelectionBoundingBox'
 import SelectionToolbar from '@/engine/components/SelectionToolbar'
 import DisplayModeDropdown from '@/engine/components/DisplayModeDropdown'
 import DebugTopologyOverlay from '@/engine/components/DebugTopologyOverlay'
@@ -273,6 +274,7 @@ export default function ViewportContainer() {
   const [debugSelectedFaceRow, setDebugSelectedFaceRow] = useState<number | null>(null)
   const [debugSelectedEdgeRow, setDebugSelectedEdgeRow] = useState<number | null>(null)
   const savedShadowFloorRef = useRef<boolean | null>(null)
+  const [isObjectDragging, setIsObjectDragging] = useState(false)
 
   // Animation dialog state (shared with DesktopLayout via model-store)
   const animDialogFileId = useModelStore((s) => s.animDialogFileId)
@@ -595,7 +597,7 @@ export default function ViewportContainer() {
           window.__engineStore = useEngineStore
         }}
       >
-        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !animActive} />
+        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !animActive && !isObjectDragging} />
         <UpAxisAnimator upAxis={activeUpAxis} animActive={animActive} setAnimTarget={setAnimTarget} setAnimTargetUp={setAnimTargetUp} setAnimActive={setAnimActive} />
         <CameraAnimator
           targetPos={animTarget}
@@ -673,6 +675,9 @@ export default function ViewportContainer() {
           onClick={(id, shiftKey) => setSelectedReference(id, { shiftKey })}
           onSnap={handleSnap}
           onClickWorldPoint={handleClickWorldPoint}
+          enableObjectDrag={selectionMode === 'object'}
+          selectedPartIds={selectedReferenceIds}
+          onDragActiveChange={setIsObjectDragging}
         />
         <SelectionHighlight
           runtime={selectorRuntime}
@@ -687,12 +692,19 @@ export default function ViewportContainer() {
             key={id}
             runtime={selectorRuntime}
             referenceId={id}
-            color="#2563eb"
-            opacity={resolvedDisplayMode === 'wireframe' ? 0.8 : 0.5}
+            color={selectionMode === 'object' ? '#ffffff' : '#2563eb'}
+            opacity={selectionMode === 'object' ? 0.08 : (resolvedDisplayMode === 'wireframe' ? 0.8 : 0.5)}
             modelGroupRef={modelGroupRef}
             renderOrder={resolvedDisplayMode === 'wireframe' ? 5 : 2}
           />
         ))}
+        {selectionMode === 'object' && selectedReferenceIds.length > 0 && (
+          <SelectionBoundingBox
+            key={selectedReferenceIds.join(',')}
+            selectedPartIds={selectedReferenceIds}
+            modelGroupRef={modelGroupRef}
+          />
+        )}
         {clickWorldPoint && selectionMode === 'face' && (
           <points
             position={clickWorldPoint}

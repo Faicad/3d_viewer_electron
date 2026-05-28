@@ -86,6 +86,9 @@ interface EngineStore {
   modelBbox: [number, number, number, number, number, number] | null
   setModelBbox: (b: [number, number, number, number, number, number] | null) => void
 
+  highlightVersion: number
+  bumpHighlightVersion: () => void
+
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
@@ -161,6 +164,9 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setShadowOpacity: (v) => set({ shadowOpacity: v }),
   modelBbox: null,
   setModelBbox: (b) => set({ modelBbox: b }),
+
+  highlightVersion: 0,
+  bumpHighlightVersion: () => set((s) => ({ highlightVersion: s.highlightVersion + 1 })),
 
   // Post-processing defaults
   smaaEnabled: true,

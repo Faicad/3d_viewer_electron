@@ -3,6 +3,7 @@ import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Line2, LineMaterial, LineGeometry } from 'three-stdlib'
 import { useModelStore } from '@/stores/model-store'
+import { useEngineStore } from '@/stores/engine-store'
 import { flattenVisibility } from '@/lib/scene-tree-utils'
 import type { Reference, SelectorRuntime } from '@/lib/topology/types'
 
@@ -40,6 +41,7 @@ export default function SelectionHighlight({
   // Three.js child.visible, because useMemo runs during render — before R3F commits
   // visibility prop changes to the Three.js objects.
   const sceneTree = useModelStore((s) => s.sceneTree)
+  const highlightVersion = useEngineStore((s) => s.highlightVersion)
   const visiblePartIds = useMemo(() => {
     const map = flattenVisibility(sceneTree)
     const set = new Set<string>()
@@ -87,7 +89,7 @@ export default function SelectionHighlight({
     // Fallback: referenceId is a partId (object-mode selection or tree node click)
     // Highlight the entire mesh for that part
     return buildObjectHighlightGeometry(referenceId, modelGroupRef, visiblePartIds)
-  }, [runtime, referenceId, modelGroupRef, visiblePartIds])
+  }, [runtime, referenceId, modelGroupRef, visiblePartIds, highlightVersion])
 
   useEffect(() => {
     // Dispose previous line objects

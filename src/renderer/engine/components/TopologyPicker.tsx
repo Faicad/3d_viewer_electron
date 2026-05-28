@@ -14,6 +14,9 @@ interface TopologyPickerProps {
   onClick: (referenceId: string | null, shiftKey?: boolean) => void
   onClickWorldPoint?: (point: THREE.Vector3 | null) => void
   onSnap?: (candidate: SnapCandidate | null) => void
+  enableObjectDrag?: boolean
+  selectedPartIds?: string[]
+  onDragActiveChange?: (active: boolean) => void
 }
 
 /**
@@ -29,6 +32,9 @@ export default function TopologyPicker({
   onClick,
   onClickWorldPoint,
   onSnap,
+  enableObjectDrag,
+  selectedPartIds,
+  onDragActiveChange,
 }: TopologyPickerProps) {
   useTopologyPicking({
     enabled,
@@ -39,6 +45,9 @@ export default function TopologyPicker({
     onClick,
     onClickWorldPoint,
     onSnap,
+    enableObjectDrag,
+    selectedPartIds,
+    onDragActiveChange,
   })
   return null
 }

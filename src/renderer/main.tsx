@@ -7,6 +7,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useModelStore } from '@/stores/model-store'
 import { useAnimationStore } from '@/stores/animation-store'
 import { useMaterialStore } from '@/stores/material-store'
+import { useToolStore } from '@/stores/tool-store'
+import { useSelectionStore } from '@/stores/selection-store'
 import { clearStepCache } from '@/lib/step-converter'
 import { initLogger } from '@/lib/logger'
 import App from './App'
@@ -20,6 +22,8 @@ initLogger()
 window.__modelStore = useModelStore
 window.__animationStore = useAnimationStore
 window.__materialStore = useMaterialStore
+window.__toolStore = useToolStore
+window.__selectionStore = useSelectionStore
 window.__errors = []
 window.__clearStepCache = clearStepCache
 

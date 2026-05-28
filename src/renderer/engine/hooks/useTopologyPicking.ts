@@ -11,6 +11,7 @@ import {
 } from '@/lib/topology/picking'
 import { findClosestPoint, type SnapCandidate } from '@/lib/topology/snap'
 import { useModelStore } from '@/stores/model-store'
+import { useEngineStore } from '@/stores/engine-store'
 
 function snapRadiusPx(canvas: HTMLCanvasElement): number {
   return Math.min(canvas.clientWidth, canvas.clientHeight) * 0.12
@@ -33,6 +34,12 @@ interface UseTopologyPickingOptions {
   onClickWorldPoint?: (point: THREE.Vector3 | null) => void
   /** Called when a snap candidate is found in point mode (null = no snap) */
   onSnap?: (candidate: SnapCandidate | null) => void
+  /** When true, left-drag on a selected object moves it in the XY plane. */
+  enableObjectDrag?: boolean
+  /** Currently selected part IDs (used for object-mode drag detection). */
+  selectedPartIds?: string[]
+  /** Called when object drag starts (true) or ends (false) to disable OrbitControls. */
+  onDragActiveChange?: (active: boolean) => void
 }
 
 const HOVER_MIN_MOVE_PX = 2
@@ -82,6 +89,9 @@ export function useTopologyPicking({
   onClick,
   onClickWorldPoint,
   onSnap,
+  enableObjectDrag,
+  selectedPartIds,
+  onDragActiveChange,
 }: UseTopologyPickingOptions) {
   const { camera, gl, scene } = useThree()
   const raycaster = useMemo(() => new THREE.Raycaster(), [])
@@ -95,6 +105,18 @@ export function useTopologyPicking({
   const selectorRuntimeRef = useRef(selectorRuntime)
   const currentSnapRef = useRef<SnapCandidate | null>(null)
   const lastHitPointRef = useRef<THREE.Vector3 | null>(null)
+  const enableObjectDragRef = useRef(enableObjectDrag)
+  const selectedPartIdsRef = useRef(selectedPartIds)
+  const onDragActiveChangeRef = useRef(onDragActiveChange)
+  const dragRef = useRef<{
+    active: boolean
+    dragPlane: THREE.Plane
+    lastWorldPoint: THREE.Vector3
+  } | null>(null)
+  const dragIntentRef = useRef<{
+    dragPlane: THREE.Plane
+    startWorldPoint: THREE.Vector3
+  } | null>(null)
 
   useEffect(() => {
     onHoverRef.current = onHover
@@ -103,6 +125,9 @@ export function useTopologyPicking({
     onSnapRef.current = onSnap
     selectionModeRef.current = selectionMode
     selectorRuntimeRef.current = selectorRuntime
+    enableObjectDragRef.current = enableObjectDrag
+    selectedPartIdsRef.current = selectedPartIds
+    onDragActiveChangeRef.current = onDragActiveChange
   })
 
   useEffect(() => {
@@ -303,7 +328,64 @@ export function useTopologyPicking({
       onHoverRef.current(null)
     }
 
+    function handleDragMove(event: PointerEvent) {
+      const drag = dragRef.current
+      if (!drag?.active) return
+
+      setPointerFromClient(event.clientX, event.clientY)
+      raycaster.setFromCamera(pointer, camera)
+
+      const intersection = new THREE.Vector3()
+      const hit = raycaster.ray.intersectPlane(drag.dragPlane, intersection)
+      if (!hit) return
+
+      const deltaX = intersection.x - drag.lastWorldPoint.x
+      const deltaY = intersection.y - drag.lastWorldPoint.y
+
+      drag.lastWorldPoint.copy(intersection)
+
+      const group = modelGroupRef.current
+      const selParts = selectedPartIdsRef.current
+      if (group && selParts) {
+        const partSet = new Set(selParts)
+        group.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            const partId = child.userData?.partId as string | undefined
+            if (partId && partSet.has(partId)) {
+              child.position.x += deltaX
+              child.position.y += deltaY
+            }
+          }
+        })
+      }
+
+      // Force highlights and bounding box to recompute after drag
+      useEngineStore.getState().bumpHighlightVersion()
+    }
+
     function handlePointerMove(event: PointerEvent) {
+      if (dragRef.current?.active) {
+        handleDragMove(event)
+        return
+      }
+
+      // Transition from drag intent to active drag when moved > 4px
+      if (dragIntentRef.current) {
+        const moved = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y)
+        if (moved > 4) {
+          const intent = dragIntentRef.current
+          dragIntentRef.current = null
+          dragRef.current = {
+            active: true,
+            dragPlane: intent.dragPlane,
+            lastWorldPoint: intent.startWorldPoint,
+          }
+          onDragActiveChangeRef.current?.(true)
+          handleDragMove(event)
+          return
+        }
+      }
+
       scheduleHoverPick(event.clientX, event.clientY)
     }
 
@@ -314,8 +396,53 @@ export function useTopologyPicking({
       pointerDown.y = event.clientY
     }
 
+    function handlePointerDownCapture(event: PointerEvent) {
+      if (event.button !== 0) return
+      if (!enableObjectDragRef.current) return
+      const selParts = selectedPartIdsRef.current
+      if (!selParts || selParts.length === 0) return
+
+      setPointerFromClient(event.clientX, event.clientY)
+      raycaster.setFromCamera(pointer, camera)
+      const displayMeshes = collectDisplayMeshes(modelGroupRef.current)
+      if (!displayMeshes.length) return
+
+      const hits = raycaster.intersectObjects(displayMeshes, false)
+      if (!hits.length) return
+
+      const hitPartId = hits[0].object.userData?.partId as string | undefined
+      if (!hitPartId || !selParts.includes(hitPartId)) return
+
+      // Pointer is on a selected object — take over event handling.
+      // Prevent OrbitControls from seeing the event.
+      event.stopPropagation()
+
+      // Emulate the bubble-phase handlePointerDown so click logic works
+      pointerDown.active = true
+      pointerDown.x = event.clientX
+      pointerDown.y = event.clientY
+
+      // Store drag intent; drag only activates after pointer moves > 4px
+      const hitPoint = hits[0].point
+      dragIntentRef.current = {
+        dragPlane: new THREE.Plane(new THREE.Vector3(0, 0, 1), -hitPoint.z),
+        startWorldPoint: hitPoint.clone(),
+      }
+    }
+
     function handlePointerUp(event: PointerEvent) {
       if (event.button !== 0) return
+
+      if (dragRef.current?.active) {
+        dragRef.current.active = false
+        onDragActiveChangeRef.current?.(false)
+        pointerDown.active = false
+        return
+      }
+
+      // Clear drag intent (was just a click, not a drag)
+      dragIntentRef.current = null
+
       if (!pointerDown.active) return
       pointerDown.active = false
       const moved = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y)
@@ -354,6 +481,11 @@ export function useTopologyPicking({
     function handlePointerLeave() {
       clearHover()
       pointerDown.active = false
+      dragIntentRef.current = null
+      if (dragRef.current?.active) {
+        dragRef.current.active = false
+        onDragActiveChangeRef.current?.(false)
+      }
       if (currentSnapRef.current) {
         currentSnapRef.current = null
         onSnapRef.current?.(null)
@@ -362,12 +494,14 @@ export function useTopologyPicking({
 
     canvas.addEventListener('pointermove', handlePointerMove)
     canvas.addEventListener('pointerdown', handlePointerDown)
+    canvas.addEventListener('pointerdown', handlePointerDownCapture, { capture: true })
     canvas.addEventListener('pointerup', handlePointerUp)
     canvas.addEventListener('pointerleave', handlePointerLeave)
 
     return () => {
       canvas.removeEventListener('pointermove', handlePointerMove)
       canvas.removeEventListener('pointerdown', handlePointerDown)
+      canvas.removeEventListener('pointerdown', handlePointerDownCapture, { capture: true })
       canvas.removeEventListener('pointerup', handlePointerUp)
       canvas.removeEventListener('pointerleave', handlePointerLeave)
       clearHover()
