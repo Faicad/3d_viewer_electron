@@ -3,6 +3,37 @@ import { join, extname } from 'path'
 import * as fs from 'fs'
 import { ALL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 
+// Single-instance lock (required for file associations on Windows)
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    // Windows: user double-clicks a file while app is already running
+    const filePath = extractFilePath(commandLine)
+    if (filePath && mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+      mainWindow.webContents.send('open-external-file', filePath)
+    }
+  })
+}
+
+/** On Windows, file path comes as the second arg (first is the exe itself) */
+function extractFilePath(argv: string[]): string | null {
+  // argv[0] is electron/exe, argv[1:] may contain file paths
+  const supported = new Set(ALL_EXTENSIONS)
+  // Also support raw extensions without dot for argv matching
+  const supportedNoDot = new Set(ALL_EXTENSIONS.map((e) => e.slice(1)))
+  for (let i = 1; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg.startsWith('-')) continue
+    const ext = extname(arg).toLowerCase()
+    if (supported.has(ext) || supportedNoDot.has(ext)) return arg
+  }
+  return null
+}
+
 // Must be called before app.whenReady() to grant the custom protocol access to
 // IndexedDB, fetch, and other standard web APIs.
 protocol.registerSchemesAsPrivileged([
@@ -201,11 +232,36 @@ ipcMain.handle('fs:readFileAsBase64', async (_event, filePath: string) => {
   }
 })
 
+// macOS: user double-clicks a file or drags it onto the dock icon
+app.on('open-file', (_event, filePath) => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+    mainWindow.webContents.send('open-external-file', filePath)
+  }
+})
+
+// Store file path passed on startup for later delivery once window is ready
+let pendingFilePath: string | null = null
+
 app.whenReady().then(() => {
   console.log('[Main] app ready')
   Menu.setApplicationMenu(null)
   setupProtocol()
   createWindow()
+
+  // Check for file path from command line (Windows: double-click in Explorer)
+  const cliPath = extractFilePath(process.argv)
+  if (cliPath) {
+    pendingFilePath = cliPath
+  }
+})
+
+// Deliver pending file path once the window is ready to receive IPC
+ipcMain.handle('get-pending-file-path', () => {
+  const path = pendingFilePath
+  pendingFilePath = null
+  return path
 })
 
 app.on('window-all-closed', () => {

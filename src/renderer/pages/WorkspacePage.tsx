@@ -48,68 +48,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
       firstDirPath ??= dirPath
 
-      let format = detectFormat(fileName)
-      if (!format) {
-        toast.error('Unsupported file format: ' + fileName)
-        continue
-      }
-
-      try {
-        const fileResult = await window.electronAPI.readFile(filePath)
-        if (!fileResult.success || !fileResult.data) {
-          toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
-          continue
-        }
-        let buffer = fileResult.data
-
-        if (format === 'step') {
-          try {
-            useModelStore.getState().setIsConverting(true)
-            const { buffer: glbBuffer } = await stepToGlbCached(buffer,
-              { filePath, mtimeMs: Date.now() },
-              { wasmPath: '/wasm/occt-import-js.wasm' },
-            )
-            buffer = glbBuffer
-            format = 'glb'
-          } catch (e) {
-            console.error('[WorkspacePage] STEP conversion failed:', e)
-            toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
-            continue
-          } finally {
-            useModelStore.getState().setIsConverting(false)
-          }
-        }
-
-        // Parse once
-        const loadResult = await loadFormat(buffer, format, filePath)
-        const fileId = crypto.randomUUID()
-        setCachedResult(fileId, loadResult)
-
-        // Thumbnail as byproduct
-        const upAxis = getDefaultUpAxis(format, buffer)
-        generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-          .then(blob => {
-            if (blob) putThumbnail(`${filePath}|${Date.now()}`, blob)
-          })
-
-        useModelStore.getState().addLoadedFile({
-          id: fileId,
-          fileName,
-          filePath,
-          mtimeMs: Date.now(),
-          buffer,
-          format,
-          sceneTree: [],
-          glbPartInfos: [],
-          modelCenteringOffset: null,
-          sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
-          fileGroup: FORMAT_MAP[format].group,
-          loadingPhase: 'loading',
-        })
-      } catch (e) {
-        useModelStore.getState().setIsConverting(false)
-        toast.error('Load failed: ' + String(e))
-      }
+      await loadFilePath(filePath, fileName)
     }
 
     if (firstDirPath) {
@@ -119,6 +58,106 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       }
     }
   }, [])
+
+  const loadFilePath = useCallback(async (filePath: string, fileName?: string) => {
+    if (!window.electronAPI) return
+
+    const name = fileName || filePath.split(/[/\\]/).pop() || filePath
+
+    let format = detectFormat(name)
+    if (!format) {
+      toast.error('Unsupported file format: ' + name)
+      return
+    }
+
+    // Skip if already loaded
+    if (useModelStore.getState().isFileLoaded(filePath)) {
+      return
+    }
+
+    try {
+      const fileResult = await window.electronAPI.readFile(filePath)
+      if (!fileResult.success || !fileResult.data) {
+        toast.error('Load failed: ' + (fileResult.error || 'unknown error'))
+        return
+      }
+      let buffer = fileResult.data
+
+      if (format === 'step') {
+        try {
+          useModelStore.getState().setIsConverting(true)
+          const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+            { filePath, mtimeMs: Date.now() },
+            { wasmPath: '/wasm/occt-import-js.wasm' },
+          )
+          buffer = glbBuffer
+          format = 'glb'
+        } catch (e) {
+          console.error('[WorkspacePage] STEP conversion failed:', e)
+          toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+          return
+        } finally {
+          useModelStore.getState().setIsConverting(false)
+        }
+      }
+
+      // Parse once
+      const loadResult = await loadFormat(buffer, format, filePath)
+      const fileId = crypto.randomUUID()
+      setCachedResult(fileId, loadResult)
+
+      // Thumbnail as byproduct
+      const upAxis = getDefaultUpAxis(format, buffer)
+      generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+        .then(blob => {
+          if (blob) putThumbnail(`${filePath}|${Date.now()}`, blob)
+        })
+
+      useModelStore.getState().addLoadedFile({
+        id: fileId,
+        fileName: name,
+        filePath,
+        mtimeMs: Date.now(),
+        buffer,
+        format,
+        sceneTree: [],
+        glbPartInfos: [],
+        modelCenteringOffset: null,
+        sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+        fileGroup: FORMAT_MAP[format].group,
+        loadingPhase: 'loading',
+      })
+
+      // Also update folder files if we can
+      const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
+      const dirResult = await window.electronAPI.readDirectory(dirPath)
+      if (dirResult.success && dirResult.files) {
+        useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
+      }
+    } catch (e) {
+      useModelStore.getState().setIsConverting(false)
+      toast.error('Load failed: ' + String(e))
+    }
+  }, [])
+
+  // Listen for files opened via OS file association (double-click in Explorer, etc.)
+  useEffect(() => {
+    if (!window.electronAPI) return
+
+    // Check for pending file path from command-line launch (Windows)
+    window.electronAPI.getPendingFilePath().then((filePath) => {
+      if (filePath) {
+        loadFilePath(filePath)
+      }
+    })
+
+    // Listen for files opened while app is already running
+    const unsubscribe = window.electronAPI.onOpenExternalFile((filePath) => {
+      loadFilePath(filePath)
+    })
+
+    return unsubscribe
+  }, [loadFilePath])
 
   const processFileLocally = useCallback(async (file: File) => {
     const format = detectFormat(file.name)
