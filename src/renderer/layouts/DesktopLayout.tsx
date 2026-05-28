@@ -83,12 +83,14 @@ function findInChildren(children: SceneTreeNode[], nodeId: string): boolean {
   return false
 }
 
-function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu, onFileContextMenu }: {
+function SceneTreeItem({ node, depth, parentFileId, treePath, onPartContextMenu, onFileContextMenu, onNodeContextMenu }: {
   node: SceneTreeNode
   depth: number
   parentFileId?: string
-  onPartContextMenu?: (e: React.MouseEvent, partId: string, fileId: string) => void
+  treePath?: string
+  onPartContextMenu?: (e: React.MouseEvent, partId: string, fileId: string, nodePathStr?: string) => void
   onFileContextMenu?: (e: React.MouseEvent, fileId: string) => void
+  onNodeContextMenu?: (e: React.MouseEvent, nodeId: string, fileId: string | undefined, nodePathStr: string) => void
 }) {
   const hasChildren = node.children && node.children.length > 0
   const toggleExpanded = useModelStore((s) => s.toggleNodeExpanded)
@@ -100,6 +102,7 @@ function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu, onFileCon
   const isFileNode = node.id.startsWith('file:')
   const fileId = isFileNode ? node.id.slice(5) : parentFileId
   const isPartNode = node.meshIndex !== undefined && fileId != null
+  const nodePathStr = treePath ? `${treePath} / ${node.name}` : node.name
 
   return (
     <>
@@ -123,10 +126,13 @@ function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu, onFileCon
         onContextMenu={(e) => {
           if (isPartNode && onPartContextMenu && fileId) {
             e.preventDefault()
-            onPartContextMenu(e, node.id, fileId)
+            onPartContextMenu(e, node.id, fileId, nodePathStr)
           } else if (isFileNode && onFileContextMenu && fileId) {
             e.preventDefault()
             onFileContextMenu(e, fileId)
+          } else if (!isFileNode && !isPartNode && onNodeContextMenu) {
+            e.preventDefault()
+            onNodeContextMenu(e, node.id, fileId, nodePathStr)
           }
         }}
       >
@@ -187,8 +193,10 @@ function SceneTreeItem({ node, depth, parentFileId, onPartContextMenu, onFileCon
             node={child}
             depth={depth + 1}
             parentFileId={fileId ?? parentFileId}
+            treePath={nodePathStr}
             onPartContextMenu={onPartContextMenu}
             onFileContextMenu={onFileContextMenu}
+            onNodeContextMenu={onNodeContextMenu}
           />
         ))}
     </>
@@ -235,7 +243,7 @@ export default function DesktopLayout() {
     x: number; y: number; items: ContextMenuItemDef[];
   } | null>(null)
 
-  const handlePartContextMenu = useCallback((e: React.MouseEvent, partId: string, fileId: string) => {
+  const handlePartContextMenu = useCallback((e: React.MouseEvent, partId: string, fileId: string, nodePathStr?: string) => {
     const materialStore = useMaterialStore.getState()
     const modelStore = useModelStore.getState()
     const app = materialStore.getEffectiveAppearance(fileId, partId)
@@ -273,6 +281,13 @@ export default function DesktopLayout() {
           },
           disabled: !materialStore.materialClipboard,
         },
+        {
+          label: 'Copy Node Path',
+          icon: Copy,
+          action: () => {
+            navigator.clipboard.writeText(nodePathStr ?? partId)
+          },
+        },
       ],
     })
   }, [])
@@ -283,7 +298,6 @@ export default function DesktopLayout() {
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
     const isGlb = file?.format === 'glb' || file?.format === 'gltf'
     const hasAnims = (file?.animations?.length ?? 0) > 0
-    if (!isGlb && !hasAnims) return
     e.preventDefault()
     e.stopPropagation()
     const items: ContextMenuItemDef[] = []
@@ -312,8 +326,36 @@ export default function DesktopLayout() {
         },
       })
     }
+    items.push({
+      label: 'Copy File Path',
+      icon: Copy,
+      action: () => {
+        if (file?.filePath) {
+          navigator.clipboard.writeText(file.filePath)
+        }
+      },
+    })
     setCtxMenu({ x: e.clientX, y: e.clientY, items })
   }, [t])
+
+  // Group/node-level context menu
+  const handleNodeContextMenu = useCallback((e: React.MouseEvent, nodeId: string, _fileId: string | undefined, nodePathStr: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCtxMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: 'Copy Node Path',
+          icon: Copy,
+          action: () => {
+            navigator.clipboard.writeText(nodePathStr)
+          },
+        },
+      ],
+    })
+  }, [])
 
   // Open material editor from toolbar — selects first part if no selection, or default material if no files
   const handleOpenMaterialEditor = useCallback(() => {
@@ -869,7 +911,7 @@ export default function DesktopLayout() {
                 ) : (
                   <div className="p-2 min-w-max">
                     {sceneTree.map((node) => (
-                      <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} onFileContextMenu={handleFileContextMenu} />
+                      <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} onFileContextMenu={handleFileContextMenu} onNodeContextMenu={handleNodeContextMenu} />
                     ))}
                   </div>
                 )}
