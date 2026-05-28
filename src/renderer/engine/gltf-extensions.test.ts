@@ -324,3 +324,79 @@ describe('edge cases', () => {
     expect(exts).toHaveLength(0)
   })
 })
+
+// ---- buildTextureExtras: texture index → THREE.Texture mapping ----
+
+import * as THREE from 'three'
+import { buildTextureExtras } from '@/engine/formatLoaders'
+
+function makeTex(w: number, h: number): THREE.Texture {
+  const tex = new THREE.Texture()
+  tex.image = { width: w, height: h } as HTMLImageElement
+  return tex
+}
+
+describe('buildTextureExtras', () => {
+  it('maps each glTF texture index to the correct THREE.Texture via associations', () => {
+    const tex0 = makeTex(2048, 2048)
+    const tex1 = makeTex(1024, 1024)
+    const tex2 = makeTex(512, 512)
+    const tex3 = makeTex(256, 256)
+
+    const associations = new Map<THREE.Texture, { textures?: number }>()
+    associations.set(tex0, { textures: 0 })
+    associations.set(tex1, { textures: 1 })
+    associations.set(tex2, { textures: 2 })
+    associations.set(tex3, { textures: 3 })
+
+    const { resolutionMap } = buildTextureExtras({ parser: { associations } })
+    expect(resolutionMap.size).toBe(4)
+    expect(resolutionMap.get(0)).toEqual({ width: 2048, height: 2048 })
+    expect(resolutionMap.get(1)).toEqual({ width: 1024, height: 1024 })
+    expect(resolutionMap.get(2)).toEqual({ width: 512, height: 512 })
+    expect(resolutionMap.get(3)).toEqual({ width: 256, height: 256 })
+  })
+
+  it('same THREE.Texture at two glTF indices produces both entries', () => {
+    const sharedTex = makeTex(512, 512)
+    const associations = new Map<THREE.Texture, { textures?: number }>()
+    associations.set(sharedTex, { textures: 0 })
+    // Same texture at a different index is not possible via associations
+    // (GLTFLoader sets one entry per texture), but two different indices
+    // with identical resolutions should both appear.
+    const tex1 = makeTex(512, 512)
+    associations.set(tex1, { textures: 1 })
+
+    const { resolutionMap } = buildTextureExtras({ parser: { associations } })
+    expect(resolutionMap.size).toBe(2)
+    expect(resolutionMap.get(0)).toEqual({ width: 512, height: 512 })
+    expect(resolutionMap.get(1)).toEqual({ width: 512, height: 512 })
+  })
+
+  it('returns empty maps when associations is undefined', () => {
+    const { resolutionMap, thumbnailMap } = buildTextureExtras({ parser: { associations: undefined } })
+    expect(resolutionMap.size).toBe(0)
+    expect(thumbnailMap.size).toBe(0)
+  })
+
+  it('skips association entries without textures field', () => {
+    const tex = makeTex(100, 100)
+    const associations = new Map<THREE.Texture, { textures?: number }>()
+    associations.set(tex, {}) // no textures field
+
+    const { resolutionMap } = buildTextureExtras({ parser: { associations } })
+    expect(resolutionMap.size).toBe(0)
+  })
+
+  it('bath_day scenario: 4 textures map to 4 distinct indices', () => {
+    const texs = [makeTex(2048, 2048), makeTex(2048, 2048), makeTex(2048, 2048), makeTex(2048, 2048)]
+    const associations = new Map<THREE.Texture, { textures?: number }>()
+    texs.forEach((tex, i) => associations.set(tex, { textures: i }))
+
+    const { resolutionMap } = buildTextureExtras({ parser: { associations } })
+    expect(resolutionMap.size).toBe(4)
+    for (let i = 0; i < 4; i++) {
+      expect(resolutionMap.has(i)).toBe(true)
+    }
+  })
+})

@@ -12,6 +12,7 @@ import type { FormatId } from '@/config/file-formats'
 import { FORMAT_MAP } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderResultCache'
+import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
 import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
 import { useMaterialStore } from '@/stores/material-store'
@@ -206,8 +207,9 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         if (cached) {
           result = cached
         } else {
+          if (fileId) setActiveFileIdForTexCache(fileId)
           result = await loadFormat(buffer, format, filePath ?? null)
-          if (fileId) setCachedResult(fileId, result)
+          if (fileId) { setActiveFileIdForTexCache(null); setCachedResult(fileId, result) }
           // Fire onParsed so caller generates thumbnail from this fresh parse
           const upAxis = getDefaultUpAxis(format, buffer)
           onParsedRef.current?.(result.meshes, result.objects, upAxis)
@@ -321,6 +323,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               triangleCount: geo.index
                 ? geo.index.count / 3
                 : geo.attributes.position?.count / 3 || 0,
+              materialIndex: src.userData?.gltfMaterialIndex ?? -1,
             })
           }
 

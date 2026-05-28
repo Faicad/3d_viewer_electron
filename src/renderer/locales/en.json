@@ -184,5 +184,6 @@
   "glbExtension.noAnimations": "No animations",
   "glbExtension.yes": "Yes",
   "glbExtension.no": "No",
-  "glbExtension.menuTitle": "GLB Extension"
+  "glbExtension.menuTitle": "GLB Extension",
+  "glbExtension.manageMaterials": "Material Manager"
 }

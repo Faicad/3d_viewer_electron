@@ -21,7 +21,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -293,6 +293,13 @@ export default function DesktopLayout() {
         icon: FileJson,
         action: () => {
           useGlbExtensionStore.getState().openPanel(fileId)
+        },
+      })
+      items.push({
+        label: t('glbExtension.manageMaterials'),
+        icon: SwatchBook,
+        action: () => {
+          useGlbExtensionStore.getState().openPanelWithScroll(fileId, 'materials')
         },
       })
     }
@@ -897,11 +904,11 @@ export default function DesktopLayout() {
         )}
       </div>
 
-      {/* Material Editor (floating) */}
-      <MaterialEditor />
-
       {/* GLB Extension Panel (floating) */}
       <GlbExtensionPanel />
+
+      {/* Material Editor (floating) — must be after GlbExtensionPanel to render on top */}
+      <MaterialEditor />
 
       {/* Context Menu */}
       {ctxMenu && (

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { cloneAndConvertMaterial, createDefaultMaterial, disposeMaterial, getMaterialColor, materialToAppearance, textureThumbnail } from './cloneMaterial'
+import { cloneAndConvertMaterial, createDefaultMaterial, disposeMaterial, getMaterialColor, materialToAppearance, textureThumbnail, standardToPhysical } from './cloneMaterial'
 
 function makeFakeTexture() {
   const canvas = Buffer.alloc(16) // dummy — Texture won't render in node but props work
@@ -258,7 +258,7 @@ describe('materialToAppearance', () => {
   it('defaults to OPAQUE alphaMode for non-transparent material', () => {
     const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 })
     const { appearance } = materialToAppearance(mat, 'test')
-    expect(appearance!.alphaMode).toBeUndefined()
+    expect(appearance!.alphaMode).toBe('OPAQUE')
   })
 
   it('detects BLEND alphaMode when transparent', () => {
@@ -503,5 +503,81 @@ describe('textureThumbnail', () => {
   it('returns undefined for texture without image', () => {
     const tex = new THREE.Texture()
     expect(textureThumbnail(tex)).toBeUndefined()
+  })
+})
+
+// ---- Full pipeline: GLTF → standardToPhysical → materialToAppearance ----
+
+describe('GLTF BLEND/MASK → MaterialEditor roundtrip', () => {
+  it('BLEND material: GLTF MeshStandardMaterial → standardToPhysical → appearance alphaMode=BLEND', () => {
+    // Simulate GLTFLoader output for alphaMode:BLEND
+    const gltfMat = new THREE.MeshStandardMaterial()
+    gltfMat.transparent = true
+    gltfMat.opacity = 1.0
+    gltfMat.alphaTest = 0
+
+    // Simulate cloneAndConvertMaterial → standardToPhysical
+    const physical = standardToPhysical(gltfMat)
+    expect(physical.transparent).toBe(true)
+    expect(physical.alphaTest).toBe(0)
+
+    // Simulate materialToAppearance
+    const { appearance } = materialToAppearance(physical, 'test')
+    expect(appearance).not.toBeNull()
+    expect(appearance!.alphaMode).toBe('BLEND')
+  })
+
+  it('MASK material: GLTF MeshStandardMaterial → standardToPhysical → appearance alphaMode=MASK', () => {
+    const gltfMat = new THREE.MeshStandardMaterial()
+    gltfMat.transparent = true
+    gltfMat.alphaTest = 0.5
+
+    const physical = standardToPhysical(gltfMat)
+    expect(physical.transparent).toBe(true)
+    expect(physical.alphaTest).toBe(0.5)
+
+    const { appearance } = materialToAppearance(physical, 'test')
+    expect(appearance).not.toBeNull()
+    expect(appearance!.alphaMode).toBe('MASK')
+    expect(appearance!.alphaCutoff).toBe(0.5)
+  })
+
+  it('OPAQUE material: GLTF MeshStandardMaterial → standardToPhysical → appearance alphaMode=OPAQUE', () => {
+    const gltfMat = new THREE.MeshStandardMaterial()
+    gltfMat.transparent = false
+
+    const physical = standardToPhysical(gltfMat)
+    expect(physical.transparent).toBe(false)
+
+    const { appearance } = materialToAppearance(physical, 'test')
+    expect(appearance).not.toBeNull()
+    expect(appearance!.alphaMode).toBe('OPAQUE')
+  })
+
+  it('BLEND material through cloneAndConvertMaterial preserves alphaMode', () => {
+    const gltfMat = new THREE.MeshStandardMaterial()
+    gltfMat.transparent = true
+    gltfMat.opacity = 0.7
+
+    const cloned = cloneAndConvertMaterial(gltfMat)
+    expect(cloned).not.toBeNull()
+    expect((cloned as THREE.Material).transparent).toBe(true)
+
+    const { appearance } = materialToAppearance(cloned, 'test')
+    expect(appearance!.alphaMode).toBe('BLEND')
+  })
+
+  it('MASK material through cloneAndConvertMaterial preserves alphaMode', () => {
+    const gltfMat = new THREE.MeshStandardMaterial()
+    gltfMat.transparent = true
+    gltfMat.alphaTest = 0.75
+
+    const cloned = cloneAndConvertMaterial(gltfMat)
+    expect(cloned).not.toBeNull()
+    expect((cloned as THREE.Material).transparent).toBe(true)
+
+    const { appearance } = materialToAppearance(cloned, 'test')
+    expect(appearance!.alphaMode).toBe('MASK')
+    expect(appearance!.alphaCutoff).toBe(0.75)
   })
 })

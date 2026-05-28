@@ -307,3 +307,81 @@ describe('model-store', () => {
     expect(s.sortOrder).toBe('asc')
   })
 })
+
+// ---- getPartIdsByMaterial ----
+
+describe('getPartIdsByMaterial', () => {
+  beforeEach(() => {
+    useModelStore.getState().reset()
+  })
+
+  it('returns empty array when file not found', () => {
+    const ids = useModelStore.getState().getPartIdsByMaterial('nonexistent', 0)
+    expect(ids).toEqual([])
+  })
+
+  it('returns partIds for a given materialIndex', () => {
+    useModelStore.getState().addLoadedFile({
+      id: 'f1',
+      fileName: 'test.glb',
+      filePath: '/test.glb',
+      buffer: new ArrayBuffer(0),
+      format: 'glb',
+      sceneTree: [],
+      glbPartInfos: [
+        { partId: 'p0', meshIndex: 0, name: 'a', triangleCount: 10, materialIndex: 0 },
+        { partId: 'p1', meshIndex: 1, name: 'b', triangleCount: 20, materialIndex: 1 },
+        { partId: 'p2', meshIndex: 2, name: 'c', triangleCount: 30, materialIndex: 0 },
+      ],
+      modelCenteringOffset: null,
+      sourceUnit: 'meter',
+      fileGroup: '3d',
+      loadingPhase: 'done',
+    })
+
+    const ids0 = useModelStore.getState().getPartIdsByMaterial('f1', 0)
+    expect(ids0).toEqual(['p0', 'p2'])
+
+    const ids1 = useModelStore.getState().getPartIdsByMaterial('f1', 1)
+    expect(ids1).toEqual(['p1'])
+
+    const ids2 = useModelStore.getState().getPartIdsByMaterial('f1', 99)
+    expect(ids2).toEqual([])
+  })
+
+  it('does not mix parts across files', () => {
+    useModelStore.getState().addLoadedFile({
+      id: 'f1',
+      fileName: 'a.glb',
+      filePath: '/a.glb',
+      buffer: new ArrayBuffer(0),
+      format: 'glb',
+      sceneTree: [],
+      glbPartInfos: [
+        { partId: 'p0', meshIndex: 0, name: 'x', triangleCount: 1, materialIndex: 0 },
+      ],
+      modelCenteringOffset: null,
+      sourceUnit: 'meter',
+      fileGroup: '3d',
+      loadingPhase: 'done',
+    })
+    useModelStore.getState().addLoadedFile({
+      id: 'f2',
+      fileName: 'b.glb',
+      filePath: '/b.glb',
+      buffer: new ArrayBuffer(0),
+      format: 'glb',
+      sceneTree: [],
+      glbPartInfos: [
+        { partId: 'q0', meshIndex: 0, name: 'y', triangleCount: 1, materialIndex: 0 },
+      ],
+      modelCenteringOffset: null,
+      sourceUnit: 'meter',
+      fileGroup: '3d',
+      loadingPhase: 'done',
+    })
+
+    expect(useModelStore.getState().getPartIdsByMaterial('f1', 0)).toEqual(['p0'])
+    expect(useModelStore.getState().getPartIdsByMaterial('f2', 0)).toEqual(['q0'])
+  })
+})

@@ -228,13 +228,20 @@ export function materialToAppearance(
     a.doubleSided = true
   }
 
+  const alphaTest = (target as THREE.MeshStandardMaterial).alphaTest ?? 0
   if (target.transparent) {
-    if ((target as THREE.MeshStandardMaterial).alphaTest > 0) {
+    if (alphaTest > 0) {
       a.alphaMode = 'MASK' as AlphaMode
-      a.alphaCutoff = (target as THREE.MeshStandardMaterial).alphaTest
+      a.alphaCutoff = alphaTest
     } else {
       a.alphaMode = 'BLEND' as AlphaMode
     }
+  } else if (alphaTest > 0) {
+    // GLTFLoader r184+ may set alphaTest without transparent for MASK materials
+    a.alphaMode = 'MASK' as AlphaMode
+    a.alphaCutoff = alphaTest
+  } else {
+    a.alphaMode = 'OPAQUE' as AlphaMode
   }
 
   // Populate texture data-URIs from extracted textures (for override support)
@@ -293,7 +300,7 @@ function convertSingle(src: THREE.Material): THREE.Material {
 // Per-type converters
 // ---------------------------------------------------------------------------
 
-function standardToPhysical(
+export function standardToPhysical(
   src: THREE.MeshPhysicalMaterial,
 ): THREE.MeshPhysicalMaterial {
   const dst = new THREE.MeshPhysicalMaterial()
@@ -321,6 +328,7 @@ function standardToPhysical(
   dst.envMapIntensity = src.envMapIntensity
   dst.transparent = src.transparent
   dst.opacity = src.opacity
+  dst.alphaTest = src.alphaTest
   dst.side = src.side
   dst.wireframe = src.wireframe
   dst.vertexColors = src.vertexColors

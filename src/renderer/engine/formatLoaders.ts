@@ -207,18 +207,105 @@ function extractAllObjects(root: THREE.Object3D): THREE.Object3D[] {
   return objs
 }
 
-function buildResolutionMap(gltf: { parser: { textures?: (THREE.Texture | null)[] } }): Map<number, { width: number; height: number }> {
-  const map = new Map<number, { width: number; height: number }>()
-  const textures = gltf.parser.textures
-  if (textures) {
-    for (let i = 0; i < textures.length; i++) {
-      const tex = textures[i]
-      if (tex?.image && typeof tex.image.width === 'number' && typeof tex.image.height === 'number') {
-        map.set(i, { width: tex.image.width, height: tex.image.height })
-      }
+/** Annotate each THREE.Mesh in the scene with its glTF material index using associations. */
+function annotateMaterialIndices(
+  gltf: { parser: { associations?: Map<THREE.Object3D, { meshes?: number }> }; scene: THREE.Object3D },
+  json: Record<string, unknown>,
+) {
+  const associations = gltf.parser.associations
+  if (!associations) return
+
+  const gltfMeshes: Record<string, unknown>[] = Array.isArray(json.meshes) ? (json.meshes as Record<string, unknown>[]) : []
+
+  for (const [obj, mapping] of associations) {
+    if (mapping.meshes === undefined || !(obj instanceof THREE.Mesh)) continue
+    const meshIdx = mapping.meshes
+    if (meshIdx >= gltfMeshes.length) continue
+    const primitives: Record<string, unknown>[] = Array.isArray(gltfMeshes[meshIdx].primitives) ? (gltfMeshes[meshIdx].primitives as Record<string, unknown>[]) : []
+    // Use the first primitive's material (covers single-primitive case; multi-primitive meshes
+    // produce separate THREE.Mesh per primitive, each with its own associations entry)
+    const matIdx = typeof primitives[0]?.material === 'number' ? primitives[0].material : -1
+    obj.userData.gltfMaterialIndex = matIdx
+  }
+}
+
+export function buildTextureExtras(
+  gltf: { parser: { associations?: Map<THREE.Texture, { textures?: number }> } },
+  _json?: Record<string, unknown>,
+): {
+  resolutionMap: Map<number, { width: number; height: number }>
+  thumbnailMap: Map<number, string>
+  previewMap: Map<number, string>
+} {
+  const resolutionMap = new Map<number, { width: number; height: number }>()
+  const thumbnailMap = new Map<number, string>()
+  const previewMap = new Map<number, string>()
+  const indexToTex = new Map<number, THREE.Texture>()
+
+  // gltf.parser.associations directly maps THREE.Texture → { textures: gltfIndex }
+  const associations = gltf.parser.associations
+  if (associations) {
+    for (const [tex, mapping] of associations) {
+      if (mapping.textures === undefined) continue
+      indexToTex.set(mapping.textures, tex)
     }
   }
-  return map
+
+  // Generate thumbnails
+  for (const [idx, tex] of indexToTex) {
+    if (tex.image && typeof tex.image.width === 'number' && typeof tex.image.height === 'number') {
+      resolutionMap.set(idx, { width: tex.image.width, height: tex.image.height })
+    }
+    const thumb = generateThumbnail(tex, 40)
+    if (thumb) thumbnailMap.set(idx, thumb)
+    const preview = generateThumbnail(tex, 512)
+    if (preview) previewMap.set(idx, preview)
+  }
+
+  // Store full-res textures for later download
+  if (fileIdForTexCache) {
+    textureDownloadCache.set(fileIdForTexCache, indexToTex)
+  }
+
+  return { resolutionMap, thumbnailMap, previewMap }
+}
+
+// Full-resolution texture cache for download.
+// Keyed by fileId, each value maps glTF texture index → THREE.Texture.
+const textureDownloadCache = new Map<string, Map<number, THREE.Texture>>()
+let fileIdForTexCache: string | null = null
+
+/** Set the fileId that the next buildTextureExtras call will store textures under. */
+export function setActiveFileIdForTexCache(fileId: string | null) {
+  fileIdForTexCache = fileId
+}
+
+/** Get the full-resolution THREE.Texture for a given file + texture index. */
+export function getTextureForDownload(fileId: string, texIndex: number): THREE.Texture | undefined {
+  return textureDownloadCache.get(fileId)?.get(texIndex)
+}
+
+/** Clean up texture cache for a file. */
+export function clearTextureDownloadCache(fileId: string) {
+  textureDownloadCache.delete(fileId)
+}
+
+export function generateThumbnail(texture: THREE.Texture, maxSize: number): string | null {
+  if (typeof document === 'undefined') return null
+  const image = texture.image as { width: number; height: number } | null
+  if (!image || typeof image.width !== 'number' || image.width === 0) return null
+  try {
+    const canvas = document.createElement('canvas')
+    const scale = Math.min(maxSize / image.width, maxSize / image.height)
+    canvas.width = Math.round(image.width * scale)
+    canvas.height = Math.round(image.height * scale)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(image as CanvasImageSource, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL()
+  } catch {
+    return null
+  }
 }
 
 // ---- Shared GLTFLoader with Draco + KTX2 support ----
@@ -264,8 +351,10 @@ export async function loadFormat(
     case 'glb': {
       const gltf = await getGltfLoader().parseAsync(buffer, '')
       const meshes = extractMeshes(gltf.scene)
-      const resolutionMap = buildResolutionMap(gltf)
-      const gltfExtensions = buildGlbExtensionData(gltf.parser.json, gltf.animations, resolutionMap)
+      annotateMaterialIndices(gltf, gltf.parser.json)
+      const json = gltf.parser.json
+      const { resolutionMap, thumbnailMap, previewMap } = buildTextureExtras(gltf)
+      const gltfExtensions = buildGlbExtensionData(json, gltf.animations, resolutionMap, thumbnailMap, previewMap)
       return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions }
     }
     case 'gltf': {
@@ -279,8 +368,9 @@ export async function loadFormat(
       const gltfText = bufferToText(buffer)
       const gltf = await getGltfLoader().parseAsync(gltfText, '')
       const meshes = extractMeshes(gltf.scene)
-      const resolutionMap = buildResolutionMap(gltf)
-      const gltfExtensions = buildGlbExtensionData(JSON.parse(gltfText), gltf.animations, resolutionMap)
+      const json = JSON.parse(gltfText)
+      const { resolutionMap, thumbnailMap, previewMap } = buildTextureExtras(gltf)
+      const gltfExtensions = buildGlbExtensionData(json, gltf.animations, resolutionMap, thumbnailMap, previewMap)
       return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions }
     }
     case '3mf': {

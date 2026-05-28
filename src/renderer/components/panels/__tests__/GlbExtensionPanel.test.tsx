@@ -164,4 +164,21 @@ describe('GlbExtensionPanel', () => {
     fireEvent.click(closeBtn)
     expect(closePanel).toHaveBeenCalledOnce()
   })
+
+  it('material table rows have clickable style', () => {
+    const data = makeMockData({
+      materials: [
+        { index: 0, name: 'metal', instanceCount: 3, textureSlotCount: 4, alphaMode: 'OPAQUE', doubleSided: false },
+        { index: 1, name: 'glass', instanceCount: 1, textureSlotCount: 0, alphaMode: 'BLEND', doubleSided: true },
+      ],
+    })
+    setStore({ panelVisible: true, activeFileId: 'file1', dataByFileId: { file1: data } })
+    render(<GlbExtensionPanel />)
+
+    // Material row should be present and have cursor-pointer
+    const metalCell = screen.getByText('metal')
+    const row = metalCell.closest('tr')
+    expect(row).toBeTruthy()
+    expect(row!.className).toContain('cursor-pointer')
+  })
 })

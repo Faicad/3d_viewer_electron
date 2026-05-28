@@ -20,6 +20,7 @@ export interface GlbPartInfo {
   meshIndex: number
   name: string
   triangleCount: number
+  materialIndex: number
 }
 
 export interface LoadedFileModel {
@@ -154,6 +155,9 @@ interface ModelStore {
   updateFileCenteringOffset: (fileId: string, offset: [number, number, number] | null) => void
   updateFileLoadingPhase: (fileId: string, phase: LoadingPhase) => void
   updateFileAnimations: (fileId: string, sceneRoot: THREE.Object3D, animations: THREE.AnimationClip[]) => void
+
+  /** Get all partIds that share a glTF material index for a given file. */
+  getPartIdsByMaterial: (fileId: string, materialIndex: number) => string[]
 
   // Animation dialog
   animDialogFileId: string | null
@@ -442,6 +446,14 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
         f.id === fileId ? { ...f, sceneRoot, animations } : f,
       ),
     })),
+
+  getPartIdsByMaterial: (fileId, materialIndex) => {
+    const file = get().loadedFiles.find((f) => f.id === fileId)
+    if (!file) return []
+    return file.glbPartInfos
+      .filter((p) => p.materialIndex === materialIndex)
+      .map((p) => p.partId)
+  },
 
   isFileLoaded: (filePath) => {
     return get().loadedFiles.some((f) => f.filePath === filePath)

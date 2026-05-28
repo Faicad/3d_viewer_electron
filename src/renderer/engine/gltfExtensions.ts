@@ -31,6 +31,8 @@ export interface GltfTextureMeta {
   compression: string | null
   resolution: { width: number; height: number } | null
   sizeEstimate: number | null
+  thumbnail?: string
+  preview?: string
 }
 
 export interface GltfAnimationMeta {
@@ -256,6 +258,8 @@ export function extractMaterials(json: Record<string, unknown>): GltfMaterialMet
 export function extractTextures(
   json: Record<string, unknown>,
   resolutionMap?: Map<number, { width: number; height: number }>,
+  thumbnailMap?: Map<number, string>,
+  previewMap?: Map<number, string>,
 ): GltfTextureMeta[] {
   const textures: Record<string, unknown>[] = Array.isArray(json.textures) ? (json.textures as Record<string, unknown>[]) : []
   const images: Record<string, unknown>[] = Array.isArray(json.images) ? (json.images as Record<string, unknown>[]) : []
@@ -281,6 +285,8 @@ export function extractTextures(
     }
 
     const resolution = resolutionMap?.get(idx) ?? null
+    const thumbnail = thumbnailMap?.get(idx)
+    const preview = previewMap?.get(idx)
 
     return {
       index: idx,
@@ -293,6 +299,8 @@ export function extractTextures(
         img && typeof img.uri === 'string' ? img.uri : undefined),
       resolution,
       sizeEstimate,
+      thumbnail,
+      preview,
     }
   })
 }
@@ -318,6 +326,8 @@ export function buildGlbExtensionData(
   json: Record<string, unknown>,
   clips?: AnimationClip[],
   resolutionMap?: Map<number, { width: number; height: number }>,
+  thumbnailMap?: Map<number, string>,
+  previewMap?: Map<number, string>,
 ): GlbExtensionData {
   const used: string[] = Array.isArray(json.extensionsUsed) ? (json.extensionsUsed as string[]) : []
   const required: string[] = Array.isArray(json.extensionsRequired) ? (json.extensionsRequired as string[]) : []
@@ -326,7 +336,7 @@ export function buildGlbExtensionData(
     required,
     extensions: extractExtensions(json),
     materials: extractMaterials(json),
-    textures: extractTextures(json, resolutionMap),
+    textures: extractTextures(json, resolutionMap, thumbnailMap, previewMap),
     animations: extractAnimations(json, clips),
   }
 }

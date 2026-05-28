@@ -1,20 +1,24 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, GripHorizontal, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, GripHorizontal, ChevronDown, ChevronRight, Download } from 'lucide-react'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
+import { useModelStore } from '@/stores/model-store'
+import { useMaterialStore } from '@/stores/material-store'
+import { getTextureForDownload } from '@/engine/formatLoaders'
 import type { GlbExtensionData, GltfExtensionInfo } from '@/engine/gltfExtensions'
 
 // ---- Collapsible section helper ----
 
-function Section({ title, badge, defaultOpen = true, children }: {
+function Section({ title, badge, defaultOpen = true, sectionId, children }: {
   title: string
   badge?: string
   defaultOpen?: boolean
+  sectionId?: string
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border-b last:border-b-0">
+    <div data-section={sectionId} className="border-b last:border-b-0">
       <button
         className="flex items-center gap-1 w-full px-2 py-1.5 text-xs font-semibold hover:bg-muted/50 cursor-pointer"
         onClick={() => setOpen(!open)}
@@ -70,6 +74,96 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
   const { t } = useTranslation()
   const dragging = useRef(false)
   const dragOffset = useRef({ x: 0, y: 0 })
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollToSection = useGlbExtensionStore((s) => s.scrollToSection)
+  const clearScrollTarget = useGlbExtensionStore((s) => s.clearScrollTarget)
+
+  // Auto-scroll to target section
+  useEffect(() => {
+    if (!scrollToSection || !scrollRef.current) return
+    const el = scrollRef.current.querySelector(`[data-section="${scrollToSection}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    clearScrollTarget()
+  }, [scrollToSection, clearScrollTarget])
+
+  // Esc key closes preview
+  useEffect(() => {
+    if (!previewSrc) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPreviewSrc(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [previewSrc])
+
+  const handleMaterialClick = useCallback((matIndex: number, matName: string) => {
+    const fileId = useGlbExtensionStore.getState().activeFileId
+    if (!fileId) return
+    const modelStore = useModelStore.getState()
+    const partIds = modelStore.getPartIdsByMaterial(fileId, matIndex)
+    if (partIds.length === 0) return
+    const file = modelStore.loadedFiles.find((f) => f.id === fileId)
+    const fileName = file?.fileName?.replace(/\.[^.]+$/, '') || fileId
+    const keys = partIds.map((pid) => `${fileId}:${pid}`)
+    const title = `${matName} / ${fileName}`
+    useMaterialStore.getState().openMaterialEditor(keys, title)
+  }, [])
+
+  const downloadTexture = useCallback((texIndex: number, name: string, mimeType: string, previewUrl: string) => {
+    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_')
+    const fileId = useGlbExtensionStore.getState().activeFileId
+    const tex = fileId ? getTextureForDownload(fileId, texIndex) : undefined
+
+    function doDownload(dataUrl: string, ext: string) {
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = safeName + ext
+      a.click()
+    }
+
+    if (tex?.image) {
+      try {
+        const img = tex.image as { width: number; height: number }
+        const c = document.createElement('canvas')
+        c.width = img.width
+        c.height = img.height
+        const ctx = c.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img as CanvasImageSource, 0, 0)
+          const isLossy = mimeType === 'image/webp' || mimeType === 'image/jpeg'
+          if (isLossy) {
+            c.toBlob((blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob)
+                doDownload(url, mimeType === 'image/webp' ? '.webp' : '.jpg')
+                setTimeout(() => URL.revokeObjectURL(url), 1000)
+              } else {
+                doDownload(previewUrl, '.png')
+              }
+            }, mimeType, 0.92)
+            return
+          }
+          c.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob)
+              doDownload(url, '.png')
+              setTimeout(() => URL.revokeObjectURL(url), 1000)
+            } else {
+              doDownload(previewUrl, '.png')
+            }
+          }, 'image/png')
+          return
+        }
+      } catch {
+        // drawImage may fail on tainted canvas — fall through
+      }
+    }
+    // Fallback: download preview data URL
+    doDownload(previewUrl, mimeType === 'image/webp' ? '.webp' : mimeType === 'image/jpeg' ? '.jpg' : '.png')
+  }, [])
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     dragging.current = true
@@ -109,9 +203,10 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
       </div>
 
       {/* Body — scrollable */}
-      <div className="overflow-y-auto flex-1">
+      <div ref={scrollRef} className="overflow-y-auto flex-1">
         {/* Extensions */}
         <Section
+          sectionId="extensions"
           title={t('glbExtension.extensions')}
           badge={data.extensions.length > 0 ? `${data.extensions.length}` : undefined}
         >
@@ -144,6 +239,7 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
 
         {/* Materials */}
         <Section
+          sectionId="materials"
           title={t('glbExtension.materials')}
           badge={data.materials.length > 0 ? `${data.materials.length}` : undefined}
         >
@@ -163,7 +259,11 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
               </thead>
               <tbody>
                 {data.materials.map((mat) => (
-                  <tr key={mat.index} className="border-b last:border-b-0">
+                  <tr
+                    key={mat.index}
+                    className="border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleMaterialClick(mat.index, mat.name)}
+                  >
                     <td className="py-1 pr-1 text-muted-foreground">{mat.index}</td>
                     <td className="py-1 pr-2 max-w-[100px] truncate" title={mat.name}>{mat.name}</td>
                     <td className="py-1 pr-2 text-right tabular-nums">{mat.instanceCount}</td>
@@ -179,6 +279,7 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
 
         {/* Textures */}
         <Section
+          sectionId="textures"
           title={t('glbExtension.textures')}
           badge={data.textures.length > 0 ? `${data.textures.length}` : undefined}
         >
@@ -189,22 +290,55 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
               <thead>
                 <tr className="text-muted-foreground border-b">
                   <th className="text-left font-medium py-1 pr-1 w-6">{t('glbExtension.index')}</th>
-                  <th className="text-left font-medium py-1 pr-2">{t('glbExtension.mimeType')}</th>
-                  <th className="text-left font-medium py-1 pr-2">{t('glbExtension.compression')}</th>
+                  <th className="text-center font-medium py-1 pr-2">Thumb</th>
+                  <th className="text-left font-medium py-1 pr-2">{t('glbExtension.slots')}</th>
                   <th className="text-right font-medium py-1 pr-2">{t('glbExtension.resolution')}</th>
                   <th className="text-right font-medium py-1">{t('glbExtension.size')}</th>
+                  <th className="w-6"></th>
                 </tr>
               </thead>
               <tbody>
                 {data.textures.map((tex) => (
                   <tr key={tex.index} className="border-b last:border-b-0">
                     <td className="py-1 pr-1 text-muted-foreground">{tex.index}</td>
-                    <td className="py-1 pr-2 font-mono text-[10px]">{tex.mimeType}</td>
-                    <td className="py-1 pr-2 text-[10px]">{tex.compression || '—'}</td>
+                    <td className="py-1 pr-2">
+                      {tex.thumbnail ? (
+                        <img
+                          src={tex.thumbnail}
+                          alt={tex.name}
+                          className="w-8 h-8 object-contain rounded border cursor-zoom-in hover:scale-150 transition-transform"
+                          onClick={() => setPreviewSrc(tex.preview || tex.thumbnail)}
+                        />
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="py-1 pr-2">
+                      <div className="flex flex-wrap gap-0.5">
+                        {[...new Set(tex.slots.map((s) => {
+                          const name = s.replace(/^material\[\d+\]\./, '')
+                          const last = name.split('.').pop() || name
+                          return last.replace(/Texture$/, '')
+                        }))].map((slot) => (
+                          <span key={slot} className="text-[9px] px-1 py-0.5 rounded bg-muted text-muted-foreground">{slot}</span>
+                        ))}
+                      </div>
+                    </td>
                     <td className="py-1 pr-2 text-right tabular-nums text-[10px]">
                       {tex.resolution ? `${tex.resolution.width}x${tex.resolution.height}` : '—'}
                     </td>
                     <td className="py-1 text-right tabular-nums text-[10px]">{formatSize(tex.sizeEstimate)}</td>
+                    <td className="py-1 pl-1">
+                      {tex.preview ? (
+                        <button
+                          className="p-0.5 hover:bg-muted rounded"
+                          onClick={() => downloadTexture(tex.index, tex.name, tex.mimeType, tex.preview || tex.thumbnail || '')}
+                          title="Download"
+                        >
+                          <Download className="h-3 w-3" />
+                        </button>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -214,6 +348,7 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
 
         {/* Animations */}
         <Section
+          sectionId="animations"
           title={t('glbExtension.animations')}
           badge={data.animations.length > 0 ? `${data.animations.length}` : undefined}
         >
@@ -243,6 +378,20 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
           )}
         </Section>
       </div>
+
+      {/* Full-size texture preview overlay */}
+      {previewSrc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center cursor-zoom-out"
+          onClick={() => setPreviewSrc(null)}
+        >
+          <img
+            src={previewSrc}
+            className="max-w-[80vw] max-h-[80vh] object-contain rounded shadow-2xl border-2 border-white/20"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

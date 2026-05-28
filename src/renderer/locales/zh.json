@@ -183,5 +183,6 @@
   "glbExtension.noAnimations": "无动画",
   "glbExtension.yes": "是",
   "glbExtension.no": "否",
-  "glbExtension.menuTitle": "GLB 扩展"
+  "glbExtension.menuTitle": "GLB 扩展",
+  "glbExtension.manageMaterials": "材质管理"
 }

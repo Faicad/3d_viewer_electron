@@ -285,7 +285,7 @@ describe('material-store', () => {
 
       const original = useMaterialStore.getState().materialOriginals['f1:p1']
       expect(original.color).toBeDefined()
-      expect(original.alphaMode).toBeUndefined() // OPAQUE by default
+      expect(original.alphaMode).toBe('OPAQUE')
 
       // Simulate user clicking "混合" — apply({ alphaMode: 'BLEND' })
       const blended: MaterialAppearance = { ...original, alphaMode: 'BLEND' as const }
