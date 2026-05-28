@@ -136,7 +136,6 @@
       ]
     },
     "mac": {
-      "icon": "resources/icon.png",
       "target": [
         {
           "target": "dmg",
