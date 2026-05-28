@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.1.1...v1.2.0) (2026-05-28)
+
+
+### Features
+
+* add GLTF animation player with popup dialog ([cc4878f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cc4878f2b88303b4cf10326af084a80b1a759506))
+* add history model panel with toolbar toggle, snapshot dedup, and thumbnail preview ([b863806](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b8638064f679e52447263cada8df717eb94617b7))
+* add material editor and environment editor (Phase 8) ([2271288](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2271288e9e8d9822ed5094523c89c52f2ab30970))
+* add material manager toolbar button with auto-switch and i18n ([e0247ad](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e0247ad54d121358c21f711701b84a69761c658c))
+* add multi-file open support with grid layout and independent scene trees ([1abcbe6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1abcbe62449bd423233ffb8c8dd16eaf2d8976e6))
+* auto-hide shadow floor in wireframe and mesh display modes ([9082740](https://github.com/YOUR_ORG/3d_viewer_electron/commits/90827406e61b0414d37b3c97005396cf3abf4dd1))
+* dynamically adapt studio environment floor to model size ([46ec82e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/46ec82e204c2ed1d14c02acef865263dc2703df0))
+* fullscreen auto-hide for toolbar and bottom controls ([714e4d4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/714e4d465fcc5e9078e24fa6a1d69a400570d9fb))
+* material editor card-based grouping and layout fixes ([4742aa1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4742aa1e55fb763dea77fa4289deb34848064a2c))
+* material editor texture display, alpha mode segmented control, and Draco/KTX2 loader support ([2c51e80](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2c51e80805166bb8bca1d96cecab638d883b45c9))
+* PBR rendering pipeline — IBL environment, material system, shadow floor, texture cache ([2a4967f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2a4967f4cff5b1587f704d2566a4bc6b29658a35))
+* register file associations for OS-level file type support ([37793bf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/37793bf2f71dcf3cb98c2701adaa13222aa12384))
+* simplify env map presets to 3 options with dev/prod loading strategy ([8fdb908](https://github.com/YOUR_ORG/3d_viewer_electron/commits/8fdb9080f8a56b16b5489c7b247dd410f2377b41))
+* update environment panel labels, reorder toolbar, add settings tooltip ([e17bea5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e17bea5f3939f29ef60f45e9a4603a1876eb45e3))
+* UV mapping visualization with texture preview dialog and checkerboard ([2d97b9c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2d97b9c5c980f593ad43dd878a69ecb1bdb7d8a1))
+* wire post-processing pipeline into the render loop ([dda3ff5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/dda3ff5dde8ad171551f797c905b6471ea4dd83f))
+
+
+### Bug Fixes
+
+* add missing Palette import and error guard for E2E tests ([133d21f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/133d21f144f9ad735c2352d29a78f8e06638031c))
+* align environment map orientation with Z-up coordinate system ([133f6f3](https://github.com/YOUR_ORG/3d_viewer_electron/commits/133f6f352337e3a7bea5762b4b69f8c7dcdb78c7))
+* apply scene-tree visibility to non-mesh objects and harden thumbnail cloning ([cc3cc13](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cc3cc13f4b33a3c7a8b4016dfa989148c0bcb7c4))
+* CacheManager toolbar icon not opening dialog due to Tooltip nesting in DialogTrigger asChild ([c95adc0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c95adc0967852cf433201cd8c69272eb951e7d08))
+* correct environment Z-axis inversion and shadow visibility ([14a30a7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/14a30a79771b7052644810d9b533bf801856cc8a))
+* environment background mapping, CleanRoom brightness, and camera type checks ([7befe7e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7befe7ed917d037386e1520f45680dea41d54cfc))
+* environment map background displays correctly and shadows are visible ([71b9419](https://github.com/YOUR_ORG/3d_viewer_electron/commits/71b9419f25bc1820193c6ac880d71c49af0b4be0))
+* environment map rotation, preset switching, and background mapping ([6cf1d5a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6cf1d5a8cf5d890a43fc24173ac17bf9e049c60e))
+* guard Zustand v5 subscribe callbacks to prevent overwhelming renderer ([32a530c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/32a530c99132f375ae9bba80daf83410b97d39a5))
+* increase shadow floor epsilon and minimum shadow frustum ([d3c4a59](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d3c4a597ccb88294b298c0759f6b1cda4aedd659))
+* material editor showing default color instead of original part material ([b1eb6ac](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b1eb6ac23068e00dccc822d046a24b337d09ad37))
+* material editor title order to partName/filename, thickness range 0-1.5 ([bc90893](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bc908932b83a3dc8496406a5f1e50fe579d24805))
+* persist history store correctly and fix thumbnail cache key mismatch ([b52a03c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b52a03cba1a49cd623733e4375c0e1a94edce85d))
+* prevent z-fighting artifacts in selection highlight by disabling depthTest ([a13d36c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a13d36c60d2ce1f66030e78bd4a5c560ccb38a2d))
+* reduce shadow aliasing with higher-res shadow map and tighter frustum ([cc45b0e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cc45b0e1f7a5ce619306b7ecaad46b7908cc8b39))
+* replace fake shadow mask with real 3D shadow controls ([4f108a6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4f108a656cba8c07073a584d0c9b4175e0daee1a))
+* resolve z-fighting with logarithmic depth buffer and polygon offset ([e8758ce](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e8758ce44d64e8073b531ad5c95e3b1942c2be52))
+* revert to default frameloop and use priority=1 useFrame for composer ([d1d036a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d1d036a42cadc943769238c481c2a29e6a1b1145))
+* rewrite procedural studio environment to match reference implementation ([a07e35a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a07e35ab5b57803a2c3e7d0bb3e6896f326b7e06))
+* shadow visibility and Zustand v5 subscription API ([a366c74](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a366c74336964bebaa04b3229323afae275bb559))
+* studio floor turning black from PMREM near-plane clipping ([9962cf2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9962cf28761e87c1173559956cbcc502a86ef770))
+* sync scene tree visibility to 3D models, reset on re-open, multi-model camera fit ([b4d1602](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b4d160210289bb58ad9c7762d3fce28cea27878f))
+* tighten shadow camera near/far and fix scene tree visibility for non-active files ([a979ae9](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a979ae96c48752cd4f606ba681fccbb6dbc23b3f))
+* tooltip ([cfe3a93](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cfe3a936cb659a5f3a0445b30b0a84c4c68c06e2))
+* ui ([b290348](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b2903488cb1f8deee19011afc2c53d7905792756))
+* use platform-aware getElectronPath in diag test and add jsdom step to CI ([387268e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/387268e6fdb9f30eb6eaa3b81ddb9f913dee321e))
+
+
+### Performance Improvements
+
+* defer thumbnail generation and directory listing to after 3D model renders ([e704c4d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e704c4d482049e6bd2df6fee1a8bb8b19777b6ab))
+
+
+### Code Refactoring
+
+* remove unused 4K HDR environment map toggle ([fe7275c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fe7275c8b9ee257f7604c69e8aa227fd09628d68))
+* use Zustand v5 (state, prevState) signature in subscribe callbacks ([72f0f5b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/72f0f5b483af9b34ba60502ac4c33d3433ff07a8))
+
 ### [1.1.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.1.0...v1.1.1) (2026-05-22)
 
 
