@@ -1,6 +1,37 @@
 import { create } from 'zustand'
 import * as THREE from 'three'
 
+const CUSTOM_ENV_KEY = 'faicad-custom-env'
+
+interface PersistedEnv {
+  selectedEnv: string
+  customEnvPath: string | null
+  customEnvName: string | null
+}
+
+function loadPersistedEnv(): PersistedEnv {
+  try {
+    const raw = localStorage.getItem(CUSTOM_ENV_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return {
+        selectedEnv: parsed.selectedEnv || 'studio',
+        customEnvPath: parsed.customEnvPath || null,
+        customEnvName: parsed.customEnvName || null,
+      }
+    }
+  } catch { /* ignore */ }
+  return { selectedEnv: 'studio', customEnvPath: null, customEnvName: null }
+}
+
+function savePersistedEnv(env: PersistedEnv): void {
+  try {
+    localStorage.setItem(CUSTOM_ENV_KEY, JSON.stringify(env))
+  } catch { /* ignore */ }
+}
+
+const persisted = loadPersistedEnv()
+
 interface EngineStore {
   camera: THREE.PerspectiveCamera | null
   scene: THREE.Scene | null
@@ -23,6 +54,9 @@ interface EngineStore {
   setEnvRotation: (v: number) => void
   selectedEnv: string
   setSelectedEnv: (v: string) => void
+  customEnvPath: string | null
+  customEnvName: string | null
+  setCustomEnv: (path: string | null, name: string | null) => void
   envBackground: string
   setEnvBackground: (v: string) => void
   // ---------------------------------------------------------------------------
@@ -58,7 +92,7 @@ interface EngineStore {
   clearEngineObjects: () => void
 }
 
-export const useEngineStore = create<EngineStore>((set) => ({
+export const useEngineStore = create<EngineStore>((set, get) => ({
   camera: null,
   scene: null,
   gl: null,
@@ -73,8 +107,31 @@ export const useEngineStore = create<EngineStore>((set) => ({
   setEnvIntensity: (v) => set({ envIntensity: v }),
   envRotation: 0,
   setEnvRotation: (v) => set({ envRotation: v }),
-  selectedEnv: 'studio',
-  setSelectedEnv: (v) => set({ selectedEnv: v }),
+  selectedEnv: persisted.selectedEnv,
+  setSelectedEnv: (v) => {
+    const s = get()
+    savePersistedEnv({
+      selectedEnv: v,
+      customEnvPath: s.customEnvPath,
+      customEnvName: s.customEnvName,
+    })
+    set({ selectedEnv: v })
+  },
+  customEnvPath: persisted.customEnvPath,
+  customEnvName: persisted.customEnvName,
+  setCustomEnv: (path, name) => {
+    const newSelectedEnv = path ? '__custom__' : 'studio'
+    savePersistedEnv({
+      selectedEnv: newSelectedEnv,
+      customEnvPath: path,
+      customEnvName: name,
+    })
+    set({
+      customEnvPath: path,
+      customEnvName: name,
+      selectedEnv: newSelectedEnv,
+    })
+  },
   envBackground: 'environment',
   setEnvBackground: (v) => set({ envBackground: v }),
   // Shadow floor defaults

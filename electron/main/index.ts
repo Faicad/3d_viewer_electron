@@ -174,6 +174,19 @@ ipcMain.handle('dialog:openFile', async () => {
   return { success: true, filePaths: result.filePaths }
 })
 
+ipcMain.handle('dialog:openEnvironmentMap', async () => {
+  if (!mainWindow) return { success: false, error: 'No window' }
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Load Environment Map',
+    properties: ['openFile'],
+    filters: [
+      { name: 'HDR/EXR Images', extensions: ['hdr', 'exr'] },
+    ],
+  })
+  if (result.canceled) return { success: true, filePath: null }
+  return { success: true, filePath: result.filePaths[0] }
+})
+
 ipcMain.handle('window:toggleFullscreen', () => {
   if (!mainWindow) return false
   const willBeFullscreen = !mainWindow.isFullScreen()

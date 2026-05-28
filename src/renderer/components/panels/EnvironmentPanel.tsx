@@ -77,6 +77,7 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const envIntensity = useEngineStore((s) => s.envIntensity)
   const envRotation = useEngineStore((s) => s.envRotation)
   const selectedEnv = useEngineStore((s) => s.selectedEnv)
+  const customEnvName = useEngineStore((s) => s.customEnvName)
   const smaaEnabled = useEngineStore((s) => s.smaaEnabled)
   const shadowIntensity = useEngineStore((s) => s.shadowIntensity)
   const shadowSoftness = useEngineStore((s) => s.shadowSoftness)
@@ -87,12 +88,28 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const setEnvIntensity = useEngineStore((s) => s.setEnvIntensity)
   const setEnvRotation = useEngineStore((s) => s.setEnvRotation)
   const setSelectedEnv = useEngineStore((s) => s.setSelectedEnv)
+  const setCustomEnv = useEngineStore((s) => s.setCustomEnv)
   const setSmaaEnabled = useEngineStore((s) => s.setSmaaEnabled)
   const setShadowIntensity = useEngineStore((s) => s.setShadowIntensity)
   const setShadowSoftness = useEngineStore((s) => s.setShadowSoftness)
   const setShadowFloorEnabled = useEngineStore((s) => s.setShadowFloorEnabled)
   const setShadowOpacity = useEngineStore((s) => s.setShadowOpacity)
   const setAnisotropy = useEngineStore((s) => s.setAnisotropy)
+
+  const handleLoadCustom = async () => {
+    const result = await window.electronAPI.openEnvironmentMapDialog()
+    if (!result.success || !result.filePath) return
+    const fileName = result.filePath.split(/[\\/]/).pop() || result.filePath
+    setCustomEnv(result.filePath, fileName)
+  }
+
+  const handleRemoveCustom = () => {
+    setCustomEnv(null, null)
+  }
+
+  const handleSelectPreset = (id: string) => {
+    setSelectedEnv(id)
+  }
 
   const cachedCount = getSharedTextureCache().cacheCount()
 
@@ -113,18 +130,68 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
       <ScrollArea className="flex-1 py-2">
         <div className="px-[6px] space-y-4">
         <div className="bg-muted rounded-lg p-2 space-y-2">
+          <span className="text-xs text-muted-foreground">Env Preset</span>
+
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground">Env Preset</span>
-            <select
-              value={selectedEnv}
-              onChange={(e) => setSelectedEnv(e.target.value)}
-              className="h-8 rounded-md border bg-background px-2 text-xs"
-            >
-              {HDR_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
+            {HDR_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => handleSelectPreset(p.id)}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${
+                  selectedEnv === p.id
+                    ? 'bg-primary/15 text-primary'
+                    : 'hover:bg-muted-foreground/10 text-foreground'
+                }`}
+              >
+                <span
+                  className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    selectedEnv === p.id ? 'border-primary' : 'border-muted-foreground/35'
+                  }`}
+                >
+                  {selectedEnv === p.id && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </span>
+                {p.label}
+              </button>
+            ))}
+
+            {customEnvName && (
+              <button
+                onClick={() => handleSelectPreset('__custom__')}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors w-full ${
+                  selectedEnv === '__custom__'
+                    ? 'bg-primary/15 text-primary'
+                    : 'hover:bg-muted-foreground/10 text-foreground'
+                }`}
+              >
+                <span
+                  className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    selectedEnv === '__custom__' ? 'border-primary' : 'border-muted-foreground/35'
+                  }`}
+                >
+                  {selectedEnv === '__custom__' && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </span>
+                <span className="flex-1 truncate">{customEnvName}</span>
+                <span
+                  onClick={(e) => { e.stopPropagation(); handleRemoveCustom() }}
+                  className="w-4 h-4 flex items-center justify-center rounded hover:bg-destructive/15 hover:text-destructive text-muted-foreground shrink-0"
+                  aria-label="Remove custom environment"
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              </button>
+            )}
           </div>
+
+          <button
+            onClick={handleLoadCustom}
+            className="w-full rounded-md border border-dashed border-muted-foreground/30 px-2 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
+          >
+            + Load HDR / EXR…
+          </button>
 
           <SliderRow
             label="Env Intensity"

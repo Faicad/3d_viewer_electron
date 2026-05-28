@@ -3,6 +3,8 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 import { CleanRoomEnvironment } from './CleanRoomEnvironment'
 import { HDR_PRESETS, getPresetUrl } from './hdrPresets'
 
+const CUSTOM_KEY = '__custom__'
+
 export type BackgroundMode =
   | 'grey'
   | 'darkgrey'
@@ -134,6 +136,17 @@ export class EnvironmentManager {
       return this._currentTex
     }
 
+    // Custom env — restore from cache if previously loaded
+    if (source === CUSTOM_KEY) {
+      const cached = this._cache.get(CUSTOM_KEY)
+      if (cached) {
+        this._currentTex = cached
+        this._currentBgTex = this._bgCache.get(CUSTOM_KEY) ?? null
+        return cached
+      }
+      return this._fallbackToCleanRoom()
+    }
+
     // Resolve preset ID → CDN URL (or use source as raw URL if not a known preset)
     const url = this._resolveSource(source)
 
@@ -174,6 +187,60 @@ export class EnvironmentManager {
     } finally {
       this._inflight.delete(source)
     }
+  }
+
+  /**
+   * Load an environment from a local file buffer (HDR or EXR).
+   * Replaces any previously loaded custom environment.
+   */
+  async setEnvironmentFromFile(name: string, data: ArrayBuffer): Promise<THREE.Texture> {
+    // Dispose previous custom textures
+    const prevTex = this._cache.get(CUSTOM_KEY)
+    if (prevTex) prevTex.dispose()
+    this._cache.delete(CUSTOM_KEY)
+    const prevBg = this._bgCache.get(CUSTOM_KEY)
+    if (prevBg) prevBg.dispose()
+    this._bgCache.delete(CUSTOM_KEY)
+
+    const ext = name.split('.').pop()?.toLowerCase()
+
+    let texData: { width: number; height: number; data: Float32Array | Uint16Array; format?: THREE.PixelFormat; colorSpace?: string; type?: THREE.TextureDataType }
+
+    if (ext === 'exr') {
+      const { EXRLoader } = await import('three/examples/jsm/loaders/EXRLoader.js')
+      const loader = new EXRLoader()
+      loader.setDataType(THREE.HalfFloatType)
+      texData = loader.parse(data)
+    } else {
+      const { HDRLoader } = await import('three/examples/jsm/loaders/HDRLoader.js')
+      const loader = new HDRLoader()
+      loader.setDataType(THREE.HalfFloatType)
+      texData = loader.parse(data)
+    }
+
+    // Build DataTexture from TexData (parse() returns descriptor, not Texture)
+    const equirectTex = new THREE.DataTexture(
+      texData.data,
+      texData.width,
+      texData.height,
+      texData.format,
+      texData.type,
+    )
+    equirectTex.wrapS = THREE.ClampToEdgeWrapping
+    equirectTex.wrapT = THREE.ClampToEdgeWrapping
+    equirectTex.magFilter = THREE.LinearFilter
+    equirectTex.minFilter = THREE.LinearFilter
+    if (texData.colorSpace) equirectTex.colorSpace = texData.colorSpace as THREE.ColorSpace
+    equirectTex.mapping = THREE.EquirectangularReflectionMapping
+    equirectTex.needsUpdate = true
+    this._currentBgTex = equirectTex
+
+    const rt = this._pmrem.fromEquirectangular(equirectTex)
+    this._currentTex = rt.texture
+    this._cache.set(CUSTOM_KEY, this._currentTex)
+    this._bgCache.set(CUSTOM_KEY, equirectTex)
+
+    return this._currentTex
   }
 
   /** Convert a preset ID to its CDN URL, or return the input unchanged if it's a raw URL. */

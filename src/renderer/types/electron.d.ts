@@ -28,6 +28,11 @@ declare global {
         filePaths?: string[]
         error?: string
       }>
+      openEnvironmentMapDialog: () => Promise<{
+        success: boolean
+        filePath?: string | null
+        error?: string
+      }>
       toggleFullscreen: () => Promise<boolean>
       onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => () => void
       getPendingFilePath: () => Promise<string | null>
