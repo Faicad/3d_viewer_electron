@@ -21,7 +21,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -29,6 +29,8 @@ import ModelInfoPanel from '@/components/ModelInfoPanel'
 import HistoryPanel from '@/components/HistoryPanel'
 import EnvironmentPanel from '@/components/panels/EnvironmentPanel'
 import MaterialEditor from '@/components/panels/MaterialEditor'
+import GlbExtensionPanel from '@/components/panels/GlbExtensionPanel'
+import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { useMaterialStore } from '@/stores/material-store'
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
@@ -275,27 +277,36 @@ export default function DesktopLayout() {
     })
   }, [])
 
-  // File-level context menu — show "播放动画" for files with animations
+  // File-level context menu — show format-specific items
   const handleFileContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
     const modelStore = useModelStore.getState()
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
-    if (!file?.animations?.length) return
+    const isGlb = file?.format === 'glb' || file?.format === 'gltf'
+    const hasAnims = (file?.animations?.length ?? 0) > 0
+    if (!isGlb && !hasAnims) return
     e.preventDefault()
     e.stopPropagation()
-    setCtxMenu({
-      x: e.clientX,
-      y: e.clientY,
-      items: [
-        {
-          label: '播放动画',
-          icon: Play,
-          action: () => {
-            modelStore.openAnimDialog(fileId)
-          },
+    const items: ContextMenuItemDef[] = []
+    if (isGlb) {
+      items.push({
+        label: t('glbExtension.menuTitle'),
+        icon: FileJson,
+        action: () => {
+          useGlbExtensionStore.getState().openPanel(fileId)
         },
-      ],
-    })
-  }, [])
+      })
+    }
+    if (hasAnims) {
+      items.push({
+        label: '播放动画',
+        icon: Play,
+        action: () => {
+          modelStore.openAnimDialog(fileId)
+        },
+      })
+    }
+    setCtxMenu({ x: e.clientX, y: e.clientY, items })
+  }, [t])
 
   // Open material editor from toolbar — selects first part if no selection, or default material if no files
   const handleOpenMaterialEditor = useCallback(() => {
@@ -888,6 +899,9 @@ export default function DesktopLayout() {
 
       {/* Material Editor (floating) */}
       <MaterialEditor />
+
+      {/* GLB Extension Panel (floating) */}
+      <GlbExtensionPanel />
 
       {/* Context Menu */}
       {ctxMenu && (

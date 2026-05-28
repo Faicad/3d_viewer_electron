@@ -15,6 +15,7 @@ import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderRes
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
 import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
 import { useMaterialStore } from '@/stores/material-store'
+import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
@@ -214,6 +215,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         // Fire animations callback regardless of cache hit
         if (result.sceneRoot && result.animations?.length) {
           onAnimationsReadyRef.current?.(result.sceneRoot, result.animations)
+        }
+        // Push GLB extension metadata to store
+        if (result.gltfExtensions && fileId) {
+          useGlbExtensionStore.getState().setData(fileId, result.gltfExtensions)
         }
         if (cancelled) return
 

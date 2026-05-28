@@ -26,6 +26,7 @@ import { MD2Loader } from 'three/examples/jsm/loaders/MD2Loader.js'
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
 import type { FormatId, UnitSystem } from '@/config/file-formats'
+import { buildGlbExtensionData, type GlbExtensionData } from './gltfExtensions'
 
 export interface LoaderResult {
   meshes: THREE.Mesh[]
@@ -41,6 +42,8 @@ export interface LoaderResult {
   materials?: (THREE.Material | THREE.Material[])[]
   /** Animation clips extracted from GLTF (only for single-file GLB/glTF) */
   animations?: THREE.AnimationClip[]
+  /** GLB/glTF extension, material, texture, and animation metadata */
+  gltfExtensions?: GlbExtensionData
 }
 
 function bufferToText(buffer: ArrayBuffer): string {
@@ -204,6 +207,20 @@ function extractAllObjects(root: THREE.Object3D): THREE.Object3D[] {
   return objs
 }
 
+function buildResolutionMap(gltf: { parser: { textures?: (THREE.Texture | null)[] } }): Map<number, { width: number; height: number }> {
+  const map = new Map<number, { width: number; height: number }>()
+  const textures = gltf.parser.textures
+  if (textures) {
+    for (let i = 0; i < textures.length; i++) {
+      const tex = textures[i]
+      if (tex?.image && typeof tex.image.width === 'number' && typeof tex.image.height === 'number') {
+        map.set(i, { width: tex.image.width, height: tex.image.height })
+      }
+    }
+  }
+  return map
+}
+
 // ---- Shared GLTFLoader with Draco + KTX2 support ----
 
 let _sharedGltfLoader: GLTFLoader | null = null
@@ -247,7 +264,9 @@ export async function loadFormat(
     case 'glb': {
       const gltf = await getGltfLoader().parseAsync(buffer, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations }
+      const resolutionMap = buildResolutionMap(gltf)
+      const gltfExtensions = buildGlbExtensionData(gltf.parser.json, gltf.animations, resolutionMap)
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions }
     }
     case 'gltf': {
       if (resourcePath) {
@@ -260,7 +279,9 @@ export async function loadFormat(
       const gltfText = bufferToText(buffer)
       const gltf = await getGltfLoader().parseAsync(gltfText, '')
       const meshes = extractMeshes(gltf.scene)
-      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations }
+      const resolutionMap = buildResolutionMap(gltf)
+      const gltfExtensions = buildGlbExtensionData(JSON.parse(gltfText), gltf.animations, resolutionMap)
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions }
     }
     case '3mf': {
       const group = new ThreeMFLoader().parse(buffer)
