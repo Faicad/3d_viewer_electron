@@ -928,13 +928,11 @@ export default function DesktopLayout() {
         </div>
 
         {/* Right Panel */}
-        {(ui.rightPanelOpen || ui.modelInfoOpen || ui.historyPanelOpen || ui.environmentPanelOpen) && (
+        {(ui.rightPanelOpen || ui.modelInfoOpen || ui.historyPanelOpen) && (
           <>
             <ResizeHandle onMouseDown={() => setResizing('right')} />
             <aside style={{ width: `${rightPanelPct}%` } as React.CSSProperties} className="border-l flex flex-col shrink-0">
-              {ui.environmentPanelOpen ? (
-                <EnvironmentPanel onClose={() => useUIStore.getState().toggleEnvironmentPanel()} />
-              ) : ui.historyPanelOpen ? (
+              {ui.historyPanelOpen ? (
                 <HistoryPanel onClose={() => useUIStore.getState().toggleHistoryPanel()} />
               ) : ui.modelInfoOpen ? (
                 <ModelInfoPanel />
@@ -945,6 +943,9 @@ export default function DesktopLayout() {
           </>
         )}
       </div>
+
+      {/* Environment Panel (floating) */}
+      <EnvironmentPanel />
 
       {/* GLB Extension Panel (floating) */}
       <GlbExtensionPanel />

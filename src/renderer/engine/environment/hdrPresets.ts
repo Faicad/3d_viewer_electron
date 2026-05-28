@@ -1,6 +1,6 @@
 export interface HdrPreset {
   id: string
-  label: string
+  labelKey: string
   /** Poly Haven slug used to build CDN URLs (fallback only) */
   slug: string
   /** Local path served from public/env/ — preferred over CDN */
@@ -16,7 +16,7 @@ export function getPresetUrl(preset: HdrPreset): string {
 }
 
 export const HDR_PRESETS: HdrPreset[] = [
-  { id: 'studio',             label: 'Default',          slug: '' },
-  { id: 'studio_small_08',    label: 'Small Studio',     slug: 'studio_small_08', localPath: './env/studio_small_08_2k.hdr' },
-  { id: 'empty_warehouse_01', label: 'Empty Warehouse',  slug: 'empty_warehouse_01', localPath: './env/empty_warehouse_01_2k.hdr' },
+  { id: 'studio',             labelKey: 'environment.presets.default',        slug: '' },
+  { id: 'studio_small_08',    labelKey: 'environment.presets.smallStudio',    slug: 'studio_small_08', localPath: './env/studio_small_08_2k.hdr' },
+  { id: 'empty_warehouse_01', labelKey: 'environment.presets.emptyWarehouse', slug: 'empty_warehouse_01', localPath: './env/empty_warehouse_01_2k.hdr' },
 ]

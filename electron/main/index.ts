@@ -156,7 +156,7 @@ const GROUP_LABELS: Record<string, string> = {
 
 ipcMain.handle('dialog:openFile', async () => {
   if (!mainWindow) return { success: false, error: 'No window' }
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const opts: Electron.OpenDialogOptions = {
     title: 'Open 3D Model',
     properties: ['openFile', 'multiSelections'],
     filters: [
@@ -169,7 +169,14 @@ ipcMain.handle('dialog:openFile', async () => {
       })),
       { name: 'All Files', extensions: ['*'] },
     ],
-  })
+  }
+  if (import.meta.env.DEV) {
+    const fixturesDir = join(__dirname, '..', '..', 'src', 'test', 'fixtures')
+    if (fs.existsSync(fixturesDir)) {
+      opts.defaultPath = fixturesDir
+    }
+  }
+  const result = await dialog.showOpenDialog(mainWindow, opts)
   if (result.canceled) return { success: true, filePaths: [] }
   return { success: true, filePaths: result.filePaths }
 })

@@ -185,5 +185,21 @@
   "glbExtension.yes": "Yes",
   "glbExtension.no": "No",
   "glbExtension.menuTitle": "GLB Extension",
-  "glbExtension.manageMaterials": "Material Manager"
+  "glbExtension.manageMaterials": "Material Manager",
+
+  "environment.preset": "Env Preset",
+  "environment.intensity": "Env Intensity",
+  "environment.rotation": "Env Rotation",
+  "environment.smaa": "SMAA Antialiasing",
+  "environment.shadowIntensity": "Shadow Intensity",
+  "environment.shadowSoftness": "Shadow Softness",
+  "environment.shadowFloor": "Shadow Floor",
+  "environment.opacity": "Opacity",
+  "environment.anisotropy": "Anisotropy",
+  "environment.cachedTextures": "Cached Textures",
+  "environment.clearTextureCache": "Clear Texture Cache",
+  "environment.loadHdr": "+ Load HDR / EXR…",
+  "environment.presets.default": "Default",
+  "environment.presets.smallStudio": "Small Studio",
+  "environment.presets.emptyWarehouse": "Empty Warehouse"
 }

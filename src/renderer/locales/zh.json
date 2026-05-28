@@ -184,5 +184,21 @@
   "glbExtension.yes": "是",
   "glbExtension.no": "否",
   "glbExtension.menuTitle": "GLB 扩展",
-  "glbExtension.manageMaterials": "材质管理"
+  "glbExtension.manageMaterials": "材质管理",
+
+  "environment.preset": "环境预设",
+  "environment.intensity": "环境强度",
+  "environment.rotation": "环境旋转",
+  "environment.smaa": "SMAA 抗锯齿",
+  "environment.shadowIntensity": "阴影强度",
+  "environment.shadowSoftness": "阴影柔和度",
+  "environment.shadowFloor": "阴影地板",
+  "environment.opacity": "不透明度",
+  "environment.anisotropy": "各向异性",
+  "environment.cachedTextures": "已缓存纹理",
+  "environment.clearTextureCache": "清除纹理缓存",
+  "environment.loadHdr": "+ 加载 HDR / EXR…",
+  "environment.presets.default": "默认",
+  "environment.presets.smallStudio": "小型工作室",
+  "environment.presets.emptyWarehouse": "空置仓库"
 }
