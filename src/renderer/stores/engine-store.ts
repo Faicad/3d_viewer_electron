@@ -3,10 +3,16 @@ import * as THREE from 'three'
 
 const CUSTOM_ENV_KEY = 'faicad-custom-env'
 
+export interface CustomEnvEntry {
+  id: string
+  path: string
+  name: string
+}
+
 interface PersistedEnv {
   selectedEnv: string
-  customEnvPath: string | null
-  customEnvName: string | null
+  customEnvs: CustomEnvEntry[]
+  nextCustomId: number
 }
 
 function loadPersistedEnv(): PersistedEnv {
@@ -14,14 +20,22 @@ function loadPersistedEnv(): PersistedEnv {
     const raw = localStorage.getItem(CUSTOM_ENV_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
+      // Migrate old single-custom format
+      if (parsed.customEnvPath && !parsed.customEnvs) {
+        return {
+          selectedEnv: parsed.selectedEnv === '__custom__' ? 'custom_0' : (parsed.selectedEnv || 'studio'),
+          customEnvs: [{ id: 'custom_0', path: parsed.customEnvPath, name: parsed.customEnvName || '' }],
+          nextCustomId: 1,
+        }
+      }
       return {
         selectedEnv: parsed.selectedEnv || 'studio',
-        customEnvPath: parsed.customEnvPath || null,
-        customEnvName: parsed.customEnvName || null,
+        customEnvs: Array.isArray(parsed.customEnvs) ? parsed.customEnvs : [],
+        nextCustomId: typeof parsed.nextCustomId === 'number' ? parsed.nextCustomId : 0,
       }
     }
   } catch { /* ignore */ }
-  return { selectedEnv: 'studio', customEnvPath: null, customEnvName: null }
+  return { selectedEnv: 'studio', customEnvs: [], nextCustomId: 0 }
 }
 
 function savePersistedEnv(env: PersistedEnv): void {
@@ -54,9 +68,12 @@ interface EngineStore {
   setEnvRotation: (v: number) => void
   selectedEnv: string
   setSelectedEnv: (v: string) => void
-  customEnvPath: string | null
-  customEnvName: string | null
-  setCustomEnv: (path: string | null, name: string | null) => void
+  customEnvs: CustomEnvEntry[]
+  addCustomEnv: (path: string, name: string) => void
+  removeCustomEnv: (id: string) => void
+  pendingCustomLoad: { id: string; path: string; name: string } | null
+  clearPendingCustomLoad: () => void
+  nextCustomId: number
   envBackground: string
   setEnvBackground: (v: string) => void
   // ---------------------------------------------------------------------------
@@ -110,28 +127,31 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   selectedEnv: persisted.selectedEnv,
   setSelectedEnv: (v) => {
     const s = get()
-    savePersistedEnv({
-      selectedEnv: v,
-      customEnvPath: s.customEnvPath,
-      customEnvName: s.customEnvName,
-    })
+    savePersistedEnv({ selectedEnv: v, customEnvs: s.customEnvs, nextCustomId: s.nextCustomId })
     set({ selectedEnv: v })
   },
-  customEnvPath: persisted.customEnvPath,
-  customEnvName: persisted.customEnvName,
-  setCustomEnv: (path, name) => {
-    const newSelectedEnv = path ? '__custom__' : 'studio'
-    savePersistedEnv({
-      selectedEnv: newSelectedEnv,
-      customEnvPath: path,
-      customEnvName: name,
-    })
-    set({
-      customEnvPath: path,
-      customEnvName: name,
-      selectedEnv: newSelectedEnv,
-    })
+  customEnvs: persisted.customEnvs,
+  addCustomEnv: (path, name) => {
+    const s = get()
+    const id = `custom_${s.nextCustomId}`
+    const entry: CustomEnvEntry = { id, path, name }
+    const customEnvs = [...s.customEnvs, entry]
+    const nextCustomId = s.nextCustomId + 1
+    savePersistedEnv({ selectedEnv: id, customEnvs, nextCustomId })
+    set({ customEnvs, selectedEnv: id, pendingCustomLoad: { id, path, name }, nextCustomId })
   },
+  removeCustomEnv: (id) => {
+    const s = get()
+    const customEnvs = s.customEnvs.filter((e) => e.id !== id)
+    const selectedEnv = s.selectedEnv === id
+      ? (customEnvs.length > 0 ? customEnvs[customEnvs.length - 1].id : 'studio')
+      : s.selectedEnv
+    savePersistedEnv({ selectedEnv, customEnvs, nextCustomId: s.nextCustomId })
+    set({ customEnvs, selectedEnv })
+  },
+  pendingCustomLoad: null,
+  clearPendingCustomLoad: () => set({ pendingCustomLoad: null }),
+  nextCustomId: persisted.nextCustomId,
   envBackground: 'environment',
   setEnvBackground: (v) => set({ envBackground: v }),
   // Shadow floor defaults

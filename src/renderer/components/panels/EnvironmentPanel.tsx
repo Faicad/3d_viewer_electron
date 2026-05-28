@@ -77,7 +77,7 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const envIntensity = useEngineStore((s) => s.envIntensity)
   const envRotation = useEngineStore((s) => s.envRotation)
   const selectedEnv = useEngineStore((s) => s.selectedEnv)
-  const customEnvName = useEngineStore((s) => s.customEnvName)
+  const customEnvs = useEngineStore((s) => s.customEnvs)
   const smaaEnabled = useEngineStore((s) => s.smaaEnabled)
   const shadowIntensity = useEngineStore((s) => s.shadowIntensity)
   const shadowSoftness = useEngineStore((s) => s.shadowSoftness)
@@ -88,7 +88,8 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
   const setEnvIntensity = useEngineStore((s) => s.setEnvIntensity)
   const setEnvRotation = useEngineStore((s) => s.setEnvRotation)
   const setSelectedEnv = useEngineStore((s) => s.setSelectedEnv)
-  const setCustomEnv = useEngineStore((s) => s.setCustomEnv)
+  const addCustomEnv = useEngineStore((s) => s.addCustomEnv)
+  const removeCustomEnv = useEngineStore((s) => s.removeCustomEnv)
   const setSmaaEnabled = useEngineStore((s) => s.setSmaaEnabled)
   const setShadowIntensity = useEngineStore((s) => s.setShadowIntensity)
   const setShadowSoftness = useEngineStore((s) => s.setShadowSoftness)
@@ -100,11 +101,11 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
     const result = await window.electronAPI.openEnvironmentMapDialog()
     if (!result.success || !result.filePath) return
     const fileName = result.filePath.split(/[\\/]/).pop() || result.filePath
-    setCustomEnv(result.filePath, fileName)
+    addCustomEnv(result.filePath, fileName)
   }
 
-  const handleRemoveCustom = () => {
-    setCustomEnv(null, null)
+  const handleRemoveCustom = (id: string) => {
+    removeCustomEnv(id)
   }
 
   const handleSelectPreset = (id: string) => {
@@ -156,34 +157,35 @@ export default function EnvironmentPanel({ onClose }: { onClose: () => void }) {
               </button>
             ))}
 
-            {customEnvName && (
+            {customEnvs.map((env) => (
               <button
-                onClick={() => handleSelectPreset('__custom__')}
+                key={env.id}
+                onClick={() => handleSelectPreset(env.id)}
                 className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors w-full ${
-                  selectedEnv === '__custom__'
+                  selectedEnv === env.id
                     ? 'bg-primary/15 text-primary'
                     : 'hover:bg-muted-foreground/10 text-foreground'
                 }`}
               >
                 <span
                   className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    selectedEnv === '__custom__' ? 'border-primary' : 'border-muted-foreground/35'
+                    selectedEnv === env.id ? 'border-primary' : 'border-muted-foreground/35'
                   }`}
                 >
-                  {selectedEnv === '__custom__' && (
+                  {selectedEnv === env.id && (
                     <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                   )}
                 </span>
-                <span className="flex-1 truncate">{customEnvName}</span>
+                <span className="flex-1 truncate">{env.name}</span>
                 <span
-                  onClick={(e) => { e.stopPropagation(); handleRemoveCustom() }}
+                  onClick={(e) => { e.stopPropagation(); handleRemoveCustom(env.id) }}
                   className="w-4 h-4 flex items-center justify-center rounded hover:bg-destructive/15 hover:text-destructive text-muted-foreground shrink-0"
                   aria-label="Remove custom environment"
                 >
                   <X className="h-3 w-3" />
                 </span>
               </button>
-            )}
+            ))}
           </div>
 
           <button

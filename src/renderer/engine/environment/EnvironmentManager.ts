@@ -3,7 +3,9 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 import { CleanRoomEnvironment } from './CleanRoomEnvironment'
 import { HDR_PRESETS, getPresetUrl } from './hdrPresets'
 
-const CUSTOM_KEY = '__custom__'
+function isCustomEnvId(source: string): boolean {
+  return source.startsWith('custom_')
+}
 
 export type BackgroundMode =
   | 'grey'
@@ -137,11 +139,11 @@ export class EnvironmentManager {
     }
 
     // Custom env — restore from cache if previously loaded
-    if (source === CUSTOM_KEY) {
-      const cached = this._cache.get(CUSTOM_KEY)
+    if (isCustomEnvId(source)) {
+      const cached = this._cache.get(source)
       if (cached) {
         this._currentTex = cached
-        this._currentBgTex = this._bgCache.get(CUSTOM_KEY) ?? null
+        this._currentBgTex = this._bgCache.get(source) ?? null
         return cached
       }
       return this._fallbackToCleanRoom()
@@ -191,16 +193,16 @@ export class EnvironmentManager {
 
   /**
    * Load an environment from a local file buffer (HDR or EXR).
-   * Replaces any previously loaded custom environment.
+   * Caches under the given id so it can be restored later via setEnvironment(id).
    */
-  async setEnvironmentFromFile(name: string, data: ArrayBuffer): Promise<THREE.Texture> {
-    // Dispose previous custom textures
-    const prevTex = this._cache.get(CUSTOM_KEY)
+  async setEnvironmentFromFile(id: string, name: string, data: ArrayBuffer): Promise<THREE.Texture> {
+    // Dispose previous textures for this id
+    const prevTex = this._cache.get(id)
     if (prevTex) prevTex.dispose()
-    this._cache.delete(CUSTOM_KEY)
-    const prevBg = this._bgCache.get(CUSTOM_KEY)
+    this._cache.delete(id)
+    const prevBg = this._bgCache.get(id)
     if (prevBg) prevBg.dispose()
-    this._bgCache.delete(CUSTOM_KEY)
+    this._bgCache.delete(id)
 
     const ext = name.split('.').pop()?.toLowerCase()
 
@@ -231,14 +233,17 @@ export class EnvironmentManager {
     equirectTex.magFilter = THREE.LinearFilter
     equirectTex.minFilter = THREE.LinearFilter
     if (texData.colorSpace) equirectTex.colorSpace = texData.colorSpace as THREE.ColorSpace
+    // HDRLoader writes scanlines top-to-bottom; WebGL expects bottom-to-top
+    if (texData.flipY !== undefined) equirectTex.flipY = texData.flipY
+    else if (ext !== 'exr') equirectTex.flipY = true
     equirectTex.mapping = THREE.EquirectangularReflectionMapping
     equirectTex.needsUpdate = true
     this._currentBgTex = equirectTex
 
     const rt = this._pmrem.fromEquirectangular(equirectTex)
     this._currentTex = rt.texture
-    this._cache.set(CUSTOM_KEY, this._currentTex)
-    this._bgCache.set(CUSTOM_KEY, equirectTex)
+    this._cache.set(id, this._currentTex)
+    this._bgCache.set(id, equirectTex)
 
     return this._currentTex
   }

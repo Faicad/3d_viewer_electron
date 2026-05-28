@@ -14,8 +14,8 @@ export default function SceneSetup() {
   const envRef = useRef<EnvironmentManager | null>(null)
 
   const selectedEnv = useEngineStore((s) => s.selectedEnv)
-  const customEnvPath = useEngineStore((s) => s.customEnvPath)
-  const customEnvName = useEngineStore((s) => s.customEnvName)
+  const pendingCustomLoad = useEngineStore((s) => s.pendingCustomLoad)
+  const clearPendingCustomLoad = useEngineStore((s) => s.clearPendingCustomLoad)
   const envRotation = useEngineStore((s) => s.envRotation)
   const envBackground = useEngineStore((s) => s.envBackground)
 
@@ -60,24 +60,26 @@ export default function SceneSetup() {
     return () => { cancelled = true }
   }, [selectedEnv, scene])
 
-  // Load custom environment map from local file
+  // Load custom environment map from local file when a new one is added
   useEffect(() => {
     const mgr = envRef.current
-    if (!mgr || !customEnvPath || !customEnvName || selectedEnv !== '__custom__') return
+    if (!mgr || !pendingCustomLoad) return
+    const { id, path, name } = pendingCustomLoad
     let cancelled = false
     ;(async () => {
       try {
-        const result = await window.electronAPI.readFile(customEnvPath)
+        const result = await window.electronAPI.readFile(path)
         if (cancelled || !result.success || !result.data) return
-        await mgr.setEnvironmentFromFile(customEnvName, result.data)
+        await mgr.setEnvironmentFromFile(id, name, result.data)
         if (cancelled) return
         applyEnvToScene(mgr, useEngineStore.getState().envRotation)
+        clearPendingCustomLoad()
       } catch (err) {
         console.warn('[SceneSetup] Failed to load custom environment:', err)
       }
     })()
     return () => { cancelled = true }
-  }, [customEnvPath, customEnvName, selectedEnv])
+  }, [pendingCustomLoad])
 
   // envRotation-only: update the Euler without re-loading the texture
   useEffect(() => {
