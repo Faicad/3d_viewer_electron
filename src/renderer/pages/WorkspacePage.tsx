@@ -10,7 +10,7 @@ import OpenFileDialog from '@/components/OpenFileDialog'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
-import { setCachedResult } from '@/engine/loaderResultCache'
+import { setCachedResult, getCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -41,21 +41,9 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     // Clear all currently loaded content before loading new files
     useModelStore.getState().reset()
 
-    let firstDirPath: string | null = null
-
     for (const filePath of result.filePaths) {
       const fileName = filePath.split(/[/\\]/).pop() || filePath
-      const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
-      firstDirPath ??= dirPath
-
       await loadFilePath(filePath, fileName)
-    }
-
-    if (firstDirPath) {
-      const dirResult = await window.electronAPI.readDirectory(firstDirPath)
-      if (dirResult.success && dirResult.files) {
-        useModelStore.getState().setFolderFiles(firstDirPath, dirResult.files)
-      }
     }
   }, [])
 
@@ -106,13 +94,6 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       const fileId = crypto.randomUUID()
       setCachedResult(fileId, loadResult)
 
-      // Thumbnail as byproduct
-      const upAxis = getDefaultUpAxis(format, buffer)
-      generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-        .then(blob => {
-          if (blob) putThumbnail(`${filePath}|${Date.now()}`, blob)
-        })
-
       useModelStore.getState().addLoadedFile({
         id: fileId,
         fileName: name,
@@ -127,18 +108,42 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         fileGroup: FORMAT_MAP[format].group,
         loadingPhase: 'loading',
       })
-
-      // Also update folder files if we can
-      const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
-      const dirResult = await window.electronAPI.readDirectory(dirPath)
-      if (dirResult.success && dirResult.files) {
-        useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
-      }
     } catch (e) {
       useModelStore.getState().setIsConverting(false)
       toast.error('Load failed: ' + String(e))
     }
   }, [])
+
+  // Deferred thumbnail generation + directory listing after 3D model rendering completes.
+  // This avoids GPU/IO contention during the critical cold-launch path.
+  const postProcessedRef = useRef(new Set<string>())
+  useEffect(() => {
+    for (const file of loadedFiles) {
+      if (file.loadingPhase === 'done' && !postProcessedRef.current.has(file.id)) {
+        postProcessedRef.current.add(file.id)
+
+        // Thumbnail generation (deferred from loadFilePath)
+        const loadResult = getCachedResult(file.id)
+        if (loadResult) {
+          const upAxis = getDefaultUpAxis(file.format, file.buffer)
+          generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+            .then(blob => {
+              if (blob) putThumbnail(`${file.filePath}|${Date.now()}`, blob)
+            })
+        }
+
+        // Directory listing (deferred from loadFilePath)
+        if (window.electronAPI) {
+          const dirPath = file.filePath.slice(0, Math.max(file.filePath.lastIndexOf('/'), file.filePath.lastIndexOf('\\')))
+          window.electronAPI.readDirectory(dirPath).then((dirResult) => {
+            if (dirResult.success && dirResult.files) {
+              useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
+            }
+          })
+        }
+      }
+    }
+  }, [loadedFiles])
 
   // Listen for files opened via OS file association (double-click in Explorer, etc.)
   useEffect(() => {
