@@ -136,6 +136,7 @@
       ]
     },
     "mac": {
+      "icon": null,
       "target": [
         {
           "target": "dmg",
