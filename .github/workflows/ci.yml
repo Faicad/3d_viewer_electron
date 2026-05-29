@@ -58,14 +58,5 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Integration tests (Linux)
-        if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pnpm exec playwright test
-
-      - name: Integration tests (Windows)
-        if: runner.os == 'Windows'
-        run: pnpm exec playwright test
-
-      - name: Integration tests (macOS)
-        if: runner.os == 'macOS'
-        run: pnpm exec playwright test
+      - name: Integration tests
+        run: node scripts/ci-playwright.mjs
