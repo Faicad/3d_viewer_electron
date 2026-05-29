@@ -3,6 +3,10 @@ import { join, extname } from 'path'
 import * as fs from 'fs'
 import { ALL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 
+// Workaround for "Network service crashed" on Windows with Electron 39+
+// The network service sandbox conflicts with webSecurity:false + localhost loading in dev mode
+app.commandLine.appendSwitch('disable-features', 'NetworkServiceSandbox')
+
 // Single-instance lock (required for file associations on Windows)
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
