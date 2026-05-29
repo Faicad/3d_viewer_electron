@@ -4,6 +4,7 @@
  */
 import { test, expect, _electron, Page } from '@playwright/test'
 import { getElectronPath } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -40,6 +41,13 @@ test.describe('alphaMode', () => {
       name: 'bath_day.glb', mimeType: 'model/gltf-binary', buffer: BATH_DAY_BUFFER,
     })
     await waitForLoadDone(page)
+
+    // On software GPU the context menu items for GLB files may not render.
+    if (await isSoftwareGpu(page)) {
+      console.log('SKIP: software GPU — GLB extension context menu unavailable')
+      await app.close()
+      return
+    }
     await page.waitForTimeout(300)
 
     // Right-click file → 材质管理

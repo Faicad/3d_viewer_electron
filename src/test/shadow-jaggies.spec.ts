@@ -3,6 +3,7 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronPath } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
@@ -10,7 +11,11 @@ const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_fillet.glb'))
 
 test('shadow should not have severe aliasing on box_fillet.glb', async () => {
   test.setTimeout(90000)
-  const app = await _electron.launch({ executablePath: EXE, args: ['--no-sandbox', '--disable-gpu-sandbox'] })
+  const app = await _electron.launch({
+    executablePath: EXE,
+    args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+    env: { ...process.env, E2E: '1' },
+  })
   const page = await app.firstWindow()
   await page.waitForLoadState('domcontentloaded')
   await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 15000 })
@@ -71,6 +76,14 @@ test('shadow should not have severe aliasing on box_fillet.glb', async () => {
   })
 
   console.log('BOX FILLET SHADOW DIAG:', JSON.stringify(diag, null, 2))
+
+  // On software GPU shadow maps are disabled — skip the remaining assertions.
+  // See simple-rendering-mode-design.md.
+  if (await isSoftwareGpu(page)) {
+    console.log('SKIP: software GPU — shadow map assertions unavailable')
+    await app.close()
+    return
+  }
 
   // Assertions
   expect(diag.modelBbox, 'model must have bbox').toBeTruthy()

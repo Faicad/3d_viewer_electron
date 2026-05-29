@@ -3,6 +3,7 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronPath } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 
@@ -32,7 +33,11 @@ const SAMPLE_FN = `(() => {
 
 test('shadow visible on small model after camera auto-fit', async () => {
   test.setTimeout(90000)
-  const app = await _electron.launch({ executablePath: EXE, args: ['--no-sandbox', '--disable-gpu-sandbox'] })
+  const app = await _electron.launch({
+    executablePath: EXE,
+    args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+    env: { ...process.env, E2E: '1' },
+  })
   const page = await app.firstWindow()
   await page.waitForLoadState('domcontentloaded')
   await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 15000 })
@@ -87,6 +92,14 @@ test('shadow visible on small model after camera auto-fit', async () => {
 
   // Take screenshot for visual inspection
   await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag-fit.png') })
+
+  // Skip pixel-level shadow checks on software GPU — PMREM / shadow maps
+  // are unavailable. See simple-rendering-mode-design.md.
+  if (await isSoftwareGpu(page)) {
+    console.log('SKIP: software GPU — pixel shadow assertions unavailable')
+    await app.close()
+    return
+  }
 
   // Sample pixels: shadows should be visible (dark pixels below model)
   const fitPixels = await page.evaluate(SAMPLE_FN)

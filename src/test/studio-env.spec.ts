@@ -3,6 +3,7 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronPath } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
@@ -41,6 +42,16 @@ test('procedural studio shows room box with lights when rotated', async () => {
     { timeout: 15000 },
   ).catch(() => {})
 
+  // --- GPU detection: skip Studio rendering assertions on software GPU ---
+  // PMREM environment generation requires hardware WebGL; on llvmpipe /
+  // SwiftShader / WARP it either fails or takes minutes.  See
+  // simple-rendering-mode-design.md for the full strategy.
+  if (await isSoftwareGpu(page)) {
+    console.log('SKIP: software GPU detected — PMREM / shadow / IBL unavailable')
+    await app.close()
+    return
+  }
+
   // Switch to studio preset with environment background
   await page.evaluate(() => {
     const es = (window as any).__engineStore
@@ -66,10 +77,6 @@ test('procedural studio shows room box with lights when rotated', async () => {
       bgMapping: bg?.mapping ?? null,
       bgIsCubeTex: !!bg?.isCubeTexture,
       bgImageCount: bg?.image ? (Array.isArray(bg.image) ? bg.image.length : 1) : 0,
-      // Key Three.js mapping constants:
-      // 300=UVMapping, 301=CubeReflectionMapping, 302=CubeRefractionMapping
-      // 303=EquirectangularReflectionMapping, 304=EquirectangularRefractionMapping
-      // 305=CubeUVRefractionMapping, 306=CubeUVReflectionMapping
     }
   })
   console.log('STATE rotation=0:', JSON.stringify(state0))

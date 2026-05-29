@@ -18,6 +18,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronPath } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'box_fillet.glb')
@@ -60,6 +61,12 @@ test.describe('Selection Highlight Artifacts', () => {
       buffer: GLB_BUFFER,
     })
     await waitForLoadDone(page)
+
+    // Skip on software GPU — selection highlight depends on render pipeline.
+    if (await isSoftwareGpu(page)) {
+      console.log('SKIP: software GPU — selection highlight unavailable')
+      return
+    }
 
     // Click center of canvas to select the model (object mode)
     const canvas = page.locator('canvas').first()

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronPath } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_boss.glb'))
@@ -121,6 +122,7 @@ test('shadow visibility diagnostic', async () => {
     }
 
     // 5. Scene-level properties
+    result.hasEnv = !!scene.environment
     result.sceneUp = [scene.up.x, scene.up.y, scene.up.z]
     result.sceneEnvIntensity = scene.environmentIntensity
     result.sceneEnvRotation = [scene.environmentRotation?.x, scene.environmentRotation?.y, scene.environmentRotation?.z]
@@ -215,7 +217,16 @@ test('shadow visibility diagnostic', async () => {
   test.expect(light.castShadow, 'light should castShadow').toBe(true)
   test.expect(light.up, 'light up should be [0,0,1]').toEqual([0, 0, 1])
 
-  // Verify shadow floor exists and is visible
+  // Verify shadow floor exists and is visible.
+  // On software GPU (llvmpipe / SwiftShader / WARP) PMREM generation fails,
+  // so shadow floor is never configured and shadows don't render.
+  // See simple-rendering-mode-design.md.
+  if (await isSoftwareGpu(page)) {
+    console.log('SKIP: software GPU — shadow floor / pixel assertions unavailable')
+    await app.close()
+    return
+  }
+
   test.expect(diag.shadowFloors.length, 'shadow floor mesh should exist').toBeGreaterThan(0)
 
   const floorMesh = diag.shadowFloors.find((f: any) => f.isMesh)

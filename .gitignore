@@ -32,3 +32,10 @@ out/
 *.hdr
 !src/renderer/public/env/*.hdr
 docs/outdated/
+/diag*.pngtest-results/
+
+test-results/
+diag*.png
+
+test-results/
+diag*.png
