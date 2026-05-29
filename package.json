@@ -86,7 +86,8 @@
     "vitest": "^4.1.6"
   },
   "overrides": {
-    "magic-string": "0.30.17"
+    "magic-string": "0.30.17",
+    "tmp": "0.2.7"
   },
   "build": {
     "appId": "com.faicad.3d_viewer",
