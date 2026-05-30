@@ -3,6 +3,7 @@ import type { SelectorRuntime } from '@/lib/topology/types'
 import type { useModelStore } from '@/stores/model-store'
 import type { useAnimationStore } from '@/stores/animation-store'
 import type { useMaterialStore } from '@/stores/material-store'
+import type { useSvgWorkspaceStore, parseSvgViewBox as ParseSvgViewBox, parseSvgLayers as ParseSvgLayers } from '@/stores/svg-workspace-store'
 
 declare global {
   interface Window {
@@ -12,7 +13,11 @@ declare global {
     __modelStore: typeof useModelStore
     __animationStore: typeof useAnimationStore
     __materialStore: typeof useMaterialStore
+    __svgWorkspaceStore: typeof useSvgWorkspaceStore
+    __svgFixtures: Record<string, string>
+    __svgHelpers: { parseSvgViewBox: typeof ParseSvgViewBox; parseSvgLayers: typeof ParseSvgLayers }
     __clearStepCache: () => Promise<void>
+    __errors: Array<{ message: string; stack: string; timestamp: number }>
   }
 }
 

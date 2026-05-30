@@ -6,13 +6,15 @@ import { useFileUpload } from '@/hooks/useFileUpload'
 import { Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import ViewportContainer from '@/components/viewport/ViewportContainer'
+import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult, getCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 
 interface WorkspacePageProps {
   projectId?: string
@@ -29,6 +31,10 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const skipUpload = searchParams.get('skip_upload') === '1' && import.meta.env.DEV
   const [dialogOpen, setDialogOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // SVG mode: true if any loaded file is SVG
+  const svgFileCount = useSvgWorkspaceStore((s) => s.files.length)
+  const isSvgMode = svgFileCount > 0
 
   const loadFilePath = useCallback(async (filePath: string, fileName?: string) => {
     if (!window.electronAPI) return
@@ -72,7 +78,45 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         }
       }
 
-      // Parse once
+      if (format === 'svg') {
+        // SVG: no loadFormat(), decode text + parse layers directly
+        const text = new TextDecoder().decode(buffer)
+        const layers = parseSvgLayers(text)
+        const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+        const fileId = crypto.randomUUID()
+
+        useModelStore.getState().addLoadedFile({
+          id: fileId,
+          fileName: name,
+          filePath,
+          mtimeMs: Date.now(),
+          buffer,
+          format,
+          sceneTree: [],
+          glbPartInfos: [],
+          modelCenteringOffset: null,
+          sourceUnit: 'millimeter',
+          fileGroup: 'vector',
+          loadingPhase: 'done',
+          svgLayers: layers,
+          svgText: text,
+        })
+
+        // Add batch: file dialog opens multiple → grid layout
+        useSvgWorkspaceStore.getState().addFilesBatch([{
+          fileId, fileName: name, svgText: text,
+          layers, naturalWidth, naturalHeight,
+        }])
+
+        // Thumbnail
+        generateSvgThumbnail(text).then((blob) => {
+          if (blob) putThumbnail(`${filePath}|${Date.now()}`, blob)
+        })
+
+        return
+      }
+
+      // Parse once (3D formats)
       const loadResult = await loadFormat(buffer, format, filePath)
       const fileId = crypto.randomUUID()
       setCachedResult(fileId, loadResult)
@@ -105,6 +149,31 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     const result = await window.electronAPI.openFileDialog()
     if (!result.success || !result.filePaths?.length) return
 
+    // Classify selected files
+    const svgPaths: string[] = []
+    const d3Paths: string[] = []
+    for (const p of result.filePaths) {
+      const name = p.split(/[/\\]/).pop() || p
+      if (detectFormat(name) === 'svg') {
+        svgPaths.push(p)
+      } else {
+        d3Paths.push(p)
+      }
+    }
+
+    // Mixed: 3D wins, SVG skipped
+    if (svgPaths.length > 0 && d3Paths.length > 0) {
+      console.log(
+        '[handleNativeOpenFile] Mixed SVG + 3D selection. Loading only 3D files. Skipped SVG:',
+        svgPaths.map((p) => p.split(/[/\\]/).pop()),
+      )
+      for (const filePath of d3Paths) {
+        const fileName = filePath.split(/[/\\]/).pop() || filePath
+        await loadFilePath(filePath, fileName)
+      }
+      return
+    }
+
     // Clear all currently loaded content before loading new files
     useModelStore.getState().reset()
 
@@ -114,22 +183,23 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     }
   }, [])
 
-  // Deferred thumbnail generation + directory listing after 3D model rendering completes.
-  // This avoids GPU/IO contention during the critical cold-launch path.
+  // Deferred thumbnail generation + directory listing after model rendering completes.
   const postProcessedRef = useRef(new Set<string>())
   useEffect(() => {
     for (const file of loadedFiles) {
       if (file.loadingPhase === 'done' && !postProcessedRef.current.has(file.id)) {
         postProcessedRef.current.add(file.id)
 
-        // Thumbnail generation (deferred from loadFilePath)
-        const loadResult = getCachedResult(file.id)
-        if (loadResult) {
-          const upAxis = getDefaultUpAxis(file.format, file.buffer)
-          generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-            .then(blob => {
-              if (blob) putThumbnail(`${file.filePath}|${Date.now()}`, blob)
-            })
+        // SVG thumbnails are generated inline during load — skip here
+        if (file.format !== 'svg') {
+          const loadResult = getCachedResult(file.id)
+          if (loadResult) {
+            const upAxis = getDefaultUpAxis(file.format, file.buffer)
+            generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+              .then(blob => {
+                if (blob) putThumbnail(`${file.filePath}|${Date.now()}`, blob)
+              })
+          }
         }
 
         // Directory listing (deferred from loadFilePath)
@@ -188,6 +258,40 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       } finally {
         useModelStore.getState().setIsConverting(false)
       }
+    } else if (format === 'svg') {
+      // SVG: decode text, parse layers, add to workspace
+      const text = new TextDecoder().decode(rawBuffer)
+      const layers = parseSvgLayers(text)
+      const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+      const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+      const fileId = crypto.randomUUID()
+
+      useModelStore.getState().addLoadedFile({
+        id: fileId,
+        fileName: file.name,
+        filePath,
+        mtimeMs: file.lastModified,
+        buffer: rawBuffer,
+        format,
+        sceneTree: [],
+        glbPartInfos: [],
+        modelCenteringOffset: null,
+        sourceUnit: 'millimeter',
+        fileGroup: 'vector',
+        loadingPhase: 'done',
+        svgLayers: layers,
+        svgText: text,
+      })
+
+      useSvgWorkspaceStore.getState().addFilesBatch([{
+        fileId, fileName: file.name, svgText: text,
+        layers, naturalWidth, naturalHeight,
+      }])
+
+      generateSvgThumbnail(text).then((blob) => {
+        if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
+      })
+      return
     } else {
       useModelStore.getState().setModelBuffer(rawBuffer, format)
       const filePath = window.electronAPI?.getFilePath(file) ?? null
@@ -240,9 +344,13 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
   return (
     <div className="relative flex-1" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
-      <ViewportContainer />
+      {isSvgMode ? (
+        <SvgWorkspace />
+      ) : (
+        <ViewportContainer />
+      )}
 
-      {!hasAnyModel && (
+      {!hasAnyModel && !isSvgMode && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
             className="flex flex-col items-center gap-4 p-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto"

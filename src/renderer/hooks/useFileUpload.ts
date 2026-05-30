@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { detectFormat, ALL_EXTENSIONS_NO_DOT, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 
 interface UseFileUploadOptions {
   projectId?: string
@@ -17,18 +18,55 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
   const uploadFile = useCallback(
     async (file: File) => {
-      const ext = file.name.split('.').pop()?.toLowerCase()
-      if (!ext || !ALL_EXTENSIONS_NO_DOT.includes(ext)) {
-        toast.error(`Unsupported file format: .${ext ?? 'unknown'}`)
+      let format = detectFormat(file.name)
+      if (!format) {
+        toast.error(`Unsupported file format: ${file.name}`)
         return
       }
-      let format = detectFormat(file.name)
 
       setIsUploading(true)
 
       try {
         const rawBuffer = await file.arrayBuffer()
         let buffer = rawBuffer
+
+        if (format === 'svg') {
+          // SVG: direct decode, no loadFormat()
+          const text = new TextDecoder().decode(rawBuffer)
+          const layers = parseSvgLayers(text)
+          const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+          const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+          const fileId = crypto.randomUUID()
+
+          useModelStore.getState().addLoadedFile({
+            id: fileId,
+            fileName: file.name,
+            filePath,
+            mtimeMs: file.lastModified,
+            buffer: rawBuffer,
+            format,
+            sceneTree: [],
+            glbPartInfos: [],
+            modelCenteringOffset: null,
+            sourceUnit: 'millimeter',
+            fileGroup: 'vector',
+            loadingPhase: 'done',
+            svgLayers: layers,
+            svgText: text,
+          })
+
+          useSvgWorkspaceStore.getState().addFilesBatch([{
+            fileId, fileName: file.name, svgText: text,
+            layers, naturalWidth, naturalHeight,
+          }])
+
+          generateSvgThumbnail(text).then(blob => {
+            if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
+          })
+
+          setIsUploading(false)
+          return
+        }
 
         if (format === 'step') {
           useModelStore.getState().setIsConverting(true)

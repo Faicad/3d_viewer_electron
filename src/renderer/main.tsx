@@ -9,6 +9,9 @@ import { useAnimationStore } from '@/stores/animation-store'
 import { useMaterialStore } from '@/stores/material-store'
 import { useToolStore } from '@/stores/tool-store'
 import { useSelectionStore } from '@/stores/selection-store'
+import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { clearStepCache } from '@/lib/step-converter'
 import { initLogger } from '@/lib/logger'
 import App from './App'
@@ -24,11 +27,16 @@ window.__animationStore = useAnimationStore
 window.__materialStore = useMaterialStore
 window.__toolStore = useToolStore
 window.__selectionStore = useSelectionStore
+window.__svgWorkspaceStore = useSvgWorkspaceStore
+window.__svgFixtures = {}
+window.__svgHelpers = { parseSvgViewBox, parseSvgLayers, generateSvgThumbnail, putThumbnail }
 window.__errors = []
 window.__clearStepCache = clearStepCache
 
 // Global error handlers — surface errors to both console and window.__errors
 window.addEventListener('error', (event) => {
+  // Ignore benign ResizeObserver loop notifications
+  if (event.message?.includes('ResizeObserver loop')) return
   const err = event.error
   if (err instanceof Error) {
     const detail = { message: err.message, stack: err.stack ?? '', timestamp: Date.now() }

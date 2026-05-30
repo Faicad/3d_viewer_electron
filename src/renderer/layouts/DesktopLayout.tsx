@@ -10,8 +10,9 @@ import { stepToGlbCached } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey } from '@/lib/thumbnail-cache/thumbnailCache'
+import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -30,6 +31,7 @@ import HistoryPanel from '@/components/HistoryPanel'
 import EnvironmentPanel from '@/components/panels/EnvironmentPanel'
 import MaterialEditor from '@/components/panels/MaterialEditor'
 import GlbExtensionPanel from '@/components/panels/GlbExtensionPanel'
+import SvgLayerTree from '@/components/panels/SvgLayerTree'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { useMaterialStore } from '@/stores/material-store'
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
@@ -232,6 +234,7 @@ export default function DesktopLayout() {
   const selectedFileIndex = useModelStore((s) => s.selectedFileIndex)
   const setActiveUpAxis = useModelStore((s) => s.setActiveUpAxis)
 
+  const isSvgMode = useSvgWorkspaceStore((s) => s.files.length > 0)
   const activeTool = hasModel
 
   const [leftPanelPct, setLeftPanelPct] = useState(15)
@@ -599,13 +602,76 @@ export default function DesktopLayout() {
     const result = await window.electronAPI.openFileDialog()
     if (!result.success || !result.filePaths?.length) return
 
+    // Classify selected files by type
+    const paths = result.filePaths
+    const svgPaths: string[] = []
+    const d3Paths: string[] = []
+    for (const p of paths) {
+      const name = p.split(/[/\\]/).pop() || p
+      if (detectFormat(name) === 'svg') {
+        svgPaths.push(p)
+      } else {
+        d3Paths.push(p)
+      }
+    }
+
+    // Mixed selection: 3D wins, SVG skipped
+    if (svgPaths.length > 0 && d3Paths.length > 0) {
+      console.log(
+        '[handleOpenFile] Mixed SVG + 3D selection detected. Loading only 3D files. Skipped SVG files:',
+        svgPaths.map((p) => p.split(/[/\\]/).pop()),
+      )
+      // Only process 3D files below
+    }
+
+    // SVG-only selection: process SVG, skip 3D loop
+    if (svgPaths.length > 0 && d3Paths.length === 0) {
+      useModelStore.getState().reset()
+      const store = useModelStore.getState()
+      const svgBatch: { fileId: string; fileName: string; svgText: string; layers: ReturnType<typeof parseSvgLayers>; naturalWidth: number; naturalHeight: number }[] = []
+
+      for (const filePath of svgPaths) {
+        const fileName = filePath.split(/[/\\]/).pop() || filePath
+        try {
+          const fileResult = await window.electronAPI.readFile(filePath)
+          if (!fileResult.success || !fileResult.data) continue
+          const text = new TextDecoder().decode(fileResult.data)
+          const layers = parseSvgLayers(text)
+          const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+          const fileId = crypto.randomUUID()
+
+          store.addLoadedFile({
+            id: fileId, fileName, filePath, mtimeMs: Date.now(),
+            buffer: fileResult.data, format: 'svg' as const,
+            sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+            sourceUnit: 'millimeter', fileGroup: 'vector', loadingPhase: 'done',
+            svgLayers: layers, svgText: text,
+          })
+
+          svgBatch.push({ fileId, fileName, svgText: text, layers, naturalWidth, naturalHeight })
+
+          generateSvgThumbnail(text).then(blob => {
+            if (blob) putThumbnail(cacheKey(filePath, Date.now()), blob)
+          })
+        } catch {
+          // skip
+        }
+      }
+
+      if (svgBatch.length > 0) {
+        useSvgWorkspaceStore.getState().addFilesBatch(svgBatch)
+      }
+      return
+    }
+
+    // 3D-only (or mixed filtered to 3D): existing logic
     // Clear all currently loaded content before loading new files
     useModelStore.getState().reset()
 
     const store = useModelStore.getState()
     let firstDirPath: string | null = null
 
-    for (const filePath of result.filePaths) {
+    for (const filePath of d3Paths.length > 0 ? d3Paths : paths) {
       const fileName = filePath.split(/[/\\]/).pop() || filePath
       const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
       firstDirPath ??= dirPath
@@ -714,6 +780,7 @@ export default function DesktopLayout() {
         </Tooltip>
 
         {/* Y Axis Up */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -727,8 +794,10 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.yUp')}</TooltipContent>
         </Tooltip>
+        )}
 
         {/* Z Axis Up */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -742,8 +811,10 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.zUp')}</TooltipContent>
         </Tooltip>
+        )}
 
         {/* Perspective View */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -757,8 +828,10 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.perspective')}</TooltipContent>
         </Tooltip>
+        )}
 
         {/* Orthographic View */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -772,6 +845,7 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
         </Tooltip>
+        )}
 
         {/* History */}
         <Tooltip>
@@ -904,19 +978,25 @@ export default function DesktopLayout() {
         {ui.leftPanelOpen && (
           <>
             <aside style={{ width: `${leftPanelPct}%` } as React.CSSProperties} className="border-r flex flex-col shrink-0">
-              <div className="p-2 text-xs font-semibold text-muted-foreground">{t('sceneTree.title')}</div>
-              <ScrollArea className="flex-1">
-                {sceneTree.length === 0 ? (
-                  <p className="text-xs text-muted-foreground p-4">{t('app.emptySceneTree')}</p>
-                ) : (
-                  <div className="p-2 min-w-max">
-                    {sceneTree.map((node) => (
-                      <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} onFileContextMenu={handleFileContextMenu} onNodeContextMenu={handleNodeContextMenu} />
-                    ))}
-                  </div>
-                )}
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              {isSvgMode ? (
+                <SvgLayerTree />
+              ) : (
+                <>
+                  <div className="p-2 text-xs font-semibold text-muted-foreground">{t('sceneTree.title')}</div>
+                  <ScrollArea className="flex-1">
+                    {sceneTree.length === 0 ? (
+                      <p className="text-xs text-muted-foreground p-4">{t('app.emptySceneTree')}</p>
+                    ) : (
+                      <div className="p-2 min-w-max">
+                        {sceneTree.map((node) => (
+                          <SceneTreeItem key={node.id} node={node} depth={0} onPartContextMenu={handlePartContextMenu} onFileContextMenu={handleFileContextMenu} onNodeContextMenu={handleNodeContextMenu} />
+                        ))}
+                      </div>
+                    )}
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </>
+              )}
             </aside>
             <ResizeHandle onMouseDown={() => setResizing('left')} />
           </>

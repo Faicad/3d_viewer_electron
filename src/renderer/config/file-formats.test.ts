@@ -11,8 +11,8 @@ import {
 } from './file-formats'
 
 describe('file-formats config', () => {
-  it('all 28 formats defined', () => {
-    expect(FILE_FORMATS.length).toBe(28)
+  it('all 29 formats defined', () => {
+    expect(FILE_FORMATS.length).toBe(29)
   })
 
   it('no duplicate format ids', () => {
@@ -73,6 +73,14 @@ describe('detectFormat', () => {
     expect(detectFormat('model.obj')).toBe('obj')
     expect(detectFormat('model.fbx')).toBe('fbx')
     expect(detectFormat('model.ply')).toBe('ply')
+    expect(detectFormat('icons.svg')).toBe('svg')
+  })
+
+  it('svg is detectable and included in ALL_EXTENSIONS', () => {
+    expect(detectFormat('test.svg')).toBe('svg')
+    expect(EXT_TO_FORMAT['.svg']).toBe('svg')
+    expect(ALL_EXTENSIONS).toContain('.svg')
+    expect(ALL_ACCEPT).toContain('.svg')
   })
 
   it('detects case insensitive', () => {

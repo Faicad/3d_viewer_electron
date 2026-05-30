@@ -6,6 +6,13 @@ import { useHistoryStore } from '@/stores/history-store'
 import { useAnimationStore } from '@/stores/animation-store'
 import * as THREE from 'three'
 
+export interface SvgLayer {
+  id: string
+  name: string
+  visible: boolean
+  elementIndex: number
+}
+
 export interface SceneTreeNode {
   id: string
   name: string
@@ -40,6 +47,10 @@ export interface LoadedFileModel {
   sceneRoot?: THREE.Object3D
   /** Animation clips from GLTF (only populated for single-file GLB/glTF) */
   animations?: THREE.AnimationClip[]
+  /** SVG-only: parsed layer data (only populated when format === 'svg') */
+  svgLayers?: SvgLayer[]
+  /** SVG-only: original XML text to avoid repeated decoding */
+  svgText?: string
 }
 
 export type FileSortMode = 'name' | 'type+name'

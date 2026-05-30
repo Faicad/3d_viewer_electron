@@ -246,3 +246,48 @@ export function disposeThumbnailRenderer(): void {
   }
   canvas = null
 }
+
+/** Generate a thumbnail for an SVG file using pure Canvas 2D (no WebGL/Three.js). */
+export async function generateSvgThumbnail(svgText: string): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const blob = new Blob([svgText], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 200
+      canvas.height = 150
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        URL.revokeObjectURL(url)
+        resolve(null)
+        return
+      }
+
+      // Background
+      ctx.fillStyle = '#f0f0f3'
+      ctx.fillRect(0, 0, 200, 150)
+
+      // Fit SVG centered
+      const scale = Math.min(180 / img.width, 130 / img.height, 1)
+      const x = (200 - img.width * scale) / 2
+      const y = (150 - img.height * scale) / 2
+
+      // White mat behind SVG
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(x - 2, y - 2, img.width * scale + 4, img.height * scale + 4)
+
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+      canvas.toBlob((b) => resolve(b), 'image/png')
+      URL.revokeObjectURL(url)
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+
+    img.src = url
+  })
+}

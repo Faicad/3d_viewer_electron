@@ -9,6 +9,7 @@ export type FileGroup =
   | 'volume'
   | 'animation'
   | 'gcode'
+  | 'vector'
   | 'other'
 
 export type UnitSystem =
@@ -49,6 +50,7 @@ export type FormatId =
   | 'pcd'
   | 'ifc'
   | '3dm'
+  | 'svg'
 
 export interface FileFormatEntry {
   id: FormatId
@@ -69,9 +71,12 @@ export interface FileFormatEntry {
   /** Whether this format needs an external npm package not bundled with three.js */
   needsExternalDep: boolean
   /** Whether this format uses a render hint (e.g. volume, skeleton, toolpath) */
-  renderHint: 'mesh' | 'volume' | 'skeleton' | 'toolpath' | 'pointcloud'
+  renderHint: 'mesh' | 'volume' | 'skeleton' | 'toolpath' | 'pointcloud' | 'svg'
   /** Whether this format is disabled (not in accept list, can't be loaded) */
   disabled?: boolean
+  /** Whether to exclude from ALL_EXTENSIONS / "All Supported Formats" filter.
+   *  Used for SVG — user must explicitly pick the format category to open. */
+  excludeFromAll?: boolean
   /** Tailwind color class for file extension badge */
   color: string
   /** Default unit system for this format (used when file carries no unit metadata) */
@@ -474,6 +479,20 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'mesh',
     defaultUnit: 'millimeter',
     color: 'text-gray-400',
+  },
+  {
+    id: 'svg',
+    label: 'SVG',
+    extensions: ['.svg'],
+    loaderModule: '',
+    group: 'vector',
+    sampleFile: '',
+    textBased: true,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'svg',
+    defaultUnit: 'millimeter',
+    color: 'text-yellow-400',
   },
 ]
 

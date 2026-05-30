@@ -144,8 +144,8 @@ function createWindow(): void {
 
 const ENABLED_FORMATS = FILE_FORMATS.filter((f) => !f.disabled)
 
-const GROUP_ORDER: Array<'mesh' | 'cad' | 'animation' | 'point' | 'volume' | 'gcode' | 'other'> = [
-  'mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'other',
+const GROUP_ORDER: Array<'mesh' | 'cad' | 'animation' | 'point' | 'volume' | 'gcode' | 'vector' | 'other'> = [
+  'mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'vector', 'other',
 ]
 
 const GROUP_LABELS: Record<string, string> = {
@@ -155,6 +155,7 @@ const GROUP_LABELS: Record<string, string> = {
   point: 'Point Cloud',
   volume: 'Volume',
   gcode: 'GCode',
+  vector: 'Vector',
   other: 'Other',
 }
 

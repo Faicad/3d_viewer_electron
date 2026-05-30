@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150" width="200" height="150">
+  <g id="background" inkscape:label="Background">
+    <rect x="0" y="0" width="200" height="150" fill="#e8edf2" rx="8"/>
+  </g>
+  <g id="shapes" inkscape:label="Shapes">
+    <circle cx="60" cy="50" r="30" fill="#2563eb" opacity="0.8"/>
+    <rect x="110" y="25" width="60" height="50" fill="#dc2626" opacity="0.8" rx="4"/>
+    <polygon points="60,120 90,85 30,85" fill="#16a34a" opacity="0.8"/>
+  </g>
+  <g id="lines" inkscape:label="Lines">
+    <line x1="140" y1="100" x2="180" y2="130" stroke="#333" stroke-width="2"/>
+    <line x1="150" y1="90" x2="190" y2="110" stroke="#666" stroke-width="1.5"/>
+  </g>
+</svg>

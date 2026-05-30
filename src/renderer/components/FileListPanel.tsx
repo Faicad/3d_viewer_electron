@@ -9,8 +9,9 @@ import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { Button } from '@/components/ui/button'
 import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import {
@@ -407,7 +408,68 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
   const store = useModelStore.getState()
   store.setSelectedFileIndex(index)
 
-  // If already loaded, remove it (toggle off); next click loads it again
+  let format = detectFormat(file.name)
+
+  // SVG toggle: add/remove from workspace without touching 3D pipeline
+  if (format === 'svg') {
+    const existing = store.loadedFiles.find(f => f.filePath === file.path)
+    if (existing && existing.svgText) {
+      // Toggle workspace visibility
+      useSvgWorkspaceStore.getState().toggleFile(
+        existing.id,
+        existing.fileName,
+        existing.svgText,
+        existing.svgLayers || [],
+        parseSvgViewBox(existing.svgText).naturalWidth,
+        parseSvgViewBox(existing.svgText).naturalHeight,
+      )
+      return
+    }
+
+    // Load SVG first, then toggle
+    try {
+      const result = await window.electronAPI.readFile(file.path)
+      if (!result.success || !result.data) {
+        toast.error('Load failed: ' + (result.error || 'unknown error'))
+        return
+      }
+      const text = new TextDecoder().decode(result.data)
+      const layers = parseSvgLayers(text)
+      const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+      const fileId = crypto.randomUUID()
+
+      store.addLoadedFile({
+        id: fileId,
+        fileName: file.name,
+        filePath: file.path,
+        mtimeMs: file.mtimeMs,
+        buffer: result.data,
+        format,
+        sceneTree: [],
+        glbPartInfos: [],
+        modelCenteringOffset: null,
+        sourceUnit: 'millimeter',
+        fileGroup: 'vector',
+        loadingPhase: 'done',
+        svgLayers: layers,
+        svgText: text,
+      })
+
+      // Thumbnail
+      generateSvgThumbnail(text).then(blob => {
+        if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
+      })
+
+      // Toggle on
+      useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, text, layers, naturalWidth, naturalHeight)
+    } catch (e) {
+      console.error('[handleFileClick] SVG load exception:', e)
+      toast.error('Load failed: ' + String(e))
+    }
+    return
+  }
+
+  // 3D file: existing behavior
   const existing = store.loadedFiles.find(f => f.filePath === file.path)
   if (existing) {
     store.removeLoadedFile(existing.id)
@@ -422,7 +484,6 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       return
     }
     let buffer = result.data
-    let format = detectFormat(file.name)
 
     if (format === 'step') {
       store.setIsConverting(true)
