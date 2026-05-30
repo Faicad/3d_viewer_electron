@@ -31,7 +31,8 @@ release/
 out/
 *.hdr
 !src/renderer/public/env/*.hdr
-docs/outdated/
+docs/
+resources/
 /diag*.pngtest-results/
 
 test-results/
