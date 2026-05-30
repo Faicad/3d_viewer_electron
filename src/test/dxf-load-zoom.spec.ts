@@ -32,7 +32,7 @@ async function loadDxfIntoWorkspace(window: Page, dxfText: string, fileName: str
   await window.evaluate(async ({ dxf, name }: { dxf: string; name: string }) => {
     const modelStore = (window as any).__modelStore
     const svgStore = (window as any).__svgWorkspaceStore
-    const { parseSvgLayers, parseSvgViewBox, convertDxfToSvg } = (window as any).__svgHelpers
+    const { convertDxfToSvg } = (window as any).__svgHelpers
 
     // Clear existing state
     modelStore.getState().reset()
