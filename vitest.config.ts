@@ -7,6 +7,11 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.ts'],
     exclude: ['src/test/**', 'src/**/__tests__/**'],
     setupFiles: ['fake-indexeddb/auto'],
+    server: {
+      deps: {
+        inline: ['@linkiez/dxf-renew'],
+      },
+    },
   },
   resolve: {
     alias: {

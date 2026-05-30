@@ -2,6 +2,7 @@ import { detectFormat } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
 import { generateThumbnail, generateSvgThumbnail } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
+import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 
 export interface QueueFile {
   name: string
@@ -69,11 +70,12 @@ async function processNext(): Promise<void> {
       const format = detectFormat(file.name)
       if (!format) {
         onReady?.(file.path, '') // trigger re-render to clear spinner
-      } else if (format === 'svg') {
+      } else if (format === 'svg' || format === 'dxf') {
         const result = await window.electronAPI.readFile(file.path)
         if (result.success && result.data) {
           const text = new TextDecoder().decode(result.data)
-          const blob = await generateSvgThumbnail(text)
+          const svgText = format === 'dxf' ? (await convertDxfToSvg(text)).svgText : text
+          const blob = await generateSvgThumbnail(svgText)
           if (blob && onReady) {
             await putThumbnail(key, blob)
             const url = URL.createObjectURL(blob)

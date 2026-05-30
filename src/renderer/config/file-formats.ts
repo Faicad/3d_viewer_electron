@@ -51,6 +51,7 @@ export type FormatId =
   | 'ifc'
   | '3dm'
   | 'svg'
+  | 'dxf'
 
 export interface FileFormatEntry {
   id: FormatId
@@ -493,6 +494,20 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'svg',
     defaultUnit: 'millimeter',
     color: 'text-yellow-400',
+  },
+  {
+    id: 'dxf',
+    label: 'DXF',
+    extensions: ['.dxf'],
+    loaderModule: '',             // no Three.js loader — converted to SVG
+    group: 'vector',              // same group as SVG, reuses vector pipeline
+    sampleFile: '',
+    textBased: true,              // DXF is ASCII text
+    needsDracoWasm: false,
+    needsExternalDep: true,       // needs @linkiez/dxf-renew
+    renderHint: 'svg',            // renders via the SVG workspace
+    defaultUnit: 'millimeter',
+    color: 'text-orange-400',
   },
 ]
 

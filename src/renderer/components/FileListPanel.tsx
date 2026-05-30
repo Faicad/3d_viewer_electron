@@ -12,6 +12,7 @@ import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { Button } from '@/components/ui/button'
 import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import {
@@ -409,8 +410,8 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
 
   let format = detectFormat(file.name)
 
-  // SVG toggle: add/remove from workspace without touching 3D pipeline
-  if (format === 'svg') {
+  // SVG/DXF toggle: add/remove from workspace without touching 3D pipeline
+  if (format === 'svg' || format === 'dxf') {
     const existing = store.loadedFiles.find(f => f.filePath === file.path)
     if (existing && existing.svgText) {
       // Toggle workspace visibility
@@ -425,12 +426,12 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       return
     }
 
-    // First SVG load: switch to SVG mode — clear 3D state
+    // First SVG/DXF load: switch to SVG mode — clear 3D state
     if (useSvgWorkspaceStore.getState().files.length === 0) {
       store.reset()
     }
 
-    // Load SVG first, then toggle
+    // Load SVG/DXF first, then toggle
     try {
       const result = await window.electronAPI.readFile(file.path)
       if (!result.success || !result.data) {
@@ -438,8 +439,26 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
         return
       }
       const text = new TextDecoder().decode(result.data)
-      const layers = parseSvgLayers(text)
-      const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+
+      let svgText: string
+      let layers: ReturnType<typeof parseSvgLayers>
+      let naturalWidth: number
+      let naturalHeight: number
+
+      if (format === 'dxf') {
+        const converted = await convertDxfToSvg(text)
+        svgText = converted.svgText
+        layers = converted.layers
+        naturalWidth = converted.naturalWidth
+        naturalHeight = converted.naturalHeight
+      } else {
+        svgText = text
+        layers = parseSvgLayers(text)
+        const vb = parseSvgViewBox(text)
+        naturalWidth = vb.naturalWidth
+        naturalHeight = vb.naturalHeight
+      }
+
       const fileId = crypto.randomUUID()
 
       store.addLoadedFile({
@@ -456,18 +475,18 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
         fileGroup: 'vector',
         loadingPhase: 'done',
         svgLayers: layers,
-        svgText: text,
+        svgText: svgText,
       })
 
       // Thumbnail
-      generateSvgThumbnail(text).then(blob => {
+      generateSvgThumbnail(svgText).then(blob => {
         if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
       })
 
       // Toggle on
-      useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, text, layers, naturalWidth, naturalHeight)
+      useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, svgText, layers, naturalWidth, naturalHeight)
     } catch (e) {
-      console.error('[handleFileClick] SVG load exception:', e)
+      console.error('[handleFileClick] SVG/DXF load exception:', e)
       toast.error('Load failed: ' + String(e))
     }
     return

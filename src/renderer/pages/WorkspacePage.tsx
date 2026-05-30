@@ -15,6 +15,7 @@ import { setCachedResult, getCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 
 interface WorkspacePageProps {
   projectId?: string
@@ -78,11 +79,29 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         }
       }
 
-      if (format === 'svg') {
-        // SVG: no loadFormat(), decode text + parse layers directly
+      if (format === 'svg' || format === 'dxf') {
+        // SVG / DXF: decode text + convert to SVG, then add to workspace
         const text = new TextDecoder().decode(buffer)
-        const layers = parseSvgLayers(text)
-        const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+
+        let svgText: string
+        let layers: ReturnType<typeof parseSvgLayers>
+        let naturalWidth: number
+        let naturalHeight: number
+
+        if (format === 'dxf') {
+          const result = await convertDxfToSvg(text)
+          svgText = result.svgText
+          layers = result.layers
+          naturalWidth = result.naturalWidth
+          naturalHeight = result.naturalHeight
+        } else {
+          svgText = text
+          layers = parseSvgLayers(text)
+          const vb = parseSvgViewBox(text)
+          naturalWidth = vb.naturalWidth
+          naturalHeight = vb.naturalHeight
+        }
+
         const fileId = crypto.randomUUID()
 
         useModelStore.getState().addLoadedFile({
@@ -99,17 +118,17 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
           fileGroup: 'vector',
           loadingPhase: 'done',
           svgLayers: layers,
-          svgText: text,
+          svgText: svgText,
         })
 
         // Add batch: file dialog opens multiple → grid layout
         useSvgWorkspaceStore.getState().addFilesBatch([{
-          fileId, fileName: name, svgText: text,
+          fileId, fileName: name, svgText,
           layers, naturalWidth, naturalHeight,
         }])
 
         // Thumbnail
-        generateSvgThumbnail(text).then((blob) => {
+        generateSvgThumbnail(svgText).then((blob) => {
           if (blob) putThumbnail(`${filePath}|${Date.now()}`, blob)
         })
 
@@ -154,7 +173,8 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     const d3Paths: string[] = []
     for (const p of result.filePaths) {
       const name = p.split(/[/\\]/).pop() || p
-      if (detectFormat(name) === 'svg') {
+      const fmt = detectFormat(name)
+      if (fmt === 'svg' || fmt === 'dxf') {
         svgPaths.push(p)
       } else {
         d3Paths.push(p)
@@ -190,8 +210,8 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       if (file.loadingPhase === 'done' && !postProcessedRef.current.has(file.id)) {
         postProcessedRef.current.add(file.id)
 
-        // SVG thumbnails are generated inline during load — skip here
-        if (file.format !== 'svg') {
+        // SVG/DXF thumbnails are generated inline during load — skip here
+        if (file.format !== 'svg' && file.format !== 'dxf') {
           const loadResult = getCachedResult(file.id)
           if (loadResult) {
             const upAxis = getDefaultUpAxis(file.format, file.buffer)
@@ -258,11 +278,29 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       } finally {
         useModelStore.getState().setIsConverting(false)
       }
-    } else if (format === 'svg') {
-      // SVG: decode text, parse layers, add to workspace
+    } else if (format === 'svg' || format === 'dxf') {
+      // SVG/DXF: decode text, convert DXF to SVG if needed, add to workspace
       const text = new TextDecoder().decode(rawBuffer)
-      const layers = parseSvgLayers(text)
-      const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+
+      let svgText: string
+      let layers: ReturnType<typeof parseSvgLayers>
+      let naturalWidth: number
+      let naturalHeight: number
+
+      if (format === 'dxf') {
+        const result = await convertDxfToSvg(text)
+        svgText = result.svgText
+        layers = result.layers
+        naturalWidth = result.naturalWidth
+        naturalHeight = result.naturalHeight
+      } else {
+        svgText = text
+        layers = parseSvgLayers(text)
+        const vb = parseSvgViewBox(text)
+        naturalWidth = vb.naturalWidth
+        naturalHeight = vb.naturalHeight
+      }
+
       const filePath = window.electronAPI?.getFilePath(file) ?? file.name
       const fileId = crypto.randomUUID()
 
@@ -280,15 +318,15 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         fileGroup: 'vector',
         loadingPhase: 'done',
         svgLayers: layers,
-        svgText: text,
+        svgText: svgText,
       })
 
       useSvgWorkspaceStore.getState().addFilesBatch([{
-        fileId, fileName: file.name, svgText: text,
+        fileId, fileName: file.name, svgText,
         layers, naturalWidth, naturalHeight,
       }])
 
-      generateSvgThumbnail(text).then((blob) => {
+      generateSvgThumbnail(svgText).then((blob) => {
         if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
       })
       return

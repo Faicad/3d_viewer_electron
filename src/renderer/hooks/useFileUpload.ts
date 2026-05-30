@@ -8,6 +8,7 @@ import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 
 interface UseFileUploadOptions {
   projectId?: string
@@ -30,14 +31,33 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         const rawBuffer = await file.arrayBuffer()
         let buffer = rawBuffer
 
-        if (format === 'svg') {
+        if (format === 'svg' || format === 'dxf') {
           // Switch to SVG mode: clear any 3D state
           useModelStore.getState().reset()
 
-          // SVG: direct decode, no loadFormat()
+          // Decode text (both SVG and DXF are text-based)
           const text = new TextDecoder().decode(rawBuffer)
-          const layers = parseSvgLayers(text)
-          const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+
+          // DXF: convert to SVG first; SVG: use text directly
+          let svgText: string
+          let layers: ReturnType<typeof parseSvgLayers>
+          let naturalWidth: number
+          let naturalHeight: number
+
+          if (format === 'dxf') {
+            const result = await convertDxfToSvg(text)
+            svgText = result.svgText
+            layers = result.layers
+            naturalWidth = result.naturalWidth
+            naturalHeight = result.naturalHeight
+          } else {
+            svgText = text
+            layers = parseSvgLayers(text)
+            const vb = parseSvgViewBox(text)
+            naturalWidth = vb.naturalWidth
+            naturalHeight = vb.naturalHeight
+          }
+
           const filePath = window.electronAPI?.getFilePath(file) ?? file.name
           const fileId = crypto.randomUUID()
 
@@ -55,15 +75,15 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
             fileGroup: 'vector',
             loadingPhase: 'done',
             svgLayers: layers,
-            svgText: text,
+            svgText: svgText,
           })
 
           useSvgWorkspaceStore.getState().addFilesBatch([{
-            fileId, fileName: file.name, svgText: text,
+            fileId, fileName: file.name, svgText,
             layers, naturalWidth, naturalHeight,
           }])
 
-          generateSvgThumbnail(text).then(blob => {
+          generateSvgThumbnail(svgText).then(blob => {
             if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
           })
 

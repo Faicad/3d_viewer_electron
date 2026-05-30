@@ -13,6 +13,7 @@ import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -608,7 +609,8 @@ export default function DesktopLayout() {
     const d3Paths: string[] = []
     for (const p of paths) {
       const name = p.split(/[/\\]/).pop() || p
-      if (detectFormat(name) === 'svg') {
+      const fmt = detectFormat(name)
+      if (fmt === 'svg' || fmt === 'dxf') {
         svgPaths.push(p)
       } else {
         d3Paths.push(p)
@@ -624,7 +626,7 @@ export default function DesktopLayout() {
       // Only process 3D files below
     }
 
-    // SVG-only selection: process SVG, skip 3D loop
+    // SVG/DXF-only selection: process vector files, skip 3D loop
     if (svgPaths.length > 0 && d3Paths.length === 0) {
       useModelStore.getState().reset()
       const store = useModelStore.getState()
@@ -632,25 +634,44 @@ export default function DesktopLayout() {
 
       for (const filePath of svgPaths) {
         const fileName = filePath.split(/[/\\]/).pop() || filePath
+        const fileFormat = detectFormat(fileName)
         try {
           const fileResult = await window.electronAPI.readFile(filePath)
           if (!fileResult.success || !fileResult.data) continue
           const text = new TextDecoder().decode(fileResult.data)
-          const layers = parseSvgLayers(text)
-          const { naturalWidth, naturalHeight } = parseSvgViewBox(text)
+
+          let svgText: string
+          let layers: ReturnType<typeof parseSvgLayers>
+          let naturalWidth: number
+          let naturalHeight: number
+
+          if (fileFormat === 'dxf') {
+            const result = await convertDxfToSvg(text)
+            svgText = result.svgText
+            layers = result.layers
+            naturalWidth = result.naturalWidth
+            naturalHeight = result.naturalHeight
+          } else {
+            svgText = text
+            layers = parseSvgLayers(text)
+            const vb = parseSvgViewBox(text)
+            naturalWidth = vb.naturalWidth
+            naturalHeight = vb.naturalHeight
+          }
+
           const fileId = crypto.randomUUID()
 
           store.addLoadedFile({
             id: fileId, fileName, filePath, mtimeMs: Date.now(),
-            buffer: fileResult.data, format: 'svg' as const,
+            buffer: fileResult.data, format: fileFormat ?? 'svg',
             sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
             sourceUnit: 'millimeter', fileGroup: 'vector', loadingPhase: 'done',
-            svgLayers: layers, svgText: text,
+            svgLayers: layers, svgText: svgText,
           })
 
-          svgBatch.push({ fileId, fileName, svgText: text, layers, naturalWidth, naturalHeight })
+          svgBatch.push({ fileId, fileName, svgText, layers, naturalWidth, naturalHeight })
 
-          generateSvgThumbnail(text).then(blob => {
+          generateSvgThumbnail(svgText).then(blob => {
             if (blob) putThumbnail(cacheKey(filePath, Date.now()), blob)
           })
         } catch {

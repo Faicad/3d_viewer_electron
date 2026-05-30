@@ -28,6 +28,7 @@
     "ci": "bash scripts/ci.sh"
   },
   "dependencies": {
+    "@linkiez/dxf-renew": "^7.4.5",
     "@needle-tools/three-animation-pointer": "^1.0.7",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-collapsible": "^1.1.12",

@@ -29,7 +29,18 @@ window.__toolStore = useToolStore
 window.__selectionStore = useSelectionStore
 window.__svgWorkspaceStore = useSvgWorkspaceStore
 window.__svgFixtures = {}
-window.__svgHelpers = { parseSvgViewBox, parseSvgLayers, generateSvgThumbnail, putThumbnail }
+window.__svgHelpers = {
+  parseSvgViewBox,
+  parseSvgLayers,
+  generateSvgThumbnail,
+  putThumbnail,
+  // Lazy wrapper: the DXF library is only loaded when a DXF file is actually opened.
+  // Dynamic import ensures the ~200KB library chunk is code-split by Vite.
+  convertDxfToSvg: async (dxfText: string) => {
+    const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
+    return convertDxfToSvg(dxfText)
+  },
+}
 window.__errors = []
 window.__clearStepCache = clearStepCache
 
