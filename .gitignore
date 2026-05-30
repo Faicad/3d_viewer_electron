@@ -40,3 +40,4 @@ diag*.png
 
 test-results/
 diag*.png
+*.exr
