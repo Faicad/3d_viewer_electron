@@ -39,6 +39,7 @@ import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
+import { findFileIdForNode, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
 
 /** Find the first part node (meshIndex !== undefined) in a scene tree recursively */
 function findFirstPartInTree(node: SceneTreeNode): { partId: string; partName: string } | null {
@@ -52,38 +53,6 @@ function findFirstPartInTree(node: SceneTreeNode): { partId: string; partName: s
     }
   }
   return null
-}
-
-/** Find the fileId ancestor for a given node ID in the scene tree */
-function findFileIdForNode(tree: SceneTreeNode[], nodeId: string): string | null {
-  for (const node of tree) {
-    if (node.id.startsWith('file:')) {
-      const fileId = node.id.slice(5)
-      // Check if nodeId is this file node itself
-      if (node.id === nodeId) return fileId
-      // Check children recursively
-      if (node.children) {
-        const found = findInChildren(node.children, nodeId)
-        if (found) return fileId
-      }
-    } else {
-      // Non-file root node
-      if (node.id === nodeId) return null
-      if (node.children) {
-        const found = findInChildren(node.children, nodeId)
-        if (found) return null // shouldn't happen without file parent
-      }
-    }
-  }
-  return null
-}
-
-function findInChildren(children: SceneTreeNode[], nodeId: string): boolean {
-  for (const child of children) {
-    if (child.id === nodeId) return true
-    if (child.children && findInChildren(child.children, nodeId)) return true
-  }
-  return false
 }
 
 function SceneTreeItem({ node, depth, parentFileId, treePath, onPartContextMenu, onFileContextMenu, onNodeContextMenu }: {
@@ -598,6 +567,47 @@ export default function DesktopLayout() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [ui.rightPanelOpen, folderFilesLen, selectedFileIndex])
+
+  // Delete key — remove selected model(s) from scene and canvas
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Guard: don't delete when user is typing in an input
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      if (e.key !== 'Delete') return
+      e.preventDefault()
+
+      // --- SVG mode ---
+      if (isSvgMode) {
+        const svgStore = useSvgWorkspaceStore.getState()
+        if (svgStore.selectedFileId) {
+          svgStore.removeFile(svgStore.selectedFileId)
+        }
+        return
+      }
+
+      // --- 3D mode ---
+      const { selectedReferenceIds } = useSelectionStore.getState()
+      if (selectedReferenceIds.length === 0) return
+
+      const { sceneTree } = useModelStore.getState()
+      const fileIds = collectFileIdsFromSelection(sceneTree, selectedReferenceIds)
+      for (const fileId of fileIds) {
+        useModelStore.getState().removeLoadedFile(fileId)
+      }
+      useSelectionStore.getState().clearSelection()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isSvgMode])
 
   const handleOpenFile = useCallback(async () => {
     const result = await window.electronAPI.openFileDialog()

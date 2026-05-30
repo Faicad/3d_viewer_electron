@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { useModelStore } from './model-store'
 import type { SceneTreeNode } from './model-store'
 import { useSvgWorkspaceStore, parseSvgLayers } from './svg-workspace-store'
+import { collectFileIdsFromSelection } from '../lib/scene-tree-utils'
 
 // Exported for testing — the recursive tree utility
 function toggleNodeInTree(
@@ -515,5 +516,92 @@ describe('SVG workspace sync — FileListPanel toggle', () => {
     expect(useModelStore.getState().isFileLoaded(filePath)).toBe(false)
     expect(useModelStore.getState().loadedFiles).toHaveLength(0)
     expect(useModelStore.getState().activeFileId).toBeNull()
+  })
+})
+
+// ---- collectFileIdsFromSelection (Delete key helper) ----
+
+function makeFileTree(): SceneTreeNode[] {
+  return [
+    {
+      id: 'file:abc', name: 'a.glb', visible: true, expanded: true,
+      children: [
+        { id: 'part-1', name: 'Mesh1', visible: true, meshIndex: 0 },
+        { id: 'part-2', name: 'Mesh2', visible: true, meshIndex: 1 },
+      ],
+    },
+    {
+      id: 'file:xyz', name: 'b.glb', visible: true, expanded: true,
+      children: [
+        { id: 'part-3', name: 'Mesh3', visible: true, meshIndex: 0 },
+      ],
+    },
+    {
+      id: 'file:alone', name: 'c.glb', visible: true, expanded: true,
+    },
+  ]
+}
+
+describe('collectFileIdsFromSelection', () => {
+  it('returns empty set for empty selection', () => {
+    const tree = makeFileTree()
+    expect(collectFileIdsFromSelection(tree, [])).toEqual(new Set())
+  })
+
+  it('finds fileId from a single part node', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['part-1'])
+    expect(result).toEqual(new Set(['abc']))
+  })
+
+  it('finds fileId from a file node itself', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['file:abc'])
+    expect(result).toEqual(new Set(['abc']))
+  })
+
+  it('deduplicates multiple parts from the same file', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['part-1', 'part-2'])
+    expect(result).toEqual(new Set(['abc']))
+    expect(result.size).toBe(1)
+  })
+
+  it('collects from multiple files', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['part-1', 'part-3'])
+    expect(result).toEqual(new Set(['abc', 'xyz']))
+  })
+
+  it('handles mix of file nodes and part nodes from same file', () => {
+    const tree = makeFileTree()
+    // file:abc and part-1 both belong to 'abc' — should deduplicate
+    const result = collectFileIdsFromSelection(tree, ['file:abc', 'part-1'])
+    expect(result).toEqual(new Set(['abc']))
+    expect(result.size).toBe(1)
+  })
+
+  it('handles file node with no children', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['file:alone'])
+    expect(result).toEqual(new Set(['alone']))
+  })
+
+  it('returns empty set for non-existent node', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['nonexistent'])
+    expect(result).toEqual(new Set())
+  })
+
+  it('handles mixed valid and invalid node IDs', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['part-1', 'nonexistent', 'part-3'])
+    expect(result).toEqual(new Set(['abc', 'xyz']))
+  })
+
+  it('handles all three files selected at once', () => {
+    const tree = makeFileTree()
+    const result = collectFileIdsFromSelection(tree, ['part-1', 'part-3', 'file:alone'])
+    expect(result).toEqual(new Set(['abc', 'xyz', 'alone']))
   })
 })
