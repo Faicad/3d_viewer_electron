@@ -31,6 +31,9 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         let buffer = rawBuffer
 
         if (format === 'svg') {
+          // Switch to SVG mode: clear any 3D state
+          useModelStore.getState().reset()
+
           // SVG: direct decode, no loadFormat()
           const text = new TextDecoder().decode(rawBuffer)
           const layers = parseSvgLayers(text)
@@ -67,6 +70,9 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           setIsUploading(false)
           return
         }
+
+        // 3D file: clear SVG workspace when switching modes
+        useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
 
         if (format === 'step') {
           useModelStore.getState().setIsConverting(true)

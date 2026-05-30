@@ -255,9 +255,10 @@ export async function generateSvgThumbnail(svgText: string): Promise<Blob | null
     const url = URL.createObjectURL(blob)
 
     img.onload = () => {
+      const W = 120, H = 120, PAD = 10
       const canvas = document.createElement('canvas')
-      canvas.width = 200
-      canvas.height = 150
+      canvas.width = W
+      canvas.height = H
       const ctx = canvas.getContext('2d')
       if (!ctx) {
         URL.revokeObjectURL(url)
@@ -267,18 +268,26 @@ export async function generateSvgThumbnail(svgText: string): Promise<Blob | null
 
       // Background
       ctx.fillStyle = '#f0f0f3'
-      ctx.fillRect(0, 0, 200, 150)
+      ctx.fillRect(0, 0, W, H)
 
-      // Fit SVG centered
-      const scale = Math.min(180 / img.width, 130 / img.height, 1)
-      const x = (200 - img.width * scale) / 2
-      const y = (150 - img.height * scale) / 2
+      // SVG is vector — no upper cap on scale. Small icons fill the frame,
+      // large SVGs fit within the padded box.
+      const maxW = W - PAD * 2
+      const maxH = H - PAD * 2
+      const scale = Math.min(maxW / img.width, maxH / img.height)
+
+      const imgW = img.width * scale
+      const imgH = img.height * scale
+      const x = (W - imgW) / 2
+      const y = (H - imgH) / 2
 
       // White mat behind SVG
       ctx.fillStyle = '#ffffff'
-      ctx.fillRect(x - 2, y - 2, img.width * scale + 4, img.height * scale + 4)
+      ctx.beginPath()
+      ctx.roundRect(x - 2, y - 2, imgW + 4, imgH + 4, 3)
+      ctx.fill()
 
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+      ctx.drawImage(img, x, y, imgW, imgH)
       canvas.toBlob((b) => resolve(b), 'image/png')
       URL.revokeObjectURL(url)
     }

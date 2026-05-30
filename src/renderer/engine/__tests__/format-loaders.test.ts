@@ -27,6 +27,7 @@ const SKIP_FORMATS: Set<FormatId> = new Set([
   'kmz',   // fixture appears corrupted (fflate: invalid zip data)
   'wrl',   // fixture has VRML lexing errors
   'usdz',  // needs complex texture/image loading in USDComposer
+  'svg',   // 2D vector format — uses SvgWorkspace (Canvas 2D), not loadFormat()
 ])
 
 interface FixtureEntry {

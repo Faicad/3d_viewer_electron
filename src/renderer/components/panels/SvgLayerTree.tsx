@@ -67,8 +67,8 @@ export default function SvgLayerTree() {
                   </button>
                 </div>
 
-                {/* Layer children */}
-                {file.layers.map((layer) => (
+                {/* Layer children — only show when >1 layer */}
+                {file.layers.length > 1 && file.layers.map((layer) => (
                   <div
                     key={layer.id}
                     className="flex items-center gap-1 text-sm py-1 px-1 rounded hover:bg-accent cursor-pointer whitespace-nowrap"

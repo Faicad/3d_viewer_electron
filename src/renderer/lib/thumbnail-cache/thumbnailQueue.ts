@@ -1,6 +1,6 @@
 import { detectFormat } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
-import { generateThumbnail } from './thumbnailGenerator'
+import { generateThumbnail, generateSvgThumbnail } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
 
 export interface QueueFile {
@@ -69,6 +69,21 @@ async function processNext(): Promise<void> {
       const format = detectFormat(file.name)
       if (!format) {
         onReady?.(file.path, '') // trigger re-render to clear spinner
+      } else if (format === 'svg') {
+        const result = await window.electronAPI.readFile(file.path)
+        if (result.success && result.data) {
+          const text = new TextDecoder().decode(result.data)
+          const blob = await generateSvgThumbnail(text)
+          if (blob && onReady) {
+            await putThumbnail(key, blob)
+            const url = URL.createObjectURL(blob)
+            onReady(file.path, url)
+          } else {
+            onReady?.(file.path, '')
+          }
+        } else {
+          onReady?.(file.path, '')
+        }
       } else if (format === 'step') {
         // For STEP files, wait for pre-cache to finish
         const stepCached = await getStepCached(key)

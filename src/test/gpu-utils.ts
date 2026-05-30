@@ -11,7 +11,7 @@
 import type { Page } from '@playwright/test'
 
 /** Software GPU keywords matched case-insensitively. */
-const SW_GPU_PATTERNS = [
+const _SW_GPU_PATTERNS = [
   'llvmpipe',
   'swiftshader',
   'microsoft basic render',

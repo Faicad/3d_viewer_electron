@@ -12,11 +12,13 @@ export default function SvgWorkspace() {
   const moveFile = useSvgWorkspaceStore((s) => s.moveFile)
   const setCanvasSize = useSvgWorkspaceStore((s) => s.setCanvasSize)
   const relayoutGrid = useSvgWorkspaceStore((s) => s.relayoutGrid)
+  const zoomFile = useSvgWorkspaceStore((s) => s.zoomFile)
   const theme = useUIStore((s) => s.theme)
 
   const [images, setImages] = useState<Map<string, HTMLImageElement>>(new Map())
   const blobUrls = useRef<Map<string, string>>(new Map())
   const [containerSize, setContainerSize] = useState({ w: 800, h: 600 })
+  const [dragging, setDragging] = useState(false)
 
   // Theme-aware background
   const bgColor = useMemo(() => {
@@ -130,8 +132,13 @@ export default function SvgWorkspace() {
     ctx.fillStyle = bgColor
     ctx.fillRect(0, 0, containerSize.w, containerSize.h)
 
-    // Draw each file
-    for (const file of files) {
+    // Draw each file — selected last (on top)
+    const sorted = [...files].sort((a, b) => {
+      if (a.fileId === selectedFileId) return 1
+      if (b.fileId === selectedFileId) return -1
+      return 0
+    })
+    for (const file of sorted) {
       if (!file.visible) continue
       let img: HTMLImageElement | null = null
       // Find cached image by cache key
@@ -152,8 +159,8 @@ export default function SvgWorkspace() {
 
       if (!img || img.width === 0) continue
 
-      const imgW = img.width * file.scale
-      const imgH = img.height * file.scale
+      const imgW = img.width * file.scale * file.zoom
+      const imgH = img.height * file.scale * file.zoom
       const px = file.x
       const py = file.y
       const isSelected = file.fileId === selectedFileId
@@ -179,18 +186,31 @@ export default function SvgWorkspace() {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.strokeStyle = '#2563eb'
-        ctx.lineWidth = 2
+        ctx.lineWidth = 1
         ctx.setLineDash([])
         ctx.strokeRect(-imgW / 2 - 4, -imgH / 2 - 4, imgW + 8, imgH + 8)
       }
       ctx.restore()
 
       // File name label
-      ctx.fillStyle = labelColor
+      const labelY = py + imgH / 2 + 8
       ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
-      ctx.fillText(file.fileName, px, py + imgH / 2 + 8)
+      const textW = ctx.measureText(file.fileName).width
+
+      if (isSelected) {
+        const lx = px - textW / 2 - 6
+        const ly = labelY - 1
+        ctx.fillStyle = '#2563eb'
+        ctx.beginPath()
+        ctx.roundRect(lx, ly, textW + 12, 18, 4)
+        ctx.fill()
+        ctx.fillStyle = '#ffffff'
+      } else {
+        ctx.fillStyle = labelColor
+      }
+      ctx.fillText(file.fileName, px, labelY)
     }
   }, [files, selectedFileId, images, containerSize, bgColor, labelColor])
 
@@ -214,11 +234,10 @@ export default function SvgWorkspace() {
         }
         if (!img || img.width === 0) continue
 
-        const imgW = img.width * file.scale
-        const imgH = img.height * file.scale
+        const imgW = img.width * file.scale * file.zoom
+        const imgH = img.height * file.scale * file.zoom
         const left = file.x - imgW / 2
         const top = file.y - imgH / 2
-        // Include filename label area (18px below the image)
         const totalH = imgH + 18
 
         if (mx >= left && mx <= left + imgW && my >= top && my <= top + totalH) {
@@ -249,6 +268,7 @@ export default function SvgWorkspace() {
       const target = hitTest(mx, my)
       if (target) {
         selectFile(target.fileId)
+        setDragging(true)
         dragRef.current = {
           fileId: target.fileId,
           startX: e.clientX,
@@ -275,17 +295,18 @@ export default function SvgWorkspace() {
 
   const handleMouseUp = useCallback(() => {
     dragRef.current = null
+    setDragging(false)
   }, [])
 
-  // ---- Wheel zoom ----
+  // ---- Wheel zoom (selected file only) ----
   const handleWheel = useCallback(
     (e: React.WheelEvent<HTMLCanvasElement>) => {
-      // Only zoom when Ctrl is held (avoid conflicts with page scroll)
-      if (!e.ctrlKey && !e.metaKey) return
+      if (!selectedFileId) return
       e.preventDefault()
-      // Future: canvas-level zoom
+      const factor = e.deltaY < 0 ? 1.08 : 0.92
+      zoomFile(selectedFileId, factor)
     },
-    [],
+    [selectedFileId, zoomFile],
   )
 
   return (
@@ -299,7 +320,7 @@ export default function SvgWorkspace() {
           width: '100%',
           height: '100%',
           display: 'block',
-          cursor: dragRef.current ? 'grabbing' : 'default',
+          cursor: dragging ? 'grabbing' : 'default',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

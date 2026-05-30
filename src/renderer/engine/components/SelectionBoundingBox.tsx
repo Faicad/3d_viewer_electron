@@ -1,15 +1,18 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useEngineStore } from '@/stores/engine-store'
+import { CORNER_RATIO, buildCornerGeometry } from './SelectionBoundingBoxUtils'
 
 interface SelectionBoundingBoxProps {
   selectedPartIds: string[]
   modelGroupRef: React.RefObject<THREE.Group | null>
 }
 
-export const CORNER_RATIO = 0.1
+// eslint-disable-next-line react-refresh/only-export-components
+export { CORNER_RATIO, buildCornerGeometry }
 
-export function buildCornerGeometry(
+// Keep original function removed �� now imported from SelectionBoundingBoxUtils
+function _unused_buildCornerGeometry(
   group: THREE.Group,
   selectedPartIds: string[],
   cornerRatio: number = CORNER_RATIO,

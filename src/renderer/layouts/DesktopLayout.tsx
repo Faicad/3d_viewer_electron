@@ -665,8 +665,9 @@ export default function DesktopLayout() {
     }
 
     // 3D-only (or mixed filtered to 3D): existing logic
-    // Clear all currently loaded content before loading new files
+    // Clear all currently loaded content + SVG workspace before loading
     useModelStore.getState().reset()
+    useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
 
     const store = useModelStore.getState()
     let firstDirPath: string | null = null
@@ -863,6 +864,7 @@ export default function DesktopLayout() {
         </Tooltip>
 
         {/* Material Editor */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -876,8 +878,10 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.materialEditor')}</TooltipContent>
         </Tooltip>
+        )}
 
         {/* Animation Player — only enabled when a loaded file has animations */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -896,6 +900,7 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.animationPlayer')}</TooltipContent>
         </Tooltip>
+        )}
 
         <div className="flex-1" />
 
@@ -910,6 +915,7 @@ export default function DesktopLayout() {
         </Tooltip>
 
         {/* Model Info */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -924,6 +930,7 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.modelInfo')}</TooltipContent>
         </Tooltip>
+        )}
 
         {/* Panel toggles */}
         <Tooltip>
@@ -944,6 +951,7 @@ export default function DesktopLayout() {
         </Tooltip>
 
         {/* Environment */}
+        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -957,6 +965,7 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.environment')}</TooltipContent>
         </Tooltip>
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1025,13 +1034,13 @@ export default function DesktopLayout() {
       </div>
 
       {/* Environment Panel (floating) */}
-      <EnvironmentPanel />
+      {!isSvgMode && <EnvironmentPanel />}
 
       {/* GLB Extension Panel (floating) */}
-      <GlbExtensionPanel />
+      {!isSvgMode && <GlbExtensionPanel />}
 
       {/* Material Editor (floating) — must be after GlbExtensionPanel to render on top */}
-      <MaterialEditor />
+      {!isSvgMode && <MaterialEditor />}
 
       {/* Context Menu */}
       {ctxMenu && (

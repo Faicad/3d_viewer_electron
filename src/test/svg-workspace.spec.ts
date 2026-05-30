@@ -107,7 +107,7 @@ test.describe('SVG Workspace E2E', () => {
       const svgText = readSvgFixture(name)
       await window.evaluate(async ({ name, text }: { name: string; text: string }) => {
         const modelStore = (window as any).__modelStore
-        const { parseSvgLayers, parseSvgViewBox } = (window as any).__svgHelpers
+        const { parseSvgLayers } = (window as any).__svgHelpers
 
         // Generate thumbnail via Canvas 2D
         function generateThumbInline(svgText: string): Promise<Blob | null> {

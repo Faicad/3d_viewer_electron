@@ -19,6 +19,7 @@ export interface SvgWorkspaceFile {
   x: number
   y: number
   scale: number
+  zoom: number
   placement: SvgPlacement
   visible: boolean
   naturalWidth: number
@@ -40,6 +41,7 @@ interface SvgWorkspaceState {
   toggleFileVisible: (fileId: string) => void
   relayoutGrid: () => void
   setCanvasSize: (w: number, h: number) => void
+  zoomFile: (fileId: string, factor: number) => void
 }
 
 // ---- helpers ----
@@ -65,9 +67,6 @@ export function parseSvgViewBox(svgText: string): { naturalWidth: number; natura
 /** Extract top-level <g> elements as layers. */
 export function parseSvgLayers(svgText: string): SvgLayer[] {
   // Regex-based extraction (works in Node.js without DOMParser)
-  const gRegex = /<g\b[^>]*>/gi
-  const gEndRegex = /<\/g\s*>/gi
-
   // Find top-level <g> elements by tracking nesting depth
   const layers: SvgLayer[] = []
   let depth = 0
@@ -206,6 +205,7 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
       x: 0,
       y: 0,
       scale: 1,
+      zoom: 1,
       placement: 'grid' as SvgPlacement,
       visible: true,
       naturalWidth: f.naturalWidth,
@@ -244,6 +244,7 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
       x: canvasWidth / 2,
       y: canvasHeight / 2,
       scale,
+      zoom: 1,
       placement: 'free',
       visible: true,
       naturalWidth,
@@ -309,5 +310,16 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
 
   setCanvasSize: (w, h) => {
     set({ canvasWidth: w, canvasHeight: h })
+  },
+
+  zoomFile: (fileId, factor) => {
+    set((state) => ({
+      files: state.files.map((f) => {
+        if (f.fileId !== fileId) return f
+        const next = f.zoom * factor
+        const minZ = Math.max(16 / (f.naturalWidth * f.scale), 16 / (f.naturalHeight * f.scale), 0.1)
+        return { ...f, zoom: Math.min(Math.max(next, minZ), 20) }
+      }),
+    }))
   },
 }))

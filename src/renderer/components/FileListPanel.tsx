@@ -303,22 +303,21 @@ export default function FileListPanel() {
                       <img
                         src={thumbUrl}
                         alt={file.name}
-                        className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                        className="w-full h-full object-contain opacity-0 transition-opacity duration-300"
                         onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1' }}
                       />
                     ) : (
                       <PlaceholderCard file={file} failed={failed} loading={processingPath === file.path} />
                     )}
 
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1.5 py-0.5">
-                      <span className="text-[10px] text-white/90 truncate block" title={file.name}>
-                        {file.name}
-                      </span>
-                    </div>
-
                     {isCurrent && (
                       <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary shadow-sm" />
                     )}
+                  </div>
+                  <div className="px-1.5 py-0.5 bg-muted">
+                    <span className="text-[10px] text-muted-foreground truncate block" title={file.name}>
+                      {file.name}
+                    </span>
                   </div>
                 </div>
               )
@@ -426,6 +425,11 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       return
     }
 
+    // First SVG load: switch to SVG mode — clear 3D state
+    if (useSvgWorkspaceStore.getState().files.length === 0) {
+      store.reset()
+    }
+
     // Load SVG first, then toggle
     try {
       const result = await window.electronAPI.readFile(file.path)
@@ -475,6 +479,9 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     store.removeLoadedFile(existing.id)
     return
   }
+
+  // Switch to 3D mode: clear SVG workspace
+  useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
 
   try {
     const result = await window.electronAPI.readFile(file.path)
