@@ -3,7 +3,7 @@ import * as THREE from 'three'
 export const CORNER_RATIO = 0.1
 
 export function buildCornerGeometry(
-  group: THREE.Group,
+  groups: ReadonlyMap<string, THREE.Group> | THREE.Group[],
   selectedPartIds: string[],
   cornerRatio: number = CORNER_RATIO,
 ): THREE.BufferGeometry | null {
@@ -13,20 +13,28 @@ export function buildCornerGeometry(
   const overallBox = new THREE.Box3()
   let foundAny = false
 
-  group.traverse((child) => {
-    if (!(child instanceof THREE.Mesh)) return
-    const partId = child.userData?.partId as string | undefined
-    if (!partId || !partSet.has(partId)) return
+  const groupList: THREE.Group[] = groups instanceof THREE.Group
+    ? [groups]
+    : Array.isArray(groups)
+      ? groups
+      : [...groups.values()]
 
-    child.updateWorldMatrix(true, false)
-    const geo = child.geometry
-    if (!geo.boundingBox) geo.computeBoundingBox()
-    if (!geo.boundingBox) return
+  for (const group of groupList) {
+    group.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      const partId = child.userData?.partId as string | undefined
+      if (!partId || !partSet.has(partId)) return
 
-    overallBox.expandByPoint(geo.boundingBox.min.clone().applyMatrix4(child.matrixWorld))
-    overallBox.expandByPoint(geo.boundingBox.max.clone().applyMatrix4(child.matrixWorld))
-    foundAny = true
-  })
+      child.updateWorldMatrix(true, false)
+      const geo = child.geometry
+      if (!geo.boundingBox) geo.computeBoundingBox()
+      if (!geo.boundingBox) return
+
+      overallBox.expandByPoint(geo.boundingBox.min.clone().applyMatrix4(child.matrixWorld))
+      overallBox.expandByPoint(geo.boundingBox.max.clone().applyMatrix4(child.matrixWorld))
+      foundAny = true
+    })
+  }
 
   if (!foundAny) return null
 

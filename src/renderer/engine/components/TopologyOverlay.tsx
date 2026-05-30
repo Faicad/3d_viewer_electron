@@ -12,6 +12,8 @@ import {
 
 interface TopologyOverlayProps {
   selectorRuntime: SelectorRuntime | null
+  /** Part IDs of currently selected objects (used to match mesh position in multi-object / post-drag scenes). */
+  selectedPartIds?: string[]
 }
 
 /**
@@ -29,11 +31,12 @@ interface TopologyOverlayProps {
  * fully invisible — opacity 0, colorWrite false, depthWrite false.
  * They only serve as raycaster targets.
  */
-export default function TopologyOverlay({ selectorRuntime }: TopologyOverlayProps) {
+export default function TopologyOverlay({ selectorRuntime, selectedPartIds }: TopologyOverlayProps) {
   const { scene } = useThree()
   const groupRef = useRef<THREE.Group | null>(null)
   const centeringOffset = useModelStore((s) => s.modelCenteringOffset)
   const modelTransform = useEngineStore((s) => s.modelTransform)
+  const highlightVersion = useEngineStore((s) => s.highlightVersion)
 
   useEffect(() => {
     // Remove previous group
@@ -50,12 +53,29 @@ export default function TopologyOverlay({ selectorRuntime }: TopologyOverlayProp
 
     // Align topology pick overlay with the centered display meshes.
     // ModelGroup centers display meshes by offsetting each mesh by -center.
-    // The topology data from the GLB extension is in the original coordinate
-    // space, so we offset the entire overlay group by -center to match.
-    // Also apply the model's accumulated transform (scale/move/rotate).
+    // Drag-to-move adds an offset: mesh.position = -center + dragDelta.
+    // We start with -centeringOffset, then scan scene display meshes to
+    // pick up any additional drag offset from their position.
     const basePos = centeringOffset
       ? new THREE.Vector3(-centeringOffset[0], -centeringOffset[1], -centeringOffset[2])
       : new THREE.Vector3(0, 0, 0)
+    const partSet = selectedPartIds && selectedPartIds.length > 0
+      ? new Set(selectedPartIds)
+      : null
+    scene.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.userData?.partId && child.visible && !child.renderOrder) {
+        // If we have selected part IDs, only use matching meshes.
+        // If no selection, use any display mesh (single-object fallback).
+        if (partSet) {
+          const childPartId = child.userData.partId as string
+          if (partSet.has(childPartId)) {
+            basePos.copy(child.position)
+          }
+        } else {
+          basePos.copy(child.position)
+        }
+      }
+    })
     if (modelTransform) {
       basePos.applyMatrix4(modelTransform)
     }
@@ -82,6 +102,7 @@ export default function TopologyOverlay({ selectorRuntime }: TopologyOverlayProp
     scene.add(group)
     groupRef.current = group
     console.log('[TopologyOverlay] pick group created, children:', group.children.length,
+      'groupPos:', group.position.toArray(),
       'centeringOffset:', centeringOffset,
       'hasFacePick:', !!faceMesh,
       'hasEdgePick:', !!edgeLines,
@@ -94,7 +115,7 @@ export default function TopologyOverlay({ selectorRuntime }: TopologyOverlayProp
         groupRef.current = null
       }
     }
-  }, [selectorRuntime, scene, centeringOffset, modelTransform])
+  }, [selectorRuntime, scene, centeringOffset, modelTransform, highlightVersion, selectedPartIds])
 
   return null
 }

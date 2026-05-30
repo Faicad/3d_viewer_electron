@@ -9,7 +9,7 @@ interface TopologyPickerProps {
   enabled: boolean
   selectionMode: SelectionMode
   selectorRuntime: SelectorRuntime | null
-  modelGroupRef: RefObject<THREE.Group | null>
+  modelGroupMapRef: RefObject<Map<string, THREE.Group>>
   onHover: (referenceId: string | null) => void
   onClick: (referenceId: string | null, shiftKey?: boolean) => void
   onClickWorldPoint?: (point: THREE.Vector3 | null) => void
@@ -27,7 +27,7 @@ export default function TopologyPicker({
   enabled,
   selectionMode,
   selectorRuntime,
-  modelGroupRef,
+  modelGroupMapRef,
   onHover,
   onClick,
   onClickWorldPoint,
@@ -40,7 +40,7 @@ export default function TopologyPicker({
     enabled,
     selectionMode,
     selectorRuntime,
-    modelGroupRef,
+    modelGroupMapRef,
     onHover,
     onClick,
     onClickWorldPoint,

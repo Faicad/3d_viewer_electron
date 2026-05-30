@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Box, Square, Minus, Crosshair } from 'lucide-react'
 import { useToolStore, type SelectionMode } from '@/stores/tool-store'
-import { useModelStore } from '@/stores/model-store'
 import { useThemeColors } from '@/components/settings/useThemeColors'
 
 interface ModeConfig {
@@ -20,36 +19,33 @@ export default function SelectionToolbar({ hasTopology, hasEdges }: SelectionToo
   const { t } = useTranslation()
   const selectionMode = useToolStore((s) => s.selectionMode)
   const setSelectionMode = useToolStore((s) => s.setSelectionMode)
-  const partCount = useModelStore((s) => s.glbPartInfos.length)
   const colors = useThemeColors()
 
   const allModes: ModeConfig[] = useMemo(() => [
     { mode: 'object', labelKey: 'selection.object', icon: Box },
-    { mode: 'face', labelKey: 'selection.face', icon: Square },
+    ...(hasTopology ? [
+      { mode: 'face', labelKey: 'selection.face', icon: Square } as const,
+    ] : []),
     ...(hasEdges ? [
       { mode: 'edge', labelKey: 'selection.edge', icon: Minus } as const,
       { mode: 'point', labelKey: 'selection.point', icon: Crosshair } as const,
     ] : []),
-  ], [hasEdges])
+  ], [hasTopology, hasEdges])
 
+  // Degradation protection: if the current mode becomes unavailable (data
+  // disappeared), fall back to 'object' — never auto-switch forward.
   useEffect(() => {
     const currentMode = useToolStore.getState().selectionMode
-    const needsEdge = currentMode === 'edge' || currentMode === 'point'
-    if (!hasEdges && needsEdge) {
-      setSelectionMode(hasTopology ? 'face' : 'object')
-      return
-    }
-    if (partCount >= 2) {
-      setSelectionMode('object')
-    } else if (hasTopology) {
-      setSelectionMode('face')
-    } else {
+    if (!hasEdges && (currentMode === 'edge' || currentMode === 'point')) {
       setSelectionMode('object')
     }
-  }, [partCount, hasTopology, hasEdges, setSelectionMode])
+    if (!hasTopology && currentMode === 'face') {
+      setSelectionMode('object')
+    }
+  }, [hasTopology, hasEdges, setSelectionMode])
 
-  // No topology → hide the entire selection toolbar
-  if (!hasTopology) return null
+  // Hide toolbar when only object mode is available (nothing to switch)
+  if (allModes.length <= 1) return null
 
   return (
     <div

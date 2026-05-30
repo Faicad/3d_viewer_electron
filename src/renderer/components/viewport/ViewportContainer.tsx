@@ -90,13 +90,16 @@ function UpAxisAnimator({
   return null
 }
 
-function ModelTransformTracker({ modelRef }: { modelRef: React.RefObject<THREE.Group | null> }) {
+function ModelTransformTracker({ modelGroupMapRef }: { modelGroupMapRef: React.RefObject<Map<string, THREE.Group>> }) {
   const setModelTransform = useEngineStore((s) => s.setModelTransform)
 
   useFrame(() => {
-    if (modelRef.current) {
-      modelRef.current.updateWorldMatrix(true, false)
-      setModelTransform(modelRef.current.matrixWorld.clone())
+    const map = modelGroupMapRef.current
+    if (map && map.size > 0) {
+      // Track the first group's world matrix for topology overlay alignment
+      const firstGroup = [...map.values()][0]
+      firstGroup.updateWorldMatrix(true, false)
+      setModelTransform(firstGroup.matrixWorld.clone())
     } else {
       setModelTransform(null)
     }
@@ -206,7 +209,8 @@ function CameraModeSwitcher() {
 export default function ViewportContainer() {
   const { t } = useTranslation()
   const controlsRef = useRef<OrbitControlsImpl>(null)
-  const modelGroupRef = useRef<THREE.Group>(null)
+  /** Map of fileId → model group root. Supports multi-file drag, pick, and highlight. */
+  const modelGroupMapRef = useRef<Map<string, THREE.Group>>(new Map())
   const mainCamera = useEngineStore((s) => s.camera)
   const modelBuffer = useModelStore((s) => s.modelBuffer)
   const modelFormat = useModelStore((s) => s.modelFormat)
@@ -543,30 +547,33 @@ export default function ViewportContainer() {
 
   const _handleResetCamera = useCallback(() => {
     const controls = controlsRef.current
-    const modelGroup = modelGroupRef.current
+    const groupMap = modelGroupMapRef.current
     if (!controls) return
 
-    // Recompute bounding box from current model state to handle scale transforms
-    if (modelGroup) {
+    // Recompute bounding box from current model state to handle scale transforms,
+    // traversing all loaded model groups (multi-file support).
+    if (groupMap && groupMap.size > 0) {
       const box = new THREE.Box3()
-      modelGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.visible) {
-          const geo = child.geometry
-          if (geo?.boundingBox) {
-            const worldBox = geo.boundingBox.clone()
-            worldBox.applyMatrix4(child.matrixWorld)
-            box.union(worldBox)
-          } else {
-            // Fallback: compute from geometry attributes
-            const pos = geo.getAttribute('position')
-            if (pos) {
-              const tempBox = new THREE.Box3().setFromBufferAttribute(pos)
-              tempBox.applyMatrix4(child.matrixWorld)
-              box.union(tempBox)
+      for (const group of groupMap.values()) {
+        group.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.visible) {
+            const geo = child.geometry
+            if (geo?.boundingBox) {
+              const worldBox = geo.boundingBox.clone()
+              worldBox.applyMatrix4(child.matrixWorld)
+              box.union(worldBox)
+            } else {
+              // Fallback: compute from geometry attributes
+              const pos = geo.getAttribute('position')
+              if (pos) {
+                const tempBox = new THREE.Box3().setFromBufferAttribute(pos)
+                tempBox.applyMatrix4(child.matrixWorld)
+                box.union(tempBox)
+              }
             }
           }
-        }
-      })
+        })
+      }
       if (!box.isEmpty()) {
         applyCameraFit(box, controls)
         return
@@ -614,12 +621,18 @@ export default function ViewportContainer() {
         <CameraModeSwitcher />
         <SceneSetup />
         <PostProcessing />
-        <ModelTransformTracker modelRef={modelGroupRef} />
+        <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
             <group key={file.id}>
               <ModelGroup
-                ref={modelGroupRef}
+                ref={(g: THREE.Group | null) => {
+                  if (g) {
+                    modelGroupMapRef.current.set(file.id, g)
+                  } else {
+                    modelGroupMapRef.current.delete(file.id)
+                  }
+                }}
                 buffer={file.buffer}
                 format={file.format}
                 fileId={file.id}
@@ -646,7 +659,14 @@ export default function ViewportContainer() {
           ))
         ) : (
           <ModelGroup
-            ref={modelGroupRef}
+            ref={(g: THREE.Group | null) => {
+              const key = '__single__'
+              if (g) {
+                modelGroupMapRef.current.set(key, g)
+              } else {
+                modelGroupMapRef.current.delete(key)
+              }
+            }}
             buffer={modelBuffer}
             format={modelFormat}
             filePath={useModelStore.getState().modelFilePath}
@@ -666,8 +686,8 @@ export default function ViewportContainer() {
             checkerSlot={checkerEnabled ? texturePreviewSlot : null}
           />
         )}
-        <ToolOverlay modelRef={modelGroupRef} />
-        {hasTopology && <TopologyOverlay selectorRuntime={selectorRuntime} />}
+        <ToolOverlay modelGroupMapRef={modelGroupMapRef} />
+        {hasTopology && <TopologyOverlay selectorRuntime={selectorRuntime} selectedPartIds={selectedReferenceIds} />}
         {((resolvedDisplayMode === 'wireframe' || resolvedDisplayMode === 'solidWithWireframe') && hasEdges || resolvedDisplayMode === 'debug' && hasEdges) && (
           <DebugTopologyOverlay selectorRuntime={selectorRuntime!} centeringOffset={centeringOffset} showVertices={displayMode === 'debug'} />
         )}
@@ -675,7 +695,7 @@ export default function ViewportContainer() {
           enabled={activeToolMode === 'view'}
           selectionMode={selectionMode}
           selectorRuntime={selectorRuntime}
-          modelGroupRef={modelGroupRef}
+          modelGroupMapRef={modelGroupMapRef}
           onHover={setHoveredReference}
           onClick={(id, shiftKey) => setSelectedReference(id, { shiftKey })}
           onSnap={handleSnap}
@@ -689,25 +709,34 @@ export default function ViewportContainer() {
           referenceId={effectiveHoveredId}
           color="#ffffff"
           opacity={0.25}
-          modelGroupRef={modelGroupRef}
+          modelGroupMapRef={modelGroupMapRef}
           renderOrder={resolvedDisplayMode === 'wireframe' ? 4 : 2}
         />
-        {selectedReferenceIds.map((id) => (
-          <SelectionHighlight
-            key={id}
-            runtime={selectorRuntime}
-            referenceId={id}
-            color={selectionMode === 'object' ? '#ffffff' : '#2563eb'}
-            opacity={selectionMode === 'object' ? 0.08 : (resolvedDisplayMode === 'wireframe' ? 0.8 : 0.5)}
-            modelGroupRef={modelGroupRef}
-            renderOrder={resolvedDisplayMode === 'wireframe' ? 5 : 2}
-          />
-        ))}
+        {selectedReferenceIds
+          .filter((id) => {
+            // In object mode, all IDs (partIds) are valid.
+            // In face/edge/point mode, only topology references (in referenceMap) are valid.
+            // PartIds are NOT in the topology referenceMap and would fall through to
+            // buildObjectHighlightGeometry, rendering the entire object in blue.
+            if (selectionMode === 'object') return true
+            return selectorRuntime?.referenceMap.has(id) ?? false
+          })
+          .map((id) => (
+            <SelectionHighlight
+              key={id}
+              runtime={selectorRuntime}
+              referenceId={id}
+              color={selectionMode === 'object' ? '#ffffff' : '#2563eb'}
+              opacity={selectionMode === 'object' ? 0.08 : (resolvedDisplayMode === 'wireframe' ? 0.8 : 0.5)}
+              modelGroupMapRef={modelGroupMapRef}
+              renderOrder={resolvedDisplayMode === 'wireframe' ? 5 : 2}
+            />
+          ))}
         {selectionMode === 'object' && selectedReferenceIds.length > 0 && (
           <SelectionBoundingBox
             key={selectedReferenceIds.join(',')}
             selectedPartIds={selectedReferenceIds}
-            modelGroupRef={modelGroupRef}
+            modelGroupMapRef={modelGroupMapRef}
           />
         )}
         {clickWorldPoint && selectionMode === 'face' && (

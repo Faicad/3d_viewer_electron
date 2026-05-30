@@ -5,7 +5,7 @@ import { CORNER_RATIO, buildCornerGeometry } from './SelectionBoundingBoxUtils'
 
 interface SelectionBoundingBoxProps {
   selectedPartIds: string[]
-  modelGroupRef: React.RefObject<THREE.Group | null>
+  modelGroupMapRef: React.RefObject<Map<string, THREE.Group>>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -73,10 +73,10 @@ function _unused_buildCornerGeometry(
 }
 
 function buildLineSegments(
-  group: THREE.Group,
+  groupMap: Map<string, THREE.Group>,
   selectedPartIds: string[],
 ): THREE.LineSegments | null {
-  const geo = buildCornerGeometry(group, selectedPartIds)
+  const geo = buildCornerGeometry(groupMap, selectedPartIds)
   if (!geo) return null
 
   const mat = new THREE.LineBasicMaterial({
@@ -96,15 +96,16 @@ function buildLineSegments(
 
 export default function SelectionBoundingBox({
   selectedPartIds,
-  modelGroupRef,
+  modelGroupMapRef,
 }: SelectionBoundingBoxProps) {
   const highlightVersion = useEngineStore((s) => s.highlightVersion)
-  // eslint-disable-next-line react-hooks/refs
-  const group = modelGroupRef.current
+  /* eslint-disable react-hooks/refs */
+  const groupMap = modelGroupMapRef.current
   const lines = useMemo(
-    () => (group ? buildLineSegments(group, selectedPartIds) : null),
-    [group, selectedPartIds, highlightVersion],
+    () => (groupMap && groupMap.size > 0 ? buildLineSegments(groupMap, selectedPartIds) : null),
+    [groupMap, selectedPartIds, highlightVersion],
   )
+  /* eslint-enable react-hooks/refs */
 
   if (!lines) return null
 

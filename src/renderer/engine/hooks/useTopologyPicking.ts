@@ -24,8 +24,8 @@ interface UseTopologyPickingOptions {
   selectionMode: SelectionMode
   /** Built selector runtime (null if no topology data) */
   selectorRuntime: SelectorRuntime | null
-  /** Ref to the model group (contains display meshes for raycasting) */
-  modelGroupRef: React.RefObject<THREE.Group | null>
+  /** Ref to all model groups (fileId → Group). Supports multi-file drag & pick. */
+  modelGroupMapRef: React.RefObject<Map<string, THREE.Group>>
   /** Called on hover with the reference id (or null when hovering nothing) */
   onHover: (referenceId: string | null) => void
   /** Called on click with the reference id (null = empty space) and whether shift was held */
@@ -61,18 +61,21 @@ function pointThreshold(bboxSize: number): number {
 }
 
 /**
- * Collects all visible display meshes from the model group.
- * These are the meshes that were rendered by ModelGroup for GLB files.
+ * Collects all visible display meshes from all registered model groups.
+ * Supports multi-file scenarios where meshes are distributed across
+ * several ModelGroup roots keyed by fileId.
  */
-function collectDisplayMeshes(group: THREE.Group | null): THREE.Mesh[] {
+function collectDisplayMeshes(groupMap: Map<string, THREE.Group> | null): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = []
-  if (!group) return meshes
+  if (!groupMap || groupMap.size === 0) return meshes
 
-  group.traverse((child) => {
-    if (child instanceof THREE.Mesh && child.visible) {
-      meshes.push(child)
-    }
-  })
+  for (const group of groupMap.values()) {
+    group.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.visible) {
+        meshes.push(child)
+      }
+    })
+  }
   return meshes
 }
 
@@ -84,7 +87,7 @@ export function useTopologyPicking({
   enabled,
   selectionMode,
   selectorRuntime,
-  modelGroupRef,
+  modelGroupMapRef,
   onHover,
   onClick,
   onClickWorldPoint,
@@ -153,8 +156,8 @@ export function useTopologyPicking({
       // Find the pick-overlay group in the scene
       const pickOverlay = scene.getObjectByName('topology-pick-overlay') as THREE.Group | undefined
 
-      // Collect display meshes
-      const displayMeshes = collectDisplayMeshes(modelGroupRef.current)
+      // Collect display meshes from all model groups
+      const displayMeshes = collectDisplayMeshes(modelGroupMapRef.current)
 
       if (mode === 'object') {
         if (!displayMeshes.length) return null
@@ -344,19 +347,21 @@ export function useTopologyPicking({
 
       drag.lastWorldPoint.copy(intersection)
 
-      const group = modelGroupRef.current
+      const groupMap = modelGroupMapRef.current
       const selParts = selectedPartIdsRef.current
-      if (group && selParts) {
+      if (groupMap && selParts) {
         const partSet = new Set(selParts)
-        group.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            const partId = child.userData?.partId as string | undefined
-            if (partId && partSet.has(partId)) {
-              child.position.x += deltaX
-              child.position.y += deltaY
+        for (const group of groupMap.values()) {
+          group.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              const partId = child.userData?.partId as string | undefined
+              if (partId && partSet.has(partId)) {
+                child.position.x += deltaX
+                child.position.y += deltaY
+              }
             }
-          }
-        })
+          })
+        }
       }
 
       // Force highlights and bounding box to recompute after drag
@@ -404,7 +409,7 @@ export function useTopologyPicking({
 
       setPointerFromClient(event.clientX, event.clientY)
       raycaster.setFromCamera(pointer, camera)
-      const displayMeshes = collectDisplayMeshes(modelGroupRef.current)
+      const displayMeshes = collectDisplayMeshes(modelGroupMapRef.current)
       if (!displayMeshes.length) return
 
       const hits = raycaster.intersectObjects(displayMeshes, false)
@@ -466,7 +471,7 @@ export function useTopologyPicking({
         'mode:', selectionModeRef.current,
         'picked:', id || 'null',
         'runtime:', !!selectorRuntimeRef.current,
-        'displayMeshes:', collectDisplayMeshes(modelGroupRef.current).length)
+        'displayMeshes:', collectDisplayMeshes(modelGroupMapRef.current).length)
       if (id) {
         onClickRef.current(id, event.shiftKey)
         if (selectionModeRef.current === 'face') {
@@ -506,5 +511,5 @@ export function useTopologyPicking({
       canvas.removeEventListener('pointerleave', handlePointerLeave)
       clearHover()
     }
-  }, [enabled, camera, gl, scene, modelGroupRef, raycaster])
+  }, [enabled, camera, gl, scene, modelGroupMapRef, raycaster])
 }
