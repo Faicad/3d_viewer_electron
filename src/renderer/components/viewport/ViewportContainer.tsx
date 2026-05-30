@@ -233,7 +233,12 @@ export default function ViewportContainer() {
 
   const [animTarget, setAnimTarget] = useState<THREE.Vector3 | null>(null)
   const [animTargetUp, setAnimTargetUp] = useState<THREE.Vector3 | null>(null)
-  const [animActive, setAnimActive] = useState(false)
+  const [animActive, setAnimActiveState] = useState(false)
+
+  const setAnimActive = useCallback((active: boolean) => {
+    setAnimActiveState(active)
+    useEngineStore.getState().set__animActive(active)
+  }, [])
   const pendingBoxRef = useRef<THREE.Box3 | null>(null)
   // Track largest bounding box across all loaded models for multi-file camera fit
   const largestBoxRef = useRef<THREE.Box3 | null>(null)

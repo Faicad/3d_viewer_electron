@@ -40,12 +40,15 @@ test('shadow should not have severe aliasing on box_fillet.glb', async () => {
     { timeout: 15000 },
   ).catch(() => {})
 
-  // Wait for camera fit animation to finish
+  // Wait for camera auto-fit animation to start then finish
   await page.waitForFunction(() => {
     const es = (window as any).__engineStore
-    if (!es) return false
-    return es.getState().__animActive === false || es.getState().__animActive === undefined
-  }, { timeout: 8000 }).catch(() => {})
+    return es?.getState().__animActive === true
+  }, { timeout: 10000 }).catch(() => {})
+  await page.waitForFunction(() => {
+    const es = (window as any).__engineStore
+    return es?.getState().__animActive === false
+  }, { timeout: 15000 }).catch(() => {})
 
   // Collect shadow diagnostic info
   const diag = await page.evaluate(() => {

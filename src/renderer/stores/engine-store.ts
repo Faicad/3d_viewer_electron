@@ -86,6 +86,10 @@ interface EngineStore {
   modelBbox: [number, number, number, number, number, number] | null
   setModelBbox: (b: [number, number, number, number, number, number] | null) => void
 
+  // Camera auto-fit animation state (primarily for E2E tests)
+  __animActive: boolean
+  set__animActive: (v: boolean) => void
+
   highlightVersion: number
   bumpHighlightVersion: () => void
 
@@ -164,6 +168,9 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setShadowOpacity: (v) => set({ shadowOpacity: v }),
   modelBbox: null,
   setModelBbox: (b) => set({ modelBbox: b }),
+
+  __animActive: false,
+  set__animActive: (v) => set({ __animActive: v }),
 
   highlightVersion: 0,
   bumpHighlightVersion: () => set((s) => ({ highlightVersion: s.highlightVersion + 1 })),

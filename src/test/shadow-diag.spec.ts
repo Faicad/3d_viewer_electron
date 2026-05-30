@@ -29,12 +29,16 @@ test('shadow visibility diagnostic', async () => {
     { timeout: 15000 },
   ).catch(() => {})
 
-  // Wait for camera auto-fit to settle
+  // Wait for camera auto-fit animation to start then finish
+  // Two-step wait avoids the initial `__animActive === false` resolving too early
   await page.waitForFunction(() => {
     const es = (window as any).__engineStore
-    if (!es) return false
-    return es.getState().__animActive === false || es.getState().__animActive === undefined
+    return es?.getState().__animActive === true
   }, { timeout: 10000 }).catch(() => {})
+  await page.waitForFunction(() => {
+    const es = (window as any).__engineStore
+    return es?.getState().__animActive === false
+  }, { timeout: 15000 }).catch(() => {})
 
   // Increase shadow opacity for better visibility
   await page.evaluate(() => {
