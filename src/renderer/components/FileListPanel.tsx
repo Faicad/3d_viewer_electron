@@ -414,7 +414,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
   if (format === 'svg' || format === 'dxf') {
     const existing = store.loadedFiles.find(f => f.filePath === file.path)
     if (existing && existing.svgText) {
-      // Toggle workspace visibility
+      // Toggle workspace visibility (toggleFile syncs with model store)
       useSvgWorkspaceStore.getState().toggleFile(
         existing.id,
         existing.fileName,

@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useModelStore } from './model-store'
 import type { SceneTreeNode } from './model-store'
+import { useSvgWorkspaceStore, parseSvgLayers } from './svg-workspace-store'
 
 // Exported for testing — the recursive tree utility
 function toggleNodeInTree(
@@ -383,5 +384,136 @@ describe('getPartIdsByMaterial', () => {
 
     expect(useModelStore.getState().getPartIdsByMaterial('f1', 0)).toEqual(['p0'])
     expect(useModelStore.getState().getPartIdsByMaterial('f2', 0)).toEqual(['q0'])
+  })
+})
+
+// ---- SVG/DXF toggle consistency with workspace ----
+
+const SVG_SAMPLE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150">
+  <g id="bg"><rect width="200" height="150" fill="#eee"/></g>
+  <g id="fg"><circle cx="100" cy="75" r="30" fill="blue"/></g>
+</svg>`
+
+describe('SVG workspace sync — FileListPanel toggle', () => {
+  beforeEach(() => {
+    useModelStore.getState().reset()
+    useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
+    useSvgWorkspaceStore.getState().setCanvasSize(800, 600)
+  })
+
+  it('removes file from loadedFiles when SVG is toggled off (FileListPanel click)', () => {
+    const store = useModelStore.getState()
+    const fileId = 'svg-1'
+    const filePath = '/test.svg'
+    const svgLayers = parseSvgLayers(SVG_SAMPLE)
+
+    // Step 1: First click — add to both model store and workspace
+    store.addLoadedFile({
+      id: fileId,
+      fileName: 'test.svg',
+      filePath,
+      buffer: new ArrayBuffer(0),
+      format: 'svg',
+      sceneTree: [],
+      glbPartInfos: [],
+      modelCenteringOffset: null,
+      sourceUnit: 'millimeter',
+      fileGroup: 'vector',
+      loadingPhase: 'done',
+      svgText: SVG_SAMPLE,
+      svgLayers,
+    })
+    useSvgWorkspaceStore.getState().toggleFile(
+      fileId, 'test.svg', SVG_SAMPLE, svgLayers, 200, 150,
+    )
+
+    // After first click: file is in both stores
+    expect(useModelStore.getState().isFileLoaded(filePath)).toBe(true)
+    expect(useSvgWorkspaceStore.getState().files).toHaveLength(1)
+
+    // Step 2: Second click — workspace toggle removes it from canvas…
+    useSvgWorkspaceStore.getState().toggleFile(
+      fileId, 'test.svg', SVG_SAMPLE, svgLayers, 200, 150,
+    )
+
+    // Workspace is now empty (file removed from canvas)
+    expect(useSvgWorkspaceStore.getState().files).toHaveLength(0)
+
+    // BUG: FileListPanel never called removeLoadedFile — so the model store
+    // still has the file, and the thumbnail dot marker stays lit.
+    expect(useModelStore.getState().isFileLoaded(filePath)).toBe(false)
+  })
+
+  it('removes file from loadedFiles when SVG is closed via SvgLayerTree', () => {
+    const store = useModelStore.getState()
+    const fileId = 'svg-2'
+    const filePath = '/test2.svg'
+    const svgLayers = parseSvgLayers(SVG_SAMPLE)
+
+    // Load the SVG file
+    store.addLoadedFile({
+      id: fileId,
+      fileName: 'test2.svg',
+      filePath,
+      buffer: new ArrayBuffer(0),
+      format: 'svg',
+      sceneTree: [],
+      glbPartInfos: [],
+      modelCenteringOffset: null,
+      sourceUnit: 'millimeter',
+      fileGroup: 'vector',
+      loadingPhase: 'done',
+      svgText: SVG_SAMPLE,
+      svgLayers,
+    })
+    useSvgWorkspaceStore.getState().toggleFile(
+      fileId, 'test2.svg', SVG_SAMPLE, svgLayers, 200, 150,
+    )
+
+    expect(useModelStore.getState().isFileLoaded(filePath)).toBe(true)
+
+    // SvgLayerTree close button: removes from workspace but not loadedFiles
+    useSvgWorkspaceStore.getState().removeFile(fileId)
+
+    // Workspace is empty
+    expect(useSvgWorkspaceStore.getState().files).toHaveLength(0)
+
+    // BUG: SvgLayerTree never called removeLoadedFile
+    expect(useModelStore.getState().isFileLoaded(filePath)).toBe(false)
+  })
+
+  it('removes file from loadedFiles when SvgWorkspaceStore.removeFile is called', () => {
+    const store = useModelStore.getState()
+    const fileId = 'svg-3'
+    const filePath = '/test3.svg'
+    const svgLayers = parseSvgLayers(SVG_SAMPLE)
+
+    store.addLoadedFile({
+      id: fileId,
+      fileName: 'test3.svg',
+      filePath,
+      buffer: new ArrayBuffer(0),
+      format: 'svg',
+      sceneTree: [],
+      glbPartInfos: [],
+      modelCenteringOffset: null,
+      sourceUnit: 'millimeter',
+      fileGroup: 'vector',
+      loadingPhase: 'done',
+      svgText: SVG_SAMPLE,
+      svgLayers,
+    })
+    useSvgWorkspaceStore.getState().toggleFile(
+      fileId, 'test3.svg', SVG_SAMPLE, svgLayers, 200, 150,
+    )
+
+    expect(useModelStore.getState().loadedFiles).toHaveLength(1)
+
+    // Directly call removeLoadedFile — the fix should ensure this happens
+    useModelStore.getState().removeLoadedFile(fileId)
+
+    expect(useModelStore.getState().isFileLoaded(filePath)).toBe(false)
+    expect(useModelStore.getState().loadedFiles).toHaveLength(0)
+    expect(useModelStore.getState().activeFileId).toBeNull()
   })
 })

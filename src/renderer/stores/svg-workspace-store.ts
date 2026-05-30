@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SvgLayer } from '@/stores/model-store'
+import { useModelStore, type SvgLayer } from '@/stores/model-store'
 
 // ---- constants ----
 
@@ -231,6 +231,9 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
           ? (next.length > 0 ? next[next.length - 1].fileId : null)
           : selectedFileId,
       })
+      // Sync model store: when SVG is removed from workspace, also clear
+      // its loaded-files entry so the thumbnail dot marker stays in sync.
+      useModelStore.getState().removeLoadedFile(fileId)
       return
     }
 
@@ -263,6 +266,8 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
         ? (next.length > 0 ? next[next.length - 1].fileId : null)
         : selectedFileId,
     })
+    // Sync model store: keep thumbnail dot marker in sync with workspace
+    useModelStore.getState().removeLoadedFile(fileId)
   },
 
   selectFile: (fileId) => set({ selectedFileId: fileId }),
