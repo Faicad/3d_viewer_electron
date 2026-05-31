@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: PLY
+  link: /zh/formats/ply
+next:
+  text: Collada
+  link: /zh/formats/dae
 ---
 
 # FBX — 网格 (Mesh)

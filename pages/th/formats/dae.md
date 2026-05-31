@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: FBX
+  link: /th/formats/fbx
+next:
+  text: 3DS
+  link: /th/formats/3ds
 ---
 
 # Collada — Mesh

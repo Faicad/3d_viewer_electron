@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: BVH
+  link: /hi/formats/bvh
+next:
+  text: XYZ
+  link: /hi/formats/xyz
 ---
 
 # MD2 — Animation

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: OBJ
+  link: /zh/formats/obj
+next:
+  text: FBX
+  link: /zh/formats/fbx
 ---
 
 # PLY — 网格 (Mesh)

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: STEP
+  link: /pl/formats/step
+next:
+  text: PLY
+  link: /pl/formats/ply
 ---
 
 # OBJ — Mesh

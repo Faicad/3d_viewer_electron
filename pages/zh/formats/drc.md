@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: USDZ
+  link: /zh/formats/usdz
+next:
+  text: AMF
+  link: /zh/formats/amf
 ---
 
 # Draco — 网格 (Mesh)

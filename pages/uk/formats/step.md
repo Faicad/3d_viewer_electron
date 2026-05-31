@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: 3MF
+  link: /uk/formats/3mf
+next:
+  text: OBJ
+  link: /uk/formats/obj
 ---
 
 # STEP — CAD

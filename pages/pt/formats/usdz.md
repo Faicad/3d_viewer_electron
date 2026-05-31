@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: 3DS
+  link: /pt/formats/3ds
+next:
+  text: Draco
+  link: /pt/formats/drc
 ---
 
 # USDZ — Mesh

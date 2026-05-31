@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: FBX
+  link: /zh/formats/fbx
+next:
+  text: 3DS
+  link: /zh/formats/3ds
 ---
 
 # Collada — 网格 (Mesh)

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: PCD
+  link: /sv/formats/pcd
+next:
+  text: NRRD
+  link: /sv/formats/nrrd
 ---
 
 # VTK — Volume

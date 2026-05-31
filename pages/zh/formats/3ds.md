@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: Collada
+  link: /zh/formats/dae
+next:
+  text: USDZ
+  link: /zh/formats/usdz
 ---
 
 # 3DS — 网格 (Mesh)

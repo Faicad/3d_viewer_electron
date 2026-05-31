@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: OBJ
+  link: /ar/formats/obj
+next:
+  text: FBX
+  link: /ar/formats/fbx
 ---
 
 # PLY — Mesh

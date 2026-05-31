@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: MD2
+  link: /zh/formats/md2
+next:
+  text: PDB
+  link: /zh/formats/pdb
 ---
 
 # XYZ — 点云 (Point Cloud)

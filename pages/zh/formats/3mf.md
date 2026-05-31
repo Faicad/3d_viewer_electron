@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: GLTF
+  link: /zh/formats/gltf
+next:
+  text: STEP
+  link: /zh/formats/step
 ---
 
 # 3MF — 网格 (Mesh)

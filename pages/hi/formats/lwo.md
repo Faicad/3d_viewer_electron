@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: AMF
+  link: /hi/formats/amf
+next:
+  text: 3DM
+  link: /hi/formats/3dm
 ---
 
 # LWO — Mesh

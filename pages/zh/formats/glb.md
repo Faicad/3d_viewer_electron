@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: STL
+  link: /zh/formats/stl
+next:
+  text: GLTF
+  link: /zh/formats/gltf
 ---
 
 # GLB — 网格 (Mesh)

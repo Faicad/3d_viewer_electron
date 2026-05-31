@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: NRRD
+  link: /vi/formats/nrrd
+next:
+  text: VRML
+  link: /vi/formats/wrl
 ---
 
 # GCode — GCode

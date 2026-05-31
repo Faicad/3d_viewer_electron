@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: Draco
+  link: /de/formats/drc
+next:
+  text: LWO
+  link: /de/formats/lwo
 ---
 
 # AMF — Mesh

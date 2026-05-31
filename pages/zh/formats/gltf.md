@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: GLB
+  link: /zh/formats/glb
+next:
+  text: 3MF
+  link: /zh/formats/3mf
 ---
 
 # GLTF — 网格 (Mesh)

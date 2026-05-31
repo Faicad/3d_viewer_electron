@@ -1,5 +1,8 @@
 ---
 sidebar: false
+next:
+  text: GLB
+  link: /sv/formats/glb
 ---
 
 # STL — Mesh

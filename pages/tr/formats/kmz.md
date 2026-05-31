@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: VOX
+  link: /tr/formats/vox
+next:
+  text: SVG
+  link: /tr/formats/svg
 ---
 
 # KMZ — Other

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: USDZ
+  link: /hi/formats/usdz
+next:
+  text: AMF
+  link: /hi/formats/amf
 ---
 
 # Draco — Mesh

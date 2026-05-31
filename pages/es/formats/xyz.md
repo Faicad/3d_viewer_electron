@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: MD2
+  link: /es/formats/md2
+next:
+  text: PDB
+  link: /es/formats/pdb
 ---
 
 # XYZ — Point Cloud

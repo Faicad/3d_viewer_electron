@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: GCode
+  link: /tr/formats/gcode
+next:
+  text: VOX
+  link: /tr/formats/vox
 ---
 
 # VRML — Other

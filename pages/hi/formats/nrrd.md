@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: VTK
+  link: /hi/formats/vtk
+next:
+  text: GCode
+  link: /hi/formats/gcode
 ---
 
 # NRRD — Volume

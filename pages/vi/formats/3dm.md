@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: LWO
+  link: /vi/formats/lwo
+next:
+  text: BVH
+  link: /vi/formats/bvh
 ---
 
 # 3DM — Mesh

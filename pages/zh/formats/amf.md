@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: Draco
+  link: /zh/formats/drc
+next:
+  text: LWO
+  link: /zh/formats/lwo
 ---
 
 # AMF — 网格 (Mesh)

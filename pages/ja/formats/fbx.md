@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: PLY
+  link: /ja/formats/ply
+next:
+  text: Collada
+  link: /ja/formats/dae
 ---
 
 # FBX — Mesh

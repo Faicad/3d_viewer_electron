@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: PDB
+  link: /de/formats/pdb
+next:
+  text: VTK
+  link: /de/formats/vtk
 ---
 
 # PCD — Point Cloud

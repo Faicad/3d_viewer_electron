@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: STL
+  link: /pt/formats/stl
+next:
+  text: GLTF
+  link: /pt/formats/gltf
 ---
 
 # GLB — Mesh

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: GLB
+  link: /ko/formats/glb
+next:
+  text: 3MF
+  link: /ko/formats/3mf
 ---
 
 # GLTF — Mesh

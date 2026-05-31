@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: STEP
+  link: /zh/formats/step
+next:
+  text: PLY
+  link: /zh/formats/ply
 ---
 
 # OBJ — 网格 (Mesh)

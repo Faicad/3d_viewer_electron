@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: XYZ
+  link: /pt/formats/xyz
+next:
+  text: PCD
+  link: /pt/formats/pcd
 ---
 
 # PDB — Point Cloud

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: Collada
+  link: /nl/formats/dae
+next:
+  text: USDZ
+  link: /nl/formats/usdz
 ---
 
 # 3DS — Mesh

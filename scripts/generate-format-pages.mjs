@@ -26,7 +26,8 @@ function getDescription(f, lang) {
   return f.en.description
 }
 
-function pageContent(f, lang) {
+function pageContent(f, lang, prev, next) {
+  const prefix = lang === 'en' ? '' : `/${lang}`
   const exts = f.extensions.join(', ')
   const groupLabel = getLabel(FORMAT_GROUPS[f.group], lang)
   const renderHintLabel = getLabel(RENDER_HINT_LABELS[f.renderHint], lang)
@@ -72,6 +73,11 @@ function pageContent(f, lang) {
         ? ['线段的刀具路径渲染', '逐层显示']
         : ['Line segment toolpath rendering', 'Layer-by-layer display']
     }
+    if (f.renderHint === 'svg') {
+      return lang === 'zh'
+        ? ['矢量图形渲染', '无限缩放不失真']
+        : ['Vector graphics rendering', 'Infinite scaling without quality loss']
+    }
     if (f.group === 'cad') {
       return lang === 'zh'
         ? ['拓扑结构保留（面/边/顶点）', '线框/实体+线框显示模式', '单位自动识别']
@@ -86,9 +92,17 @@ function pageContent(f, lang) {
     ? `\n## ${lang === 'zh' ? '截图' : 'Screenshot'}\n\n![${f.label}](/screenshots/formats/${f.id}.png)\n`
     : ''
 
+  let prevNextYaml = ''
+  if (prev) {
+    prevNextYaml += `prev:\n  text: ${prev.label}\n  link: ${prefix}/formats/${prev.id}\n`
+  }
+  if (next) {
+    prevNextYaml += `next:\n  text: ${next.label}\n  link: ${prefix}/formats/${next.id}\n`
+  }
+
   return `---
 sidebar: false
----
+${prevNextYaml}---
 
 # ${f.label} — ${groupLabel}
 
@@ -104,45 +118,60 @@ ${desc}
 
 ## ${lang === 'zh' ? '支持的特性' : 'Supported Features'}
 
-${specificFeatures.map(f => `- ${f}`).join('\n')}
+${specificFeatures.map(sf => `- ${sf}`).join('\n')}
 
 ### ${lang === 'zh' ? '通用功能' : 'General Features'}
 
-${features.map(f => `- ${f}`).join('\n')}
+${features.map(ff => `- ${ff}`).join('\n')}
 ${screenshotSection}
 `
 }
 
 // Generate pages for each format × locale
-for (const f of FORMATS) {
+for (let i = 0; i < FORMATS.length; i++) {
+  const f = FORMATS[i]
+  const prev = i > 0 ? FORMATS[i - 1] : null
+  const next = i < FORMATS.length - 1 ? FORMATS[i + 1] : null
   for (const lang of ALL_LOCALES) {
     const dir = formatsDir(lang)
     fs.mkdirSync(dir, { recursive: true })
     const filePath = path.join(dir, `${f.id}.md`)
-    fs.writeFileSync(filePath, pageContent(f, lang), 'utf-8')
+    fs.writeFileSync(filePath, pageContent(f, lang, prev, next), 'utf-8')
   }
 }
 
-// Generate index page per locale
+// Generate grouped index page per locale
+const GROUP_ORDER = ['mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'vector', 'other']
+
 for (const lang of ALL_LOCALES) {
   const title = lang === 'zh' ? '支持的格式' : 'Supported Formats'
   const desc = lang === 'zh'
     ? '查看 Faicad 3D Viewer 支持的所有文件格式的详细介绍。'
     : 'Browse details for all file formats supported by Faicad 3D Viewer.'
 
-  const links = FORMATS.map(f => {
-    const groupLabel = getLabel(FORMAT_GROUPS[f.group], lang)
-    return `- [${f.label}](${f.id}) — \`${f.extensions.join(', ')}\` — ${groupLabel}`
-  }).join('\n')
+  const sections = []
+  for (const groupKey of GROUP_ORDER) {
+    const groupObj = FORMAT_GROUPS[groupKey]
+    if (!groupObj) continue
+    const groupLabel = getLabel(groupObj, lang)
+    const groupFormats = FORMATS.filter(f => f.group === groupKey)
+    if (groupFormats.length === 0) continue
+
+    const items = groupFormats.map(f =>
+      `### [${f.label}](${f.id})\n\n${f.extensions.map(e => '`' + e + '`').join(' ')}\n\n${getDescription(f, lang)}`
+    ).join('\n\n')
+
+    sections.push(`## ${groupLabel}\n\n${items}`)
+  }
 
   const content = `# ${title}
 
 ${desc}
 
-${links}
+${sections.join('\n\n')}
 `
   const filePath = path.join(formatsDir(lang), 'index.md')
   fs.writeFileSync(filePath, content, 'utf-8')
 }
 
-console.log('✅ Format pages generated for ' + ALL_LOCALES.length + ' locales.')
+console.log('✅ Format pages generated for ' + ALL_LOCALES.length + ' locales, ' + FORMATS.length + ' formats.')

@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: 3DM
+  link: /zh/formats/3dm
+next:
+  text: MD2
+  link: /zh/formats/md2
 ---
 
 # BVH — 动画 (Animation)

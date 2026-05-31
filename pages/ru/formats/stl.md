@@ -1,5 +1,8 @@
 ---
 sidebar: false
+next:
+  text: GLB
+  link: /ru/formats/glb
 ---
 
 # STL — Mesh

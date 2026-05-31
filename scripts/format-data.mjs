@@ -203,4 +203,18 @@ export const FORMATS = [
     zh: { description: 'KMZ 是压缩的 KML (Keyhole Markup Language) 格式，用于地理空间数据和 3D 模型的打包分发。' },
     en: { description: 'KMZ is a compressed KML (Keyhole Markup Language) format for packaging geospatial data and 3D models.' },
   },
+  {
+    id: 'svg', label: 'SVG', extensions: ['.svg'],
+    group: 'vector', renderHint: 'svg',
+    fixture: null, mimeType: 'image/svg+xml',
+    zh: { description: 'SVG (Scalable Vector Graphics) 是基于 XML 的二维矢量图形格式，广泛应用于 Web 图标、插图和 UI 设计。' },
+    en: { description: 'SVG (Scalable Vector Graphics) is an XML-based 2D vector graphics format widely used for web icons, illustrations and UI design.' },
+  },
+  {
+    id: 'dxf', label: 'DXF', extensions: ['.dxf'],
+    group: 'cad', renderHint: 'mesh',
+    fixture: null, mimeType: 'application/octet-stream',
+    zh: { description: 'DXF (Drawing Exchange Format) 是 Autodesk 的 CAD 数据交换格式，广泛用于 2D 工程图和 3D 模型交换。' },
+    en: { description: 'DXF (Drawing Exchange Format) is Autodesk\'s CAD data exchange format, widely used for 2D engineering drawings and 3D model exchange.' },
+  },
 ]

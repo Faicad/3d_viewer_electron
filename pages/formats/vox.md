@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: VRML
+  link: /formats/wrl
+next:
+  text: KMZ
+  link: /formats/kmz
 ---
 
 # VOX — Other

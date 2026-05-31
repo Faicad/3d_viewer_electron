@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: LWO
+  link: /zh/formats/lwo
+next:
+  text: BVH
+  link: /zh/formats/bvh
 ---
 
 # 3DM — 网格 (Mesh)

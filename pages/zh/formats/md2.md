@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: BVH
+  link: /zh/formats/bvh
+next:
+  text: XYZ
+  link: /zh/formats/xyz
 ---
 
 # MD2 — 动画 (Animation)

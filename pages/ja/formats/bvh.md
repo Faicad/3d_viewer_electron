@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: 3DM
+  link: /ja/formats/3dm
+next:
+  text: MD2
+  link: /ja/formats/md2
 ---
 
 # BVH — Animation

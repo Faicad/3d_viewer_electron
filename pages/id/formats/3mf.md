@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: GLTF
+  link: /id/formats/gltf
+next:
+  text: STEP
+  link: /id/formats/step
 ---
 
 # 3MF — Mesh

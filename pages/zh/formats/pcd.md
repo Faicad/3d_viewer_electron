@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: PDB
+  link: /zh/formats/pdb
+next:
+  text: VTK
+  link: /zh/formats/vtk
 ---
 
 # PCD — 点云 (Point Cloud)

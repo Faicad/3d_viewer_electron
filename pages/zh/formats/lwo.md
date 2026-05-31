@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: AMF
+  link: /zh/formats/amf
+next:
+  text: 3DM
+  link: /zh/formats/3dm
 ---
 
 # LWO — 网格 (Mesh)

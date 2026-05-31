@@ -1,5 +1,11 @@
 ---
 sidebar: false
+prev:
+  text: VTK
+  link: /zh/formats/vtk
+next:
+  text: GCode
+  link: /zh/formats/gcode
 ---
 
 # NRRD — 体数据 (Volume)
