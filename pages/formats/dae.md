@@ -4,7 +4,7 @@ sidebar: false
 
 # Collada — 网格 (Mesh)
 
-[object Object]
+DAE (Collada) 是基于 XML 的开放 3D 格式，支持完整的场景图、材质和动画数据。
 
 ## 基本信息
 

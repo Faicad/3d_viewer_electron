@@ -4,7 +4,7 @@ sidebar: false
 
 # STEP — CAD
 
-[object Object]
+STEP 是工业 CAD 领域最常用的三维数据交换格式。本应用自动导入并渲染，保留拓扑结构，支持线框显示和单位自动识别。
 
 ## 基本信息
 

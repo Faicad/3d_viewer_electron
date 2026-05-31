@@ -4,7 +4,7 @@ sidebar: false
 
 # OBJ — 网格 (Mesh)
 
-[object Object]
+OBJ 是经典的 Wavefront 3D 格式，基于文本，可引用外部 .mtl 材质库文件。
 
 ## 基本信息
 

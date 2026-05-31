@@ -4,7 +4,7 @@ sidebar: false
 
 # PCD — 点云 (Point Cloud)
 
-[object Object]
+PCD (Point Cloud Data) 是点云库 (PCL) 的标准格式，存储三维点坐标和属性。
 
 ## 基本信息
 

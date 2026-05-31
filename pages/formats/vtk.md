@@ -4,7 +4,7 @@ sidebar: false
 
 # VTK — 体数据 (Volume)
 
-[object Object]
+VTK (Visualization Toolkit) 是科学可视化领域的标准数据格式，支持多种数据类型。
 
 ## 基本信息
 

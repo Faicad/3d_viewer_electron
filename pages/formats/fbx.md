@@ -4,7 +4,7 @@ sidebar: false
 
 # FBX — 网格 (Mesh)
 
-[object Object]
+FBX 是 Autodesk 的 3D 交换格式，广泛用于游戏和影视行业，支持网格、材质和动画。
 
 ## 基本信息
 

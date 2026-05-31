@@ -7,9 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const PAGES = path.resolve(ROOT, 'pages')
 
-const LOCALES = ['zh', 'en']
+const ALL_LOCALES = ['zh', 'en', 'es', 'ja', 'ko', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'tr', 'it', 'nl', 'pl', 'vi', 'th', 'uk', 'sv']
 
-// zh → root, en → pages/en/, etc.
 function langDir(lang) {
   return lang === 'zh' ? PAGES : path.join(PAGES, lang)
 }
@@ -18,28 +17,24 @@ function formatsDir(lang) {
   return path.join(langDir(lang), 'formats')
 }
 
-function fmt(f, lang) {
-  return lang === 'zh' ? f.zh : f.en
+function getLabel(obj, lang) {
+  return obj[lang] || obj.en
 }
 
-function header(lang) {
-  return lang === 'zh'
-    ? `# ${fmt(f, lang)} 文件格式`
-    : `# ${f.label} File Format`
+function getDescription(f, lang) {
+  if (lang === 'zh') return f.zh.description
+  return f.en.description
 }
 
 function pageContent(f, lang) {
-  const label = f.label
   const exts = f.extensions.join(', ')
-  const group = FORMAT_GROUPS[f.group]
-  const groupLabel = fmt(group, lang)
-  const renderHint = RENDER_HINT_LABELS[f.renderHint]
-  const renderHintLabel = fmt(renderHint, lang)
-  const desc = fmt(f, lang)
+  const groupLabel = getLabel(FORMAT_GROUPS[f.group], lang)
+  const renderHintLabel = getLabel(RENDER_HINT_LABELS[f.renderHint], lang)
+  const desc = getDescription(f, lang)
+
   const screenshotPath = path.resolve(ROOT, 'pages', 'public', 'screenshots', 'formats', `${f.id}.png`)
   const hasScreenshot = fs.existsSync(screenshotPath)
 
-  // Common features all formats support
   const features = lang === 'zh' ? [
     '拖拽加载：直接将文件拖入应用窗口',
     '点击上传：通过文件对话框选择',
@@ -56,7 +51,6 @@ function pageContent(f, lang) {
     'Model export: download as STL or GLB',
   ]
 
-  // Format-specific features
   const specificFeatures = (() => {
     if (f.renderHint === 'skeleton') {
       return lang === 'zh'
@@ -121,27 +115,24 @@ ${screenshotSection}
 
 // Generate pages for each format × locale
 for (const f of FORMATS) {
-  for (const lang of LOCALES) {
+  for (const lang of ALL_LOCALES) {
     const dir = formatsDir(lang)
     fs.mkdirSync(dir, { recursive: true })
     const filePath = path.join(dir, `${f.id}.md`)
     fs.writeFileSync(filePath, pageContent(f, lang), 'utf-8')
-    console.log(`  ${filePath}`)
   }
 }
 
 // Generate index page per locale
-for (const lang of LOCALES) {
+for (const lang of ALL_LOCALES) {
   const title = lang === 'zh' ? '支持的格式' : 'Supported Formats'
   const desc = lang === 'zh'
     ? '查看 Faicad 3D Viewer 支持的所有文件格式的详细介绍。'
     : 'Browse details for all file formats supported by Faicad 3D Viewer.'
 
   const links = FORMATS.map(f => {
-    const label = f.label
-    const exts = f.extensions.join(', ')
-    const groupLabel = fmt(FORMAT_GROUPS[f.group], lang)
-    return `- [${label}](${f.id}) — \`${exts}\` — ${groupLabel}`
+    const groupLabel = getLabel(FORMAT_GROUPS[f.group], lang)
+    return `- [${f.label}](${f.id}) — \`${f.extensions.join(', ')}\` — ${groupLabel}`
   }).join('\n')
 
   const content = `# ${title}
@@ -152,7 +143,6 @@ ${links}
 `
   const filePath = path.join(formatsDir(lang), 'index.md')
   fs.writeFileSync(filePath, content, 'utf-8')
-  console.log(`  ${filePath}`)
 }
 
-console.log('✅ Format pages generated.')
+console.log('✅ Format pages generated for ' + ALL_LOCALES.length + ' locales.')

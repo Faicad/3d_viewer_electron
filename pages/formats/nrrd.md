@@ -4,7 +4,7 @@ sidebar: false
 
 # NRRD — 体数据 (Volume)
 
-[object Object]
+NRRD (Nearly Raw Raster Data) 是医学和科学成像中的体数据格式，支持多维栅格数据。
 
 ## 基本信息
 

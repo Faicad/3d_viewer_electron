@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import pkg from '../../package.json'
-import { FORMATS, FORMAT_GROUPS } from '../../scripts/format-data.mjs'
+import { FORMATS } from '../../scripts/format-data.mjs'
+import { NAV, SIDEBAR } from '../../scripts/translations.mjs'
 
 const LANG_LABELS = {
   zh: { label: '中文', lang: 'zh-CN' },
@@ -25,19 +26,38 @@ const LANG_LABELS = {
   sv: { label: 'Svenska', lang: 'sv' },
 }
 
-function fmt(f, lang) {
-  if (lang === 'zh') return f.zh
-  // For non-zh languages, use English as fallback
-  return f.en
+const UI_LABELS = {
+  zh: { docFooter: { prev: '上一页', next: '下一页' }, outline: '本页目录', lastUpdated: '最后更新', darkModeSwitch: '主题切换', sidebarMenu: '菜单', returnToTop: '返回顶部', langMenu: '语言', lightModeSwitchTitle: '切换到浅色模式', darkModeSwitchTitle: '切换到深色模式' },
+  en: { docFooter: { prev: 'Previous page', next: 'Next page' }, outline: 'On this page', lastUpdated: 'Last updated', darkModeSwitch: 'Appearance', sidebarMenu: 'Menu', returnToTop: 'Return to top', langMenu: 'Language', lightModeSwitchTitle: 'Switch to light mode', darkModeSwitchTitle: 'Switch to dark mode' },
+  es: { docFooter: { prev: 'Página anterior', next: 'Página siguiente' }, outline: 'En esta página', lastUpdated: 'Última actualización', darkModeSwitch: 'Apariencia', sidebarMenu: 'Menú', returnToTop: 'Volver arriba', langMenu: 'Idioma', lightModeSwitchTitle: 'Cambiar a modo claro', darkModeSwitchTitle: 'Cambiar a modo oscuro' },
+  ja: { docFooter: { prev: '前のページ', next: '次のページ' }, outline: 'このページの内容', lastUpdated: '最終更新', darkModeSwitch: '表示モード', sidebarMenu: 'メニュー', returnToTop: 'トップに戻る', langMenu: '言語', lightModeSwitchTitle: 'ライトモードに切り替え', darkModeSwitchTitle: 'ダークモードに切り替え' },
+  ko: { docFooter: { prev: '이전 페이지', next: '다음 페이지' }, outline: '이 페이지의 내용', lastUpdated: '마지막 업데이트', darkModeSwitch: '테마', sidebarMenu: '메뉴', returnToTop: '맨 위로', langMenu: '언어', lightModeSwitchTitle: '라이트 모드로 전환', darkModeSwitchTitle: '다크 모드로 전환' },
+  fr: { docFooter: { prev: 'Page précédente', next: 'Page suivante' }, outline: 'Sur cette page', lastUpdated: 'Dernière mise à jour', darkModeSwitch: 'Apparence', sidebarMenu: 'Menu', returnToTop: 'Retour en haut', langMenu: 'Langue', lightModeSwitchTitle: 'Passer en mode clair', darkModeSwitchTitle: 'Passer en mode sombre' },
+  de: { docFooter: { prev: 'Vorherige Seite', next: 'Nächste Seite' }, outline: 'Auf dieser Seite', lastUpdated: 'Zuletzt aktualisiert', darkModeSwitch: 'Darstellung', sidebarMenu: 'Menü', returnToTop: 'Zurück zum Anfang', langMenu: 'Sprache', lightModeSwitchTitle: 'Zum hellen Modus wechseln', darkModeSwitchTitle: 'Zum dunklen Modus wechseln' },
+  pt: { docFooter: { prev: 'Página anterior', next: 'Próxima página' }, outline: 'Nesta página', lastUpdated: 'Última atualização', darkModeSwitch: 'Aparência', sidebarMenu: 'Menu', returnToTop: 'Voltar ao topo', langMenu: 'Idioma', lightModeSwitchTitle: 'Mudar para modo claro', darkModeSwitchTitle: 'Mudar para modo escuro' },
+  ru: { docFooter: { prev: 'Предыдущая страница', next: 'Следующая страница' }, outline: 'На этой странице', lastUpdated: 'Последнее обновление', darkModeSwitch: 'Оформление', sidebarMenu: 'Меню', returnToTop: 'Вернуться наверх', langMenu: 'Язык', lightModeSwitchTitle: 'Переключить на светлый режим', darkModeSwitchTitle: 'Переключить на тёмный режим' },
+  ar: { docFooter: { prev: 'الصفحة السابقة', next: 'الصفحة التالية' }, outline: 'في هذه الصفحة', lastUpdated: 'آخر تحديث', darkModeSwitch: 'المظهر', sidebarMenu: 'القائمة', returnToTop: 'العودة إلى الأعلى', langMenu: 'اللغة', lightModeSwitchTitle: 'التبديل إلى الوضع الفاتح', darkModeSwitchTitle: 'التبديل إلى الوضع الداكن' },
+  hi: { docFooter: { prev: 'पिछला पृष्ठ', next: 'अगला पृष्ठ' }, outline: 'इस पृष्ठ पर', lastUpdated: 'अंतिम अपडेट', darkModeSwitch: 'दृश्य', sidebarMenu: 'मेनू', returnToTop: 'ऊपर जाएँ', langMenu: 'भाषा', lightModeSwitchTitle: 'लाइट मोड पर स्विच करें', darkModeSwitchTitle: 'डार्क मोड पर स्विच करें' },
+  id: { docFooter: { prev: 'Halaman sebelumnya', next: 'Halaman berikutnya' }, outline: 'Di halaman ini', lastUpdated: 'Terakhir diperbarui', darkModeSwitch: 'Tampilan', sidebarMenu: 'Menu', returnToTop: 'Kembali ke atas', langMenu: 'Bahasa', lightModeSwitchTitle: 'Beralih ke mode terang', darkModeSwitchTitle: 'Beralih ke mode gelap' },
+  tr: { docFooter: { prev: 'Önceki sayfa', next: 'Sonraki sayfa' }, outline: 'Bu sayfada', lastUpdated: 'Son güncelleme', darkModeSwitch: 'Görünüm', sidebarMenu: 'Menü', returnToTop: 'Başa dön', langMenu: 'Dil', lightModeSwitchTitle: 'Açık moda geç', darkModeSwitchTitle: 'Koyu moda geç' },
+  it: { docFooter: { prev: 'Pagina precedente', next: 'Pagina successiva' }, outline: 'In questa pagina', lastUpdated: 'Ultimo aggiornamento', darkModeSwitch: 'Aspetto', sidebarMenu: 'Menu', returnToTop: 'Torna su', langMenu: 'Lingua', lightModeSwitchTitle: 'Passa alla modalità chiara', darkModeSwitchTitle: 'Passa alla modalità scura' },
+  nl: { docFooter: { prev: 'Vorige pagina', next: 'Volgende pagina' }, outline: 'Op deze pagina', lastUpdated: 'Laatst bijgewerkt', darkModeSwitch: 'Weergave', sidebarMenu: 'Menu', returnToTop: 'Terug naar boven', langMenu: 'Taal', lightModeSwitchTitle: 'Overschakelen naar lichte modus', darkModeSwitchTitle: 'Overschakelen naar donkere modus' },
+  pl: { docFooter: { prev: 'Poprzednia strona', next: 'Następna strona' }, outline: 'Na tej stronie', lastUpdated: 'Ostatnia aktualizacja', darkModeSwitch: 'Wygląd', sidebarMenu: 'Menu', returnToTop: 'Powrót na górę', langMenu: 'Język', lightModeSwitchTitle: 'Przełącz na tryb jasny', darkModeSwitchTitle: 'Przełącz na tryb ciemny' },
+  vi: { docFooter: { prev: 'Trang trước', next: 'Trang tiếp theo' }, outline: 'Trên trang này', lastUpdated: 'Cập nhật lần cuối', darkModeSwitch: 'Giao diện', sidebarMenu: 'Menu', returnToTop: 'Quay lại đầu trang', langMenu: 'Ngôn ngữ', lightModeSwitchTitle: 'Chuyển sang chế độ sáng', darkModeSwitchTitle: 'Chuyển sang chế độ tối' },
+  th: { docFooter: { prev: 'หน้าก่อนหน้า', next: 'หน้าถัดไป' }, outline: 'ในหน้านี้', lastUpdated: 'อัปเดตล่าสุด', darkModeSwitch: 'ลักษณะ', sidebarMenu: 'เมนู', returnToTop: 'กลับไปด้านบน', langMenu: 'ภาษา', lightModeSwitchTitle: '切换到浅色模式', darkModeSwitchTitle: '切换到深色模式' },
+  uk: { docFooter: { prev: 'Попередня сторінка', next: 'Наступна сторінка' }, outline: 'На цій сторінці', lastUpdated: 'Останнє оновлення', darkModeSwitch: 'Вигляд', sidebarMenu: 'Меню', returnToTop: 'Повернутися нагору', langMenu: 'Мова', lightModeSwitchTitle: 'Переключити на світлий режим', darkModeSwitchTitle: 'Переключити на темний режим' },
+  sv: { docFooter: { prev: 'Föregående sida', next: 'Nästa sida' }, outline: 'På denna sida', lastUpdated: 'Senast uppdaterad', darkModeSwitch: 'Utseende', sidebarMenu: 'Meny', returnToTop: 'Tillbaka till toppen', langMenu: 'Språk', lightModeSwitchTitle: 'Växla till ljust läge', darkModeSwitchTitle: 'Växla till mörkt läge' },
 }
 
 function localesConfig() {
   const locales = {}
-  for (const [code, _info] of Object.entries(LANG_LABELS)) {
+  for (const [code] of Object.entries(LANG_LABELS)) {
     const isZh = code === 'zh'
-    const pfx = isZh ? '' : `/${code}`
-    locales[isZh ? '/' : `/${code}/`] = {
+    const localeKey = isZh ? 'root' : code
+    const ui = UI_LABELS[code] || UI_LABELS.en
+    locales[localeKey] = {
       label: LANG_LABELS[code].label,
+      link: isZh ? '/' : `/${code}/`,
       lang: LANG_LABELS[code].lang,
       dir: LANG_LABELS[code].dir || 'ltr',
       title: 'Faicad 3D Viewer',
@@ -47,15 +67,15 @@ function localesConfig() {
       themeConfig: {
         nav: nav(code),
         sidebar: sidebar(code),
-        docFooter: isZh ? { prev: '上一页', next: '下一页' } : undefined,
-        outline: { label: isZh ? '本页目录' : 'On this page' },
-        lastUpdated: { text: isZh ? '最后更新' : 'Last updated' },
-        darkModeSwitchLabel: isZh ? '主题切换' : 'Appearance',
-        sidebarMenuLabel: isZh ? '菜单' : 'Menu',
-        returnToTopLabel: isZh ? '返回顶部' : 'Return to top',
-        langMenuLabel: isZh ? '语言' : 'Language',
-        lightModeSwitchTitle: isZh ? '切换到浅色模式' : 'Switch to light mode',
-        darkModeSwitchTitle: isZh ? '切换到深色模式' : 'Switch to dark mode',
+        docFooter: ui.docFooter,
+        outline: { label: ui.outline },
+        lastUpdated: { text: ui.lastUpdated },
+        darkModeSwitchLabel: ui.darkModeSwitch,
+        sidebarMenuLabel: ui.sidebarMenu,
+        returnToTopLabel: ui.returnToTop,
+        langMenuLabel: ui.langMenu,
+        lightModeSwitchTitle: ui.lightModeSwitchTitle,
+        darkModeSwitchTitle: ui.darkModeSwitchTitle,
       },
     }
   }
@@ -64,23 +84,20 @@ function localesConfig() {
 
 function nav(lang) {
   const p = lang === 'zh' ? '' : `/${lang}`
-  const guideLabel = lang === 'zh' ? '入门指南' : 'Guide'
-  const featuresLabel = lang === 'zh' ? '功能特性' : 'Features'
-  const formatsLabel = lang === 'zh' ? '文件格式' : 'Formats'
+  const t = NAV[lang] || NAV.en
   return [
-    { text: lang === 'zh' ? '首页' : 'Home', link: p + '/' },
-    { text: guideLabel, link: p + '/guide/getting-started' },
-    { text: featuresLabel, link: p + '/features/overview' },
-    { text: formatsLabel, link: p + '/formats/' },
+    { text: t.home, link: p + '/' },
+    { text: t.guide, link: p + '/guide/getting-started' },
+    { text: t.features, link: p + '/features/overview' },
+    { text: t.formats, link: p + '/formats/' },
     { text: 'GitHub', link: 'https://github.com/faicad/3d_viewer_electron' },
   ]
 }
 
 function sidebar(lang) {
-  const guideLabel = lang === 'zh' ? '入门指南' : 'Guide'
-  const featuresLabel = lang === 'zh' ? '功能特性' : 'Features'
-  const formatsLabel = lang === 'zh' ? '文件格式' : 'Formats'
   const prefix = lang === 'zh' ? '' : `/${lang}`
+  const t = SIDEBAR[lang] || SIDEBAR.en
+  const navT = NAV[lang] || NAV.en
 
   const formatItems = FORMATS.map(f => ({
     text: `${f.label} (${f.extensions.join(', ')})`,
@@ -90,29 +107,29 @@ function sidebar(lang) {
   return {
     [`${prefix}/guide/`]: [
       {
-        text: guideLabel,
+        text: navT.guide,
         items: [
-          { text: lang === 'zh' ? '快速开始' : 'Getting Started', link: `${prefix}/guide/getting-started` },
-          { text: lang === 'zh' ? '安装与下载' : 'Installation', link: `${prefix}/guide/installation` },
-          { text: lang === 'zh' ? '支持的文件格式' : 'Supported Formats', link: `${prefix}/guide/supported-formats` },
-          { text: lang === 'zh' ? '键盘快捷键' : 'Keyboard Shortcuts', link: `${prefix}/guide/keyboard-shortcuts` },
-          { text: lang === 'zh' ? '配置与主题' : 'Configuration', link: `${prefix}/guide/configuration` },
+          { text: t.quickStart, link: `${prefix}/guide/getting-started` },
+          { text: t.installation, link: `${prefix}/guide/installation` },
+          { text: t.supportedFormats, link: `${prefix}/guide/supported-formats` },
+          { text: t.keyboardShortcuts, link: `${prefix}/guide/keyboard-shortcuts` },
+          { text: t.configuration, link: `${prefix}/guide/configuration` },
         ],
       },
     ],
     [`${prefix}/features/`]: [
       {
-        text: featuresLabel,
+        text: navT.features,
         items: [
-          { text: lang === 'zh' ? '功能概览' : 'Overview', link: `${prefix}/features/overview` },
-          { text: lang === 'zh' ? 'STEP 文件支持' : 'STEP Support', link: `${prefix}/features/step-support` },
-          { text: lang === 'zh' ? 'PBR 渲染系统' : 'PBR Rendering', link: `${prefix}/features/pbr-rendering` },
+          { text: t.overview, link: `${prefix}/features/overview` },
+          { text: t.stepSupport, link: `${prefix}/features/step-support` },
+          { text: t.pbrRendering, link: `${prefix}/features/pbr-rendering` },
         ],
       },
     ],
     [`${prefix}/formats/`]: [
       {
-        text: formatsLabel,
+        text: navT.formats,
         items: formatItems,
       },
     ],
@@ -154,5 +171,17 @@ export default defineConfig({
       message: `v${pkg.version} — LGPL-2.0`,
       copyright: `Copyright © ${new Date().getFullYear()} Faicad`,
     },
+
+    nav: nav('zh'),
+    sidebar: sidebar('zh'),
+    docFooter: { prev: '上一页', next: '下一页' },
+    outline: { label: '本页目录' },
+    lastUpdated: { text: '最后更新' },
+    darkModeSwitchLabel: '主题切换',
+    sidebarMenuLabel: '菜单',
+    returnToTopLabel: '返回顶部',
+    langMenuLabel: '语言',
+    lightModeSwitchTitle: '切换到浅色模式',
+    darkModeSwitchTitle: '切换到深色模式',
   },
 })

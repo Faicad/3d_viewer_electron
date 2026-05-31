@@ -4,7 +4,7 @@ sidebar: false
 
 # Draco — 网格 (Mesh)
 
-[object Object]
+DRC (Draco) 是 Google 开发的压缩网格格式，大幅减小 3D 模型文件体积，适合网络传输。
 
 ## 基本信息
 

@@ -4,7 +4,7 @@ sidebar: false
 
 # GLTF — 网格 (Mesh)
 
-[object Object]
+GLTF 是 glTF 2.0 的 JSON 格式，可引用外部 .bin 和纹理文件。支持 PBR 材质、动画和拓扑选择。
 
 ## 基本信息
 

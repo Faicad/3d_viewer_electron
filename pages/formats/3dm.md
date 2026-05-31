@@ -4,7 +4,7 @@ sidebar: false
 
 # 3DM — 网格 (Mesh)
 
-[object Object]
+3DM 是 Rhinoceros 3D (Rhino) 的原生格式，广泛用于工业设计和建筑领域。
 
 ## 基本信息
 

@@ -4,7 +4,7 @@ sidebar: false
 
 # 3MF — 网格 (Mesh)
 
-[object Object]
+3MF 是 3D Manufacturing Format，由 Microsoft 推动的3D打印格式，支持颜色和材质信息。
 
 ## 基本信息
 

@@ -4,7 +4,7 @@ sidebar: false
 
 # BVH — 动画 (Animation)
 
-[object Object]
+BVH (Biovision Hierarchy) 是生物运动捕捉数据格式，以骨架层次结构渲染动画。
 
 ## 基本信息
 

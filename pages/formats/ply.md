@@ -4,7 +4,7 @@ sidebar: false
 
 # PLY — 网格 (Mesh)
 
-[object Object]
+PLY (Polygon File Format) 支持存储顶点颜色和法线等属性，自动检测 ASCII 和 Binary 编码。
 
 ## 基本信息
 

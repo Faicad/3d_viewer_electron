@@ -4,7 +4,7 @@ sidebar: false
 
 # MD2 — 动画 (Animation)
 
-[object Object]
+MD2 是 Quake II 引擎使用的模型格式，支持顶点动画，是经典游戏模型格式。
 
 ## 基本信息
 

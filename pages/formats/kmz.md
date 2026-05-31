@@ -4,7 +4,7 @@ sidebar: false
 
 # KMZ — 其他
 
-[object Object]
+KMZ 是压缩的 KML (Keyhole Markup Language) 格式，用于地理空间数据和 3D 模型的打包分发。
 
 ## 基本信息
 

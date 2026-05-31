@@ -4,7 +4,7 @@ sidebar: false
 
 # XYZ — 点云 (Point Cloud)
 
-[object Object]
+XYZ 是简单的点坐标数据格式，每行包含 X/Y/Z 坐标，以点云方式渲染。
 
 ## 基本信息
 

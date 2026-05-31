@@ -4,7 +4,7 @@ sidebar: false
 
 # 3DS — 网格 (Mesh)
 
-[object Object]
+3DS 是 Autodesk 3ds Max 的经典格式，广泛用于老式 3D 内容的交换。
 
 ## 基本信息
 

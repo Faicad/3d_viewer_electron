@@ -4,7 +4,7 @@ sidebar: false
 
 # VRML — 其他
 
-[object Object]
+WRL (VRML) 是早期的 Web 3D 标准格式，基于文本描述三维场景和物体。
 
 ## 基本信息
 

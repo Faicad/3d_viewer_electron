@@ -4,7 +4,7 @@ sidebar: false
 
 # PDB — 点云 (Point Cloud)
 
-[object Object]
+PDB (Protein Data Bank) 是蛋白质结构数据库格式，原子和化学键分别渲染为点云和线段。
 
 ## 基本信息
 

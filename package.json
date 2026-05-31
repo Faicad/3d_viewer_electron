@@ -16,7 +16,7 @@
     "dev:docs": "vitepress dev pages",
     "generate:format-pages": "node scripts/generate-format-pages.mjs",
     "capture:format-screenshots": "node scripts/capture-format-screenshots.mjs",
-    "build:docs": "node scripts/generate-format-pages.mjs && vitepress build pages",
+    "build:docs": "node scripts/generate-format-pages.mjs && node scripts/generate-locale-pages.mjs && vitepress build pages",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
@@ -28,6 +28,7 @@
     "test:unit": "vitest run",
     "test:components": "vitest run --config vitest.jsdom.config.ts",
     "test:e2e": "playwright test",
+    "test:e2e:docs": "npm run build:docs && npx playwright test --config pages/playwright.config.ts",
     "test:fast": "vitest run && vitest run --config vitest.jsdom.config.ts",
     "ci": "bash scripts/ci.sh"
   },

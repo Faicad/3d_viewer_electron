@@ -4,7 +4,7 @@ sidebar: false
 
 # AMF — 网格 (Mesh)
 
-[object Object]
+AMF (Additive Manufacturing Format) 是 ISO 标准的 3D 打印格式，支持颜色、纹理和多种材质。
 
 ## 基本信息
 

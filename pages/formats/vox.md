@@ -4,7 +4,7 @@ sidebar: false
 
 # VOX — 其他
 
-[object Object]
+VOX 是 MagicaVoxel 体素编辑器格式，以立方体体素构建像素风格的 3D 模型。
 
 ## 基本信息
 

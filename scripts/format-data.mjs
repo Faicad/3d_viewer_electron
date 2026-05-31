@@ -1,21 +1,23 @@
+const L20 = (zh, en) => ({ zh, en, es: en, ja: en, ko: en, fr: en, de: en, pt: en, ru: en, ar: en, hi: en, id: en, tr: en, it: en, nl: en, pl: en, vi: en, th: en, uk: en, sv: en })
+
 export const FORMAT_GROUPS = {
-  mesh:     { zh: '网格 (Mesh)',      en: 'Mesh' },
-  cad:      { zh: 'CAD',              en: 'CAD' },
-  animation:{ zh: '动画 (Animation)', en: 'Animation' },
-  point:    { zh: '点云 (Point Cloud)',en: 'Point Cloud' },
-  volume:   { zh: '体数据 (Volume)',   en: 'Volume' },
-  gcode:    { zh: 'GCode',            en: 'GCode' },
-  vector:   { zh: '矢量 (Vector)',    en: 'Vector' },
-  other:    { zh: '其他',             en: 'Other' },
+  mesh:     L20('网格 (Mesh)',      'Mesh'),
+  cad:      L20('CAD',              'CAD'),
+  animation:L20('动画 (Animation)', 'Animation'),
+  point:    L20('点云 (Point Cloud)','Point Cloud'),
+  volume:   L20('体数据 (Volume)',   'Volume'),
+  gcode:    L20('GCode',            'GCode'),
+  vector:   L20('矢量 (Vector)',    'Vector'),
+  other:    L20('其他',             'Other'),
 }
 
 export const RENDER_HINT_LABELS = {
-  mesh:       { zh: '标准三角网格渲染', en: 'Standard triangle mesh rendering' },
-  volume:     { zh: '体数据渲染',       en: 'Volume rendering' },
-  skeleton:   { zh: '骨骼动画渲染',     en: 'Skeleton animation rendering' },
-  toolpath:   { zh: '刀具路径渲染',     en: 'Toolpath rendering' },
-  pointcloud: { zh: '点云渲染',         en: 'Point cloud rendering' },
-  svg:        { zh: '矢量图形渲染',     en: 'Vector graphics rendering' },
+  mesh:       L20('标准三角网格渲染', 'Standard triangle mesh rendering'),
+  volume:     L20('体数据渲染',       'Volume rendering'),
+  skeleton:   L20('骨骼动画渲染',     'Skeleton animation rendering'),
+  toolpath:   L20('刀具路径渲染',     'Toolpath rendering'),
+  pointcloud: L20('点云渲染',         'Point cloud rendering'),
+  svg:        L20('矢量图形渲染',     'Vector graphics rendering'),
 }
 
 export const FORMATS = [

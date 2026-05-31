@@ -4,7 +4,7 @@ sidebar: false
 
 # LWO — 网格 (Mesh)
 
-[object Object]
+LWO 是 LightWave 3D 的模型格式，支持多边形网格和表面材质属性。
 
 ## 基本信息
 

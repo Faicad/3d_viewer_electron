@@ -4,7 +4,7 @@ sidebar: false
 
 # STL — 网格 (Mesh)
 
-[object Object]
+STL 是最通用的三角网格格式，广泛用于3D打印和CAD交换。支持 ASCII 和 Binary 两种编码，本应用自动检测并正确加载。
 
 ## 基本信息
 

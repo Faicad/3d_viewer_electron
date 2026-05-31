@@ -4,7 +4,7 @@ sidebar: false
 
 # USDZ — 网格 (Mesh)
 
-[object Object]
+USDZ 是 Apple 的 Universal Scene Description 压缩包格式，用于 AR 和 3D 内容分发。
 
 ## 基本信息
 

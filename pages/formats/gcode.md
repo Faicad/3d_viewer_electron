@@ -4,7 +4,7 @@ sidebar: false
 
 # GCode — GCode
 
-[object Object]
+GCode 是 3D 打印机的刀具路径指令集，本应用将其中的运动轨迹渲染为三维线段。
 
 ## 基本信息
 
