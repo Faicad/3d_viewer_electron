@@ -38,8 +38,10 @@ scripts/
 ## 命令
 
 ```bash
-pnpm run dev:docs    # 本地预览 http://localhost:5173（热更新）
-pnpm run build:docs  # 构建到 pages/.vitepress/dist/
+pnpm run dev:docs                     # 本地预览 http://localhost:5173（热更新）
+pnpm run build:docs                   # 生成格式页面 + 构建到 pages/.vitepress/dist/
+pnpm run generate:format-pages        # 仅重新生成文件格式页面
+pnpm run capture:format-screenshots   # 截取各文件格式的截图（需先构建应用）
 ```
 
 ## 文档编写规范
