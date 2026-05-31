@@ -18,6 +18,10 @@ declare global {
     __svgHelpers: { parseSvgViewBox: typeof ParseSvgViewBox; parseSvgLayers: typeof ParseSvgLayers }
     __clearStepCache: () => Promise<void>
     __errors: Array<{ message: string; stack: string; timestamp: number }>
+    /** Pre-computed at init time. E2E tests read this instead of probing WebGL. */
+    __isSoftwareGpu?: boolean
+    /** GPU detection cache (see src/test/gpu-utils.ts). */
+    __gpuInfo?: { detected: boolean; isSoftware: boolean; vendor?: string; renderer?: string; reason?: string }
   }
 }
 

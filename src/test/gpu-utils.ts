@@ -1,44 +1,31 @@
 /**
  * GPU detection helpers for E2E tests.
  *
- * On software-rendered platforms (WSL2 with llvmpipe, CI without GPU, etc.)
- * PMREM generation, shadow maps, and IBL-based environment textures are
- * unavailable.  Tests that depend on those features should skip.
+ * Software GPU detection is performed by the renderer at init time
+ * (ViewportContainer.tsx onCreated) and stored in window.__isSoftwareGpu.
+ * Tests read this pre-computed value — NO WebGL calls happen in the test
+ * context, which avoids page.evaluate hangs on SwiftShader / ANGLE backends.
+ *
+ * On software-rendered platforms PMREM generation, shadow maps, and IBL-based
+ * environment textures are unavailable. Tests that depend on those features
+ * should skip.
  *
  * See docs/gpu-adaptive-rendering-design.md and simple-rendering-mode-design.md
  * for the full GPU-adaptive rendering strategy.
  */
 import type { Page } from '@playwright/test'
 
-/** Software GPU keywords matched case-insensitively. */
-const _SW_GPU_PATTERNS = [
-  'llvmpipe',
-  'swiftshader',
-  'microsoft basic render',
-  'mesa offscreen',
-]
-
 /**
  * Detect whether the current WebGL renderer is software-backed.
- * Must be called after the canvas is attached and `__r3f_dev.gl` is ready.
+ *
+ * Reads window.__isSoftwareGpu which is pre-computed by the renderer during
+ * Three.js initialization (while the WebGL context is still fresh).
+ * No WebGL calls are made here — avoids hangs on software backends.
  */
 export async function isSoftwareGpu(page: Page): Promise<boolean> {
   try {
-    const info = await page.evaluate(() => {
-      const gl = (window as any).__r3f_dev?.gl as WebGLRendererLike | undefined
-      if (!gl) return { vendor: '', renderer: '', isSoftware: false }
-      const ctx = gl.getContext() as WebGLRenderingContext | null
-      if (!ctx) return { vendor: '', renderer: '', isSoftware: false }
-      const ext = ctx.getExtension('WEBGL_debug_renderer_info')
-      const vendor = ext ? ctx.getParameter(ext.UNMASKED_VENDOR_WEBGL) : ''
-      const renderer = ext ? ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''
-      const lower = `${vendor} ${renderer}`.toLowerCase()
-      const swPatterns = ['llvmpipe', 'swiftshader', 'microsoft basic render', 'mesa offscreen']
-      return { vendor, renderer, isSoftware: swPatterns.some(p => lower.includes(p)) }
-    })
-    return info.isSoftware
+    return await page.evaluate(() => !!(window as any).__isSoftwareGpu)
   } catch {
-    // If __r3f_dev isn't ready, err on the safe side (don't skip).
     return false
   }
 }
@@ -54,8 +41,4 @@ export async function hasSceneEnvironment(page: Page): Promise<boolean> {
   } catch {
     return false
   }
-}
-
-interface WebGLRendererLike {
-  getContext(): WebGLRenderingContext | null
 }

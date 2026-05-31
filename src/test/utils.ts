@@ -62,6 +62,42 @@ export function createErrorGuard(page: Page): ErrorGuard {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// GPU simulation — set E2E_NO_GPU=1 to force software rendering (WARP on
+// Windows, SwiftShader/llvmpipe on Linux).  Useful for locally reproducing
+// CI behaviour or testing software-GPU skip paths.
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the Electron launch args, optionally disabling hardware GPU.
+ * Controlled by the `E2E_NO_GPU` environment variable.
+ */
+export function getElectronLaunchArgs(): string[] {
+  const noGpu = process.env.E2E_NO_GPU === '1'
+  const args = ['--no-sandbox']
+  if (noGpu) {
+    // --use-angle=swiftshader forces software WebGL via ANGLE + Vulkan SwiftShader.
+    // We use this instead of --disable-gpu because --disable-gpu kills the entire
+    // GPU process, preventing WebGL context creation entirely.
+    args.push('--use-angle=swiftshader')
+  }
+  return args
+}
+
+import { execSync } from 'child_process'
+
+/** Kill an Electron app's entire process tree.  app.process().kill() only
+ *  kills the parent on Windows; SwiftShader GPU child processes survive and
+ *  block Playwright worker teardown for 60+ seconds. */
+export function killElectronApp(app: { process(): { pid: number } }): void {
+  const pid = app.process().pid
+  if (process.platform === 'win32') {
+    try { execSync(`taskkill /F /T /PID ${pid}`, { timeout: 5000, stdio: 'ignore' }) } catch { /* ok */ }
+  } else {
+    try { process.kill(-pid, 'SIGKILL') } catch { /* ok */ }
+  }
+}
+
 export function getElectronPath(): string {
   const platform = process.platform
   if (platform === 'win32') {

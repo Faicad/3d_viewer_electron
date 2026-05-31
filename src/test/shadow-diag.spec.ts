@@ -2,23 +2,32 @@ import { test, _electron } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronPath } from './utils'
+import { getElectronPath, getElectronLaunchArgs, killElectronApp } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_boss.glb'))
 
 test('shadow visibility diagnostic', async () => {
-  test.setTimeout(90000)
+  test.setTimeout(180000)
   const app = await _electron.launch({
     executablePath: EXE,
-    args: ['--no-sandbox', '--disable-gpu-sandbox'],
+    args: getElectronLaunchArgs(),
     env: { ...process.env, E2E: '1' },
   })
   const page = await app.firstWindow()
 
   await page.waitForLoadState('domcontentloaded')
   await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 15000 })
+
+  // --- Early GPU check: skip heavy rendering on software GPU ---
+  // Wait for Three.js scene to mount so window.__isSoftwareGpu is set
+  await page.waitForFunction(() => !!(window as any).__r3f_dev?.gl, { timeout: 30000 }).catch(() => {})
+  if (await isSoftwareGpu(page)) {
+    console.log('SKIP: software GPU detected — shadow floor / pixel assertions unavailable')
+    killElectronApp(app) // kill process tree — SwiftShader GPU child survives .kill()
+    return
+  }
 
   // Load model
   await page.locator('input[type="file"]').setInputFiles({
@@ -220,16 +229,6 @@ test('shadow visibility diagnostic', async () => {
   const light = diag.directionalLights[0]
   test.expect(light.castShadow, 'light should castShadow').toBe(true)
   test.expect(light.up, 'light up should be [0,0,1]').toEqual([0, 0, 1])
-
-  // Verify shadow floor exists and is visible.
-  // On software GPU (llvmpipe / SwiftShader / WARP) PMREM generation fails,
-  // so shadow floor is never configured and shadows don't render.
-  // See simple-rendering-mode-design.md.
-  if (await isSoftwareGpu(page)) {
-    console.log('SKIP: software GPU — shadow floor / pixel assertions unavailable')
-    await app.close()
-    return
-  }
 
   test.expect(diag.shadowFloors.length, 'shadow floor mesh should exist').toBeGreaterThan(0)
 

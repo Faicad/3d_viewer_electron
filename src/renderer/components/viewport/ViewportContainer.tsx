@@ -607,6 +607,23 @@ export default function ViewportContainer() {
           useEngineStore.getState().setEngineObjects({ camera, scene, gl })
           window.__r3f_dev = { camera, scene, gl }
           window.__engineStore = useEngineStore
+
+          // Detect software GPU at init time (while WebGL context is fresh).
+          // E2E tests read window.__isSoftwareGpu instead of probing WebGL
+          // themselves, which can hang on SwiftShader / ANGLE software backends.
+          try {
+            const ctx = gl.getContext()
+            const ext = ctx?.getExtension('WEBGL_debug_renderer_info')
+            const vendor: string = ext ? ctx.getParameter(ext.UNMASKED_VENDOR_WEBGL) : ''
+            const renderer: string = ext ? ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''
+            const lower = `${vendor} ${renderer}`.toLowerCase()
+            const swPatterns = ['llvmpipe', 'swiftshader', 'microsoft basic render', 'mesa offscreen']
+            const patternHit = swPatterns.some(p => lower.includes(p))
+            const emptySwiftshader = !!(ext && vendor === '' && renderer === '')
+            window.__isSoftwareGpu = patternHit || emptySwiftshader
+          } catch {
+            window.__isSoftwareGpu = false
+          }
         }}
       >
         <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !animActive && !isObjectDragging} />
