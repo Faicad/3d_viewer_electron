@@ -1,28 +1,24 @@
-# 键盘快捷键
+# Keyboard Shortcuts
 
-## 文件列表导航
+## File List Navigation
 
-| 快捷键 | 功能 |
-|--------|------|
-| `↑` `↓` | 在文件列表中上下选择文件 |
-| `Enter` | 加载当前选中的文件 |
-| `Delete` | 从场景中移除选中的模型 |
+| Shortcut | Action |
+|----------|--------|
+| `↑` `↓` | Select file up/down in the file list |
+| `Enter` | Load selected file |
+| `Delete` | Remove selected model from scene |
 
-## 对话框与弹窗
+## Dialogs
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Escape` | 关闭当前对话框或弹窗 |
-| `Enter` / `Space` | 在空状态页面打开文件对话框 |
+| Shortcut | Action |
+|----------|--------|
+| `Escape` | Close current dialog or popup |
+| `Enter` / `Space` | Open file dialog from empty state |
 
-## 多选操作
+## Multi-select
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Shift + 点击` | 在场景树或 3D 视口中切换多选 |
+| Shortcut | Action |
+|----------|--------|
+| `Shift + Click` | Toggle multi-select in scene tree or 3D viewport |
 
-## 提示
-
-> 应用已隐藏原生菜单栏，所有操作均可通过界面工具栏和右键菜单完成。
->
-> 更多快捷键（变换工具切换、显示模式切换、面板切换等）正在开发中。
+> The native menu bar is hidden. All operations are accessible via the toolbar and context menus.

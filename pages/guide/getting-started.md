@@ -1,75 +1,50 @@
-# 快速开始
+# Getting Started
 
-## 下载安装
+## Download & Install
 
-- **Windows 用户**：从 [GitHub Releases](https://github.com/faicad/3d_viewer_electron/releases) 下载 `.exe` 安装包，双击安装即可
-- **macOS 用户**：下载 `.dmg` 文件，拖入 Applications 文件夹
-- **Linux 用户**：下载 `.AppImage` 文件，赋予执行权限后运行
+- **Windows**: Download the `.exe` installer from [GitHub Releases](https://github.com/faicad/3d_viewer_electron/releases)
+- **macOS**: Download the `.dmg` file
+- **Linux**: Download the `.AppImage` file
 
-也提供绿色免安装版，解压后直接运行主程序。
+A portable (no-install) version is also available.
 
-## 加载第一个模型
+## Load a Model
 
-### 方法一：拖拽
+### Method 1: Drag & Drop
 
-直接将 3D 文件从文件夹拖入应用窗口：
+Drag any 3D file directly from your file manager into the app window.
 
-![主窗口](/screenshots/main-window.png)
+### Method 2: Click to Upload
 
-### 方法二：点击上传
+1. Click the upload area in the center of the window, or the Open button in the toolbar
+2. Filter by format category in the file dialog
+3. Select one or more 3D files
 
-1. 点击窗口中央的「打开文件」区域，或工具栏的打开按钮
-2. 在文件对话框中按类别筛选格式
-3. 选择一个或多个 3D 文件
+### Method 3: Paste from Clipboard
 
-### 方法三：粘贴
+Copy a 3D file and press `Ctrl+V` in the app window.
 
-复制 3D 文件后，在应用窗口中按 `Ctrl+V` 即可加载。
+### Method 4: Browse from Folder
 
-### 方法四：从文件夹浏览
+After loading a model, the file list on the right automatically shows all supported files in the same directory. Click any file to switch instantly.
 
-加载任意模型后，右侧文件列表会自动显示同目录下所有支持的 3D 文件，点击即可快速切换：
+## View Controls
 
-![文件列表](/screenshots/file-list.png)
+| Action | Effect |
+|--------|--------|
+| Left-click drag | Rotate view |
+| Right-click drag | Pan view |
+| Scroll wheel | Zoom |
+| Double-click model | Focus on that part |
 
-## 浏览模型
+## Display Modes
 
-### 视角操作
+Use the dropdown in the toolbar to switch:
 
-| 操作 | 效果 |
-|------|------|
-| 左键拖拽 | 旋转视角 |
-| 右键拖拽 | 平移视角 |
-| 滚轮 | 缩放 |
-| 双击模型 | 聚焦到该部件 |
+- **Solid** — Full material and lighting rendering
+- **Wireframe** — Triangle mesh edges only
+- **Solid+Wireframe** — Both overlaid
 
-### 切换显示模式
+## Scene Management
 
-使用工具栏上的下拉菜单切换显示模式：
-
-- **实体** — 完整的材质和光照渲染
-- **线框** — 仅显示三角网格
-- **实体+线框** — 两者叠加
-
-### 模型切换
-
-- 点击右侧文件列表中的文件名
-- 或使用键盘 `↑` `↓` 选择后按 `Enter`
-
-![模型加载](/screenshots/model-loaded.png)
-
-## 场景管理
-
-左侧场景树展示模型的部件结构：
-
-![场景树](/screenshots/scene-tree.png)
-
-- 展开/折叠查看部件层次
-- 点击眼睛图标控制部件显隐
-- 支持多选操作（Shift+点击）
-
-## 下一步
-
-- 了解 [支持的格式](/guide/supported-formats) 查看更多文件类型
-- 查看 [键盘快捷键](/guide/keyboard-shortcuts) 提高操作效率
-- 探索 [PBR 渲染](/features/pbr-rendering) 和 [STEP 支持](/features/step-support) 等高级功能
+The scene tree on the left shows the model's part hierarchy. Expand/collapse to inspect, click the eye icon to toggle visibility.

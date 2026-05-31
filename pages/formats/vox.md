@@ -2,33 +2,33 @@
 sidebar: false
 ---
 
-# VOX — 其他
+# VOX — Other
 
-VOX 是 MagicaVoxel 体素编辑器格式，以立方体体素构建像素风格的 3D 模型。
+VOX is MagicaVoxel's voxel editor format, building pixel-art style 3D models from cubic voxels.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.vox` |
-| 分类 | 其他 |
-| 渲染方式 | 标准三角网格渲染 |
+| Extensions | `.vox` |
+| Category | Other |
+| Render Type | Standard triangle mesh rendering |
 
-## 支持的特性
+## Supported Features
 
-- PBR 材质渲染
-- 标准三角网格显示
+- PBR material rendering
+- Standard triangle mesh display
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![VOX](/screenshots/formats/vox.png)
 

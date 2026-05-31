@@ -2,33 +2,33 @@
 sidebar: false
 ---
 
-# BVH — 动画 (Animation)
+# BVH — Animation
 
-BVH (Biovision Hierarchy) 是生物运动捕捉数据格式，以骨架层次结构渲染动画。
+BVH (Biovision Hierarchy) is a motion capture data format, rendered as skeleton hierarchy animations.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.bvh` |
-| 分类 | 动画 (Animation) |
-| 渲染方式 | 骨骼动画渲染 |
+| Extensions | `.bvh` |
+| Category | Animation |
+| Render Type | Skeleton animation rendering |
 
-## 支持的特性
+## Supported Features
 
-- 骨架动画渲染
-- 骨骼层次展示
+- Skeleton animation rendering
+- Bone hierarchy display
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![BVH](/screenshots/formats/bvh.png)
 

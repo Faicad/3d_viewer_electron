@@ -4,31 +4,31 @@ sidebar: false
 
 # GCode — GCode
 
-GCode 是 3D 打印机的刀具路径指令集，本应用将其中的运动轨迹渲染为三维线段。
+GCode is the instruction set for 3D printer toolpaths. This app renders the movement trajectories as 3D line segments.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.gcode` |
-| 分类 | GCode |
-| 渲染方式 | 刀具路径渲染 |
+| Extensions | `.gcode` |
+| Category | GCode |
+| Render Type | Toolpath rendering |
 
-## 支持的特性
+## Supported Features
 
-- 线段的刀具路径渲染
-- 逐层显示
+- Line segment toolpath rendering
+- Layer-by-layer display
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![GCode](/screenshots/formats/gcode.png)
 

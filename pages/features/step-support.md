@@ -1,37 +1,34 @@
-# STEP / STP 文件
+# STEP / STP Files
 
-## 概述
+## Overview
 
-STEP（Standard for the Exchange of Product Model Data）是 CAD 领域最常用的三维数据交换格式之一。Faicad 3D Viewer 完整支持 STEP 和 STP 文件的加载与渲染。
+STEP (Standard for the Exchange of Product Model Data) is the most widely used 3D data exchange format in industrial CAD. Faicad 3D Viewer fully supports loading and rendering STEP and STP files.
 
-## 加载 STEP 文件
+## Loading STEP Files
 
-STEP 文件和其他格式的加载方式完全一致：
+STEP files load just like any other format:
+- **Drag & drop** `.step` or `.stp` files into the window
+- **Click to upload** via the file dialog
+- **Copy & paste** file content
 
-- **拖拽** .step 或 .stp 文件到窗口
-- **点击上传** 在文件对话框中选择
-- **复制粘贴** 文件内容
+## Features
 
-## 功能特性
+### Topology Preservation
 
-### 拓扑结构保留
+Geometric topology (solids, faces, edges, vertices) is fully preserved. Switch selection modes in the toolbar to pick different topological elements.
 
-STEP 文件中的几何拓扑信息（实体、面、边、顶点）会被完整保留。可以在工具栏切换选择模式来选取不同的拓扑元素。
+### Scene Tree
 
-### 场景树
+Loaded STEP models are displayed hierarchically in the scene tree, with individual visibility control for each part.
 
-加载后的 STEP 模型会按层次结构在左侧场景树中展示，可以单独控制每个部件的显示和隐藏：
+### Unit Auto-detection
 
-![场景树](/screenshots/scene-tree.png)
+The unit system (mm, inches, etc.) is automatically detected from the file, no manual setup needed.
 
-### 单位自动识别
+## FAQ
 
-自动识别 STEP 文件中的单位制（毫米、英寸等）并正确缩放，无需手动设置。
+**Q: Can I open large STEP files?**
+A: Yes. Make sure your system has enough available memory for large files.
 
-## 常见问题
-
-**Q: 可以处理大型 STEP 文件吗？**
-A: 可以。建议确保系统有足够可用内存来容纳大型模型文件。
-
-**Q: 模型颜色和预期不符？**
-A: STEP 文件中可能不包含颜色信息，此时模型使用默认材质颜色显示。
+**Q: Why does the model color look different than expected?**
+A: STEP files may not contain color information. In that case, the default material color is used.

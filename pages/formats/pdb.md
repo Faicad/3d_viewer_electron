@@ -2,33 +2,33 @@
 sidebar: false
 ---
 
-# PDB — 点云 (Point Cloud)
+# PDB — Point Cloud
 
-PDB (Protein Data Bank) 是蛋白质结构数据库格式，原子和化学键分别渲染为点云和线段。
+PDB (Protein Data Bank) is the protein structure format. Atoms and bonds are rendered as point clouds and lines.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.pdb` |
-| 分类 | 点云 (Point Cloud) |
-| 渲染方式 | 点云渲染 |
+| Extensions | `.pdb` |
+| Category | Point Cloud |
+| Render Type | Point cloud rendering |
 
-## 支持的特性
+## Supported Features
 
-- 点云渲染方式
-- 每点颜色渲染（如包含）
+- Point cloud rendering
+- Per-point color rendering (if available)
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![PDB](/screenshots/formats/pdb.png)
 

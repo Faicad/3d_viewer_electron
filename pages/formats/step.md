@@ -4,32 +4,32 @@ sidebar: false
 
 # STEP — CAD
 
-STEP 是工业 CAD 领域最常用的三维数据交换格式。本应用自动导入并渲染，保留拓扑结构，支持线框显示和单位自动识别。
+STEP is the most widely used 3D data exchange format in industrial CAD. Auto-imported and rendered with topology preservation, wireframe display and unit auto-detection.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.step, .stp` |
-| 分类 | CAD |
-| 渲染方式 | 标准三角网格渲染 |
+| Extensions | `.step, .stp` |
+| Category | CAD |
+| Render Type | Standard triangle mesh rendering |
 
-## 支持的特性
+## Supported Features
 
-- 拓扑结构保留（面/边/顶点）
-- 线框/实体+线框显示模式
-- 单位自动识别
+- Topology preservation (faces/edges/vertices)
+- Wireframe / solid+wireframe modes
+- Unit auto-detection
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![STEP](/screenshots/formats/step.png)
 

@@ -1,54 +1,46 @@
-# 配置与主题
+# Configuration & Theme
 
-## 界面设置
+## Settings Panel
 
-点击工具栏的设置按钮（齿轮图标）打开设置面板：
+Click the Settings button (gear icon) in the toolbar to open the settings panel.
 
-![设置面板](/screenshots/settings-panel.png)
+### Theme
 
-### 主题切换
+Three themes available:
 
-三种主题模式可选：
+| Mode | Description |
+|------|-------------|
+| Light | Bright background, ideal for daytime use |
+| Dark | Dark background, ideal for low-light environments |
+| System | Auto-follows OS color scheme |
 
-| 模式 | 效果 |
-|------|------|
-| 浅色 | 明亮背景，适合日间使用 |
-| 深色 | 暗色背景，适合夜间或低光环境 |
-| 跟随系统 | 自动匹配操作系统的颜色模式 |
+### Language
 
-### 界面语言
+Full UI in Chinese and English:
 
-支持中文和英文两种界面语言：
+- **中文** — Complete Simplified Chinese interface
+- **English** — Complete English interface
+- **System** — Auto-follows OS language setting
 
-- **中文**：完整的简体中文界面
-- **英文**：完整的英文界面
-- **跟随系统**：自动匹配操作系统语言
+Changes apply immediately without restart.
 
-切换即时生效，无需重启应用。
+## Display Modes
 
-### 缩略图预览
+| Mode | Description |
+|------|-------------|
+| Solid | Default: full PBR material rendering |
+| Wireframe | Triangle mesh edges only |
+| Solid+Wireframe | Solid surface overlaid with wireframe |
+| Grid | Reference grid helper |
 
-可在设置面板中开启或关闭文件列表中的缩略图预览功能。
+## Environment Maps
 
-## 显示模式
+The environment panel lets you:
 
-视口工具栏提供四种显示模式：
+- Switch between 3 preset environment maps
+- Load custom `.hdr` or `.exr` environment maps
+- Environment maps affect reflections and lighting on models
 
-| 模式 | 说明 |
-|------|------|
-| 实体 | 默认模式，完整 PBR 材质渲染 |
-| 线框 | 显示三角网格线框 |
-| 实体+线框 | 实体表面叠加线框 |
-| 网格 | 显示参考网格辅助线 |
+## Fullscreen
 
-## 环境贴图
-
-在环境面板中可以：
-
-- 从三套预设环境贴图中切换
-- 加载自定义 `.hdr` 或 `.exr` 环境贴图
-- 环境贴图影响模型的反射和光照效果
-
-## 全屏模式
-
-点击工具栏的全屏按钮或按 `F11`（如果系统支持）进入全屏模式，获得更大的 3D 视口空间。按 `Esc` 退出全屏。
+Click the fullscreen button in the toolbar, or use `F11` (if supported by your OS). Press `Esc` to exit.

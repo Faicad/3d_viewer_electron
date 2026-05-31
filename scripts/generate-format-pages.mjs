@@ -10,7 +10,7 @@ const PAGES = path.resolve(ROOT, 'pages')
 const ALL_LOCALES = ['zh', 'en', 'es', 'ja', 'ko', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'tr', 'it', 'nl', 'pl', 'vi', 'th', 'uk', 'sv']
 
 function langDir(lang) {
-  return lang === 'zh' ? PAGES : path.join(PAGES, lang)
+  return lang === 'en' ? PAGES : path.join(PAGES, lang)
 }
 
 function formatsDir(lang) {

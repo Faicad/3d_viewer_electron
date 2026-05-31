@@ -26,11 +26,11 @@ const LANG_LABELS: Record<string, { label: string; lang: string; dir?: string }>
 const ALL_CODES = Object.keys(LANG_LABELS) as (keyof typeof LANG_LABELS)[]
 
 function buildLocale(langCode: string) {
-  const isZh = langCode === 'zh'
+  const isRoot = langCode === 'en'
   return {
     code: langCode,
-    key: isZh ? 'root' : langCode,
-    link: isZh ? '/' : `/${langCode}/`,
+    key: isRoot ? 'root' : langCode,
+    link: isRoot ? '/' : `/${langCode}/`,
     label: LANG_LABELS[langCode]!.label,
     lang: LANG_LABELS[langCode]!.lang,
   }
@@ -38,7 +38,7 @@ function buildLocale(langCode: string) {
 
 function simulateGetLocaleForPath(relativePath: string): string {
   const matchingKey = ALL_CODES
-    .filter((c) => c !== 'zh')
+    .filter((c) => c !== 'en')
     .find((c) => new RegExp(`/${c}/`).test(`/${relativePath}`))
   return matchingKey ? matchingKey : 'root'
 }
@@ -50,7 +50,7 @@ const pagePaths: { relativePath: string; expectedLocale: string }[] = [
   { relativePath: 'formats/index.md', expectedLocale: 'root' },
 ]
 
-for (const code of ALL_CODES.filter((c) => c !== 'zh')) {
+for (const code of ALL_CODES.filter((c) => c !== 'en')) {
   pagePaths.push(
     { relativePath: `${code}/index.md`, expectedLocale: code },
     { relativePath: `${code}/guide/getting-started.md`, expectedLocale: code },
@@ -64,30 +64,30 @@ describe('Docs locale configuration', () => {
     expect(ALL_CODES).toHaveLength(20)
   })
 
-  it('has exactly 19 non-zh locales', () => {
-    const nonZh = ALL_CODES.filter((c) => c !== 'zh')
-    expect(nonZh).toHaveLength(19)
+  it('has exactly 19 non-en locales', () => {
+    const nonEn = ALL_CODES.filter((c) => c !== 'en')
+    expect(nonEn).toHaveLength(19)
   })
 
   it('root locale uses key "root" with link "/"', () => {
-    const zh = buildLocale('zh')
-    expect(zh.key).toBe('root')
-    expect(zh.link).toBe('/')
-    expect(zh.lang).toBe('zh-CN')
+    const en = buildLocale('en')
+    expect(en.key).toBe('root')
+    expect(en.link).toBe('/')
+    expect(en.lang).toBe('en')
   })
 
-  it('every non-zh locale uses ISO code as key with correct link', () => {
+  it('every non-en locale uses ISO code as key with correct link', () => {
     for (const code of ALL_CODES) {
-      if (code === 'zh') continue
+      if (code === 'en') continue
       const locale = buildLocale(code)
       expect(locale.key).toBe(code)
       expect(locale.link).toBe(`/${code}/`)
     }
   })
 
-  it('every non-zh locale regex matches its own page paths and does not match others', () => {
+  it('every non-en locale regex matches its own page paths and does not match others', () => {
     for (const code of ALL_CODES) {
-      if (code === 'zh') continue
+      if (code === 'en') continue
 
       // Should match its own pages
       const ownPath = `/${code}/`
@@ -96,7 +96,7 @@ describe('Docs locale configuration', () => {
 
       // Should NOT match pages of other locales
       for (const otherCode of ALL_CODES) {
-        if (otherCode === code || otherCode === 'zh') continue
+        if (otherCode === code || otherCode === 'en') continue
         const otherPath = `/${otherCode}/`
         expect(ownRegex.test(otherPath)).toBe(false)
       }
@@ -110,12 +110,12 @@ describe('Docs locale configuration', () => {
     }
   })
 
-  it('root locale only matches zh pages (no locale prefix)', () => {
+  it('root locale only matches en pages (no locale prefix)', () => {
     const rootPages = pagePaths.filter((p) => p.expectedLocale === 'root')
     expect(rootPages.length).toBeGreaterThan(3)
     for (const page of rootPages) {
-      expect(page.relativePath.startsWith('zh/')).toBe(false)
-      for (const code of ALL_CODES.filter((c) => c !== 'zh')) {
+      expect(page.relativePath.startsWith('en/')).toBe(false)
+      for (const code of ALL_CODES.filter((c) => c !== 'en')) {
         expect(page.relativePath.startsWith(`${code}/`)).toBe(false)
       }
     }
@@ -138,18 +138,18 @@ describe('Docs locale configuration', () => {
     expect(LANG_LABELS.ar?.dir).toBe('rtl')
   })
 
-  it('every non-zh locale link starts with / and ends with /', () => {
+  it('every non-en locale link starts with / and ends with /', () => {
     for (const code of ALL_CODES) {
-      if (code === 'zh') continue
+      if (code === 'en') continue
       const locale = buildLocale(code)
       expect(locale.link.startsWith('/')).toBe(true)
       expect(locale.link.endsWith('/')).toBe(true)
     }
   })
 
-  it('zh locale link is just "/"', () => {
-    const zh = buildLocale('zh')
-    expect(zh.link).toBe('/')
+  it('en locale link is just "/"', () => {
+    const en = buildLocale('en')
+    expect(en.link).toBe('/')
   })
 
   it('all 20 locale links are unique', () => {

@@ -9,8 +9,8 @@ interface LangEntry {
 }
 
 const ALL_LANGS: LangEntry[] = [
-  { code: 'zh', label: '中文', link: `${BASE}/` },
-  { code: 'en', label: 'English', link: `${BASE}/en/` },
+  { code: 'en', label: 'English', link: `${BASE}/` },
+  { code: 'zh', label: '中文', link: `${BASE}/zh/` },
   { code: 'es', label: 'Español', link: `${BASE}/es/` },
   { code: 'ja', label: '日本語', link: `${BASE}/ja/` },
   { code: 'ko', label: '한국어', link: `${BASE}/ko/` },
@@ -31,7 +31,7 @@ const ALL_LANGS: LangEntry[] = [
   { code: 'sv', label: 'Svenska', link: `${BASE}/sv/` },
 ]
 
-const NON_ZH_LANGS = ALL_LANGS.filter((l) => l.code !== 'zh')
+const NON_EN_LANGS = ALL_LANGS.filter((l) => l.code !== 'en')
 const TRANS = '.VPNavBarTranslations'
 
 async function openSwitcher(page: any) {
@@ -54,7 +54,7 @@ async function verifyPageLoaded(page: any, expectedUrl: string) {
 
 test.describe('Docs language switching - all 20 languages', () => {
 
-  test('1: language switcher renders on Chinese homepage with all 19 non-Chinese entries', async ({ page }) => {
+  test('1: language switcher renders on English homepage with all 19 non-English entries', async ({ page }) => {
     await page.goto(`${BASE}/`)
     await page.waitForLoadState('networkidle')
     await expect(page.locator(TRANS)).toBeVisible()
@@ -64,13 +64,13 @@ test.describe('Docs language switching - all 20 languages', () => {
     await expect(links).toHaveCount(19)
 
     const texts = await links.allTextContents()
-    for (const lang of NON_ZH_LANGS) {
+    for (const lang of NON_EN_LANGS) {
       expect(texts).toContain(lang.label)
     }
   })
 
-  test('2: language switcher on English page shows root + 18 other locales', async ({ page }) => {
-    await page.goto(`${BASE}/en/`)
+  test('2: language switcher on Chinese page shows en + 18 other locales', async ({ page }) => {
+    await page.goto(`${BASE}/zh/`)
     await page.waitForLoadState('networkidle')
     await expect(page.locator(TRANS)).toBeVisible()
 
@@ -78,12 +78,12 @@ test.describe('Docs language switching - all 20 languages', () => {
     await expect(page.locator(`${TRANS} .VPMenuLink a`)).toHaveCount(19)
   })
 
-  test('3: every non-Chinese language link on Chinese homepage has correct href', async ({ page }) => {
+  test('3: every non-English language link on English homepage has correct href', async ({ page }) => {
     await page.goto(`${BASE}/`)
     await page.waitForLoadState('networkidle')
     await openSwitcher(page)
 
-    for (const lang of NON_ZH_LANGS) {
+    for (const lang of NON_EN_LANGS) {
       const link = page.locator(`${TRANS} .VPMenuLink a`, { hasText: lang.label })
       await expect(link).toBeVisible()
       const href = await link.getAttribute('href')
@@ -91,8 +91,8 @@ test.describe('Docs language switching - all 20 languages', () => {
     }
   })
 
-  test('4: clicking each non-Chinese language from homepage loads the locale page (not 404)', async ({ page }) => {
-    for (const lang of NON_ZH_LANGS) {
+  test('4: clicking each non-English language from homepage loads the locale page (not 404)', async ({ page }) => {
+    for (const lang of NON_EN_LANGS) {
       await page.goto(`${BASE}/`)
       await expect(page.locator(TRANS)).toBeVisible()
 
@@ -104,20 +104,20 @@ test.describe('Docs language switching - all 20 languages', () => {
     }
   })
 
-  test('5: clicking root locale link from English homepage loads Chinese homepage', async ({ page }) => {
-    await page.goto(`${BASE}/en/`)
+  test('5: clicking root locale link from Chinese page loads English homepage', async ({ page }) => {
+    await page.goto(`${BASE}/zh/`)
     await page.waitForLoadState('networkidle')
     await openSwitcher(page)
 
-    const zhLink = page.locator(`${TRANS} .VPMenuLink a`, { hasText: '中文' })
-    await expect(zhLink).toBeVisible()
-    expect(await zhLink.getAttribute('href')).toBe(`${BASE}/`)
+    const enLink = page.locator(`${TRANS} .VPMenuLink a`, { hasText: 'English' })
+    await expect(enLink).toBeVisible()
+    expect(await enLink.getAttribute('href')).toBe(`${BASE}/`)
 
-    await zhLink.click()
+    await enLink.click()
     await verifyPageLoaded(page, `${BASE}/`)
 
-    // After switching to Chinese, nav should show Chinese labels
-    await expect(page.locator('.VPNavBarMenu a').first()).toContainText('首页')
+    // After switching to English, nav should show English labels
+    await expect(page.locator('.VPNavBarMenu a').first()).toContainText('Home')
   })
 
   test('6: all locale links in switcher have no double slashes', async ({ page }) => {
@@ -138,15 +138,15 @@ test.describe('Docs language switching - all 20 languages', () => {
     await page.waitForLoadState('networkidle')
     await openSwitcher(page)
 
-    for (const lang of NON_ZH_LANGS) {
+    for (const lang of NON_EN_LANGS) {
       const link = page.locator(`${TRANS} .VPMenuLink a`, { hasText: lang.label })
       await expect(link).toBeVisible()
       expect(await link.getAttribute('href')).toBe(`${BASE}/${lang.code}/guide/getting-started`)
     }
   })
 
-  test('8: clicking each non-Chinese corresponding link from guide page loads the page', async ({ page }) => {
-    for (const lang of NON_ZH_LANGS) {
+  test('8: clicking each non-English corresponding link from guide page loads the page', async ({ page }) => {
+    for (const lang of NON_EN_LANGS) {
       await page.goto(`${BASE}/guide/getting-started`)
       await expect(page.locator(TRANS)).toBeVisible()
 
@@ -157,16 +157,16 @@ test.describe('Docs language switching - all 20 languages', () => {
     }
   })
 
-  test('9: switching from English guide page to Chinese root guide loads correctly', async ({ page }) => {
-    await page.goto(`${BASE}/en/guide/getting-started`)
+  test('9: switching from Chinese guide page to English root guide loads correctly', async ({ page }) => {
+    await page.goto(`${BASE}/zh/guide/getting-started`)
     await page.waitForLoadState('networkidle')
     await openSwitcher(page)
 
-    const zhLink = page.locator(`${TRANS} .VPMenuLink a`, { hasText: '中文' })
-    await expect(zhLink).toBeVisible()
-    expect(await zhLink.getAttribute('href')).toBe(`${BASE}/guide/getting-started`)
+    const enLink = page.locator(`${TRANS} .VPMenuLink a`, { hasText: 'English' })
+    await expect(enLink).toBeVisible()
+    expect(await enLink.getAttribute('href')).toBe(`${BASE}/guide/getting-started`)
 
-    await zhLink.click()
+    await enLink.click()
     await verifyPageLoaded(page, `${BASE}/guide/getting-started`)
   })
 

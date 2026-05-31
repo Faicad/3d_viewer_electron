@@ -1,120 +1,87 @@
-# 功能概览
+# Feature Overview
 
-## 文件加载
+## File Loading
 
-![主窗口](/screenshots/main-window.png)
+### Multiple Load Methods
 
-### 多种加载方式
+- **Drag & Drop**: Drag 3D files directly into the window
+- **Click to Upload**: Click the upload area or toolbar Open button
+- **Clipboard Paste**: Copy a 3D file and press `Ctrl+V` in the window
 
-- **拖拽加载**：直接将 3D 文件从文件管理器拖入应用窗口即可加载
-- **点击上传**：点击窗口中央的上传区域，或点击工具栏的打开按钮
-- **剪贴板粘贴**：复制 3D 文件后，在窗口中按 `Ctrl+V` 粘贴加载
+### Smart File List
 
-### 智能文件列表
+After loading a model, the app automatically scans the directory and shows all supported 3D files in the right panel:
+- Use `↑` `↓` keys to select, `Enter` to load
+- Click any file to switch instantly
 
-加载模型后，应用自动扫描文件所在目录，在右侧文件列表中展示所有支持的 3D 文件：
+## 3D Viewport
 
-![文件列表](/screenshots/file-list.png)
+### View Controls
 
-- 使用 `↑` `↓` 键选择文件，`Enter` 键加载
-- 点击文件列表中的任意文件即可切换
-- 无需手动寻找和打开每个文件
+| Action | Effect |
+|--------|--------|
+| Left-click drag | Rotate |
+| Right-click drag | Pan |
+| Scroll wheel | Zoom |
+| Double-click | Focus on model |
 
-## 3D 视口
+### Display Modes
 
-![模型加载](/screenshots/model-loaded.png)
+- **Solid**: Full PBR material rendering
+- **Wireframe**: Triangle mesh edges
+- **Solid+Wireframe**: Both overlaid
+- **Grid**: Reference grid helper
 
-### 视角控制
+## Interaction Tools
 
-| 操作 | 效果 |
-|------|------|
-| 鼠标左键拖拽 | 旋转视角 |
-| 鼠标右键拖拽 | 平移视角 |
-| 鼠标滚轮 | 缩放视角 |
-| 双击模型 | 聚焦到该模型 |
+### Transform Controls
 
-### 四种显示模式
+| Tool | Operation |
+|------|-----------|
+| Translate | Move model along X/Y/Z axes |
+| Rotate | Rotate model around X/Y/Z axes |
+| Scale | Scale model along X/Y/Z axes |
 
-- **实体**：完整的 PBR 材质渲染
-- **线框**：显示三角网格线框
-- **实体+线框**：材质叠加线框
-- **网格**：参考网格辅助线
+### Topology Selection
 
-### 多光源系统
+| Mode | Selects | Use Case |
+|------|---------|----------|
+| Object | Whole part | General manipulation |
+| Face | Triangle or geometry face | Local inspection |
+| Edge | Mesh or topology edge | Structure analysis |
+| Vertex | Mesh vertex | Precise measurement |
 
-- 环境光提供基础照明
-- 方向光模拟主光源，自动适应场景亮度
+## Scene Management
 
-## 交互工具
+### Scene Tree
 
-### 变换工具
+The left panel shows the model's hierarchical structure:
+- Expand/collapse to inspect parts
+- Click the eye icon to toggle visibility
+- Right-click for more options
 
-在工具栏切换到变换模式后，可以对模型进行：
+### Model Statistics
 
-| 工具 | 操作 |
-|------|------|
-| 平移 | 沿 X/Y/Z 轴移动模型 |
-| 旋转 | 绕 X/Y/Z 轴旋转模型 |
-| 缩放 | 沿 X/Y/Z 轴缩放模型 |
+The status bar shows real-time: vertex count, face count, material weight.
 
-### 拓扑选择
+### Model Export
 
-![场景树](/screenshots/scene-tree.png)
+Export the current model as:
+- **STL** (universal triangle mesh)
+- **GLB** (glTF 2.0 Binary)
 
-支持四种选取模式，方便精确定位模型元素：
+## Interface Customization
 
-| 模式 | 选取对象 | 用途 |
-|------|----------|------|
-| 物体 | 整个模型部件 | 整体操作 |
-| 面 | 三角面或几何面 | 局部查看 |
-| 边 | 网格边或拓扑边 | 结构分析 |
-| 顶点 | 网格顶点 | 精确测量 |
+### Theme
 
-选取元素后，右侧信息面板会显示选中元素的 ID、类型、面积/长度和坐标信息。
-
-## 场景管理
-
-### 场景树
-
-左侧场景树以层次结构展示模型的所有部件：
-
-- 展开/折叠查看部件层次
-- 点击眼睛图标单独控制显隐
-- 右键菜单提供更多操作
-
-### 模型统计
-
-底部状态栏实时显示：
-- 顶点数
-- 面数
-- 材质重量
-
-### 模型导出
-
-支持将当前模型导出下载为：
-- **STL** 格式（通用三角网格）
-- **GLB** 格式（glTF 2.0 二进制）
-
-## 界面定制
-
-![设置面板](/screenshots/settings-panel.png)
-
-### 主题模式
-
-三种主题适应不同使用环境：
-
-| 模式 | 适用场景 |
+| Mode | Use Case |
 |------|----------|
-| 浅色 | 日间明亮环境 |
-| 深色 | 夜间或低光环境 |
-| 跟随系统 | 自动匹配系统设置 |
+| Light | Bright environment |
+| Dark | Low-light environment |
+| System | Matches OS setting |
 
-### 中英文界面
+### Bilingual UI
 
-- 支持简体中文和英文
-- 可手动切换或跟随系统语言
-- 切换即时生效，无需重启
-
-## 轴指示器
-
-右下角实时显示 XYZ 坐标轴方向，方便在旋转视角时把握当前坐标系。
+- Chinese and English supported
+- Manual switch or auto-follow system
+- Instant switch, no restart needed

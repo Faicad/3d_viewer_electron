@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const PAGES = path.resolve(ROOT, 'pages')
 
-const LOCALE_CODES = ['es', 'ja', 'ko', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'tr', 'it', 'nl', 'pl', 'vi', 'th', 'uk', 'sv']
+const LOCALE_CODES = ['zh', 'es', 'ja', 'ko', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'tr', 'it', 'nl', 'pl', 'vi', 'th', 'uk', 'sv']
 const FEATURE_ICONS = ['🚀', '🎨', '🖱️', '📂', '🌓', '🌐']
 
 function featuresYaml(lang) {

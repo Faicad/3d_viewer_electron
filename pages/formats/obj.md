@@ -2,33 +2,33 @@
 sidebar: false
 ---
 
-# OBJ — 网格 (Mesh)
+# OBJ — Mesh
 
-OBJ 是经典的 Wavefront 3D 格式，基于文本，可引用外部 .mtl 材质库文件。
+OBJ is the classic Wavefront 3D text-based format, referencing external .mtl material library files.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.obj` |
-| 分类 | 网格 (Mesh) |
-| 渲染方式 | 标准三角网格渲染 |
+| Extensions | `.obj` |
+| Category | Mesh |
+| Render Type | Standard triangle mesh rendering |
 
-## 支持的特性
+## Supported Features
 
-- PBR 材质渲染
-- 标准三角网格显示
+- PBR material rendering
+- Standard triangle mesh display
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![OBJ](/screenshots/formats/obj.png)
 

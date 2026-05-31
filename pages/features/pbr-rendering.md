@@ -1,50 +1,45 @@
-# PBR 渲染系统
+# PBR Rendering System
 
-## 什么是 PBR？
+## What is PBR?
 
-PBR（Physically Based Rendering，基于物理的渲染）是一种模拟真实世界光照和材质特性的渲染技术。它让 3D 模型在屏幕上呈现出更真实、更自然的视觉效果——金属表面有真实的反射、粗糙表面有柔和的漫反射、光滑表面有锐利的高光。
+PBR (Physically Based Rendering) simulates real-world lighting and material properties to produce realistic 3D visuals — metallic surfaces with true reflections, rough surfaces with soft diffuse lighting, and smooth surfaces with sharp highlights.
 
-## 视觉效果
+## Visual Properties
 
-### 金属与粗糙度
+### Metalness & Roughness
 
-每个材质都可以调节两个核心参数：
+Each material has two core adjustable parameters:
 
-| 参数 | 效果 | 数值范围 |
-|------|------|----------|
-| **金属度** | 控制材质像金属还是非金属 | 0（非金属）~ 1（完全金属） |
-| **粗糙度** | 控制表面光滑程度 | 0（镜面）~ 1（完全粗糙） |
+| Parameter | Effect | Range |
+|-----------|--------|-------|
+| **Metalness** | How metallic the surface looks | 0 (non-metal) ~ 1 (fully metal) |
+| **Roughness** | How rough or smooth the surface is | 0 (mirror) ~ 1 (fully rough) |
 
-- 金属度高 + 粗糙度低 = 抛光金属效果
-- 金属度低 + 粗糙度高 = 磨砂塑料或布料效果
+- High metalness + low roughness = polished metal
+- Low metalness + high roughness = matte plastic or fabric
 
-### 环境光照反射
+### Environment Reflections
 
-光滑表面会反射周围环境，产生逼真的倒影效果。系统支持 HDR 和 EXR 格式的高动态范围环境贴图。
+Smooth surfaces reflect the surrounding environment. The system supports HDR and EXR high-dynamic-range environment maps.
 
-![模型渲染](/screenshots/model-loaded.png)
+## Display Modes
 
-## 显示模式
+| Mode | Purpose |
+|------|---------|
+| **Solid** | Full PBR material rendering |
+| **Wireframe** | Triangle mesh edges for geometry inspection |
+| **Solid+Wireframe** | Both combined |
+| **Grid** | Reference grid helper |
 
-视口工具栏提供四种显示模式，方便从不同角度查看模型：
+## Environment Maps
 
-| 模式 | 用途 |
-|------|------|
-| **实体** | 默认模式，显示完整的 PBR 材质效果 |
-| **线框** | 显示模型的三角网格线框，便于观察几何结构 |
-| **实体+线框** | 实体表面叠加线框，兼顾视觉效果和结构观察 |
-| **网格** | 在模型下方显示参考网格辅助线 |
+Environment maps provide global illumination and reflections:
+- **Presets**: 3 built-in lighting environments, switch instantly
+- **Custom**: Load your own `.hdr` or `.exr` environment maps
+- **Use case**: Preview models under different lighting conditions
 
-## 环境贴图
+## Tips
 
-环境贴图为模型提供全局光照和反射参考：
-
-- **预设环境**：内置三套不同光照风格的环境贴图，直接切换即可
-- **自定义环境**：支持加载自己的 `.hdr` 或 `.exr` 环境贴图文件
-- **应用场景**：展示金属质感产品、预览模型在不同光照下的外观
-
-## 使用技巧
-
-1. 加载金属材质的模型后，尝试切换不同的环境贴图来获得不同的反射效果
-2. 对于 CAD 模型，开启线框模式可以更清晰地观察几何结构
-3. 使用实体+线框模式兼顾美观和结构分析
+1. Try different environment maps to see how metallic materials reflect differently
+2. Use wireframe mode for CAD models to inspect geometry structure
+3. Solid+wireframe mode balances visual quality and structural analysis

@@ -2,33 +2,33 @@
 sidebar: false
 ---
 
-# MD2 — 动画 (Animation)
+# MD2 — Animation
 
-MD2 是 Quake II 引擎使用的模型格式，支持顶点动画，是经典游戏模型格式。
+MD2 is the model format used by Quake II engine, supporting vertex animation — a classic game model format.
 
-## 基本信息
+## Format Info
 
-| 属性 | 值 |
+| Property | Value |
 | --- | --- |
-| 扩展名 | `.md2` |
-| 分类 | 动画 (Animation) |
-| 渲染方式 | 标准三角网格渲染 |
+| Extensions | `.md2` |
+| Category | Animation |
+| Render Type | Standard triangle mesh rendering |
 
-## 支持的特性
+## Supported Features
 
-- PBR 材质渲染
-- 标准三角网格显示
+- PBR material rendering
+- Standard triangle mesh display
 
-### 通用功能
+### General Features
 
-- 拖拽加载：直接将文件拖入应用窗口
-- 点击上传：通过文件对话框选择
-- 剪贴板粘贴：复制文件后 Ctrl+V
-- OrbitControls：旋转 / 平移 / 缩放
-- 场景树：层次化展示模型结构
-- 模型导出：下载为 STL 或 GLB
+- Drag & drop: drag files directly into the window
+- Click to upload: select via file dialog
+- Clipboard paste: Ctrl+V after copying
+- OrbitControls: rotate / pan / zoom
+- Scene tree: hierarchical model structure
+- Model export: download as STL or GLB
 
-## 截图
+## Screenshot
 
 ![MD2](/screenshots/formats/md2.png)
 

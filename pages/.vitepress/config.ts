@@ -27,8 +27,8 @@ const LANG_LABELS = {
 }
 
 const UI_LABELS = {
-  zh: { docFooter: { prev: '上一页', next: '下一页' }, outline: '本页目录', lastUpdated: '最后更新', darkModeSwitch: '主题切换', sidebarMenu: '菜单', returnToTop: '返回顶部', langMenu: '语言', lightModeSwitchTitle: '切换到浅色模式', darkModeSwitchTitle: '切换到深色模式' },
   en: { docFooter: { prev: 'Previous page', next: 'Next page' }, outline: 'On this page', lastUpdated: 'Last updated', darkModeSwitch: 'Appearance', sidebarMenu: 'Menu', returnToTop: 'Return to top', langMenu: 'Language', lightModeSwitchTitle: 'Switch to light mode', darkModeSwitchTitle: 'Switch to dark mode' },
+  zh: { docFooter: { prev: '上一页', next: '下一页' }, outline: '本页目录', lastUpdated: '最后更新', darkModeSwitch: '主题切换', sidebarMenu: '菜单', returnToTop: '返回顶部', langMenu: '语言', lightModeSwitchTitle: '切换到浅色模式', darkModeSwitchTitle: '切换到深色模式' },
   es: { docFooter: { prev: 'Página anterior', next: 'Página siguiente' }, outline: 'En esta página', lastUpdated: 'Última actualización', darkModeSwitch: 'Apariencia', sidebarMenu: 'Menú', returnToTop: 'Volver arriba', langMenu: 'Idioma', lightModeSwitchTitle: 'Cambiar a modo claro', darkModeSwitchTitle: 'Cambiar a modo oscuro' },
   ja: { docFooter: { prev: '前のページ', next: '次のページ' }, outline: 'このページの内容', lastUpdated: '最終更新', darkModeSwitch: '表示モード', sidebarMenu: 'メニュー', returnToTop: 'トップに戻る', langMenu: '言語', lightModeSwitchTitle: 'ライトモードに切り替え', darkModeSwitchTitle: 'ダークモードに切り替え' },
   ko: { docFooter: { prev: '이전 페이지', next: '다음 페이지' }, outline: '이 페이지의 내용', lastUpdated: '마지막 업데이트', darkModeSwitch: '테마', sidebarMenu: '메뉴', returnToTop: '맨 위로', langMenu: '언어', lightModeSwitchTitle: '라이트 모드로 전환', darkModeSwitchTitle: '다크 모드로 전환' },
@@ -52,18 +52,18 @@ const UI_LABELS = {
 function localesConfig() {
   const locales = {}
   for (const [code] of Object.entries(LANG_LABELS)) {
-    const isZh = code === 'zh'
-    const localeKey = isZh ? 'root' : code
+    const isRoot = code === 'en'
+    const localeKey = isRoot ? 'root' : code
     const ui = UI_LABELS[code] || UI_LABELS.en
     locales[localeKey] = {
       label: LANG_LABELS[code].label,
-      link: isZh ? '/' : `/${code}/`,
+      link: isRoot ? '/' : `/${code}/`,
       lang: LANG_LABELS[code].lang,
       dir: LANG_LABELS[code].dir || 'ltr',
       title: 'Faicad 3D Viewer',
-      description: isZh
-        ? '跨平台 3D 模型文件查看器 — 支持 STL/GLB/STEP 等 27+ 种 3D 文件格式'
-        : 'Cross-platform 3D model file viewer — supports 27+ 3D file formats including STL, GLB, STEP and more',
+      description: isRoot
+        ? 'Cross-platform 3D model file viewer — supports 27+ 3D file formats including STL, GLB, STEP and more'
+        : '跨平台 3D 模型文件查看器 — 支持 STL/GLB/STEP 等 27+ 种 3D 文件格式',
       themeConfig: {
         nav: nav(code),
         sidebar: sidebar(code),
@@ -83,7 +83,7 @@ function localesConfig() {
 }
 
 function nav(lang) {
-  const p = lang === 'zh' ? '' : `/${lang}`
+  const p = lang === 'en' ? '' : `/${lang}`
   const t = NAV[lang] || NAV.en
   return [
     { text: t.home, link: p + '/' },
@@ -95,7 +95,7 @@ function nav(lang) {
 }
 
 function sidebar(lang) {
-  const prefix = lang === 'zh' ? '' : `/${lang}`
+  const prefix = lang === 'en' ? '' : `/${lang}`
   const t = SIDEBAR[lang] || SIDEBAR.en
   const navT = NAV[lang] || NAV.en
 
@@ -139,9 +139,9 @@ function sidebar(lang) {
 export default defineConfig({
   base: '/3d_viewer_electron/',
   title: 'Faicad 3D Viewer',
-  description: '跨平台 3D 模型文件查看器 — 支持 STL/GLB/STEP 等 27+ 种 3D 文件格式',
+  description: 'Cross-platform 3D model file viewer — supports 27+ 3D file formats including STL, GLB, STEP and more',
 
-  lang: 'zh-CN',
+  lang: 'en',
   locales: localesConfig(),
 
   head: [
@@ -172,16 +172,16 @@ export default defineConfig({
       copyright: `Copyright © ${new Date().getFullYear()} Faicad`,
     },
 
-    nav: nav('zh'),
-    sidebar: sidebar('zh'),
-    docFooter: { prev: '上一页', next: '下一页' },
-    outline: { label: '本页目录' },
-    lastUpdated: { text: '最后更新' },
-    darkModeSwitchLabel: '主题切换',
-    sidebarMenuLabel: '菜单',
-    returnToTopLabel: '返回顶部',
-    langMenuLabel: '语言',
-    lightModeSwitchTitle: '切换到浅色模式',
-    darkModeSwitchTitle: '切换到深色模式',
+    nav: nav('en'),
+    sidebar: sidebar('en'),
+    docFooter: { prev: 'Previous page', next: 'Next page' },
+    outline: { label: 'On this page' },
+    lastUpdated: { text: 'Last updated' },
+    darkModeSwitchLabel: 'Appearance',
+    sidebarMenuLabel: 'Menu',
+    returnToTopLabel: 'Return to top',
+    langMenuLabel: 'Language',
+    lightModeSwitchTitle: 'Switch to light mode',
+    darkModeSwitchTitle: 'Switch to dark mode',
   },
 })
