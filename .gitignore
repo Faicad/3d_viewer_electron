@@ -32,6 +32,8 @@ out/
 *.hdr
 !src/renderer/public/env/*.hdr
 docs/
+pages/.vitepress/cache/
+pages/.vitepress/dist/
 resources/
 /diag*.pngtest-results/
 

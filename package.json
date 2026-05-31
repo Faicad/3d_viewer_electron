@@ -13,6 +13,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "lint": "eslint .",
+    "dev:docs": "vitepress dev pages",
+    "build:docs": "vitepress build pages",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
@@ -84,6 +86,7 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.3",
     "vite": "^6.0.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.6"
   },
   "overrides": {
