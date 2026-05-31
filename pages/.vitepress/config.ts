@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import pkg from '../../package.json'
 
 export default defineConfig({
+  base: '/3d_viewer_electron/',
   title: 'Faicad 3D Viewer',
   description: '跨平台 3D 模型文件查看器 — 支持 STL/GLB/STEP 等 27+ 种 3D 文件格式的桌面应用，基于 Electron + Three.js',
 

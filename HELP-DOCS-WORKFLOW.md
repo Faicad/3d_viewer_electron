@@ -149,7 +149,7 @@ darkModeSwitchLabel: '主题切换'
 - **触发条件**：推送 `pages/**` 或 `.github/workflows/deploy-pages.yml` 到 `main` 分支
 - **也可手动触发**：GitHub → Actions → Deploy VitePress to Pages → Run workflow
 - **部署目标**：`gh-pages` 分支
-- **仓库设置**：Settings → Pages → Source → Deploy from branch → `gh-pages`
+- **仓库设置**：Settings → Pages → Source → **GitHub Actions**
 
 ### 部署前检查清单
 
@@ -167,3 +167,4 @@ darkModeSwitchLabel: '主题切换'
 3. **避免内部术语**：用户不需要知道 "PBR" 是什么的缩写，不需要知道 "拓扑" 的技术定义，描述功能效果即可
 4. **FAQ 要有用**：常见问题应来源于真实用户反馈，不要编造没有实际意义的问题
 5. **版本号**：页脚版本号自动从 `package.json` 读取，不要手动硬编码
+6. **base 路径**：`pages/.vitepress/config.ts` 中的 `base` 必须设为 `/<仓库名>/`（GitHub Pages 子路径部署时），否则 CSS/JS 404 导致页面无样式
