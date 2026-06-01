@@ -17,7 +17,9 @@ pages/                          # 文档源码根目录
 ├── .vitepress/
 │   └── config.ts               # VitePress 配置（SEO、20 语言 i18n、导航、侧边栏、页脚）
 ├── public/
-│   └── screenshots/            # 界面截图（.png）
+│   └── screenshots/
+│       ├── formats/              # 各格式静态截图（.png）
+│       └── animations/           # 动画演示视频（.webm + .mp4，自动生成）
 ├── __tests__/
 │   └── locale-config.test.ts   # 多语言配置的单元测试（13 个测试用例）
 ├── e2e/
@@ -57,7 +59,8 @@ scripts/
 ├── format-data.mjs             # 27 种文件格式的数据源（中英文描述、分组、渲染方式）
 ├── generate-format-pages.mjs   # 脚本：为所有 20 种语言生成格式页面
 ├── generate-locale-pages.mjs   # 脚本：为非中文语种（18 种）生成首页/指南/功能页面
-└── capture-format-screenshots.mjs  # 截图捕获脚本（Playwright + Electron）
+├── capture-format-screenshots.mjs  # 截图捕获脚本（Playwright + Electron）
+└── capture-animation-demo.mjs    # 动画视频生成脚本（Playwright + Electron + ffmpeg）
 ```
 
 ## 命令
@@ -67,6 +70,7 @@ pnpm run dev:docs                     # 本地预览 http://localhost:5173（热
 pnpm run build:docs                   # 生成格式页面 + 生成语种页面 + 构建到 pages/.vitepress/dist/
 pnpm run generate:format-pages        # 仅重新生成文件格式页面（全部 20 个语种）
 pnpm run capture:format-screenshots   # 截取各文件格式的截图（需先构建应用）
+pnpm run capture:animation-demo       # 生成动画演示视频（需先构建应用 + ffmpeg）
 pnpm run test:unit                    # 运行多语言配置单元测试
 pnpm run test:e2e:docs                # 构建文档 + 运行多语言切换 E2E 测试
 ```
@@ -214,7 +218,60 @@ VitePress 内置语言切换器 (`VPNavBarTranslations`) 会自动显示所有�
 2. 运行 `node scripts/capture-format-screenshots.mjs`
 3. 核对输出截图质量，不满意则调整等待时间或加载不同模型
 
-### 3. 版本信息
+### 3. 动画演示视频
+
+动画播放器功能页面 (`features/animation-player.md`) 嵌入了自动生成的 MP4/WebM 视频来演示模型动画效果。
+
+**架构：**
+
+```
+scripts/capture-animation-demo.mjs
+  │
+  ├─ Playwright 启动 Electron 应用
+  ├─ 加载 RobotExpressive.glb（含 14 个骨骼动画片段）
+  ├─ 点击工具栏「播放动画」按钮 → 打开 AnimationPlayerDialog（独立 R3F Canvas）
+  │
+  ├─ 遍历每个动画片段：
+  │     ├─ 从对话框 <select> 下拉选择片段
+  │     ├─ 等待 mixer 初始化 + React 渲染
+  │     ├─ 逐帧时间步进（animationStore.seek(exactTime)）
+  │     │     └─ seek() 设置 isPlaying=false → AnimationPlayerInternal useEffect
+  │     │        调用 mixer.setTime() → GPU 渲染 → page.screenshot()
+  │     └─ 生成 PNG 帧序列到临时目录
+  │
+  └─ ffmpeg 编码帧序列
+        ├─ .webm  (VP9, 15fps, 1280×800, ~30-65KB/clip)
+        └─ .mp4   (H.264, 15fps, 1280×800, ~25-60KB/clip)
+```
+
+**关键设计决策：时间步进而非实时录制**
+
+不使用实时播放 + 定时截图的方式，而是逐帧手动 `seek()` 到精确时间点再截图。优点：
+- **完全确定性** — 不受机器性能影响，每次运行输出完全一致
+- **可控帧率** — 15fps 精确到位
+- **不丢帧** — 不依赖真实时钟
+- **跨平台一致** — 同一模型在 Windows/Linux/Mac 产出相同结果
+
+**自动化流程：**
+
+1. 确保应用已构建（`dist/win-unpacked/3D_Viewer.exe` 存在）
+2. 确保 `ffmpeg` 已安装且 PATH 可用
+3. 运行 `pnpm run capture:animation-demo`
+4. 核对 `pages/public/screenshots/animations/` 下的视频质量
+5. 如需更换演示模型，修改脚本中的 `FIXTURE` 变量后重新运行
+
+**页面引用：**
+
+```markdown
+<video autoplay loop muted playsinline controls width="100%">
+  <source src="/screenshots/animations/Walking.webm" type="video/webm">
+  <source src="/screenshots/animations/Walking.mp4" type="video/mp4">
+</video>
+```
+
+`<video>` 标签在 VitePress Markdown 中原生支持，无需额外配置。`autoplay loop muted playsinline` 确保视频自动循环播放且不干扰用户。
+
+### 4. 版本信息
 
 页脚显示版本号，从 `package.json` 自动读取：
 
@@ -228,7 +285,7 @@ footer: {
 
 发版更新 `package.json` 版本号后，文档页脚自动同步。
 
-### 4. SEO 配置
+### 5. SEO 配置
 
 在 `pages/.vitepress/config.ts` 的 `head` 中配置：
 
@@ -240,17 +297,17 @@ footer: {
 | `canonical` | 规范链接，防重复内容 |
 | `sitemap` | 自动生成 `sitemap.xml`，提交搜索引擎 |
 
-### 5. 中文本地化
+### 6. 中文本地化
 
 VitePress 配置中的 UI 文字已全部中文化。根语种（zh）使用中文界面文字，其他 19 个语种各自有翻译。
 
-### 6. 分组展示
+### 7. 分组展示
 
 格式列表页面（`formats/index.md`）按分组展示，分组顺序为：**Mesh** → **CAD** → **Animation** → **Point Cloud** → **Volume** → **GCode** → **Vector** → **Other**。每个分组下按格式在 `FORMATS` 数组中的顺序排列。
 
 每个格式页面具有 prev/next 导航，按 `FORMATS` 数组的线性顺序跳转上一个/下一个格式。
 
-### 7. 文件格式列表
+### 8. 文件格式列表
 
 格式描述要简洁、面向用户：
 
@@ -260,7 +317,7 @@ VitePress 配置中的 UI 文字已全部中文化。根语种（zh）使用中�
 | "工业 CAD 标准格式，自动导入渲染" | "通过 Open CASCADE 引擎转换为 GLB 渲染" |
 | "Rhinoceros 3D 格式" | "需 rhino3dm WASM" |
 
-### 7. 新增页面
+### 9. 新增页面
 
 1. **中文页面**：在对应目录（`pages/guide/`、`pages/features/`、`pages/formats/`）创建 `.md` 文件
 2. **翻译页面**：在每个语种目录下创建对应的 `.md` 文件（路径结构需与中文一致）
@@ -272,7 +329,7 @@ VitePress 配置中的 UI 文字已全部中文化。根语种（zh）使用中�
 5. **运行 `pnpm run build:docs`** 构建并验证
 6. **确认 `sitemap.xml`** 包含了新页面链接
 
-### 8. 新增语种
+### 10. 新增语种
 
 1. 在 `scripts/translations.mjs` 中添加该语种的翻译字符串（NAV、HERO、SIDEBAR、GUIDE、FEATURES）
 2. 在 `pages/.vitepress/config.ts` 的 `LANG_LABELS` 中注册语种信息（label、lang、dir）

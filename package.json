@@ -16,6 +16,8 @@
     "dev:docs": "vitepress dev pages",
     "generate:format-pages": "node scripts/generate-format-pages.mjs",
     "capture:format-screenshots": "node scripts/capture-format-screenshots.mjs",
+    "capture:animation-demo": "node scripts/capture-animation-demo.mjs",
+    "capture:animation-fullscreen": "node scripts/capture-animation-fullscreen-demo.mjs",
     "build:docs": "node scripts/generate-format-pages.mjs && node scripts/generate-locale-pages.mjs && vitepress build pages",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",

@@ -124,6 +124,7 @@ function sidebar(lang) {
           { text: t.overview, link: `${prefix}/features/overview` },
           { text: t.stepSupport, link: `${prefix}/features/step-support` },
           { text: t.pbrRendering, link: `${prefix}/features/pbr-rendering` },
+          { text: t.animationPlayer, link: `${prefix}/features/animation-player` },
         ],
       },
     ],

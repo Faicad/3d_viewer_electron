@@ -92,8 +92,8 @@ for (const code of ['fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'tr', 'it', 'nl', 
 }
 
 export const SIDEBAR = {
-  zh: { quickStart: '快速开始', installation: '安装与下载', supportedFormats: '支持的文件格式', keyboardShortcuts: '键盘快捷键', configuration: '配置与主题', overview: '功能概览', stepSupport: 'STEP 文件支持', pbrRendering: 'PBR 渲染系统' },
-  en: { quickStart: 'Getting Started', installation: 'Installation', supportedFormats: 'Supported Formats', keyboardShortcuts: 'Keyboard Shortcuts', configuration: 'Configuration', overview: 'Overview', stepSupport: 'STEP Support', pbrRendering: 'PBR Rendering' },
+  zh: { quickStart: '快速开始', installation: '安装与下载', supportedFormats: '支持的文件格式', keyboardShortcuts: '键盘快捷键', configuration: '配置与主题', overview: '功能概览', stepSupport: 'STEP 文件支持', pbrRendering: 'PBR 渲染系统', animationPlayer: '动画播放器' },
+  en: { quickStart: 'Getting Started', installation: 'Installation', supportedFormats: 'Supported Formats', keyboardShortcuts: 'Keyboard Shortcuts', configuration: 'Configuration', overview: 'Overview', stepSupport: 'STEP Support', pbrRendering: 'PBR Rendering', animationPlayer: 'Animation Player' },
   es: { quickStart: 'Primeros pasos', installation: 'Instalación', supportedFormats: 'Formatos compatibles', keyboardShortcuts: 'Atajos de teclado', configuration: 'Configuración', overview: 'Resumen', stepSupport: 'Soporte STEP', pbrRendering: 'Renderizado PBR' },
   ja: { quickStart: 'はじめに', installation: 'インストール', supportedFormats: '対応フォーマット', keyboardShortcuts: 'キーボードショートカット', configuration: '設定', overview: '概要', stepSupport: 'STEP サポート', pbrRendering: 'PBR レンダリング' },
   ko: { quickStart: '시작하기', installation: '설치', supportedFormats: '지원 형식', keyboardShortcuts: '키보드 단축키', configuration: '설정', overview: '개요', stepSupport: 'STEP 지원', pbrRendering: 'PBR 렌더링' },
