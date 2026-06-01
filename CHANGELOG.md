@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.2.0...v1.3.0) (2026-06-01)
+
+
+### Features
+
+* add 20-language i18n + per-format doc pages with screenshots ([b9b3502](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b9b3502c392068d4257908ac9f3cba119c62acde))
+* add ci-playwright retry script to reduce flaky test false positives ([2c0f217](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2c0f217e55c31ba022b823788859c0c96cd017a6))
+* add Copy File Path / Copy Node Path to scene tree context menu ([522897f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/522897fa298c155dba7df132dc9866d4d253885f))
+* add Delete key shortcut to remove selected models from scene ([7825975](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7825975cfa13bebdcdf56822e1adee7f10eea20a))
+* add DXF file format support via SVG workspace pipeline ([0bc156d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0bc156d83522814650a7b9985204e48394577f37))
+* add GLB extension panel showing extensions, materials, textures, and animations ([d9106d7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d9106d7e11024c0d753de7de794bc37dfeac2477))
+* add SVG 2D canvas viewer with layer tree, grid layout, and visibility toggle ([a322eea](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a322eea59b70d43deba6913e5eb42ac87455d2f8))
+* add SVG/DXF 2D format support, grouped format index, prev/next navigation ([1d6f2d5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1d6f2d5450c65d793ebba9561bbf507124cefa16))
+* add VitePress help documentation with GitHub Pages deployment ([1d9ca91](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1d9ca916739e97582118ecda6b3151b63a89884a))
+* click material in GLB panel to edit all parts with that material ([ecfa06d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ecfa06d7c1e96402b29f15453a4fe96951c1ac9b))
+* convert environment panel to floating window with i18n ([9aec8ab](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9aec8ab76418d29712a9eccb591401b48464fdf9))
+* detect software GPU at renderer init, add E2E sw-GPU test infrastructure ([874d01b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/874d01b702c2c9bdb05c0ea3f1cf14099ab1253b))
+* object-mode selection highlight, bounding box corners, and drag-to-move ([aeed968](https://github.com/YOUR_ORG/3d_viewer_electron/commits/aeed968c7ee9a9c3563e6299cfb0dbf313e733fe))
+* support loading custom HDR/EXR environment maps from local files ([bde29fa](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bde29faeb8e08ff37bd245d295c3acf160f070a2))
+* support multiple custom HDR/EXR environment maps ([c02ac22](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c02ac22ca673e04fc7cbb6ab751ab2efbabf72cc))
+* translate all 20 locales with proper localized content ([1f873a0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1f873a0e1c2126b7a023164900feb7286a3d15c4))
+
+
+### Bug Fixes
+
+* add icon.icns for macOS build (generated from icon.png) ([04289bd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/04289bd2ee131c1a127a3b2bfe13396d192ba920))
+* add icon.png for macOS build (extracted from icon.ico) ([536feac](https://github.com/YOUR_ORG/3d_viewer_electron/commits/536feacf680ea2d3851780b92252cb68c4c4aa83))
+* add SelectionBoundingBoxUtils ([80b9d3a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/80b9d3a5edf6620733bab6a881787fba9af1615c))
+* disable NetworkServiceSandbox ([bd6e246](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bd6e246c205141f360d34423e257a16549a13af9))
+* remove duplicate pnpm version spec in deploy workflow ([29ce46b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/29ce46ba7f2e9d26b64812e05e7edfa8c921511d))
+* remove unused destructured imports in dxf-load-zoom test ([f4fb36a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f4fb36a3911eecbf5ee85400b362feca76381d23))
+* reorder loadFilePath before handleNativeOpenFile to fix react-hooks/immutability lint error ([0033956](https://github.com/YOUR_ORG/3d_viewer_electron/commits/003395653bb190d3c07f459213a278a17e08a20c))
+* selection mode defaults, multi-file drag, highlight leak, and topology overlay positioning ([3fcabcf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3fcabcf54ee22811d5a0430c36383ca2f92ccea4))
+* set mac.icon to null to skip missing icon.icns on macOS build ([2ede7d8](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2ede7d8b0292ade32ed1d12441ade6ca3515398c))
+* set VitePress base path for GitHub Pages sub-path deployment ([ba4d876](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ba4d876b052ea949ec4683858dcaba4abf345ee7))
+* SVG thumbnails, zoom, mode switching, and UI polish ([5e2cc3b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/5e2cc3be7678986a8fb4dc90a15edf351669c50e))
+* sync __animActive to engine store and fix E2E wait logic for camera auto-fit ([309f31d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/309f31d813aa45dbfd56dd62838137168c3b4087))
+* sync model store when SVG/DXF file removed from workspace ([d85b94c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d85b94c9445103c37c11e97ced4466b4949af829))
+* update tmp to 0.2.7 to fix CVE-2026-44705 path traversal (Dependabot [#35](https://github.com/Faicad/3d_viewer_electron/issues/35)) ([80d7d02](https://github.com/YOUR_ORG/3d_viewer_electron/commits/80d7d02817ea60fe60f7b8a81069cd6fafa15df6))
+* upscale icon.png to 512x512 for macOS build requirement ([2b6e537](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2b6e5372b33b1a278513efddef01e23220c38683))
+
+
+### Code Refactoring
+
+* change root locale from zh-CN to en ([868b94d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/868b94d61d747e1f0577bdc009486a039919db36))
+
+
+### Documentation
+
+* add animation player translations for all 20 locales ([93a748f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/93a748f798704621e97f24f81e7c944f4e3b5af6))
+* animations for pages ([8a40518](https://github.com/YOUR_ORG/3d_viewer_electron/commits/8a405186744cc18f8a5b9e8fa5cbeabccf545109))
+
 ## [1.2.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.1.1...v1.2.0) (2026-05-28)
 
 
