@@ -603,7 +603,7 @@ export default function ViewportContainer() {
     pendingBoxRef.current = null
     const store = useEngineStore.getState()
     if (store.showHeatbed) {
-      const h = store.bedSize / 2000  // mm → raw, then /2
+      const h = store.bedSize / 2  // scene units
       const gz = useEngineStore.getState().modelBbox?.[2] ?? 0
       const bedBox = new THREE.Box3(
         new THREE.Vector3(-h, -h, gz),
@@ -624,7 +624,7 @@ export default function ViewportContainer() {
 
     // OrcaSlicer: if heatbed is visible, zoom_to_bed()
     if (store.showHeatbed) {
-      const h = store.bedSize / 2000  // mm → raw, then /2
+      const h = store.bedSize / 2  // scene units
       const gz = useEngineStore.getState().modelBbox?.[2] ?? 0
       const bedBox = new THREE.Box3(
         new THREE.Vector3(-h, -h, gz),
@@ -876,7 +876,7 @@ export default function ViewportContainer() {
           zIndex: 10,
         }}
       >
-        {showHeatbed ? `${bedSize} × ${bedSize} mm` : ''}
+        {showHeatbed ? `${Math.round(bedSize * useEngineStore.getState().bedRawToMM)} × ${Math.round(bedSize * useEngineStore.getState().bedRawToMM)} mm` : ''}
       </div>
 
       <div

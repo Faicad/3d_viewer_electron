@@ -5,15 +5,12 @@ import {
   calculateGridStep, GROUND_Z, GRIDLINE_Z,
 } from './types'
 
-/** Convert mm (user-facing) to raw coordinate space */
-const MM_TO_RAW = 1 / 1000
-
 /**
  * Create a square bed plane geometry (2 triangles, no triangulation library needed).
  * @param size - bed side length in mm
  */
 function createBedPlaneGeometry(size: number): THREE.BufferGeometry {
-  const hw = size * MM_TO_RAW / 2
+  const hw = size / 2
   const vertices = new Float32Array([
     -hw, -hw, 0,   hw, -hw, 0,   hw,  hw, 0,   -hw,  hw, 0,
   ])
@@ -31,23 +28,19 @@ function generateGridLines(
   size: number, origin: { x: number; y: number }, step: number,
 ): Line[] {
   const lines: Line[] = []
-  const sizeM = size * MM_TO_RAW
-  const stepM = step * MM_TO_RAW
-  const h = sizeM / 2
+  const h = size / 2
   const minX = -h, maxX = h, minY = -h, maxY = h
-  const ox = origin.x * MM_TO_RAW
-  const oy = origin.y * MM_TO_RAW
 
   // Horizontal lines
-  for (let y = oy; y >= minY; y -= stepM)
+  for (let y = origin.y; y >= minY; y -= step)
     lines.push({ start: { x: minX, y }, end: { x: maxX, y } })
-  for (let y = oy + stepM; y <= maxY; y += stepM)
+  for (let y = origin.y + step; y <= maxY; y += step)
     lines.push({ start: { x: minX, y }, end: { x: maxX, y } })
 
   // Vertical lines
-  for (let x = ox; x >= minX; x -= stepM)
+  for (let x = origin.x; x >= minX; x -= step)
     lines.push({ start: { x, y: minY }, end: { x, y: maxY } })
-  for (let x = ox + stepM; x <= maxX; x += stepM)
+  for (let x = origin.x + step; x <= maxX; x += step)
     lines.push({ start: { x, y: minY }, end: { x, y: maxY } })
 
   // Rectangle contour (4 edges)
@@ -178,7 +171,7 @@ export class Heatbed {
 
   /** Get the XY bounding box of the bed (Z = 0). */
   getBoundingBox(): THREE.Box3 {
-    const h = this.config.size * MM_TO_RAW / 2
+    const h = this.config.size / 2
     return new THREE.Box3(
       new THREE.Vector3(-h, -h, 0),
       new THREE.Vector3(h, h, 0),

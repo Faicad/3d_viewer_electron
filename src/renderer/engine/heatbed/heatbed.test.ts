@@ -264,10 +264,10 @@ describe('Heatbed', () => {
     expect(heatbed.size).toBe(500)
   })
 
-  it.each(SUPPORTED_BED_SIZES)('%imm size → bounding box correct (in meters)', (size) => {
+  it.each(SUPPORTED_BED_SIZES)('%i size → bbox correct', (size) => {
     heatbed.setConfig({ size })
     const box = heatbed.getBoundingBox()
-    const h = size / 2000  // mm → meters, then /2
+    const h = size / 2
     expect(box.max.x).toBeCloseTo(h)
     expect(box.min.x).toBeCloseTo(-h)
     expect(box.max.y).toBeCloseTo(h)
@@ -282,17 +282,17 @@ describe('Heatbed', () => {
     expect(pos.count).toBe(46 * 2)
   })
 
-  it('all grid line vertices for 200mm within [-0.1, 0.1] (meters)', () => {
+  it('all grid line vertices for size 200 within [-100, 100]', () => {
     heatbed.setConfig({ size: 200 })
     const lines = heatbed.group.children[1] as THREE.LineSegments
     const pos = lines.geometry.getAttribute('position') as THREE.BufferAttribute
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i)
       const y = pos.getY(i)
-      expect(x).toBeGreaterThanOrEqual(-0.11)  // fp tolerance
-      expect(x).toBeLessThanOrEqual(0.11)
-      expect(y).toBeGreaterThanOrEqual(-0.11)
-      expect(y).toBeLessThanOrEqual(0.11)
+      expect(x).toBeGreaterThanOrEqual(-101)
+      expect(x).toBeLessThanOrEqual(101)
+      expect(y).toBeGreaterThanOrEqual(-101)
+      expect(y).toBeLessThanOrEqual(101)
     }
   })
 
@@ -342,13 +342,13 @@ describe('Heatbed', () => {
   // getBoundingBox
   // -------------------------------------------------------------------------
 
-  it('getBoundingBox for 300mm returns [-0.15,-0.15,0] → [0.15,0.15,0]', () => {
+  it('getBoundingBox for size 300 returns [-150,-150,0] → [150,150,0]', () => {
     const box = heatbed.getBoundingBox()
-    expect(box.min.x).toBeCloseTo(-0.15)
-    expect(box.min.y).toBeCloseTo(-0.15)
+    expect(box.min.x).toBeCloseTo(-150)
+    expect(box.min.y).toBeCloseTo(-150)
     expect(box.min.z).toBe(0)
-    expect(box.max.x).toBeCloseTo(0.15)
-    expect(box.max.y).toBeCloseTo(0.15)
+    expect(box.max.x).toBeCloseTo(150)
+    expect(box.max.y).toBeCloseTo(150)
     expect(box.max.z).toBe(0)
   })
 

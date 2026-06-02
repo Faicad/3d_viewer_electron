@@ -232,10 +232,9 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           else if (format === 'amf') sourceUnit = parseAmfUnit(buffer)
           else sourceUnit = FORMAT_MAP[format].defaultUnit
         }
-        // GLB with STEP_T → original was STEP in mm (even though GLB coords are meters)
-        if ((format === 'glb' || format === 'gltf') && result.gltfExtensions?.hasStepTopology) {
-          sourceUnit = 'millimeter'
-        }
+        // GLB vertices are always in meters (glTF spec). STEP_T only marks the
+        // model's origin — it does not change the coordinate unit.
+        // sourceUnit stays as 'meter' for all GLB/glTF.
         onSourceUnitChangeRef.current?.(sourceUnit)
         onFileGroupChangeRef.current?.(FORMAT_MAP[format].group)
 
