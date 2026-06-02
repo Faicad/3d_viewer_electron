@@ -387,9 +387,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             })
           }
 
-          // Per-plate centering when Bambu metadata has plates,
-          // otherwise fall back to single-group centering.
-          if (bambuMeta && bambuMeta.plates.size > 1) {
+          // Per-plate centering only in print view (multi-plate Bambu 3MF).
+          // Assembly/import views always use single-group centering so the
+          // delta-repositioned model stays as one assembled group.
+          if (currentViewMode === 'print' && bambuMeta && bambuMeta.plates.size > 1) {
             // Group processed meshes by plateId
             const plateGroups = new Map<number, THREE.Mesh[]>()
             for (let i = 0; i < processed.length; i++) {
