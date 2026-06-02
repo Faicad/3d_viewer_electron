@@ -551,14 +551,18 @@ export default function ViewportContainer() {
     const b = largestBoxRef.current
     useEngineStore.getState().setModelBbox([b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z])
 
-    // Auto-select bed size if heatbed is shown
+    // Auto-select bed size from model (doc heatbed-unit-strategy §3.4)
     const store = useEngineStore.getState()
     let bedSize = store.bedSize
-    if (store.showHeatbed) {
-      const autoSize = autoSelectBedSize(largestBoxRef.current)
+    if (store.showHeatbed && largestBoxRef.current) {
+      // GLB coords are meters → rawToMM=1000; other formats (3MF/STL) are mm → rawToMM=1
+      const fmt = useModelStore.getState().modelFormat
+      const rawToMM = (fmt === 'glb' || fmt === 'gltf') ? 1000 : 1
+      const autoSize = autoSelectBedSize(largestBoxRef.current, rawToMM)
       bedSize = autoSize
-      if (autoSize !== store.bedSize) {
+      if (Math.abs(autoSize - store.bedSize) > 0.001) {
         store.setBedSize(autoSize)
+        store.setBedRawToMM(rawToMM)
       }
     }
 
@@ -573,7 +577,7 @@ export default function ViewportContainer() {
       // The bed size was auto-selected to be the smallest tier that fits
       // the model — so the model is always a reasonable fraction of the bed
       // and stays visible even at margin 2.0.
-      const h = bedSize / 2000  // mm → raw, then /2
+      const h = bedSize / 2  // scene units
       const bedBox = new THREE.Box3(
         new THREE.Vector3(-h, -h, 0),
         new THREE.Vector3(h, h, 0),

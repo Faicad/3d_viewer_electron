@@ -43,47 +43,55 @@ describe('autoSelectBedSize', () => {
       new THREE.Vector3(-0.025, -0.025, 0),
       new THREE.Vector3(0.025, 0.025, 0.05),
     )
-    expect(autoSelectBedSize(bbox)).toBe(200)
+    expect(autoSelectBedSize(bbox, 1000)).toBeCloseTo(0.2)
   })
 
-  it('Bambu X1C standard model (256mm) → 300mm', () => {
+  it('Bambu X1C standard model (256mm) → 0.3 scene units (GLB meters)', () => {
     const bbox = new THREE.Box3(
       new THREE.Vector3(-0.128, -0.128, 0),
       new THREE.Vector3(0.128, 0.128, 0.1),
     )
-    expect(autoSelectBedSize(bbox)).toBe(300)
+    expect(autoSelectBedSize(bbox, 1000)).toBeCloseTo(0.3)
   })
 
-  it('model near but under 300mm threshold (240mm) → 300mm', () => {
+  it('240mm model (GLB) → 0.3 scene units', () => {
     const bbox = new THREE.Box3(
       new THREE.Vector3(-0.12, -0.12, 0),
       new THREE.Vector3(0.12, 0.12, 0.05),
     )
-    expect(autoSelectBedSize(bbox)).toBe(300)
+    expect(autoSelectBedSize(bbox, 1000)).toBeCloseTo(0.3)
   })
 
-  it('350mm model → 500mm', () => {
+  it('350mm model (GLB) → 0.5 scene units', () => {
     const bbox = new THREE.Box3(
       new THREE.Vector3(-0.175, -0.175, 0),
       new THREE.Vector3(0.175, 0.175, 0.05),
     )
-    expect(autoSelectBedSize(bbox)).toBe(500)
+    expect(autoSelectBedSize(bbox, 1000)).toBeCloseTo(0.5)
   })
 
-  it('oversized model → 1000mm fallback', () => {
+  it('oversized model (GLB) → 1.0 scene units', () => {
     const bbox = new THREE.Box3(
       new THREE.Vector3(-0.5, -0.5, 0),
       new THREE.Vector3(0.5, 0.5, 0.1),
     )
-    expect(autoSelectBedSize(bbox)).toBe(1000)
+    expect(autoSelectBedSize(bbox, 1000)).toBeCloseTo(1.0)
   })
 
-  it('boundary: model 260mm (300-20pad×2) → 300mm', () => {
+  it('boundary: model 260mm (GLB) → 0.3 scene units', () => {
     const bbox = new THREE.Box3(
       new THREE.Vector3(-0.13, -0.13, 0),
       new THREE.Vector3(0.13, 0.13, 0.01),
     )
-    expect(autoSelectBedSize(bbox)).toBe(300)
+    expect(autoSelectBedSize(bbox, 1000)).toBeCloseTo(0.3)
+  })
+
+  it('3MF model 370mm (rawToMM=1) → 500 scene units', () => {
+    const bbox = new THREE.Box3(
+      new THREE.Vector3(-185, -86, 0),
+      new THREE.Vector3(185, 86, 173),
+    )
+    expect(autoSelectBedSize(bbox, 1)).toBe(500)
   })
 })
 

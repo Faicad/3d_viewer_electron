@@ -166,6 +166,7 @@ interface ModelStore {
   updateFileCenteringOffset: (fileId: string, offset: [number, number, number] | null) => void
   updateFileLoadingPhase: (fileId: string, phase: LoadingPhase) => void
   updateFileAnimations: (fileId: string, sceneRoot: THREE.Object3D, animations: THREE.AnimationClip[]) => void
+  updateFileSourceUnit: (fileId: string, unit: UnitSystem) => void
 
   /** Get all partIds that share a glTF material index for a given file. */
   getPartIdsByMaterial: (fileId: string, materialIndex: number) => string[]
@@ -457,6 +458,17 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
         f.id === fileId ? { ...f, sceneRoot, animations } : f,
       ),
     })),
+
+  updateFileSourceUnit: (fileId, unit) =>
+    set((state) => {
+      const newFiles = state.loadedFiles.map((f) =>
+        f.id === fileId ? { ...f, sourceUnit: unit } : f,
+      )
+      const synced = state.activeFileId === fileId
+        ? { sourceUnit: unit }
+        : {}
+      return { loadedFiles: newFiles, ...synced }
+    }),
 
   getPartIdsByMaterial: (fileId, materialIndex) => {
     const file = get().loadedFiles.find((f) => f.id === fileId)

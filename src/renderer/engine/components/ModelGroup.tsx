@@ -11,6 +11,7 @@ import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
 import { FORMAT_MAP } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
+import { parse3mfUnit, parseAmfUnit, guessStlUnit } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderResultCache'
 import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
@@ -224,8 +225,18 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         }
         if (cancelled) return
 
-        // Set unit metadata
-        onSourceUnitChangeRef.current?.(result.sourceUnit ?? FORMAT_MAP[format].defaultUnit)
+        // Detect source unit: file metadata → format default
+        let sourceUnit = result.sourceUnit
+        if (!sourceUnit) {
+          if (format === '3mf') sourceUnit = parse3mfUnit(buffer)
+          else if (format === 'amf') sourceUnit = parseAmfUnit(buffer)
+          else sourceUnit = FORMAT_MAP[format].defaultUnit
+        }
+        // GLB with STEP_T → original was STEP in mm (even though GLB coords are meters)
+        if ((format === 'glb' || format === 'gltf') && result.gltfExtensions?.hasStepTopology) {
+          sourceUnit = 'millimeter'
+        }
+        onSourceUnitChangeRef.current?.(sourceUnit)
         onFileGroupChangeRef.current?.(FORMAT_MAP[format].group)
 
         // If format produced non-mesh objects (GCode lines, BVH skeleton, PCD points, etc.)
@@ -444,6 +455,16 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           // Single merged geometry path (STL-like)
           const geo = mergeGeometries(meshes)
           geo.computeVertexNormals()
+          // STL heuristic: guess unit from bbox BEFORE centering
+          if (format === 'stl') {
+            geo.computeBoundingBox()
+            if (geo.boundingBox) {
+              const guessed = guessStlUnit(geo.boundingBox)
+              if (guessed !== 'millimeter') {
+                onSourceUnitChangeRef.current?.(guessed)
+              }
+            }
+          }
           geo.center()
           // Place bottom on Z=0 (heatbed surface, doc §3)
           geo.computeBoundingBox()

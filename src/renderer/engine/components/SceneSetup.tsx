@@ -6,7 +6,7 @@ import { useThree } from '@react-three/fiber'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
 import { Heatbed } from '../heatbed/Heatbed'
-import { DEFAULT_BED_SIZE } from '../heatbed/types'
+import { DEFAULT_BED_SIZE, calculateGridStep } from '../heatbed/types'
 import type { BedSize } from '../heatbed/types'
 import { useEngineStore } from '@/stores/engine-store'
 import { getSharedTextureCache } from '../material/MaterialFactory'
@@ -187,8 +187,12 @@ export default function SceneSetup() {
 
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state, prevState) => {
-      if (state.bedSize === prevState.bedSize) return
-      heatbedRef.current?.setConfig({ size: state.bedSize as BedSize })
+      if (state.bedSize === prevState.bedSize && state.bedRawToMM === prevState.bedRawToMM) return
+      const sizeMM = state.bedSize * state.bedRawToMM
+      heatbedRef.current?.setConfig({
+        size: state.bedSize as BedSize,
+        gridStep: calculateGridStep(sizeMM) * (1 / state.bedRawToMM), // mm → scene units
+      })
     })
     return unsub
   }, [])

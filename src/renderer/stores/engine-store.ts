@@ -101,6 +101,9 @@ interface EngineStore {
   initShowHeatbed: (format: FormatId | null, buffer?: ArrayBuffer | null) => void
   bedSize: number
   setBedSize: (v: number) => void
+  /** rawToMM factor matching current model's sourceUnit (for grid step calc) */
+  bedRawToMM: number
+  setBedRawToMM: (v: number) => void
 
   // Camera auto-fit animation state (primarily for E2E tests)
   __animActive: boolean
@@ -203,6 +206,8 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   },
   bedSize: 300,
   setBedSize: (v) => set({ bedSize: v }),
+  bedRawToMM: 1,
+  setBedRawToMM: (v) => set({ bedRawToMM: v }),
 
   __animActive: false,
   set__animActive: (v) => set({ __animActive: v }),

@@ -385,13 +385,12 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     expect(heatbedState.modelMeshCount, 'Model meshes must exist when showHeatbed=true').toBeGreaterThan(0)
     expect(heatbedState.modelMeshVisible, 'Model meshes must be visible when showHeatbed=true').toBeGreaterThan(0)
 
-    // Camera distance is in raw coordinates. bedSize is mm, convert to raw (÷1000).
-    // For margin 2.0, bed fills ~50% viewport. Distance should be > bed/2 in raw units.
-    const bedSizeRaw = heatbedState.bedSize / 1000
-    expect(heatbedState.camDist, `Camera too far: ${heatbedState.camDist} for ${bedSizeRaw}m bed`)
-      .toBeLessThan(bedSizeRaw * 5)
-    expect(heatbedState.camDist, `Camera inside bed: ${heatbedState.camDist} for ${bedSizeRaw}m bed`)
-      .toBeGreaterThan(bedSizeRaw * 0.5)
+    // bedSize is in scene units. Camera distance should be > bed/2 and < bed*5.
+    const bs = heatbedState.bedSize
+    expect(heatbedState.camDist, `Camera too far: ${heatbedState.camDist} for bed ${bs}`)
+      .toBeLessThan(bs * 5)
+    expect(heatbedState.camDist, `Camera inside bed: ${heatbedState.camDist} for bed ${bs}`)
+      .toBeGreaterThan(bs * 0.5)
 
     await assertNoErrors()
   })

@@ -60,34 +60,34 @@ export const MARGIN_MODEL = 1.25
  *   300mm → 10mm (30 cells)
  *   500mm → 20mm (25 cells)
  *  1000mm → 50mm (20 cells)
+ * @param sizeMM - bed size in mm (physical)
  */
-export function calculateGridStep(size: BedSize): number {
-  switch (size) {
-    case 200:  return 10
-    case 300:  return 10
-    case 500:  return 20
-    case 1000: return 50
-  }
+export function calculateGridStep(sizeMM: number): number {
+  if (sizeMM <= 200) return 10
+  if (sizeMM <= 300) return 10
+  if (sizeMM <= 500) return 20
+  return 50 // 1000mm and above
 }
 
 /**
  * Auto-select bed size based on model bounding box.
- * Model bbox is in Three.js units (meters), bed sizes are in mm.
- * Convert to mm for comparison and apply 20mm margin.
+ * @param modelBBox - model bounding box in raw coordinate units
+ * @param rawToMM - factor to convert raw coords to mm for comparison
+ *        (GLB/glTF: 1000 because raw=meters; 3MF/STL: 1 because raw=mm)
+ * @returns bed size in raw coordinate units
  */
-export function autoSelectBedSize(modelBBox: THREE.Box3): BedSize {
-  const pad = 20
-  // Model bbox in meters → convert to mm
+export function autoSelectBedSize(modelBBox: THREE.Box3, rawToMM: number): number {
+  const pad = 20 // mm
   const modelExtentMM = Math.max(
     modelBBox.max.x - modelBBox.min.x,
     modelBBox.max.y - modelBBox.min.y,
-  ) * 1000
-  const needed = modelExtentMM + pad * 2
+  ) * rawToMM
+  const neededMM = modelExtentMM + pad * 2
 
-  for (const size of SUPPORTED_BED_SIZES) {
-    if (size >= needed) return size
+  for (const sizeMM of SUPPORTED_BED_SIZES) {
+    if (sizeMM >= neededMM) return sizeMM / rawToMM
   }
-  return 1000 // fallback to largest
+  return 1000 / rawToMM // fallback to largest
 }
 
 /** Format IDs that default to showHeatbed=true */

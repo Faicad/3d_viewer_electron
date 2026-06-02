@@ -601,6 +601,66 @@ export function sourceUnitToLabel(unit: UnitSystem): string {
   }
 }
 
+/** 1 unit of this system = how many millimeters. Used for heatbed size calculation. */
+export const UNIT_TO_MM: Record<UnitSystem, number> = {
+  millimeter: 1,
+  centimeter: 10,
+  meter: 1000,
+  inch: 25.4,
+  foot: 304.8,
+  micron: 0.001,
+  angstrom: 0.000_000_1,
+}
+
+// ---- Unit detection from file content ----
+
+/**
+ * Parse 3MF unit from XML header.
+ * 3MF is a ZIP; the first entry is usually "3D/3dmodel.model" (XML).
+ * We scan the raw buffer for <model unit="..."> — works on ZIP header
+ * without full decompression.
+ */
+export function parse3mfUnit(buffer: ArrayBuffer): UnitSystem {
+  const header = new Uint8Array(buffer.slice(0, 2048))
+  const text = new TextDecoder().decode(header)
+  const match = text.match(/<model[^>]*\sunit="([^"]+)"/i)
+  if (match) {
+    const val = match[1].toLowerCase()
+    if (['micron', 'millimeter', 'centimeter', 'inch', 'foot', 'meter'].includes(val)) {
+      return val as UnitSystem
+    }
+  }
+  return 'millimeter' // 3MF default
+}
+
+/**
+ * Parse AMF unit from XML header.
+ * AMF: <amf unit="..."> — default is millimeter.
+ */
+export function parseAmfUnit(buffer: ArrayBuffer): UnitSystem {
+  const text = new TextDecoder().decode(buffer.slice(0, 2048))
+  const match = text.match(/<amf[^>]*\sunit="([^"]+)"/i)
+  if (match) {
+    const val = match[1].toLowerCase()
+    if (['micron', 'millimeter', 'centimeter', 'inch', 'foot', 'meter'].includes(val)) {
+      return val as UnitSystem
+    }
+  }
+  return 'millimeter' // AMF default
+}
+
+/** Guess STL unit from bounding box volume (heuristic). */
+export function guessStlUnit(bbox: { max: { x: number; y: number; z: number }; min: { x: number; y: number; z: number } }): UnitSystem {
+  const w = bbox.max.x - bbox.min.x
+  const h = bbox.max.y - bbox.min.y
+  const d = bbox.max.z - bbox.min.z
+  const volume = w * h * d
+
+  if (volume > 0 && volume < 0.008) return 'meter'   // cube root ≈ 0.2 → coords likely in meters
+  if (volume > 0 && volume < 8.0)   return 'inch'    // cube root ≈ 2.0 → coords likely in inches
+  return 'millimeter'                                  // default
+}
+
 /** Detect format from a filename. Returns FormatId or null. Only matches enabled formats. */
 export function detectFormat(filename: string): FormatId | null {
   for (const fmt of ENABLED_FORMATS) {
