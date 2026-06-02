@@ -4,6 +4,15 @@
 # Slow checks (~3min): build + E2E tests
 set -euo pipefail
 
+# Safe exit: works whether script is sourced or executed directly
+_ci_exit() {
+    # shellcheck disable=SC2317  # called from multiple contexts
+    if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+        return "$1"
+    fi
+    exit "$1"
+}
+
 PLATFORM=$(uname -s)
 
 # Detect Windows host regardless of shell:
@@ -20,7 +29,7 @@ elif [ "$PLATFORM" = "Darwin" ]; then
   BUILD_SCRIPT="build:unpacked:mac"
 else
   echo "Unsupported platform: $PLATFORM" >&2
-  exit 1
+  _ci_exit 1
 fi
 
 echo "Platform: $PLATFORM  |  Build: $BUILD_SCRIPT"
@@ -49,7 +58,7 @@ step() {
         echo "========================================"
         echo "  FAILED: $label (exit code $exit_code)"
         echo "========================================"
-        exit $exit_code
+        _ci_exit $exit_code
     fi
     local end
     end=$(date +%s)
@@ -118,7 +127,7 @@ fi
 # Save current time for next comparison (only if no regression)
 if [ "$SLOWDOWN" = false ]; then
     echo "$TOTAL_ELAPSED" > "$TIME_FILE"
-    exit 0
+    _ci_exit 0
 else
-    exit 1
+    _ci_exit 1
 fi

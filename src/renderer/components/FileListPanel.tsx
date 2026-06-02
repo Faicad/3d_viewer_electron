@@ -536,12 +536,16 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     const fileId = crypto.randomUUID()
     setCachedResult(fileId, loadResult)
 
-    // Thumbnail as byproduct
-    const upAxis = getDefaultUpAxis(format, buffer)
-    generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-      .then(blob => {
-        if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
-      })
+    // Thumbnail: prefer Bambu 3MF embedded thumbnail, else render-based
+    if (format === '3mf' && loadResult.bambuMetadata?.thumbnailBlob) {
+      putThumbnail(`${file.path}|${file.mtimeMs}`, loadResult.bambuMetadata.thumbnailBlob)
+    } else {
+      const upAxis = getDefaultUpAxis(format, buffer)
+      generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+        .then(blob => {
+          if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
+        })
+    }
 
     store.addLoadedFile({
       id: fileId,
@@ -556,6 +560,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
       fileGroup: FORMAT_MAP[format].group,
       loadingPhase: 'loading',
+      bambuMetadata: loadResult.bambuMetadata,
     })
   } catch (e) {
     console.error('[handleFileClick] exception:', e)

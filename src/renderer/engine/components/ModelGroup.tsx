@@ -21,7 +21,6 @@ import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
-import type { Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 
 // ---- types ----
 
@@ -124,6 +123,15 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     checkerEnabled = false, checkerSlot = null },
   ref,
 ) {
+  const innerGroupRef = useRef<THREE.Group>(null)
+  const combinedRef = useCallback((g: THREE.Group | null) => {
+    innerGroupRef.current = g
+    if (typeof ref === 'function') {
+      ref(g)
+    } else if (ref) {
+      ref.current = g
+    }
+  }, [ref])
   const [glbMeshes, setGlbMeshes] = useState<THREE.Mesh[]>([])
   const [meshMaterials, setMeshMaterials] = useState<(THREE.Material | THREE.Material[] | null)[]>([])
   const [mergedGeometry, setMergedGeometry] = useState<THREE.BufferGeometry | null>(null)
@@ -548,8 +556,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   // Sync group ref to engine store after render so ModelInfoPanel can read it
   useEffect(() => {
-    const groupRef = ref as React.RefObject<THREE.Group | null> | null
-    useEngineStore.getState().setModelGroup(groupRef?.current ?? null)
+    useEngineStore.getState().setModelGroup(innerGroupRef.current)
     return () => {
       useEngineStore.getState().setModelGroup(null)
     }
@@ -694,7 +701,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     }
 
     return (
-      <group ref={ref as unknown as React.Ref<THREE.Group>}>
+      <group ref={combinedRef}>
         {glbMeshes.map((mesh, i) => {
           const partId = glbPartInfos[i]?.partId || `part-${i}`
           const vis = visibilityMap.get(partId) ?? true
@@ -756,7 +763,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   if (displayMode === 'wireframe') {
     return (
-      <group ref={ref as unknown as React.Ref<THREE.Group>}>
+      <group ref={combinedRef}>
         <mesh geometry={mergedGeometry} castShadow receiveShadow>
           <meshBasicMaterial
             color={'#cccccc'}
@@ -771,7 +778,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   }
 
   return (
-    <group ref={ref as unknown as React.Ref<THREE.Group>}>
+    <group ref={combinedRef}>
       <mesh geometry={mergedGeometry} castShadow receiveShadow>
         <meshPhysicalMaterial
           color={'#9BA6AE'}

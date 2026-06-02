@@ -298,7 +298,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
 
   // ---- 3. Model-level metadata + build items from 3D/3dmodel.model ----
   let modelMeta: BambuModelMeta | undefined
-  let thumbnailBlob: Blob | undefined
+  const thumbnailBlob: Blob | undefined = extractThumbnailBlob(unzipped)
   let buildItems: BuildItem[] = []
 
   const modelFile = Object.keys(unzipped).find(
@@ -314,9 +314,6 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
     // 3b. Build items for ordering
     buildItems = parse3mfBuild(modelXml)
   }
-
-  // 3c. Standard 3MF thumbnail (independent of model file)
-  thumbnailBlob = extractThumbnailBlob(unzipped)
 
   // ---- 4. Build ordered flat parts list ----
   // The order must match ThreeMFLoader: iterate build items, then for each
