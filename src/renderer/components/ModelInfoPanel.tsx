@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button'
 import { computeModelStats, formatNumber, computeMaterialCost } from '@/lib/compute-model-stats'
 import { sourceUnitToLabel } from '@/config/file-formats'
 
-function StatRow({ label, value }: { label: string; value: string }) {
+function StatRow({ label, value }: { label?: string; value: string }) {
   return (
     <div className="flex items-center justify-between px-3 py-1.5 text-xs border-b border-border/50">
-      <span className="text-muted-foreground">{label}</span>
+      {label != null && <span className="text-muted-foreground">{label}</span>}
       <span className="font-medium tabular-nums">{value}</span>
     </div>
   )
@@ -20,10 +20,14 @@ function StatRow({ label, value }: { label: string; value: string }) {
 
 /** Crude HTML strip for 3MF description text. */
 function stripHtml(html: string): string {
-  // Decode common HTML entities (order matters: &amp; must be first so
-  // double-encoded entities like &amp;nbsp; decode correctly to a space)
-  return html
-    .replace(/&amp;/g, '&')
+  // The 3MF XML stores HTML that may be multi-level encoded
+  // (e.g. &amp;amp;nbsp; → &amp;nbsp; → &nbsp; → space).
+  // Loop &amp; until stable, then decode remaining entities, then strip tags.
+  let result = html
+  while (result.includes('&amp;')) {
+    result = result.replace(/&amp;/g, '&')
+  }
+  return result
     .replace(/&nbsp;/g, ' ')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -105,7 +109,7 @@ export default function ModelInfoPanel() {
                   {t('modelInfo.modelMetadata')}
                 </div>
                 {bambuMeta.title && (
-                  <StatRow label={t('modelInfo.title')} value={bambuMeta.title} />
+                  <StatRow value={bambuMeta.title} />
                 )}
                 {bambuMeta.designer && (
                   <StatRow label={t('modelInfo.designer')} value={bambuMeta.designer} />
