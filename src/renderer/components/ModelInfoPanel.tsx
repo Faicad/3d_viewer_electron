@@ -20,9 +20,11 @@ function StatRow({ label, value }: { label: string; value: string }) {
 
 /** Crude HTML strip for 3MF description text. */
 function stripHtml(html: string): string {
-  // Decode common HTML entities
+  // Decode common HTML entities (order matters: &amp; must be first so
+  // double-encoded entities like &amp;nbsp; decode correctly to a space)
   return html
     .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
