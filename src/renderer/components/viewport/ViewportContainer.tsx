@@ -36,7 +36,7 @@ import TexturePreviewDialog from '@/components/panels/TexturePreviewDialog'
 import { getCheckerDataUri } from '@/engine/material/checkerTexture'
 import { getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
-import { computeCameraFitTarget, autoSelectBedSize } from '@/engine/heatbed'
+import { computeCameraFitTarget, autoSelectBedSize, computePlateLayout } from '@/engine/heatbed'
 import { toast } from 'sonner'
 
 /** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
@@ -213,8 +213,6 @@ export default function ViewportContainer() {
   /** Map of fileId → model group root. Supports multi-file drag, pick, and highlight. */
   const modelGroupMapRef = useRef<Map<string, THREE.Group>>(new Map())
   const mainCamera = useEngineStore((s) => s.camera)
-  const showHeatbed = useEngineStore((s) => s.showHeatbed)
-  const bedSize = useEngineStore((s) => s.bedSize)
   const initShowHeatbed = useEngineStore((s) => s.initShowHeatbed)
   const modelBuffer = useModelStore((s) => s.modelBuffer)
   const modelFormat = useModelStore((s) => s.modelFormat)
@@ -538,6 +536,29 @@ export default function ViewportContainer() {
     controls.update()
   }, [activeUpAxis])
 
+  /** Compute union bounding box of all plates for multi-plate camera fit. */
+  function computeMultiPlateBoundingBox(configs: import('@/engine/heatbed').PlateBedConfig[]): THREE.Box3 {
+    const plateDims = new Map<number, { width: number; depth: number }>()
+    for (const c of configs) {
+      plateDims.set(c.plateId, { width: c.dimensions.width, depth: c.dimensions.depth })
+    }
+    const layout = computePlateLayout(plateDims)
+    const allPlatesBox = new THREE.Box3()
+    for (const entry of layout) {
+      const config = configs.find(c => c.plateId === entry.plateId)
+      if (!config) continue
+      const hw = config.dimensions.width / 2
+      const hd = config.dimensions.depth / 2
+      allPlatesBox.expandByPoint(new THREE.Vector3(
+        entry.centerX - hw, entry.centerY - hd, 0,
+      ))
+      allPlatesBox.expandByPoint(new THREE.Vector3(
+        entry.centerX + hw, entry.centerY + hd, 0,
+      ))
+    }
+    return allPlatesBox
+  }
+
   const handleModelLoaded = useCallback((box: THREE.Box3) => {
     const size = box.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
@@ -554,18 +575,50 @@ export default function ViewportContainer() {
     const b = largestBoxRef.current
     useEngineStore.getState().setModelBbox([b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z])
 
-    // Auto-select bed size from model (doc heatbed-unit-strategy §3.4)
     const store = useEngineStore.getState()
-    let bedSize = store.bedSize
-    if (store.showHeatbed && largestBoxRef.current) {
-      // GLB coords are meters → rawToMM=1000; other formats (3MF/STL) are mm → rawToMM=1
-      const fmt = useModelStore.getState().modelFormat
+    const modelStoreState = useModelStore.getState()
+
+    // Populate bambuPlateConfigs from active file if multi-plate
+    {
+      const activeFile = modelStoreState.loadedFiles.find(
+        f => f.id === modelStoreState.activeFileId,
+      )
+      const bambuMeta = activeFile?.bambuMetadata
+      if (bambuMeta && bambuMeta.plates.size >= 1) {
+        const configs: import('@/engine/heatbed').PlateBedConfig[] = []
+        for (const [plateId, plateInfo] of bambuMeta.plates) {
+          configs.push({
+            plateId,
+            plateName: plateInfo.plateName || `Plate ${plateId}`,
+            dimensions: {
+              width: plateInfo.size?.width ?? 200,
+              depth: plateInfo.size?.depth ?? 200,
+            },
+            selected: configs.length === 0,
+          })
+        }
+        store.setBambuPlateConfigs(configs)
+        store.setSelectedPlateId(configs[0]?.plateId ?? null)
+      } else if (!activeFile || !activeFile.bambuMetadata) {
+        store.setBambuPlateConfigs(null)
+        store.setSelectedPlateId(null)
+      }
+    }
+
+    // Re-read the store — bambuPlateConfigs was just mutated above.
+    const store2 = useEngineStore.getState()
+    const hasMultiPlate = store2.bambuPlateConfigs && store2.bambuPlateConfigs.length > 0
+
+    // Auto-select bed size from model (single-bed path only)
+    let bedSize = store2.bedSize
+    if (store2.showHeatbed && largestBoxRef.current && !hasMultiPlate) {
+      const fmt = modelStoreState.modelFormat
       const rawToMM = (fmt === 'glb' || fmt === 'gltf') ? 1000 : 1
       const autoSize = autoSelectBedSize(largestBoxRef.current, rawToMM)
       bedSize = autoSize
-      if (Math.abs(autoSize - store.bedSize) > 0.001) {
-        store.setBedSize(autoSize)
-        store.setBedRawToMM(rawToMM)
+      if (Math.abs(autoSize - store2.bedSize) > 0.001) {
+        store2.setBedSize(autoSize)
+        store2.setBedRawToMM(rawToMM)
       }
     }
 
@@ -575,12 +628,11 @@ export default function ViewportContainer() {
       return
     }
     pendingBoxRef.current = null
-    if (store.showHeatbed) {
-      // OrcaSlicer zoom_to_bed(): focus on bed XY plane with margin 2.0.
-      // The bed size was auto-selected to be the smallest tier that fits
-      // the model — so the model is always a reasonable fraction of the bed
-      // and stays visible even at margin 2.0.
-      const h = bedSize / 2  // scene units
+
+    if (store2.showHeatbed && hasMultiPlate) {
+      applyCameraFit(computeMultiPlateBoundingBox(store2.bambuPlateConfigs!), controls, 'model')
+    } else if (store2.showHeatbed) {
+      const h = bedSize / 2
       const bedBox = new THREE.Box3(
         new THREE.Vector3(-h, -h, 0),
         new THREE.Vector3(h, h, 0),
@@ -605,7 +657,11 @@ export default function ViewportContainer() {
     if (!controls || !box) return
     pendingBoxRef.current = null
     const store = useEngineStore.getState()
-    if (store.showHeatbed) {
+    const hasMultiPlate = store.bambuPlateConfigs && store.bambuPlateConfigs.length > 0
+    if (store.showHeatbed && hasMultiPlate) {
+      const allPlatesBox = computeMultiPlateBoundingBox(store.bambuPlateConfigs!)
+      applyCameraFit(allPlatesBox, controls, 'model')
+    } else if (store.showHeatbed) {
       const h = store.bedSize / 2  // scene units
       const gz = useEngineStore.getState().modelBbox?.[2] ?? 0
       const bedBox = new THREE.Box3(
@@ -626,7 +682,12 @@ export default function ViewportContainer() {
     const store = useEngineStore.getState()
 
     // OrcaSlicer: if heatbed is visible, zoom_to_bed()
-    if (store.showHeatbed) {
+    const hasMultiPlate = store.bambuPlateConfigs && store.bambuPlateConfigs.length > 0
+    if (store.showHeatbed && hasMultiPlate) {
+      const allPlatesBox = computeMultiPlateBoundingBox(store.bambuPlateConfigs!)
+      applyCameraFit(allPlatesBox, controls, 'model')
+      return
+    } else if (store.showHeatbed) {
       const h = store.bedSize / 2  // scene units
       const gz = useEngineStore.getState().modelBbox?.[2] ?? 0
       const bedBox = new THREE.Box3(
@@ -862,25 +923,6 @@ export default function ViewportContainer() {
           </points>
         )}
       </Canvas>
-
-      {/* Bed size label — bottom center */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 8,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: 13,
-          fontFamily: 'monospace',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          display: showHeatbed ? 'block' : 'none',
-          zIndex: 10,
-        }}
-      >
-        {showHeatbed ? `${Math.round(bedSize * useEngineStore.getState().bedRawToMM)} × ${Math.round(bedSize * useEngineStore.getState().bedRawToMM)} mm` : ''}
-      </div>
 
       <div
         style={{

@@ -1,20 +1,100 @@
 import * as THREE from 'three'
 
-/** Supported bed sizes (mm), square only */
+/** Supported bed sizes (mm), square only — used by single-bed fallback path */
 export const SUPPORTED_BED_SIZES = [200, 300, 500, 1000] as const
 export type BedSize = (typeof SUPPORTED_BED_SIZES)[number]
 
-/** Default bed size */
+/** Default bed size (square fallback) */
 export const DEFAULT_BED_SIZE: BedSize = 300
+
+/** Rectangular bed dimensions in scene units */
+export interface BedDimensions {
+  width: number
+  depth: number
+}
+
+/** Create square BedDimensions from a single side length (backward compat). */
+export function squareBedDimensions(size: number): BedDimensions {
+  return { width: size, depth: size }
+}
 
 /** Bed configuration */
 export interface BedConfig {
-  /** Bed side length (mm), square bed. Must be one of the supported values. */
-  size: BedSize
-  /** Grid origin offset (mm), default (0, 0) */
+  /** Bed dimensions in scene units (width × depth, may be non-square) */
+  dimensions: BedDimensions
+  /** Grid origin offset in scene units, default (0, 0) */
   origin?: { x: number; y: number }
-  /** Grid spacing (mm), null = auto-calculate */
+  /** Grid spacing in scene units, null = auto-calculate */
   gridStep?: number | null
+}
+
+/** Per-plate heatbed config used by the engine store */
+export interface PlateBedConfig {
+  plateId: number
+  plateName: string
+  dimensions: BedDimensions
+  selected: boolean
+}
+
+/** Computed layout entry — world-space center of a plate */
+export interface PlateLayoutEntry {
+  plateId: number
+  centerX: number
+  centerY: number
+}
+
+/**
+ * Compute world-space positions for multiple plates.
+ * Arranged left-to-right, wrapping after maxColumns, centered at origin.
+ *
+ * @param plates    - Map of plateId → { width, depth } in scene units
+ * @param maxColumns - Max plates per row (default 3)
+ * @param spacing   - Gap between plates in scene units (default 50)
+ */
+export function computePlateLayout(
+  plates: Map<number, { width: number; depth: number }>,
+  maxColumns: number = 3,
+  spacing: number = 50,
+): PlateLayoutEntry[] {
+  const entries = Array.from(plates.entries()).sort(([a], [b]) => a - b)
+  if (entries.length === 0) return []
+
+  // Partition into rows
+  const rows: { plateId: number; width: number; depth: number }[][] = []
+  for (let i = 0; i < entries.length; i += maxColumns) {
+    rows.push(
+      entries.slice(i, i + maxColumns).map(([id, dims]) => ({
+        plateId: id,
+        width: dims.width,
+        depth: dims.depth,
+      })),
+    )
+  }
+
+  const result: PlateLayoutEntry[] = []
+  let yOffset = 0
+
+  for (const row of rows) {
+    const maxDepthInRow = Math.max(...row.map(r => r.depth))
+    // Center this row horizontally
+    const totalRowWidth =
+      row.reduce((sum, r) => sum + r.width, 0) +
+      (row.length - 1) * spacing
+    let xOffset = -totalRowWidth / 2
+
+    for (const plate of row) {
+      result.push({
+        plateId: plate.plateId,
+        centerX: xOffset + plate.width / 2,
+        centerY: yOffset,
+      })
+      xOffset += plate.width + spacing
+    }
+
+    yOffset += maxDepthInRow + spacing
+  }
+
+  return result
 }
 
 /** Grid line segment */
@@ -55,18 +135,19 @@ export const MARGIN_BED = 2.00
 export const MARGIN_MODEL = 1.25
 
 /**
- * Auto-calculate grid step for each of the 4 size tiers.
- *   200mm → 10mm (20 cells)
- *   300mm → 10mm (30 cells)
- *   500mm → 20mm (25 cells)
- *  1000mm → 50mm (20 cells)
- * @param sizeMM - bed size in mm (physical)
+ * Auto-calculate grid step based on the smaller bed dimension.
+ *    ≤200mm → 10mm (≥20 cells)
+ *    ≤300mm → 10mm (≥30 cells)
+ *    ≤500mm → 20mm (≥25 cells)
+ *     >500mm → 50mm
+ * @param dims - bed dimensions in mm (physical)
  */
-export function calculateGridStep(sizeMM: number): number {
-  if (sizeMM <= 200) return 10
-  if (sizeMM <= 300) return 10
-  if (sizeMM <= 500) return 20
-  return 50 // 1000mm and above
+export function calculateGridStep(dims: BedDimensions): number {
+  const minDim = Math.min(dims.width, dims.depth)
+  if (minDim <= 200) return 10
+  if (minDim <= 300) return 10
+  if (minDim <= 500) return 20
+  return 50 // >500mm
 }
 
 /**

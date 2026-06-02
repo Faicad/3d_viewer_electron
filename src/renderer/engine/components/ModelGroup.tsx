@@ -21,6 +21,8 @@ import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
+import { computePlateLayout } from '@/engine/heatbed'
+import type { PlateLayoutEntry } from '@/engine/heatbed'
 
 // ---- types ----
 
@@ -362,22 +364,80 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             })
           }
 
-          // Center XY
-          const center = overallBox.getCenter(new THREE.Vector3())
-          for (const mesh of processed) {
-            mesh.position.set(-center.x, -center.y, 0)
-          }
+          // Per-plate centering when Bambu metadata has plates,
+          // otherwise fall back to single-group centering.
+          if (bambuMeta && bambuMeta.plates.size > 1) {
+            // Group processed meshes by plateId
+            const plateGroups = new Map<number, THREE.Mesh[]>()
+            for (let i = 0; i < processed.length; i++) {
+              const pid = partInfos[i]?.plateId ?? 1
+              if (!plateGroups.has(pid)) plateGroups.set(pid, [])
+              plateGroups.get(pid)!.push(processed[i])
+            }
 
-          // Place bottom on Z=0 (heatbed surface, doc §3)
-          const tmpGroup = new THREE.Group()
-          for (const mesh of processed) tmpGroup.add(mesh)
-          const afterBox = new THREE.Box3().setFromObject(tmpGroup)
-          const zLift = -afterBox.min.z
-          for (const mesh of processed) {
-            mesh.position.z += zLift
-          }
+            // Center each plate's meshes independently
+            for (const [, meshes] of plateGroups) {
+              const plateBox = new THREE.Box3()
+              for (const mesh of meshes) {
+                plateBox.expandByObject(mesh)
+              }
+              const plateCenter = plateBox.getCenter(new THREE.Vector3())
+              for (const mesh of meshes) {
+                mesh.position.set(-plateCenter.x, -plateCenter.y, 0)
+              }
+            }
 
-          onCenteringOffsetChangeRef.current([center.x, center.y, center.z - zLift])
+            // Unified Z-lift (all objects bottom at Z=0)
+            const tmpGroup = new THREE.Group()
+            for (const mesh of processed) tmpGroup.add(mesh)
+            const afterBox = new THREE.Box3().setFromObject(tmpGroup)
+            const zLift = -afterBox.min.z
+            for (const mesh of processed) {
+              mesh.position.z += zLift
+            }
+
+            // Compute plate layout and apply per-plate world offsets
+            const plateDims = new Map<number, { width: number; depth: number }>()
+            for (const [pid, plateInfo] of bambuMeta.plates) {
+              plateDims.set(pid, {
+                width: plateInfo.size?.width ?? 200,
+                depth: plateInfo.size?.depth ?? 200,
+              })
+            }
+            const layout = computePlateLayout(plateDims)
+            const layoutByPlateId = new Map<number, PlateLayoutEntry>()
+            for (const entry of layout) {
+              layoutByPlateId.set(entry.plateId, entry)
+            }
+            for (let i = 0; i < processed.length; i++) {
+              const pid = partInfos[i]?.plateId ?? 1
+              const offset = layoutByPlateId.get(pid)
+              if (offset) {
+                processed[i].position.x += offset.centerX
+                processed[i].position.y += offset.centerY
+              }
+            }
+
+            // Centering offset (fallback for topology overlay) — use (0,0,zLift)
+            onCenteringOffsetChangeRef.current([0, 0, -zLift])
+          } else {
+            // Center XY (single-group, non-Bambu path)
+            const center = overallBox.getCenter(new THREE.Vector3())
+            for (const mesh of processed) {
+              mesh.position.set(-center.x, -center.y, 0)
+            }
+
+            // Place bottom on Z=0 (heatbed surface, doc §3)
+            const tmpGroup = new THREE.Group()
+            for (const mesh of processed) tmpGroup.add(mesh)
+            const afterBox = new THREE.Box3().setFromObject(tmpGroup)
+            const zLift = -afterBox.min.z
+            for (const mesh of processed) {
+              mesh.position.z += zLift
+            }
+
+            onCenteringOffsetChangeRef.current([center.x, center.y, center.z - zLift])
+          }
 
           setMergedGeometry(null)
           setObjects([])

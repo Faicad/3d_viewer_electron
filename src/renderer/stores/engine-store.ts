@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import * as THREE from 'three'
 import { HEATBED_DEFAULT_FORMATS } from '@/engine/heatbed'
+import type { PlateBedConfig } from '@/engine/heatbed'
 import type { FormatId } from '@/config/file-formats'
 import { isCadSkillGlb } from '@/config/file-formats'
 
@@ -105,6 +106,16 @@ interface EngineStore {
   bedRawToMM: number
   setBedRawToMM: (v: number) => void
 
+  // ---------------------------------------------------------------------------
+  // Multi-plate heatbed (Bambu 3MF)
+  // ---------------------------------------------------------------------------
+  /** Plate configs from Bambu 3MF metadata. null = not a multi-plate model. */
+  bambuPlateConfigs: PlateBedConfig[] | null
+  setBambuPlateConfigs: (v: PlateBedConfig[] | null) => void
+  /** Currently selected plate (first plate by default). */
+  selectedPlateId: number | null
+  setSelectedPlateId: (v: number | null) => void
+
   // Camera auto-fit animation state (primarily for E2E tests)
   __animActive: boolean
   set__animActive: (v: boolean) => void
@@ -208,6 +219,11 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setBedSize: (v) => set({ bedSize: v }),
   bedRawToMM: 1,
   setBedRawToMM: (v) => set({ bedRawToMM: v }),
+
+  bambuPlateConfigs: null,
+  setBambuPlateConfigs: (v) => set({ bambuPlateConfigs: v }),
+  selectedPlateId: null,
+  setSelectedPlateId: (v) => set({ selectedPlateId: v }),
 
   __animActive: false,
   set__animActive: (v) => set({ __animActive: v }),

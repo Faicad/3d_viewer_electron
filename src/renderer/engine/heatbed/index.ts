@@ -10,6 +10,16 @@ export {
   calculateGridStep,
   autoSelectBedSize,
   HEATBED_DEFAULT_FORMATS,
+  squareBedDimensions,
+  computePlateLayout,
 } from './types'
-export type { BedSize, BedConfig, BedColors, Line } from './types'
+export type {
+  BedSize,
+  BedConfig,
+  BedDimensions,
+  BedColors,
+  Line,
+  PlateBedConfig,
+  PlateLayoutEntry,
+} from './types'
 export { calcZoomToBoundingBoxFactor, fitCameraToTarget, computeCameraFitTarget } from './cameraFit'

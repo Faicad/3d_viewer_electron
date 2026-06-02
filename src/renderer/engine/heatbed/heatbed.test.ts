@@ -3,6 +3,8 @@ import * as THREE from 'three'
 import {
   autoSelectBedSize,
   calculateGridStep,
+  squareBedDimensions,
+  computePlateLayout,
   SUPPORTED_BED_SIZES,
   DEFAULT_BED_COLORS,
   GROUND_Z,
@@ -101,16 +103,16 @@ describe('autoSelectBedSize', () => {
 
 describe('calculateGridStep', () => {
   it('200mm → 10mm (20 cells)', () => {
-    expect(calculateGridStep(200)).toBe(10)
+    expect(calculateGridStep({ width: 200, depth: 200 })).toBe(10)
   })
   it('300mm → 10mm (30 cells)', () => {
-    expect(calculateGridStep(300)).toBe(10)
+    expect(calculateGridStep({ width: 300, depth: 300 })).toBe(10)
   })
   it('500mm → 20mm (25 cells)', () => {
-    expect(calculateGridStep(500)).toBe(20)
+    expect(calculateGridStep({ width: 500, depth: 500 })).toBe(20)
   })
   it('1000mm → 50mm (20 cells)', () => {
-    expect(calculateGridStep(1000)).toBe(50)
+    expect(calculateGridStep({ width: 1000, depth: 1000 })).toBe(50)
   })
 })
 
@@ -173,7 +175,7 @@ describe('Heatbed', () => {
   let heatbed: Heatbed
 
   beforeEach(() => {
-    heatbed = new Heatbed({ size: 300 })
+    heatbed = new Heatbed({ dimensions: { width: 300, depth: 300 } })
   })
 
   afterEach(() => {
@@ -259,13 +261,13 @@ describe('Heatbed', () => {
   // setConfig / setSize
   // -------------------------------------------------------------------------
 
-  it('setConfig with new size rebuilds geometry', () => {
-    heatbed.setConfig({ size: 500 })
+  it('setConfig with new dimensions rebuilds geometry', () => {
+    heatbed.setConfig({ dimensions: { width: 500, depth: 500 } })
     expect(heatbed.size).toBe(500)
   })
 
   it.each(SUPPORTED_BED_SIZES)('%i size → bbox correct', (size) => {
-    heatbed.setConfig({ size })
+    heatbed.setConfig({ dimensions: { width: size, depth: size } })
     const box = heatbed.getBoundingBox()
     const h = size / 2
     expect(box.max.x).toBeCloseTo(h)
@@ -275,7 +277,7 @@ describe('Heatbed', () => {
   })
 
   it('grid line count for 200mm/10mm: 21H + 21V + 4 contour = 46 segments', () => {
-    heatbed.setConfig({ size: 200 })
+    heatbed.setConfig({ dimensions: { width: 200, depth: 200 } })
     const lines = heatbed.group.children[1] as THREE.LineSegments
     const pos = lines.geometry.getAttribute('position') as THREE.BufferAttribute
     // Each segment = 2 points × 3 components = 6 floats. 46 segments = 276 floats.
@@ -283,7 +285,7 @@ describe('Heatbed', () => {
   })
 
   it('all grid line vertices for size 200 within [-100, 100]', () => {
-    heatbed.setConfig({ size: 200 })
+    heatbed.setConfig({ dimensions: { width: 200, depth: 200 } })
     const lines = heatbed.group.children[1] as THREE.LineSegments
     const pos = lines.geometry.getAttribute('position') as THREE.BufferAttribute
     for (let i = 0; i < pos.count; i++) {
@@ -360,5 +362,198 @@ describe('Heatbed', () => {
     expect(heatbed.group.children.length).toBeGreaterThan(0)
     heatbed.dispose()
     expect(heatbed.group.children.length).toBe(0)
+  })
+
+  // -------------------------------------------------------------------------
+  // setPosition
+  // -------------------------------------------------------------------------
+
+  it('setPosition moves group in XY plane', () => {
+    heatbed.setPosition(100, 200)
+    expect(heatbed.group.position.x).toBe(100)
+    expect(heatbed.group.position.y).toBe(200)
+    expect(heatbed.group.position.z).toBe(0)
+  })
+
+  // -------------------------------------------------------------------------
+  // getWorldBoundingBox
+  // -------------------------------------------------------------------------
+
+  it('getWorldBoundingBox accounts for group position', () => {
+    heatbed.setPosition(50, 50)
+    const box = heatbed.getWorldBoundingBox()
+    // size 300 → half = 150, offset by (50, 50)
+    expect(box.min.x).toBeCloseTo(-150 + 50)
+    expect(box.min.y).toBeCloseTo(-150 + 50)
+    expect(box.max.x).toBeCloseTo(150 + 50)
+    expect(box.max.y).toBeCloseTo(150 + 50)
+  })
+
+  // -------------------------------------------------------------------------
+  // Rectangular bed
+  // -------------------------------------------------------------------------
+
+  it('rectangular bed: width ≠ depth', () => {
+    const rect = new Heatbed({ dimensions: { width: 256, depth: 180 } })
+    expect(rect.width).toBe(256)
+    expect(rect.depth).toBe(180)
+    expect(rect.size).toBe(256) // max of width/depth
+
+    const box = rect.getBoundingBox()
+    expect(box.max.x).toBeCloseTo(128)
+    expect(box.min.x).toBeCloseTo(-128)
+    expect(box.max.y).toBeCloseTo(90)
+    expect(box.min.y).toBeCloseTo(-90)
+
+    rect.dispose()
+  })
+
+  it('rectangular grid lines stay within boundary', () => {
+    const rect = new Heatbed({ dimensions: { width: 256, depth: 180 } })
+    const lines = rect.group.children[1] as THREE.LineSegments
+    const pos = lines.geometry.getAttribute('position') as THREE.BufferAttribute
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i)
+      const y = pos.getY(i)
+      expect(x).toBeGreaterThanOrEqual(-129)
+      expect(x).toBeLessThanOrEqual(129)
+      expect(y).toBeGreaterThanOrEqual(-91)
+      expect(y).toBeLessThanOrEqual(91)
+    }
+    rect.dispose()
+  })
+
+  // -------------------------------------------------------------------------
+  // setLabel (requires DOM — skip in node environment)
+  // -------------------------------------------------------------------------
+
+  const itDOM = typeof document !== 'undefined' ? it : it.skip
+
+  itDOM('setLabel creates a flat label mesh at bottom-right', () => {
+    heatbed.setLabel('200 × 200 mm')
+    // Should have 3 children now: plane, grid lines, label mesh
+    expect(heatbed.group.children.length).toBe(3)
+    const label = heatbed.group.children[2]
+    expect(label).toBeInstanceOf(THREE.Mesh)
+    // Position should be near bottom-right (inside the plate)
+    expect(label.position.x).toBeGreaterThan(0)
+    expect(label.position.y).toBeLessThan(0)
+    // Z should be near GROUND_Z (on the plate surface)
+    expect(label.position.z).toBeCloseTo(-0.001, 2)
+  })
+
+  itDOM('setLabel with empty string removes the label', () => {
+    heatbed.setLabel('200 × 200 mm')
+    expect(heatbed.group.children.length).toBe(3)
+    heatbed.setLabel('')
+    expect(heatbed.group.children.length).toBe(2)
+  })
+
+  itDOM('setLabel replaces existing label', () => {
+    heatbed.setLabel('200 × 200 mm')
+    const firstLabel = heatbed.group.children[2]
+    heatbed.setLabel('300 × 300 mm')
+    // Should still have 3 children, but label replaced
+    expect(heatbed.group.children.length).toBe(3)
+    expect(heatbed.group.children[2]).not.toBe(firstLabel)
+  })
+
+  itDOM('setLabel on rectangular bed positions inside boundary', () => {
+    const rect = new Heatbed({ dimensions: { width: 256, depth: 180 } })
+    rect.setLabel('256 × 180 mm')
+    const label = rect.group.children[2] as THREE.Mesh
+    // Label should be inside the plate: x < width/2, y > -depth/2
+    expect(label.position.x).toBeLessThan(128)
+    expect(label.position.y).toBeGreaterThan(-90)
+    rect.dispose()
+  })
+})
+
+// =============================================================================
+// squareBedDimensions
+// =============================================================================
+
+describe('squareBedDimensions', () => {
+  it('creates square dimensions from a single number', () => {
+    const dims = squareBedDimensions(300)
+    expect(dims.width).toBe(300)
+    expect(dims.depth).toBe(300)
+  })
+})
+
+// =============================================================================
+// computePlateLayout
+// =============================================================================
+
+describe('computePlateLayout', () => {
+  it('single plate → centered at origin', () => {
+    const plates = new Map<number, { width: number; depth: number }>()
+    plates.set(1, { width: 256, depth: 256 })
+    const layout = computePlateLayout(plates)
+    expect(layout).toHaveLength(1)
+    expect(layout[0].plateId).toBe(1)
+    expect(layout[0].centerX).toBeCloseTo(0)
+    expect(layout[0].centerY).toBeCloseTo(0)
+  })
+
+  it('two plates → side by side left-right', () => {
+    const plates = new Map<number, { width: number; depth: number }>()
+    plates.set(1, { width: 256, depth: 256 })
+    plates.set(2, { width: 256, depth: 256 })
+    const layout = computePlateLayout(plates)
+    expect(layout).toHaveLength(2)
+    // Plate 1: at -128 - 25 = -153... no wait
+    // Two 256mm wide plates with 50mm spacing:
+    // total width = 256 + 50 + 256 = 562, half = 281
+    // centerX of plate 1 = -281 + 128 = -153
+    // centerX of plate 2 = -153 + 256 + 50 = 153
+    expect(layout[0].plateId).toBe(1)
+    expect(layout[0].centerX).toBeCloseTo(-153)
+    expect(layout[0].centerY).toBeCloseTo(0)
+    expect(layout[1].plateId).toBe(2)
+    expect(layout[1].centerX).toBeCloseTo(153)
+    expect(layout[1].centerY).toBeCloseTo(0)
+  })
+
+  it('three plates → one row', () => {
+    const plates = new Map<number, { width: number; depth: number }>()
+    plates.set(1, { width: 200, depth: 200 })
+    plates.set(2, { width: 200, depth: 200 })
+    plates.set(3, { width: 200, depth: 200 })
+    const layout = computePlateLayout(plates)
+    expect(layout).toHaveLength(3)
+    // All same Y
+    expect(layout[0].centerY).toBe(0)
+    expect(layout[1].centerY).toBe(0)
+    expect(layout[2].centerY).toBe(0)
+  })
+
+  it('four plates → wrap to two rows (3 per row default)', () => {
+    const plates = new Map<number, { width: number; depth: number }>()
+    plates.set(1, { width: 200, depth: 200 })
+    plates.set(2, { width: 200, depth: 200 })
+    plates.set(3, { width: 200, depth: 200 })
+    plates.set(4, { width: 200, depth: 200 })
+    const layout = computePlateLayout(plates)
+    expect(layout).toHaveLength(4)
+    // Plates 1-3 in row 0, plate 4 in row 1
+    const row0 = layout.slice(0, 3)
+    const row1 = layout.slice(3)
+    for (const e of row0) expect(e.centerY).toBe(0)
+    for (const e of row1) expect(e.centerY).toBe(250) // 200 depth + 50 spacing
+  })
+
+  it('plates sorted by plateId', () => {
+    const plates = new Map<number, { width: number; depth: number }>()
+    plates.set(3, { width: 256, depth: 256 })
+    plates.set(1, { width: 256, depth: 256 })
+    plates.set(2, { width: 256, depth: 256 })
+    const layout = computePlateLayout(plates)
+    expect(layout.map(e => e.plateId)).toEqual([1, 2, 3])
+  })
+
+  it('empty map returns empty array', () => {
+    const plates = new Map<number, { width: number; depth: number }>()
+    expect(computePlateLayout(plates)).toEqual([])
   })
 })

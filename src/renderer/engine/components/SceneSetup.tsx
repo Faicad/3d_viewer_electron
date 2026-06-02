@@ -6,11 +6,20 @@ import { useThree } from '@react-three/fiber'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
 import { Heatbed } from '../heatbed/Heatbed'
-import { DEFAULT_BED_SIZE, calculateGridStep } from '../heatbed/types'
-import type { BedSize } from '../heatbed/types'
+import {
+  DEFAULT_BED_SIZE, calculateGridStep, computePlateLayout, squareBedDimensions,
+} from '../heatbed/types'
+import type { PlateLayoutEntry } from '../heatbed/types'
 import { useEngineStore } from '@/stores/engine-store'
 import { getSharedTextureCache } from '../material/MaterialFactory'
 import { computeShadowFrustum } from './shadowFrustum'
+
+/** Format plate dimensions for the label sprite (dims are in mm for 3MF). */
+function dimensionsLabel(dims: BedDimensions): string {
+  const w = Math.round(dims.width)
+  const d = Math.round(dims.depth)
+  return w === d ? `${w} × ${w} mm` : `${w} × ${d} mm`
+}
 
 export default function SceneSetup() {
   const { gl, scene } = useThree()
@@ -161,37 +170,176 @@ export default function SceneSetup() {
     return unsub
   }, [])
 
-  // Heatbed — follows same imperative pattern as ShadowFloor.
-  const heatbedRef = useRef<Heatbed | null>(null)
+  // ---------------------------------------------------------------------------
+  // Heatbed(s)
+  // ---------------------------------------------------------------------------
+  // Two independent paths:
+  //   a) Multi-plate (Bambu 3MF): one Heatbed per plate, positioned in a grid
+  //   b) Single-bed fallback: one square Heatbed (non-Bambu files)
+  const heatbedsRef = useRef<Map<number, Heatbed>>(new Map())
+  const singleHeatbedRef = useRef<Heatbed | null>(null)
+
+  // --- Multi-plate heatbeds (Bambu 3MF path) ---
   useEffect(() => {
     const store = useEngineStore.getState()
-    const heatbed = new Heatbed({ size: (store.bedSize || DEFAULT_BED_SIZE) as BedSize })
-    heatbed.setVisible(store.showHeatbed)
-    heatbed.setSelected(true)
-    scene.add(heatbed.group)
-    heatbedRef.current = heatbed
+    const configs = store.bambuPlateConfigs
+
+    // Only run when multi-plate is active
+    if (!configs || configs.length === 0) return
+
+    // Remove any existing single heatbed
+    if (singleHeatbedRef.current) {
+      scene.remove(singleHeatbedRef.current.group)
+      singleHeatbedRef.current.dispose()
+      singleHeatbedRef.current = null
+    }
+
+    // Build plate dims map for layout
+    const plateDims = new Map<number, { width: number; depth: number }>()
+    for (const c of configs) {
+      plateDims.set(c.plateId, { width: c.dimensions.width, depth: c.dimensions.depth })
+    }
+    const layout = computePlateLayout(plateDims)
+
+    // Create layout lookup
+    const layoutByPlateId = new Map<number, PlateLayoutEntry>()
+    for (const entry of layout) {
+      layoutByPlateId.set(entry.plateId, entry)
+    }
+
+    // Create one Heatbed per plate
+    for (const config of configs) {
+      const layEntry = layoutByPlateId.get(config.plateId)
+      if (!layEntry) continue
+
+      const heatbed = new Heatbed({
+        dimensions: config.dimensions,
+        gridStep: calculateGridStep(config.dimensions),
+      })
+      heatbed.setPosition(layEntry.centerX, layEntry.centerY)
+      heatbed.setVisible(store.showHeatbed)
+      heatbed.setSelected(config.selected)
+      heatbed.setLabel(dimensionsLabel(config.dimensions))
+      scene.add(heatbed.group)
+      heatbedsRef.current.set(config.plateId, heatbed)
+    }
+
     return () => {
-      scene.remove(heatbed.group)
-      heatbed.dispose()
-      heatbedRef.current = null
+      for (const hb of heatbedsRef.current.values()) {
+        scene.remove(hb.group)
+        hb.dispose()
+      }
+      heatbedsRef.current.clear()
     }
   }, [scene])
 
+  // React to bambuPlateConfigs changes
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state, prevState) => {
-      if (state.showHeatbed === prevState.showHeatbed) return
-      heatbedRef.current?.setVisible(state.showHeatbed)
+      if (state.bambuPlateConfigs === prevState.bambuPlateConfigs) return
+
+      // Dispose current heatbeds
+      for (const hb of heatbedsRef.current.values()) {
+        scene.remove(hb.group)
+        hb.dispose()
+      }
+      heatbedsRef.current.clear()
+      if (singleHeatbedRef.current) {
+        scene.remove(singleHeatbedRef.current.group)
+        singleHeatbedRef.current.dispose()
+        singleHeatbedRef.current = null
+      }
+
+      const configs = state.bambuPlateConfigs
+      if (!configs || configs.length === 0) return
+
+      const plateDims = new Map<number, { width: number; depth: number }>()
+      for (const c of configs) {
+        plateDims.set(c.plateId, { width: c.dimensions.width, depth: c.dimensions.depth })
+      }
+      const layout = computePlateLayout(plateDims)
+      const layoutByPlateId = new Map<number, PlateLayoutEntry>()
+      for (const entry of layout) {
+        layoutByPlateId.set(entry.plateId, entry)
+      }
+
+      for (const config of configs) {
+        const layEntry = layoutByPlateId.get(config.plateId)
+        if (!layEntry) continue
+
+        const heatbed = new Heatbed({
+          dimensions: config.dimensions,
+          gridStep: calculateGridStep(config.dimensions),
+        })
+        heatbed.setPosition(layEntry.centerX, layEntry.centerY)
+        heatbed.setVisible(state.showHeatbed)
+        heatbed.setSelected(config.selected)
+        heatbed.setLabel(dimensionsLabel(config.dimensions))
+        scene.add(heatbed.group)
+        heatbedsRef.current.set(config.plateId, heatbed)
+      }
+    })
+    return unsub
+  }, [scene])
+
+  // --- Single heatbed (non-Bambu fallback path) ---
+  useEffect(() => {
+    const configs = useEngineStore.getState().bambuPlateConfigs
+    if (configs && configs.length > 0) return // multi-plate path handles it
+
+    const store = useEngineStore.getState()
+    const sizeMM = Math.round(store.bedSize * store.bedRawToMM)
+    const heatbed = new Heatbed({
+      dimensions: squareBedDimensions(store.bedSize || DEFAULT_BED_SIZE),
+    })
+    heatbed.setVisible(store.showHeatbed)
+    heatbed.setSelected(true)
+    heatbed.setLabel(`${sizeMM} × ${sizeMM} mm`)
+    scene.add(heatbed.group)
+    singleHeatbedRef.current = heatbed
+
+    return () => {
+      scene.remove(heatbed.group)
+      heatbed.dispose()
+      singleHeatbedRef.current = null
+    }
+  }, [scene])
+
+  // Multi-plate: react to selectedPlateId changes
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      if (state.selectedPlateId === prevState.selectedPlateId) return
+      for (const [pid, hb] of heatbedsRef.current) {
+        hb.setSelected(pid === state.selectedPlateId)
+      }
     })
     return unsub
   }, [])
 
+  // showHeatbed toggle (applies to both paths)
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state, prevState) => {
+      if (state.showHeatbed === prevState.showHeatbed) return
+      for (const hb of heatbedsRef.current.values()) {
+        hb.setVisible(state.showHeatbed)
+      }
+      singleHeatbedRef.current?.setVisible(state.showHeatbed)
+    })
+    return unsub
+  }, [])
+
+  // Single-bed: react to bedSize / bedRawToMM changes
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      // Skip when multi-plate is active
+      if (state.bambuPlateConfigs && state.bambuPlateConfigs.length > 0) return
       if (state.bedSize === prevState.bedSize && state.bedRawToMM === prevState.bedRawToMM) return
       const sizeMM = state.bedSize * state.bedRawToMM
-      heatbedRef.current?.setConfig({
-        size: state.bedSize as BedSize,
-        gridStep: calculateGridStep(sizeMM) * (1 / state.bedRawToMM), // mm → scene units
+      singleHeatbedRef.current?.setConfig({
+        dimensions: squareBedDimensions(state.bedSize),
+        gridStep: calculateGridStep(
+          squareBedDimensions(sizeMM),
+        ) * (1 / state.bedRawToMM), // mm → scene units
       })
     })
     return unsub
