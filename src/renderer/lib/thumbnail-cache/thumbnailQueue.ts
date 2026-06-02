@@ -1,6 +1,6 @@
 import { detectFormat } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
-import { generateThumbnail, generateSvgThumbnail } from './thumbnailGenerator'
+import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 
@@ -97,6 +97,29 @@ async function processNext(): Promise<void> {
             onReady(file.path, url)
           } else {
             onReady?.(file.path, '')
+          }
+        } else {
+          onReady?.(file.path, '')
+        }
+      } else if (format === '3mf') {
+        // 3MF: try embedded thumbnail first (fast — no geometry parsing)
+        const result = await window.electronAPI.readFile(file.path)
+        if (result.success && result.data) {
+          const embeddedBlob = await extractAndProcess3mfThumbnail(result.data)
+          if (embeddedBlob && onReady) {
+            await putThumbnail(key, embeddedBlob)
+            const url = URL.createObjectURL(embeddedBlob)
+            onReady(file.path, url)
+          } else {
+            // Fall back to WebGL render
+            const blob = await generateThumbnail(result.data, format)
+            if (blob && onReady) {
+              await putThumbnail(key, blob)
+              const url = URL.createObjectURL(blob)
+              onReady(file.path, url)
+            } else {
+              onReady?.(file.path, '')
+            }
           }
         } else {
           onReady?.(file.path, '')

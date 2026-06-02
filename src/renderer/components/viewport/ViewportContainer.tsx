@@ -485,6 +485,9 @@ export default function ViewportContainer() {
     return (meshes: THREE.Mesh[], objects: THREE.Object3D[], upAxis: 'y' | 'z') => {
       const file = useModelStore.getState().loadedFiles.find(f => f.id === fileId)
       if (!file) return
+      // 3MF: embedded thumbnail is already handled by FileListPanel / queue —
+      // don't overwrite it with a WebGL render.
+      if (file.format === '3mf' && file.bambuMetadata?.thumbnailBlob) return
       const key = `${file.filePath}|${file.mtimeMs ?? 0}`
       generateThumbnailFromResult(meshes, objects, upAxis).then(blob => {
         if (blob) putThumbnail(key, blob)

@@ -12,7 +12,7 @@ import { stepToGlbCached } from '@/lib/step-converter'
 import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult, getCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
@@ -215,7 +215,9 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         if (file.format !== 'svg' && file.format !== 'dxf') {
           // Bambu 3MF: use embedded standard thumbnail if available
           if (file.format === '3mf' && file.bambuMetadata?.thumbnailBlob) {
-            putThumbnail(`${file.filePath}|${Date.now()}`, file.bambuMetadata.thumbnailBlob)
+            processEmbeddedThumbnail(file.bambuMetadata.thumbnailBlob).then(blob => {
+              if (blob) putThumbnail(`${file.filePath}|${file.mtimeMs}`, blob)
+            })
           } else {
             const loadResult = getCachedResult(file.id)
             if (loadResult) {

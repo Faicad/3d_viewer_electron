@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, forwardRef } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo, forwardRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries as mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { type GlbPartInfo, type SceneTreeNode } from '@/stores/model-store'

@@ -2,9 +2,112 @@ import * as THREE from 'three'
 import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
+import { extractThumbnailBlob } from '@/lib/bambu-3mf/bambu-3mf'
 
 const WIDTH = 200
 const HEIGHT = 150
+export const THUMBNAIL_TARGET_WIDTH = WIDTH
+export const THUMBNAIL_TARGET_HEIGHT = HEIGHT
+export const THUMBNAIL_TARGET_RATIO = WIDTH / HEIGHT
+
+/** Crop region computed by {@link computeCropRegion}. */
+export interface CropRegion {
+  sx: number // source x offset
+  sy: number // source y offset
+  sw: number // source width to crop
+  sh: number // source height to crop
+}
+
+/**
+ * Compute the center-crop region needed to fit a source image into the
+ * project's target aspect ratio ({@link THUMBNAIL_TARGET_RATIO}, 4:3).
+ *
+ * Pure function — no DOM APIs.  Testable in Node without jsdom.
+ */
+export function computeCropRegion(
+  srcWidth: number,
+  srcHeight: number,
+): CropRegion {
+  const srcRatio = srcWidth / srcHeight
+  let sx = 0
+  let sy = 0
+  let sw = srcWidth
+  let sh = srcHeight
+
+  if (srcRatio > THUMBNAIL_TARGET_RATIO) {
+    // Source is wider → crop left/right
+    sw = srcHeight * THUMBNAIL_TARGET_RATIO
+    sx = (srcWidth - sw) / 2
+  } else if (srcRatio < THUMBNAIL_TARGET_RATIO) {
+    // Source is taller → crop top/bottom
+    sh = srcWidth / THUMBNAIL_TARGET_RATIO
+    sy = (srcHeight - sh) / 2
+  }
+
+  return { sx, sy, sw, sh }
+}
+
+/**
+ * Crop and scale an embedded PNG thumbnail (e.g. from 3MF) to the project's
+ * standard thumbnail size (200×150, 4:3 aspect ratio).
+ *
+ * Center-crops the source image to 4:3, then scales to exactly WIDTH×HEIGHT.
+ * Returns null if the blob cannot be decoded as an image.
+ */
+export async function processEmbeddedThumbnail(blob: Blob): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(blob)
+
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+
+      const canvas = document.createElement('canvas')
+      canvas.width = WIDTH
+      canvas.height = HEIGHT
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(null)
+        return
+      }
+
+      const { sx, sy, sw, sh } = computeCropRegion(img.width, img.height)
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, WIDTH, HEIGHT)
+      canvas.toBlob((b) => resolve(b), 'image/png')
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+
+    img.src = url
+  })
+}
+
+/**
+ * Extract a standard 3MF embedded thumbnail from a raw .3mf ArrayBuffer
+ * and crop/scale it to the project's thumbnail size.
+ *
+ * This does NOT parse the 3D geometry — it only unzips the 3MF archive
+ * and looks for thumbnail PNGs. Returns null if no embedded thumbnail exists.
+ */
+export async function extractAndProcess3mfThumbnail(
+  buffer: ArrayBuffer,
+): Promise<Blob | null> {
+  try {
+    const { unzipSync } = await import(
+      'three/examples/jsm/libs/fflate.module.js'
+    )
+    const data = new Uint8Array(buffer)
+    const unzipped: Record<string, Uint8Array> = unzipSync(data)
+    const rawBlob = extractThumbnailBlob(unzipped)
+    if (!rawBlob) return null
+    return processEmbeddedThumbnail(rawBlob)
+  } catch {
+    return null
+  }
+}
 
 let renderer: THREE.WebGLRenderer | null = null
 let canvas: HTMLCanvasElement | null = null

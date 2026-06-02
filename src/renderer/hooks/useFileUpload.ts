@@ -5,7 +5,7 @@ import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
@@ -117,15 +117,18 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         const fileId = crypto.randomUUID()
         setCachedResult(fileId, loadResult)
 
-        // Thumbnail as byproduct (fire-and-forget)
-        const upAxis = getDefaultUpAxis(format, buffer)
-        generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-          .then(blob => {
-            if (blob) {
-              const key = `${filePath}|${file.lastModified}`
-              putThumbnail(key, blob)
-            }
+        // Thumbnail: prefer Bambu 3MF embedded thumbnail, else render-based
+        if (format === '3mf' && loadResult.bambuMetadata?.thumbnailBlob) {
+          processEmbeddedThumbnail(loadResult.bambuMetadata.thumbnailBlob).then(blob => {
+            if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
           })
+        } else {
+          const upAxis = getDefaultUpAxis(format, buffer)
+          generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+            .then(blob => {
+              if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
+            })
+        }
 
         // Add to store
         useModelStore.getState().addLoadedFile({
@@ -141,6 +144,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
           fileGroup: FORMAT_MAP[format].group,
           loadingPhase: 'loading',
+          bambuMetadata: loadResult.bambuMetadata,
         })
 
         // Scan folder for other model files if in Electron environment

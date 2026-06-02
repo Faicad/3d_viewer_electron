@@ -9,7 +9,7 @@ import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
@@ -538,7 +538,9 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
 
     // Thumbnail: prefer Bambu 3MF embedded thumbnail, else render-based
     if (format === '3mf' && loadResult.bambuMetadata?.thumbnailBlob) {
-      putThumbnail(`${file.path}|${file.mtimeMs}`, loadResult.bambuMetadata.thumbnailBlob)
+      processEmbeddedThumbnail(loadResult.bambuMetadata.thumbnailBlob).then(blob => {
+        if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
+      })
     } else {
       const upAxis = getDefaultUpAxis(format, buffer)
       generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)

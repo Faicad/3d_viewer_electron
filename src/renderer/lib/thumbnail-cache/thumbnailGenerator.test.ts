@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import * as THREE from 'three'
-import { waitForTextures } from './thumbnailGenerator'
+import {
+  waitForTextures,
+  computeCropRegion,
+  THUMBNAIL_TARGET_WIDTH,
+  THUMBNAIL_TARGET_HEIGHT,
+  THUMBNAIL_TARGET_RATIO,
+} from './thumbnailGenerator'
 
 beforeAll(() => {
   globalThis.requestAnimationFrame ??= ((cb: FrameRequestCallback) => {
@@ -122,4 +128,87 @@ describe('waitForTextures', () => {
     expect(elapsed).toBeGreaterThanOrEqual(90)
     expect(elapsed).toBeLessThan(500)
   }, 10_000)
+})
+
+// ---------------------------------------------------------------------------
+// computeCropRegion — pure math, no DOM
+// ---------------------------------------------------------------------------
+describe('computeCropRegion', () => {
+  it('returns identity crop for an already-4:3 source', () => {
+    const r = computeCropRegion(200, 150)
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBe(0)
+    expect(r.sw).toBe(200)
+    expect(r.sh).toBe(150)
+  })
+
+  it('returns identity crop for 800×600 (exact 4:3 multiple)', () => {
+    const r = computeCropRegion(800, 600)
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBe(0)
+    expect(r.sw).toBe(800)
+    expect(r.sh).toBe(600)
+  })
+
+  it('center-crops top/bottom for a square source (1:1 → 4:3)', () => {
+    const r = computeCropRegion(256, 256)
+    const expectedH = 256 / THUMBNAIL_TARGET_RATIO // 256 / 1.333... = 192
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBeCloseTo((256 - expectedH) / 2) // (256-192)/2 = 32
+    expect(r.sw).toBe(256)
+    expect(r.sh).toBeCloseTo(expectedH)
+  })
+
+  it('center-crops left/right for a wide source (16:9 → 4:3)', () => {
+    const r = computeCropRegion(1600, 900)
+    const expectedW = 900 * THUMBNAIL_TARGET_RATIO // 900 * 1.333... = 1200
+    expect(r.sx).toBeCloseTo((1600 - expectedW) / 2) // (1600-1200)/2 = 200
+    expect(r.sy).toBe(0)
+    expect(r.sw).toBeCloseTo(expectedW)
+    expect(r.sh).toBe(900)
+  })
+
+  it('center-crops top/bottom for a tall source (3:4 → 4:3)', () => {
+    const r = computeCropRegion(300, 400)
+    const expectedH = 300 / THUMBNAIL_TARGET_RATIO // 300 / 1.333... = 225
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBeCloseTo((400 - expectedH) / 2) // (400-225)/2 = 87.5
+    expect(r.sw).toBe(300)
+    expect(r.sh).toBeCloseTo(expectedH)
+  })
+
+  it('handles vise.3mf actual thumbnail dimensions: 240×239 (nearly square → crop top/bottom)', () => {
+    // 240/239 ≈ 1.0042 < 1.3333 → source is taller → crop top/bottom
+    const r = computeCropRegion(240, 239)
+    const expectedH = 240 / THUMBNAIL_TARGET_RATIO // 240 / 1.333... = 180
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBeCloseTo((239 - expectedH) / 2) // (239-180)/2 = 29.5
+    expect(r.sw).toBe(240)
+    expect(r.sh).toBeCloseTo(expectedH, 5)
+    // Cropped region must have 4:3 aspect ratio
+    expect(r.sw / r.sh).toBeCloseTo(THUMBNAIL_TARGET_RATIO, 5)
+  })
+
+  it('handles very large square dimensions', () => {
+    const r = computeCropRegion(4096, 4096)
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBeGreaterThan(0)
+    expect(r.sw).toBe(4096)
+    expect(r.sh).toBeLessThan(4096)
+    expect(r.sw / r.sh).toBeCloseTo(THUMBNAIL_TARGET_RATIO, 5)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+describe('thumbnail constants', () => {
+  it('target size is 200×150', () => {
+    expect(THUMBNAIL_TARGET_WIDTH).toBe(200)
+    expect(THUMBNAIL_TARGET_HEIGHT).toBe(150)
+  })
+
+  it('target aspect ratio is 4:3', () => {
+    expect(THUMBNAIL_TARGET_RATIO).toBeCloseTo(4 / 3, 5)
+  })
 })

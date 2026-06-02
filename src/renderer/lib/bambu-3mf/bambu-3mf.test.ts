@@ -15,6 +15,8 @@ import {
 } from './bambu-3mf'
 import { loadFormat } from '@/engine/formatLoaders'
 import { useModelStore } from '@/stores/model-store'
+import { computeCropRegion, THUMBNAIL_TARGET_RATIO } from '@/lib/thumbnail-cache/thumbnailGenerator'
+
 
 const FIXTURE = path.resolve('src/test/fixtures/vise.3mf')
 
@@ -378,6 +380,22 @@ describe('parseModelMeta', () => {
 // ---------------------------------------------------------------------------
 // Standard 3MF thumbnail extraction (extractThumbnailBlob)
 // ---------------------------------------------------------------------------
+
+/** Read PNG dimensions from the IHDR chunk of a raw PNG buffer. */
+function readPngDimensions(
+  buf: Uint8Array,
+): { width: number; height: number } | null {
+  if (buf.length < 33) return null
+  const sig = [137, 80, 78, 71, 13, 10, 26, 10]
+  for (let i = 0; i < 8; i++) if (buf[i] !== sig[i]) return null
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+  return { width: dv.getUint32(16, false), height: dv.getUint32(20, false) }
+}
+
+async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
+  return new Uint8Array(await blob.arrayBuffer())
+}
+
 describe('extractThumbnailBlob', () => {
   it('extracts thumbnail from Auxiliaries/.thumbnails in vise.3mf', () => {
     const raw = fs.readFileSync(FIXTURE)
@@ -398,6 +416,73 @@ describe('extractThumbnailBlob', () => {
     const metadata = parseBambu3mf(buf)
     expect(metadata.thumbnailBlob).toBeDefined()
     expect(metadata.thumbnailBlob!.type).toBe('image/png')
+  })
+
+  it('extracted thumbnail source dimensions are 240×239 (nearly square)', async () => {
+    const raw = fs.readFileSync(FIXTURE)
+    const arr = new Uint8Array(raw)
+    const unzipped = unzipSync(arr)
+    const blob = extractThumbnailBlob(unzipped)
+    expect(blob).toBeDefined()
+    const pngArr = await blobToUint8Array(blob!)
+    const dims = readPngDimensions(pngArr)
+    expect(dims).not.toBeNull()
+    expect(dims!.width).toBe(240)
+    expect(dims!.height).toBe(239)
+  })
+
+  it('returns undefined for a ZIP without any thumbnail entries', () => {
+    const blob = extractThumbnailBlob({})
+    expect(blob).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Full thumbnail processing pipeline (extract + crop/scale → 200×150)
+// ---------------------------------------------------------------------------
+describe('3MF thumbnail processing pipeline', () => {
+  it('raw embedded thumbnail source dimensions are 240×239 (nearly square)', async () => {
+    const raw = fs.readFileSync(FIXTURE)
+    const buf = raw.buffer.slice(
+      raw.byteOffset,
+      raw.byteOffset + raw.byteLength,
+    ) as ArrayBuffer
+    const metadata = parseBambu3mf(buf)
+    expect(metadata.thumbnailBlob).toBeDefined()
+
+    const arr = await blobToUint8Array(metadata.thumbnailBlob!)
+    const dims = readPngDimensions(arr)
+    expect(dims).not.toBeNull()
+    // The raw embedded thumbnail is 240×239 — NOT yet cropped/scaled
+    expect(dims!.width).toBe(240)
+    expect(dims!.height).toBe(239)
+  })
+
+  it('crop region for 240×239 source: center-crops top/bottom to 4:3', () => {
+    // 240/239 ≈ 1.004 < 1.333 → source is taller → crop top/bottom
+    const r = computeCropRegion(240, 239)
+    const expectedH = 240 / THUMBNAIL_TARGET_RATIO // = 180
+    expect(r.sx).toBe(0)
+    expect(r.sy).toBeCloseTo((239 - expectedH) / 2) // = 29.5
+    expect(r.sw).toBe(240)
+    expect(r.sh).toBeCloseTo(expectedH, 5)
+    // Resulting crop region has correct 4:3 aspect ratio
+    expect(r.sw / r.sh).toBeCloseTo(THUMBNAIL_TARGET_RATIO, 5)
+    // Crop region is within source bounds
+    expect(r.sx).toBeGreaterThanOrEqual(0)
+    expect(r.sy).toBeGreaterThanOrEqual(0)
+    expect(r.sx + r.sw).toBeLessThanOrEqual(240)
+    expect(r.sy + r.sh).toBeLessThanOrEqual(239)
+  })
+
+  it('after crop+scale, final output is 200×150 (target)', () => {
+    // This verifies the math: 240×239 source → crop → scale to 200×150
+    const r = computeCropRegion(240, 239)
+    // The crop region sw×sh is scaled to exactly 200×150
+    const scaleX = 200 / r.sw
+    const scaleY = 150 / r.sh
+    expect(scaleX).toBeCloseTo(scaleY, 5) // uniform scale (no stretching)
+    expect(scaleX).toBeCloseTo(200 / 240, 5) // ≈ 0.833
   })
 })
 
