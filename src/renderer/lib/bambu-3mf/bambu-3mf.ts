@@ -46,9 +46,16 @@ export interface BambuPartMeta {
   plateId: number
 }
 
+export interface BambuPlateSize {
+  width: number
+  depth: number
+  height: number
+}
+
 export interface BambuPlateInfo {
   plateId: number
   plateName: string
+  size?: BambuPlateSize
 }
 
 export interface BambuModelMeta {
@@ -181,6 +188,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
   const projFile = Object.keys(unzipped).find(f =>
     f.endsWith('project_settings.config'),
   )
+  let bedSize: BambuPlateSize | undefined
   if (projFile) {
     try {
       const json = JSON.parse(decoder.decode(unzipped[projFile]))
@@ -195,6 +203,26 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
       if (Array.isArray(fTypes)) {
         for (const t of fTypes) {
           filamentTypes.push(typeof t === 'string' ? t : String(t))
+        }
+      }
+
+      // Plate/bed dimensions from printable_area polygon + printable_height
+      if (json.printable_area) {
+        const area = Array.isArray(json.printable_area) ? json.printable_area : [json.printable_area]
+        let maxX = 0
+        let maxY = 0
+        for (const pt of area) {
+          const parts = String(pt).split('x')
+          if (parts.length === 2) {
+            const x = parseFloat(parts[0])
+            const y = parseFloat(parts[1])
+            if (Number.isFinite(x) && x > maxX) maxX = x
+            if (Number.isFinite(y) && y > maxY) maxY = y
+          }
+        }
+        const height = parseFloat(String(json.printable_height ?? '0'))
+        if (maxX > 0 && maxY > 0 && Number.isFinite(height) && height > 0) {
+          bedSize = { width: maxX, depth: maxY, height }
         }
       }
     } catch {
@@ -279,7 +307,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
       }
 
       if (platerId > 0) {
-        plates.set(platerId, { plateId: platerId, plateName: platerName })
+        plates.set(platerId, { plateId: platerId, plateName: platerName, size: bedSize })
       }
 
       const instRe = /<model_instance>([\s\S]*?)<\/model_instance>/gi

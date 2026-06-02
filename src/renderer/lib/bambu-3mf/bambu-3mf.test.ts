@@ -208,6 +208,22 @@ describe('parseBambu3mf — metadata extraction', () => {
     expect(metadata.plates.has(1)).toBe(true)
     expect(metadata.plates.has(2)).toBe(true)
   })
+
+  it('plate 1 has bed dimensions from project_settings', () => {
+    const plate1 = metadata.plates.get(1)
+    expect(plate1?.size).toBeDefined()
+    expect(plate1?.size!.width).toBe(180)
+    expect(plate1?.size!.depth).toBe(180)
+    expect(plate1?.size!.height).toBe(180)
+  })
+
+  it('plate 2 shares the same bed dimensions', () => {
+    const plate2 = metadata.plates.get(2)
+    expect(plate2?.size).toBeDefined()
+    expect(plate2?.size!.width).toBe(180)
+    expect(plate2?.size!.depth).toBe(180)
+    expect(plate2?.size!.height).toBe(180)
+  })
 })
 
 // ---------------------------------------------------------------------------
