@@ -226,6 +226,69 @@ describe('parseBambu3mf — metadata extraction', () => {
     expect(plate2?.size!.depth).toBe(180)
     expect(plate2?.size!.height).toBe(180)
   })
+
+  it('parses 19 assembly item transforms from <assemble> block', () => {
+    expect(metadata.assembleTransforms?.size).toBe(19)
+  })
+
+  it('assemble transform for object 2 has identity rotation + Z translation', () => {
+    const t = metadata.assembleTransforms?.get('2')
+    expect(t).toBeDefined()
+    // rotation = identity
+    expect(t!.transform[0]).toBe(1)  // M11
+    expect(t!.transform[4]).toBe(1)  // M22
+    expect(t!.transform[8]).toBe(1)  // M33
+    // translation Z = 45.5
+    expect(t!.transform[11]).toBeCloseTo(45.5, 1)
+    // offset = (0, 0, 0)
+    expect(t!.offset).toEqual([0, 0, 0])
+  })
+
+  it('assemble transform for object 22 has X-axis -90° rotation', () => {
+    const t = metadata.assembleTransforms?.get('22')
+    expect(t).toBeDefined()
+    // X -90°: [1 0 0; 0 ~0 -1; 0 1 ~0]
+    expect(t!.transform[0]).toBe(1)   // M11
+    expect(t!.transform[4]).toBeCloseTo(0, 1)  // M22 ≈ 0
+    expect(t!.transform[5]).toBeCloseTo(-1, 1) // M23 = -1
+    expect(t!.transform[7]).toBeCloseTo(1, 1)  // M32 = 1
+    expect(t!.transform[8]).toBeCloseTo(0, 1)  // M33 ≈ 0
+  })
+
+  it('parses part import transforms from <part> metadata', () => {
+    expect(metadata.importTransforms).toBeDefined()
+    expect(metadata.importTransforms!.size).toBeGreaterThan(0)
+  })
+
+  it('part 1 (screw holder) has identity import matrix + source_offset', () => {
+    const t = metadata.importTransforms?.get('2:1')
+    expect(t).toBeDefined()
+    // identity matrix
+    expect(t!.matrix).toHaveLength(16)
+    expect(t!.matrix[0]).toBe(1)  // M11
+    expect(t!.matrix[5]).toBe(1)  // M22
+    expect(t!.matrix[10]).toBe(1) // M33
+    expect(t!.matrix[15]).toBe(1) // M44
+    // source offset
+    expect(t!.sourceOffset[1]).toBeCloseTo(-93.849, 2)
+    expect(t!.sourceOffset[2]).toBeCloseTo(-98.5, 1)
+  })
+
+  it('part 21 (holder part 2) has non-identity import matrix with translation', () => {
+    const t = metadata.importTransforms?.get('22:21')
+    expect(t).toBeDefined()
+    // matrix has translation (0.797, 105.906, 59.974)
+    expect(t!.matrix[3]).toBeCloseTo(0.797, 2)   // M14 = TX
+    expect(t!.matrix[7]).toBeCloseTo(105.906, 2) // M24 = TY
+    expect(t!.matrix[11]).toBeCloseTo(59.974, 2) // M34 = TZ
+  })
+
+  it('buildItems is populated in metadata', () => {
+    expect(metadata.buildItems).toBeDefined()
+    expect(metadata.buildItems!.length).toBe(19)
+    expect(metadata.buildItems![0].objectId).toBeTruthy()
+    expect(metadata.buildItems![0].transform).toHaveLength(12)
+  })
 })
 
 // ---------------------------------------------------------------------------

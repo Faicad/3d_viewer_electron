@@ -4,6 +4,7 @@ import { HEATBED_DEFAULT_FORMATS } from '@/engine/heatbed'
 import type { PlateBedConfig } from '@/engine/heatbed'
 import type { FormatId } from '@/config/file-formats'
 import { isCadSkillGlb } from '@/config/file-formats'
+import type { ViewMode } from '@/lib/bambu-3mf/viewTransforms'
 
 const CUSTOM_ENV_KEY = 'faicad-custom-env'
 
@@ -116,6 +117,12 @@ interface EngineStore {
   selectedPlateId: number | null
   setSelectedPlateId: (v: number | null) => void
 
+  // ---------------------------------------------------------------------------
+  // View mode (3MF Print / Assembly / Import)
+  // ---------------------------------------------------------------------------
+  viewMode: ViewMode
+  setViewMode: (v: ViewMode) => void
+
   // Camera auto-fit animation state (primarily for E2E tests)
   __animActive: boolean
   set__animActive: (v: boolean) => void
@@ -224,6 +231,9 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setBambuPlateConfigs: (v) => set({ bambuPlateConfigs: v }),
   selectedPlateId: null,
   setSelectedPlateId: (v) => set({ selectedPlateId: v }),
+
+  viewMode: 'print',
+  setViewMode: (v) => set({ viewMode: v }),
 
   __animActive: false,
   set__animActive: (v) => set({ __animActive: v }),

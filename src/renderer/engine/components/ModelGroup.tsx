@@ -23,6 +23,8 @@ import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
 import { computePlateLayout } from '@/engine/heatbed'
 import type { PlateLayoutEntry } from '@/engine/heatbed'
+import type { ViewMode } from '@/lib/bambu-3mf/viewTransforms'
+import { computeViewDelta, hasViewData } from '@/lib/bambu-3mf/viewTransforms'
 
 // ---- types ----
 
@@ -139,6 +141,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   const [mergedGeometry, setMergedGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [objects, setObjects] = useState<THREE.Object3D[]>([])
   const [error, setError] = useState<string | null>(null)
+  const viewMode = useEngineStore((s) => s.viewMode)
 
   const visibilityMap = useMemo(
     () => flattenVisibility(sceneTree),
@@ -297,12 +300,31 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           const materials: (THREE.Material | THREE.Material[] | null)[] = []
           const partInfos: GlbPartInfo[] = []
           const bambuMeta = result.bambuMetadata
+          const currentViewMode = viewMode
 
           for (let i = 0; i < meshes.length; i++) {
             const src = meshes[i]
             const geo = cloneMeshGeometry(src)
             src.updateWorldMatrix(true, false)
             geo.applyMatrix4(src.matrixWorld)
+
+
+            // View mode delta: reposition mesh for assembly/import view
+            if (currentViewMode !== 'print' && bambuMeta) {
+              const partInfo = {
+                partId: src.userData?.partId || src.name || `part-${i}`,
+                meshIndex: i,
+                name: '',
+                triangleCount: 0,
+                materialIndex: -1,
+                objectId: bambuMeta.parts[i]?.objectId,
+                partId: bambuMeta.parts[i]?.partId,
+              } as GlbPartInfo
+              const delta = computeViewDelta(currentViewMode, bambuMeta, partInfo)
+              if (delta) {
+                geo.applyMatrix4(delta)
+              }
+            }
 
             // Preserve skinning data: set skinning=true on material when
             // geometry has skinIndex / skinWeight attributes, so
@@ -361,6 +383,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               materialIndex: src.userData?.gltfMaterialIndex ?? -1,
               extruder: partMeta?.extruder,
               plateId: partMeta?.plateId,
+              objectId: partMeta?.objectId,
             })
           }
 
@@ -612,7 +635,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       }
       materialsRef.current = []
     }
-  }, [buffer, format, filePath, fileId, fileName])
+  }, [buffer, format, filePath, fileId, fileName, viewMode])
 
   // Sync group ref to engine store after render so ModelInfoPanel can read it
   useEffect(() => {

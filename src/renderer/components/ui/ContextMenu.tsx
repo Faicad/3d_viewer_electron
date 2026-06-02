@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 export interface ContextMenuItemDef {
-  label: string
+  type?: 'normal' | 'separator'
+  label?: string
   icon?: React.ComponentType<{ className?: string }>
-  action: () => void
+  action?: () => void
   disabled?: boolean
   danger?: boolean
 }
@@ -47,25 +48,30 @@ export function ContextMenu({ position, items, onClose }: ContextMenuProps) {
       className="fixed z-[100] min-w-[10rem] rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
       style={{ left: position.x, top: position.y }}
     >
-      {items.map((item, i) => (
-        <button
-          key={i}
-          disabled={item.disabled}
-          onClick={() => {
-            item.action()
-            onClose()
-          }}
-          className={cn(
-            'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
-            'hover:bg-accent hover:text-accent-foreground',
-            'disabled:pointer-events-none disabled:opacity-50',
-            item.danger && 'text-destructive hover:text-destructive',
-          )}
-        >
-          {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-          {item.label}
-        </button>
-      ))}
+      {items.map((item, i) => {
+        if (item.type === 'separator') {
+          return <hr key={i} className="my-1 border-t border-border" />
+        }
+        return (
+          <button
+            key={i}
+            disabled={item.disabled}
+            onClick={() => {
+              item.action?.()
+              onClose()
+            }}
+            className={cn(
+              'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+              'hover:bg-accent hover:text-accent-foreground',
+              'disabled:pointer-events-none disabled:opacity-50',
+              item.danger && 'text-destructive hover:text-destructive',
+            )}
+          >
+            {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+            {item.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

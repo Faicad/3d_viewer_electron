@@ -7,6 +7,7 @@ import { useModelStore, type SceneTreeNode } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
+import { hasViewData, type ViewMode } from '@/lib/bambu-3mf/viewTransforms'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat } from '@/engine/formatLoaders'
@@ -24,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, LayoutGrid,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, LayoutGrid, Check,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -271,9 +272,12 @@ export default function DesktopLayout() {
   // File-level context menu — show format-specific items
   const handleFileContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
     const modelStore = useModelStore.getState()
+    const engineStore = useEngineStore.getState()
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
     const isGlb = file?.format === 'glb' || file?.format === 'gltf'
     const hasAnims = (file?.animations?.length ?? 0) > 0
+    const isBambu3mf = file?.format === '3mf' && file?.bambuMetadata != null
+    const currentView = engineStore.viewMode
     e.preventDefault()
     e.stopPropagation()
     const items: ContextMenuItemDef[] = []
@@ -301,6 +305,26 @@ export default function DesktopLayout() {
           modelStore.openAnimDialog(fileId)
         },
       })
+    }
+    if (isBambu3mf) {
+      items.push({ type: 'separator' })
+      const viewModes: { mode: ViewMode; label: string }[] = [
+        { mode: 'print', label: 'Print View' },
+        { mode: 'assembly', label: 'Assembly View' },
+        { mode: 'import', label: 'Import View' },
+      ]
+      for (const vm of viewModes) {
+        if (vm.mode === 'print' || hasViewData(vm.mode, file!.bambuMetadata!)) {
+          items.push({
+            label: vm.label,
+            icon: currentView === vm.mode ? Check : undefined,
+            action: () => {
+              engineStore.setViewMode(vm.mode)
+            },
+            disabled: currentView === vm.mode,
+          })
+        }
+      }
     }
     items.push({
       label: 'Copy File Path',

@@ -33,6 +33,8 @@ export interface GlbPartInfo {
   extruder?: number
   /** Bambu Lab plate assignment, only for Bambu 3MF files. */
   plateId?: number
+  /** 3MF object ID, only for Bambu 3MF files. */
+  objectId?: string
 }
 
 export interface LoadedFileModel {

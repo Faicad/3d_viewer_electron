@@ -76,11 +76,36 @@ export interface Bambu3mfMetadata {
   modelMeta?: BambuModelMeta
   /** Extracted standard 3MF thumbnail PNG blob, if found in the ZIP. */
   thumbnailBlob?: Blob
+  /** Assembly item transforms (keyed by objectId). */
+  assembleTransforms?: Map<string, AssembleItemTransform>
+  /** Part import transforms (keyed by "objectId:partId"). */
+  importTransforms?: Map<string, PartImportTransform>
+  /** Build items from 3D/3dmodel.model, for transform reference. */
+  buildItems?: BuildItem[]
 }
 
 export interface BuildItem {
   objectId: string
   transform: number[] | null
+}
+
+/** Assembly item transform from model_settings.config `<assemble_item>`. */
+export interface AssembleItemTransform {
+  objectId: string
+  /** 12-value 4×3 matrix (same format as build <item transform>). */
+  transform: number[]
+  /** Additional fine-tune translation [tx, ty, tz]. */
+  offset: [number, number, number]
+}
+
+/** Part-level import transform from model_settings.config `<part>` metadata. */
+export interface PartImportTransform {
+  objectId: string
+  partId: string
+  /** 16-value 4×4 matrix (row-major). */
+  matrix: number[]
+  /** Additional import translation offset. */
+  sourceOffset: [number, number, number]
 }
 
 /** Parse `<build>` section object IDs and transforms from 3D/3dmodel.model XML. */
@@ -234,6 +259,9 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
   // Store part info per objectId → [{partId, name, extruder}]
   const objectParts = new Map<string, { partId: string; name: string; extruder: number }[]>()
 
+  const assembleTransforms = new Map<string, AssembleItemTransform>()
+  const importTransforms = new Map<string, PartImportTransform>()
+
   const msFile = Object.keys(unzipped).find(f =>
     f.endsWith('model_settings.config'),
   )
@@ -322,6 +350,67 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
         }
       }
     }
+
+    // ---- 2d. <assemble> block → assembly transforms ----
+    const assembleBlockRe = /<assemble>([\s\S]*?)<\/assemble>/i
+    const assembleBlockMatch = xml.match(assembleBlockRe)
+    if (assembleBlockMatch) {
+      const assembleBody = assembleBlockMatch[1]
+      const assembleItemRe = /<assemble_item\s+([^>]*)\/?>/gi
+      let am: RegExpExecArray | null
+      while ((am = assembleItemRe.exec(assembleBody)) !== null) {
+        const attrs = am[1]
+        const oidMatch = /object_id="(\d+)"/.exec(attrs)
+        const xformMatch = /transform="([^"]*)"/.exec(attrs)
+        const offsetMatch = /offset="([^"]*)"/.exec(attrs)
+        const oid = oidMatch?.[1]
+        if (oid && xformMatch) {
+          const xform = xformMatch[1].split(/\s+/).map(Number)
+          const offsetArr = offsetMatch
+            ? offsetMatch[1].split(/\s+/).map(Number)
+            : [0, 0, 0]
+          if (xform.length === 12 && offsetArr.length === 3) {
+            assembleTransforms.set(oid, {
+              objectId: oid,
+              transform: xform,
+              offset: offsetArr as [number, number, number],
+            })
+          }
+        }
+      }
+    }
+
+    // ---- 2e. <part> matrix metadata (per-part import transforms) ----
+    const importObjBlockRe = /<object\s+id="(\d+)"[^>]*>([\s\S]*?)<\/object>/gi
+    let importObjMatch: RegExpExecArray | null
+    while ((importObjMatch = importObjBlockRe.exec(xml)) !== null) {
+      const oid = importObjMatch[1]
+      const body = importObjMatch[2]
+      const importPartRe = /<part\s+id="(\d+)"[^>]*>([\s\S]*?)<\/part>/gi
+      let ipm: RegExpExecArray | null
+      while ((ipm = importPartRe.exec(body)) !== null) {
+        const pid = ipm[1]
+        const partBody = ipm[2]
+        let matrix: number[] | undefined
+        let sox = 0, soy = 0, soz = 0
+        const imRe = /<metadata\s+key="([^"]*)"\s+value="([^"]*)"\s*\/?>/gi
+        let imm: RegExpExecArray | null
+        while ((imm = imRe.exec(partBody)) !== null) {
+          if (imm[1] === 'matrix') matrix = imm[2].split(/\s+/).map(Number)
+          if (imm[1] === 'source_offset_x') sox = parseFloat(imm[2]) || 0
+          if (imm[1] === 'source_offset_y') soy = parseFloat(imm[2]) || 0
+          if (imm[1] === 'source_offset_z') soz = parseFloat(imm[2]) || 0
+        }
+        if (matrix && matrix.length === 16) {
+          importTransforms.set(`${oid}:${pid}`, {
+            objectId: oid,
+            partId: pid,
+            matrix,
+            sourceOffset: [sox, soy, soz],
+          })
+        }
+      }
+    }
   }
 
   // ---- 3. Model-level metadata + build items from 3D/3dmodel.model ----
@@ -367,5 +456,16 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
     }
   }
 
-  return { filamentColors, filamentTypes, objects, parts, plates, modelMeta, thumbnailBlob }
+  return {
+    filamentColors,
+    filamentTypes,
+    objects,
+    parts,
+    plates,
+    modelMeta,
+    thumbnailBlob,
+    assembleTransforms: assembleTransforms.size > 0 ? assembleTransforms : undefined,
+    importTransforms: importTransforms.size > 0 ? importTransforms : undefined,
+    buildItems: buildItems.length > 0 ? buildItems : undefined,
+  }
 }
