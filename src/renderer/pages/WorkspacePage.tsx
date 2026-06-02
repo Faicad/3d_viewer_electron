@@ -153,6 +153,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
         fileGroup: FORMAT_MAP[format].group,
         loadingPhase: 'loading',
+        bambuMetadata: loadResult.bambuMetadata,
       })
     } catch (e) {
       useModelStore.getState().setIsConverting(false)
@@ -212,13 +213,18 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
         // SVG/DXF thumbnails are generated inline during load — skip here
         if (file.format !== 'svg' && file.format !== 'dxf') {
-          const loadResult = getCachedResult(file.id)
-          if (loadResult) {
-            const upAxis = getDefaultUpAxis(file.format, file.buffer)
-            generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-              .then(blob => {
-                if (blob) putThumbnail(`${file.filePath}|${Date.now()}`, blob)
-              })
+          // Bambu 3MF: use embedded standard thumbnail if available
+          if (file.format === '3mf' && file.bambuMetadata?.thumbnailBlob) {
+            putThumbnail(`${file.filePath}|${Date.now()}`, file.bambuMetadata.thumbnailBlob)
+          } else {
+            const loadResult = getCachedResult(file.id)
+            if (loadResult) {
+              const upAxis = getDefaultUpAxis(file.format, file.buffer)
+              generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+                .then(blob => {
+                  if (blob) putThumbnail(`${file.filePath}|${Date.now()}`, blob)
+                })
+            }
           }
         }
 

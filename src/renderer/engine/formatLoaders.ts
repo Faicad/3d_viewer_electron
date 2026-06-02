@@ -27,6 +27,7 @@ import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
 import type { FormatId, UnitSystem } from '@/config/file-formats'
 import { buildGlbExtensionData, type GlbExtensionData } from './gltfExtensions'
+import { parseBambu3mf, type Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 
 export interface LoaderResult {
   meshes: THREE.Mesh[]
@@ -44,6 +45,8 @@ export interface LoaderResult {
   animations?: THREE.AnimationClip[]
   /** GLB/glTF extension, material, texture, and animation metadata */
   gltfExtensions?: GlbExtensionData
+  /** Bambu Lab 3MF metadata (only for 3mf files originating from Bambu Studio) */
+  bambuMetadata?: Bambu3mfMetadata
 }
 
 function bufferToText(buffer: ArrayBuffer): string {
@@ -376,7 +379,13 @@ export async function loadFormat(
     case '3mf': {
       const group = new ThreeMFLoader().parse(buffer)
       const meshes = extractMeshes(group)
-      return { meshes, objects: extractAllObjects(group) }
+      let bambuMetadata: Bambu3mfMetadata | undefined
+      try {
+        bambuMetadata = parseBambu3mf(buffer)
+      } catch {
+        // non-Bambu 3MF — proceed without metadata
+      }
+      return { meshes, objects: extractAllObjects(group), bambuMetadata }
     }
 
     // ---- mesh formats: text-based ----

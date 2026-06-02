@@ -4,6 +4,7 @@ import { getDefaultUpAxis } from '@/config/file-formats'
 import { clearAllResults, releaseResult, clearLoaded } from '@/engine/loaderResultCache'
 import { useHistoryStore } from '@/stores/history-store'
 import { useAnimationStore } from '@/stores/animation-store'
+import type { Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 import * as THREE from 'three'
 
 export interface SvgLayer {
@@ -28,6 +29,10 @@ export interface GlbPartInfo {
   name: string
   triangleCount: number
   materialIndex: number
+  /** Bambu Lab extruder index (1-based), only for Bambu 3MF files. */
+  extruder?: number
+  /** Bambu Lab plate assignment, only for Bambu 3MF files. */
+  plateId?: number
 }
 
 export interface LoadedFileModel {
@@ -51,6 +56,8 @@ export interface LoadedFileModel {
   svgLayers?: SvgLayer[]
   /** SVG-only: original XML text to avoid repeated decoding */
   svgText?: string
+  /** Bambu Lab 3MF metadata (only for 3mf files originating from Bambu Studio) */
+  bambuMetadata?: Bambu3mfMetadata
 }
 
 export type FileSortMode = 'name' | 'type+name'

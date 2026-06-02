@@ -21,6 +21,7 @@ import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
+import type { Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 
 // ---- types ----
 
@@ -285,6 +286,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           const processed: THREE.Mesh[] = []
           const materials: (THREE.Material | THREE.Material[] | null)[] = []
           const partInfos: GlbPartInfo[] = []
+          const bambuMeta = result.bambuMetadata
 
           for (let i = 0; i < meshes.length; i++) {
             const src = meshes[i]
@@ -306,6 +308,17 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
             // Clone and convert material from source mesh
             const mat = cloneAndConvertMaterial(src.material)
+
+            // Bambu 3MF: apply filament color from metadata
+            const partMeta = bambuMeta?.parts[i]
+            if (partMeta && bambuMeta) {
+              const fi = partMeta.extruder - 1
+              const colorHex = bambuMeta.filamentColors[fi]
+              if (colorHex && mat && 'color' in mat) {
+                ;(mat as THREE.MeshStandardMaterial).color = new THREE.Color(colorHex)
+              }
+            }
+
             if (hasSkinning && mat) {
               setSkinningFlag(mat, true)
             }
@@ -326,14 +339,18 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             mesh.userData._originalMaterial = mat
             mesh.userData._overrideKey = overrideKey || undefined
             processed.push(mesh)
+
+            const partName = partMeta?.name || src.name || `part-${i}`
             partInfos.push({
               partId: String(partId),
               meshIndex: i,
-              name: src.name || `part-${i}`,
+              name: partName,
               triangleCount: geo.index
                 ? geo.index.count / 3
                 : geo.attributes.position?.count / 3 || 0,
               materialIndex: src.userData?.gltfMaterialIndex ?? -1,
+              extruder: partMeta?.extruder,
+              plateId: partMeta?.plateId,
             })
           }
 
@@ -429,15 +446,39 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             })
           }
 
-          const tree = result.sceneRoot
-            ? buildSceneTree(result.sceneRoot, partInfos)
-            : partInfos.map((info) => ({
+          let tree: SceneTreeNode[]
+          if (result.sceneRoot) {
+            tree = buildSceneTree(result.sceneRoot, partInfos)
+          } else if (bambuMeta && bambuMeta.plates.size > 1) {
+            // Group by plate
+            const plates = new Map<number, SceneTreeNode[]>()
+            for (const info of partInfos) {
+              const pid = info.plateId ?? 1
+              if (!plates.has(pid)) plates.set(pid, [])
+              plates.get(pid)!.push({
                 id: info.partId,
                 name: info.name,
                 visible: true,
                 expanded: true,
                 meshIndex: info.meshIndex,
-              }))
+              })
+            }
+            tree = Array.from(plates.entries()).map(([plateId, children]) => ({
+              id: `plate-${plateId}`,
+              name: `Plate ${plateId}`,
+              visible: true,
+              expanded: true,
+              children,
+            }))
+          } else {
+            tree = partInfos.map((info) => ({
+              id: info.partId,
+              name: info.name,
+              visible: true,
+              expanded: true,
+              meshIndex: info.meshIndex,
+            }))
+          }
 
           applySinglePartName(tree, fileName)
           onSceneTreeChangeRef.current(tree)

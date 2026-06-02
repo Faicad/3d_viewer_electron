@@ -51,6 +51,9 @@
   "modelInfo.format": "文件格式",
   "modelInfo.materialCost": "预估耗材",
   "modelInfo.empty": "暂无模型信息",
+  "modelInfo.modelMetadata": "模型元数据",
+  "modelInfo.designer": "设计师",
+  "modelInfo.license": "许可证",
 
   "delete": "删除",
   "confirm": "确认",

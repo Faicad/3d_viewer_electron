@@ -51,6 +51,9 @@
   "modelInfo.format": "File Format",
   "modelInfo.materialCost": "Est. Material",
   "modelInfo.empty": "No model info",
+  "modelInfo.modelMetadata": "Model Metadata",
+  "modelInfo.designer": "Designer",
+  "modelInfo.license": "License",
 
   "delete": "Delete",
   "confirm": "Confirm",

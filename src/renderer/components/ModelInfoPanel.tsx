@@ -18,6 +18,19 @@ function StatRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** Crude HTML strip for 3MF description text. */
+function stripHtml(html: string): string {
+  // Decode common HTML entities
+  return html
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/<[^>]*>/g, '')
+    .trim()
+}
+
 export default function ModelInfoPanel() {
   const { t } = useTranslation()
   const modelGroup = useEngineStore((s) => s.modelGroup)
@@ -25,6 +38,10 @@ export default function ModelInfoPanel() {
   const sourceUnit = useModelStore((s) => s.sourceUnit)
   const fileGroup = useModelStore((s) => s.fileGroup)
   const toggleModelInfo = useUIStore((s) => s.toggleModelInfo)
+  const loadedFiles = useModelStore((s) => s.loadedFiles)
+  const activeFileId = useModelStore((s) => s.activeFileId)
+  const activeFile = loadedFiles.find(f => f.id === activeFileId)
+  const bambuMeta = activeFile?.bambuMetadata?.modelMeta
 
   const unitLabel = sourceUnitToLabel(sourceUnit)
   const areaUnit = `${unitLabel}²`
@@ -78,6 +95,28 @@ export default function ModelInfoPanel() {
                 label={t('modelInfo.materialCost')}
                 value={computeMaterialCost(stats.volume, sourceUnit)}
               />
+            )}
+
+            {bambuMeta && (
+              <>
+                <div className="px-3 py-1 text-xs font-semibold text-muted-foreground border-b mt-1">
+                  {t('modelInfo.modelMetadata')}
+                </div>
+                {bambuMeta.title && (
+                  <StatRow label={t('modelInfo.title')} value={bambuMeta.title} />
+                )}
+                {bambuMeta.designer && (
+                  <StatRow label={t('modelInfo.designer')} value={bambuMeta.designer} />
+                )}
+                {bambuMeta.license && (
+                  <StatRow label={t('modelInfo.license')} value={bambuMeta.license} />
+                )}
+                {bambuMeta.description && (
+                  <div className="px-3 py-1.5 text-xs border-b text-muted-foreground leading-relaxed">
+                    {stripHtml(bambuMeta.description)}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </ScrollArea>
