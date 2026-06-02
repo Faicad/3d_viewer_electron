@@ -5,6 +5,9 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { ShadowFloor } from '../environment/ShadowFloor'
+import { Heatbed } from '../heatbed/Heatbed'
+import { DEFAULT_BED_SIZE } from '../heatbed/types'
+import type { BedSize } from '../heatbed/types'
 import { useEngineStore } from '@/stores/engine-store'
 import { getSharedTextureCache } from '../material/MaterialFactory'
 import { computeShadowFrustum } from './shadowFrustum'
@@ -154,6 +157,38 @@ export default function SceneSetup() {
     const unsub = useEngineStore.subscribe((state, prevState) => {
       if (state.shadowOpacity === prevState.shadowOpacity) return
       shadowFloorRef.current?.setOpacity(state.shadowOpacity)
+    })
+    return unsub
+  }, [])
+
+  // Heatbed — follows same imperative pattern as ShadowFloor.
+  const heatbedRef = useRef<Heatbed | null>(null)
+  useEffect(() => {
+    const store = useEngineStore.getState()
+    const heatbed = new Heatbed({ size: (store.bedSize || DEFAULT_BED_SIZE) as BedSize })
+    heatbed.setVisible(store.showHeatbed)
+    heatbed.setSelected(true)
+    scene.add(heatbed.group)
+    heatbedRef.current = heatbed
+    return () => {
+      scene.remove(heatbed.group)
+      heatbed.dispose()
+      heatbedRef.current = null
+    }
+  }, [scene])
+
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      if (state.showHeatbed === prevState.showHeatbed) return
+      heatbedRef.current?.setVisible(state.showHeatbed)
+    })
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      if (state.bedSize === prevState.bedSize) return
+      heatbedRef.current?.setConfig({ size: state.bedSize as BedSize })
     })
     return unsub
   }, [])

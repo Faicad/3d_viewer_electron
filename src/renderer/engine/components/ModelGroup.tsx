@@ -327,13 +327,22 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             })
           }
 
-          // Center the group
+          // Center XY
           const center = overallBox.getCenter(new THREE.Vector3())
           for (const mesh of processed) {
-            mesh.position.copy(center).multiplyScalar(-1)
+            mesh.position.set(-center.x, -center.y, 0)
           }
 
-          onCenteringOffsetChangeRef.current([center.x, center.y, center.z])
+          // Place bottom on Z=0 (heatbed surface, doc §3)
+          const tmpGroup = new THREE.Group()
+          for (const mesh of processed) tmpGroup.add(mesh)
+          const afterBox = new THREE.Box3().setFromObject(tmpGroup)
+          const zLift = -afterBox.min.z
+          for (const mesh of processed) {
+            mesh.position.z += zLift
+          }
+
+          onCenteringOffsetChangeRef.current([center.x, center.y, center.z - zLift])
 
           setMergedGeometry(null)
           setObjects([])
@@ -436,6 +445,12 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           const geo = mergeGeometries(meshes)
           geo.computeVertexNormals()
           geo.center()
+          // Place bottom on Z=0 (heatbed surface, doc §3)
+          geo.computeBoundingBox()
+          if (geo.boundingBox && geo.boundingBox.min.z < 0) {
+            geo.translate(0, 0, -geo.boundingBox.min.z)
+            geo.computeBoundingBox()
+          }
           setMergedGeometry(geo)
           setGlbMeshes([])
           setObjects([])

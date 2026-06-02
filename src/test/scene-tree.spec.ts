@@ -253,7 +253,8 @@ test.describe.serial('Multi-level scene tree', () => {
     const beforeShow = await window.evaluate(() => {
       let visibleCount = 0; let totalCount = 0
       ;(window as any).__r3f_dev.scene.traverse((o: any) => {
-        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor') {
+        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor'
+            && o.parent?.name !== 'Heatbed') {
           totalCount++; if (o.visible) visibleCount++
         }
       })
@@ -268,7 +269,8 @@ test.describe.serial('Multi-level scene tree', () => {
       await window.waitForFunction(() => {
         let visibleCount = 0; let totalCount = 0
         ;(window as any).__r3f_dev.scene.traverse((o: any) => {
-          if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor') {
+          if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor'
+              && o.parent?.name !== 'Heatbed') {
             totalCount++; if (o.visible) visibleCount++
           }
         })
@@ -280,7 +282,8 @@ test.describe.serial('Multi-level scene tree', () => {
     const visible = await window.evaluate(() => {
       let visibleCount = 0; let totalCount = 0
       ;(window as any).__r3f_dev.scene.traverse((o: any) => {
-        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor') {
+        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor'
+            && o.parent?.name !== 'Heatbed') {
           totalCount++; if (o.visible) visibleCount++
         }
       })
@@ -300,7 +303,8 @@ test.describe.serial('Multi-level scene tree', () => {
     await window.waitForFunction(() => {
       let hiddenCount = 0; let totalCount = 0
       ;(window as any).__r3f_dev.scene.traverse((o: any) => {
-        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor') {
+        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor'
+            && o.parent?.name !== 'Heatbed') {
           totalCount++; if (!o.visible) hiddenCount++
         }
       })
@@ -310,7 +314,8 @@ test.describe.serial('Multi-level scene tree', () => {
     const hidden = await window.evaluate(() => {
       let visibleCount = 0; let totalCount = 0
       ;(window as any).__r3f_dev.scene.traverse((o: any) => {
-        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor') {
+        if (o.isMesh && o.name !== 'shadowFloor' && o.parent?.name !== 'shadowFloor'
+            && o.parent?.name !== 'Heatbed') {
           totalCount++; if (o.visible) visibleCount++
         }
       })

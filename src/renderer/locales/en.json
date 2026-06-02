@@ -11,6 +11,7 @@
   "toolbar.zUp": "Z Axis Up",
   "toolbar.perspective": "Perspective View",
   "toolbar.orthographic": "Orthographic View",
+  "toolbar.heatbed": "Toggle Heatbed",
   "toolbar.fullscreen": "Fullscreen",
   "toolbar.modelInfo": "Model Info",
   "toolbar.history": "History",

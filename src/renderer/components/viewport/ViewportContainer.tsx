@@ -36,6 +36,7 @@ import TexturePreviewDialog from '@/components/panels/TexturePreviewDialog'
 import { getCheckerDataUri } from '@/engine/material/checkerTexture'
 import { getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
+import { computeCameraFitTarget, autoSelectBedSize } from '@/engine/heatbed'
 import { toast } from 'sonner'
 
 /** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
@@ -212,6 +213,9 @@ export default function ViewportContainer() {
   /** Map of fileId → model group root. Supports multi-file drag, pick, and highlight. */
   const modelGroupMapRef = useRef<Map<string, THREE.Group>>(new Map())
   const mainCamera = useEngineStore((s) => s.camera)
+  const showHeatbed = useEngineStore((s) => s.showHeatbed)
+  const bedSize = useEngineStore((s) => s.bedSize)
+  const initShowHeatbed = useEngineStore((s) => s.initShowHeatbed)
   const modelBuffer = useModelStore((s) => s.modelBuffer)
   const modelFormat = useModelStore((s) => s.modelFormat)
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
@@ -488,13 +492,33 @@ export default function ViewportContainer() {
     }
   }, [])
 
-  const applyCameraFit = useCallback((box: THREE.Box3, controls: OrbitControlsImpl) => {
-    const center = box.getCenter(new THREE.Vector3())
+  const applyCameraFit = useCallback((box: THREE.Box3, controls: OrbitControlsImpl, focusTarget: 'bed' | 'model' = 'model') => {
     const size = box.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
     if (maxDim === 0) return
 
     const camera = controls.object
+
+    // Use OrcaSlicer algorithm for perspective camera fit
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const domElement = controls.domElement
+      const viewport = { width: domElement.clientWidth, height: domElement.clientHeight }
+
+      const result = computeCameraFitTarget(camera, box, viewport, focusTarget)
+      if (result) {
+        // Don't mutate camera directly — let CameraAnimator lerp to the target
+        setAnimTarget(result.position)
+        setAnimTargetUp(activeUpAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1))
+        setAnimActive(true)
+        controls.target.copy(result.target)
+        controls.update()
+        return
+      }
+      // Fall through to fallback on compute failure
+    }
+
+    // Fallback for non-perspective camera or compute failure
+    const center = box.getCenter(new THREE.Vector3())
     let dist: number
     if (camera instanceof THREE.PerspectiveCamera) {
       const fitDist = maxDim / (2 * Math.tan((camera.fov * Math.PI) / 360))
@@ -527,14 +551,45 @@ export default function ViewportContainer() {
     const b = largestBoxRef.current
     useEngineStore.getState().setModelBbox([b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z])
 
+    // Auto-select bed size if heatbed is shown
+    const store = useEngineStore.getState()
+    let bedSize = store.bedSize
+    if (store.showHeatbed) {
+      const autoSize = autoSelectBedSize(largestBoxRef.current)
+      bedSize = autoSize
+      if (autoSize !== store.bedSize) {
+        store.setBedSize(autoSize)
+      }
+    }
+
     const controls = controlsRef.current
     if (!controls) {
       pendingBoxRef.current = largestBoxRef.current.clone()
       return
     }
     pendingBoxRef.current = null
-    applyCameraFit(largestBoxRef.current, controls)
+    if (store.showHeatbed) {
+      // OrcaSlicer zoom_to_bed(): focus on bed XY plane with margin 2.0.
+      // The bed size was auto-selected to be the smallest tier that fits
+      // the model — so the model is always a reasonable fraction of the bed
+      // and stays visible even at margin 2.0.
+      const h = bedSize / 2000  // mm → raw, then /2
+      const bedBox = new THREE.Box3(
+        new THREE.Vector3(-h, -h, 0),
+        new THREE.Vector3(h, h, 0),
+      )
+      applyCameraFit(bedBox, controls, 'bed')
+    } else {
+      applyCameraFit(largestBoxRef.current, controls, 'model')
+    }
   }, [applyCameraFit])
+
+  // Initialize showHeatbed default when model format changes
+  useEffect(() => {
+    if (modelFormat) {
+      initShowHeatbed(modelFormat, modelBuffer)
+    }
+  }, [modelFormat, modelBuffer, initShowHeatbed])
 
   // Apply pending camera fit once OrbitControls ref is available
   useEffect(() => {
@@ -542,13 +597,38 @@ export default function ViewportContainer() {
     const box = pendingBoxRef.current
     if (!controls || !box) return
     pendingBoxRef.current = null
-    applyCameraFit(box, controls)
+    const store = useEngineStore.getState()
+    if (store.showHeatbed) {
+      const h = store.bedSize / 2000  // mm → raw, then /2
+      const gz = useEngineStore.getState().modelBbox?.[2] ?? 0
+      const bedBox = new THREE.Box3(
+        new THREE.Vector3(-h, -h, gz),
+        new THREE.Vector3(h, h, gz),
+      )
+      applyCameraFit(bedBox, controls, 'bed')
+    } else {
+      applyCameraFit(box, controls, 'model')
+    }
   }, [applyCameraFit, modelBuffer])
 
   const _handleResetCamera = useCallback(() => {
     const controls = controlsRef.current
     const groupMap = modelGroupMapRef.current
     if (!controls) return
+
+    const store = useEngineStore.getState()
+
+    // OrcaSlicer: if heatbed is visible, zoom_to_bed()
+    if (store.showHeatbed) {
+      const h = store.bedSize / 2000  // mm → raw, then /2
+      const gz = useEngineStore.getState().modelBbox?.[2] ?? 0
+      const bedBox = new THREE.Box3(
+        new THREE.Vector3(-h, -h, gz),
+        new THREE.Vector3(h, h, gz),
+      )
+      applyCameraFit(bedBox, controls, 'bed')
+      return
+    }
 
     // Recompute bounding box from current model state to handle scale transforms,
     // traversing all loaded model groups (multi-file support).
@@ -575,7 +655,7 @@ export default function ViewportContainer() {
         })
       }
       if (!box.isEmpty()) {
-        applyCameraFit(box, controls)
+        applyCameraFit(box, controls, 'model')
         return
       }
     }
@@ -775,6 +855,25 @@ export default function ViewportContainer() {
           </points>
         )}
       </Canvas>
+
+      {/* Bed size label — bottom center */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: 13,
+          fontFamily: 'monospace',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          display: showHeatbed ? 'block' : 'none',
+          zIndex: 10,
+        }}
+      >
+        {showHeatbed ? `${bedSize} × ${bedSize} mm` : ''}
+      </div>
 
       <div
         style={{

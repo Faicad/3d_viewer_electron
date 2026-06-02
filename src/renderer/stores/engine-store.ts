@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import * as THREE from 'three'
+import { HEATBED_DEFAULT_FORMATS } from '@/engine/heatbed'
+import type { FormatId } from '@/config/file-formats'
+import { isCadSkillGlb } from '@/config/file-formats'
 
 const CUSTOM_ENV_KEY = 'faicad-custom-env'
 
@@ -86,6 +89,19 @@ interface EngineStore {
   modelBbox: [number, number, number, number, number, number] | null
   setModelBbox: (b: [number, number, number, number, number, number] | null) => void
 
+  // ---------------------------------------------------------------------------
+  // Heatbed
+  // ---------------------------------------------------------------------------
+  showHeatbed: boolean
+  /** True when user/test called setShowHeatbed — initShowHeatbed skips when set */
+  _heatbedExplicitlySet: boolean
+  setShowHeatbed: (v: boolean) => void
+  /** Initialize showHeatbed default based on file format (and buffer for STEP→GLB detection).
+   *  Respects explicit user/test toggles — does NOT override if _heatbedExplicitlySet is true. */
+  initShowHeatbed: (format: FormatId | null, buffer?: ArrayBuffer | null) => void
+  bedSize: number
+  setBedSize: (v: number) => void
+
   // Camera auto-fit animation state (primarily for E2E tests)
   __animActive: boolean
   set__animActive: (v: boolean) => void
@@ -168,6 +184,25 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setShadowOpacity: (v) => set({ shadowOpacity: v }),
   modelBbox: null,
   setModelBbox: (b) => set({ modelBbox: b }),
+
+  // Heatbed — set to false initially; initShowHeatbed sets the per-format default
+  showHeatbed: false,
+  _heatbedExplicitlySet: false,
+  setShowHeatbed: (v) => set({ showHeatbed: v, _heatbedExplicitlySet: true }),
+  initShowHeatbed: (format, buffer) => {
+    // Respect explicit user/test toggles — don't override
+    if (get()._heatbedExplicitlySet) return
+    // Only STL / 3MF / AMF / STEP default to true.
+    // STEP→GLB: buffer format is 'glb' but the file was originally STEP —
+    // detect via STEP_T extension in the GLB binary.
+    const defaultsToTrue = format
+      ? (HEATBED_DEFAULT_FORMATS.has(format) ||
+         (format === 'glb' && buffer != null && isCadSkillGlb(buffer)))
+      : false
+    set({ showHeatbed: defaultsToTrue })
+  },
+  bedSize: 300,
+  setBedSize: (v) => set({ bedSize: v }),
 
   __animActive: false,
   set__animActive: (v) => set({ __animActive: v }),

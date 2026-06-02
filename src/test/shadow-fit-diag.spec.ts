@@ -44,24 +44,27 @@ test('shadow visible on small model after camera auto-fit', async () => {
 
   await page.waitForFunction(() => !!(window as any).__engineStore, { timeout: 10000 })
 
-  // Maximize shadow visibility
+  // Disable heatbed so camera focuses on model (test fixture is CAD-derived GLB)
   await page.evaluate(() => {
     const es = (window as any).__engineStore
     es.getState().setShadowOpacity(0.9)
     es.getState().setEnvBackground('grey')
+    es.getState().setShowHeatbed(false)
   })
 
   const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_boss.glb'))
   await page.locator('input[type="file"]').setInputFiles({ name: 'b.glb', mimeType: 'model/gltf-binary', buffer: GLB })
   await page.waitForFunction(() => (window as any).__modelStore?.getState().__loadingPhase === 'done', { timeout: 15000 }).catch(() => {})
 
-  // Wait for camera fit animation to complete (max 1.5s animation + render settle)
+  // Wait for camera fit animation to start then finish
   await page.waitForFunction(() => {
-    const cam = (window as any).__r3f_dev?.camera
-    if (!cam) return false
-    // Camera close to model means fit animation finished
-    return cam.position.length() < 1
-  }, { timeout: 5000 })
+    const es = (window as any).__engineStore
+    return es?.getState().__animActive === true
+  }, { timeout: 10000 }).catch(() => {})
+  await page.waitForFunction(() => {
+    const es = (window as any).__engineStore
+    return es?.getState().__animActive === false
+  }, { timeout: 15000 }).catch(() => {})
 
   // Verify shadow frustum is tight (not the old static near=0.5/far=500)
   const shadowInfo = await page.evaluate(() => {

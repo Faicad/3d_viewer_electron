@@ -267,6 +267,172 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     await assertNoErrors()
   })
 
+  test('STEP file defaults showHeatbed=true and Heatbed renders in scene', async () => {
+    const window = await electronApp.firstWindow()
+    const { assertNoErrors } = trackErrors(window)
+    await window.waitForLoadState('domcontentloaded')
+
+    // Clear state from previous tests — reset model store and
+    // clear the _heatbedExplicitlySet flag so initShowHeatbed can set the default
+    await window.evaluate(() => {
+      window.__modelStore?.getState().reset()
+      const es = (window as any).__engineStore
+      if (es) {
+        // Use setState to clear the flag (avoids triggering setShowHeatbed side effects)
+        es.setState({ showHeatbed: false, _heatbedExplicitlySet: false })
+      }
+    })
+
+    // Load STEP file via file input
+    await window.locator('input[type="file"]').setInputFiles({
+      name: 'keycap_v6.step',
+      mimeType: 'application/octet-stream',
+      buffer: readFileSync(path.join(__dirname, 'fixtures', 'keycap_v6.step')),
+    })
+
+    await waitForLoadDone(window, 60000)
+
+    // Wait for model mesh (not just heatbed plane). Exclude heatbed/shadowFloor meshes.
+    await window.waitForFunction(() => {
+      const dev = (window as any).__r3f_dev
+      if (!dev?.scene) return false
+      let modelMeshCount = 0
+      dev.scene.traverse((obj: any) => {
+        if (obj.isMesh) {
+          const pn = obj.parent?.name || ''
+          if (!['Heatbed', 'shadowFloor'].includes(pn)) modelMeshCount++
+        }
+      })
+      return modelMeshCount > 0
+    }, { timeout: 10000 })
+
+    // Wait for camera auto-fit animation to start then finish
+    await window.waitForFunction(() => {
+      const es = (window as any).__engineStore
+      return es?.getState().__animActive === true
+    }, { timeout: 10000 }).catch(() => {})
+    await window.waitForFunction(() => {
+      const es = (window as any).__engineStore
+      return es?.getState().__animActive === false
+    }, { timeout: 15000 }).catch(() => {})
+
+    const heatbedState = await window.evaluate(() => {
+      const es = window.__engineStore
+      const dev = window.__r3f_dev as any
+
+      let heatbedGroup: any = null
+      let modelMeshCount = 0
+      let modelMeshVisible = 0
+      dev.scene.traverse((obj: any) => {
+        if (obj.name === 'Heatbed') {
+          heatbedGroup = {
+            visible: obj.visible,
+            childCount: obj.children.length,
+            children: obj.children.map((c: any) => ({
+              type: c.isMesh ? 'Mesh' : c.isLineSegments ? 'LineSegments' : c.type,
+              visible: c.visible,
+              vertexCount: c.geometry?.attributes?.position?.count ?? 0,
+            })),
+          }
+        }
+        if (obj.isMesh) {
+          const pn = obj.parent?.name || ''
+          if (!['Heatbed', 'shadowFloor', 'topology-pick-overlay', 'point-pick-points'].includes(pn)) {
+            modelMeshCount++
+            if (obj.visible) modelMeshVisible++
+          }
+        }
+      })
+
+      const camPos = dev.camera ? [dev.camera.position.x, dev.camera.position.y, dev.camera.position.z] : null
+      const camDist = camPos ? Math.sqrt(camPos[0]**2 + camPos[1]**2 + camPos[2]**2) : null
+      const modelBbox = es?.getState().modelBbox || null
+
+      return {
+        showHeatbed: es?.getState().showHeatbed,
+        bedSize: es?.getState().bedSize,
+        heatbedGroup,
+        modelMeshCount,
+        modelMeshVisible,
+        camDist,
+        modelBbox,
+      }
+    })
+
+    console.log('[test] heatbed:', JSON.stringify(heatbedState))
+
+    // STEP files must default showHeatbed to true
+    expect(heatbedState.showHeatbed, 'showHeatbed must be true for STEP files').toBe(true)
+
+    // Heatbed group must exist in the scene
+    expect(heatbedState.heatbedGroup, 'Heatbed group must exist in scene').not.toBeNull()
+    expect(heatbedState.heatbedGroup.visible, 'Heatbed group must be visible').toBe(true)
+    expect(heatbedState.heatbedGroup.childCount, 'Heatbed must have 2 children (plane + grid)').toBe(2)
+
+    // Verify plane mesh
+    const plane = heatbedState.heatbedGroup.children[0]
+    expect(plane.type, 'First child must be plane Mesh').toBe('Mesh')
+    expect(plane.visible, 'Plane must be visible').toBe(true)
+    expect(plane.vertexCount, 'Plane must have 4 vertices').toBe(4)
+
+    // Verify grid lines
+    const grid = heatbedState.heatbedGroup.children[1]
+    expect(grid.type, 'Second child must be grid LineSegments').toBe('LineSegments')
+    expect(grid.visible, 'Grid lines must be visible').toBe(true)
+    expect(grid.vertexCount, 'Grid lines must have vertices (>0)').toBeGreaterThan(0)
+
+    // BUG CHECK: model meshes must exist AND be visible when heatbed is shown
+    expect(heatbedState.modelMeshCount, 'Model meshes must exist when showHeatbed=true').toBeGreaterThan(0)
+    expect(heatbedState.modelMeshVisible, 'Model meshes must be visible when showHeatbed=true').toBeGreaterThan(0)
+
+    // Camera distance is in raw coordinates. bedSize is mm, convert to raw (÷1000).
+    // For margin 2.0, bed fills ~50% viewport. Distance should be > bed/2 in raw units.
+    const bedSizeRaw = heatbedState.bedSize / 1000
+    expect(heatbedState.camDist, `Camera too far: ${heatbedState.camDist} for ${bedSizeRaw}m bed`)
+      .toBeLessThan(bedSizeRaw * 5)
+    expect(heatbedState.camDist, `Camera inside bed: ${heatbedState.camDist} for ${bedSizeRaw}m bed`)
+      .toBeGreaterThan(bedSizeRaw * 0.5)
+
+    await assertNoErrors()
+  })
+
+  test('native GLB file defaults showHeatbed=false', async () => {
+    const window = await electronApp.firstWindow()
+    const { assertNoErrors } = trackErrors(window)
+    await window.waitForLoadState('domcontentloaded')
+
+    // Clear state
+    await window.evaluate(() => {
+      window.__modelStore?.getState().reset()
+      window.__engineStore?.getState().setShowHeatbed(false)
+    })
+
+    // Load a native GLB file (not from STEP/CAD — no STEP_T extension)
+    const glbBuf = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
+    await window.locator('input[type="file"]').setInputFiles({
+      name: 'test-box.glb',
+      mimeType: 'model/gltf-binary',
+      buffer: glbBuf,
+    })
+    await waitForLoadDone(window)
+
+    const state = await window.evaluate(() => {
+      const es = window.__engineStore
+      const ms = window.__modelStore?.getState()
+      return {
+        showHeatbed: es?.getState().showHeatbed,
+        modelFormat: ms?.modelFormat,
+        modelBufferLen: ms?.modelBuffer?.byteLength,
+      }
+    })
+
+    console.log('[test] GLB state:', JSON.stringify(state))
+
+    // Native (non-CAD) GLB files must NOT default to showHeatbed
+    expect(state.showHeatbed, 'Native GLB files must default showHeatbed=false').toBe(false)
+    await assertNoErrors()
+  })
+
   test('shows loading overlay during STEP conversion and hides after', async () => {
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)

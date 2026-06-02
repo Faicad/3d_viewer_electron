@@ -54,6 +54,13 @@ test.describe('Selection Highlight Artifacts', () => {
     const renderErrors: string[] = []
     page.on('pageerror', (err) => renderErrors.push(err.message))
 
+    // Disable heatbed — fixture box_fillet.glb is CAD-derived (has STEP_T),
+    // so showHeatbed defaults to true. This test validates highlight material,
+    // not heatbed behavior.
+    await page.evaluate(() => {
+      (window as any).__engineStore?.getState().setShowHeatbed(false)
+    })
+
     // Load box_fillet.glb
     await page.locator('input[type="file"]').setInputFiles({
       name: 'box_fillet.glb',

@@ -46,13 +46,29 @@ test.describe.serial('Object Selection E2E', () => {
     await page.waitForLoadState('domcontentloaded')
     await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
+    // Disable heatbed — fixture box_boss.glb is CAD-derived (has STEP_T),
+    // so showHeatbed defaults to true. This test validates model selection,
+    // not heatbed behavior.
+    await page.evaluate(() => {
+      (window as any).__engineStore?.getState().setShowHeatbed(false)
+    })
+
     await page.locator('input[type="file"]').setInputFiles({
       name: 'box_boss.glb',
       mimeType: 'model/gltf-binary',
       buffer: FIXTURE_BUFFER,
     })
     await waitForLoadDone(page)
-    await page.waitForTimeout(500)
+
+    // Wait for camera auto-fit animation to complete
+    await page.waitForFunction(() => {
+      const es = (window as any).__engineStore
+      return es?.getState().__animActive === true
+    }, { timeout: 5000 }).catch(() => {})
+    await page.waitForFunction(() => {
+      const es = (window as any).__engineStore
+      return es?.getState().__animActive === false
+    }, { timeout: 10000 }).catch(() => {})
 
     await page.evaluate(() => {
       (window as any).__toolStore?.getState().setSelectionMode('object')

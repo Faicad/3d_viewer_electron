@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useUIStore } from '@/stores/ui-store'
 import { useModelStore, type SceneTreeNode } from '@/stores/model-store'
+import { useEngineStore } from '@/stores/engine-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { stepToGlbCached } from '@/lib/step-converter'
@@ -23,7 +24,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, LayoutGrid,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -196,6 +197,8 @@ export default function DesktopLayout() {
   const { projectId } = useParams<{ projectId?: string }>()
   const { t } = useTranslation()
   const ui = useUIStore()
+  const showHeatbed = useEngineStore((s) => s.showHeatbed)
+  const setShowHeatbed = useEngineStore((s) => s.setShowHeatbed)
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
   const sceneTree = useModelStore((s) => s.sceneTree)
   const hasModel = useModelStore((s) => s.modelBuffer !== null || s.loadedFiles.length > 0)
@@ -876,6 +879,25 @@ export default function DesktopLayout() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
+        </Tooltip>
+        )}
+
+        {/* Heatbed Toggle */}
+        {!isSvgMode && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={showHeatbed ? 'secondary' : 'ghost'}
+              size="icon"
+              disabled={!activeTool}
+              onClick={() => setShowHeatbed(!showHeatbed)}
+              aria-label={t('toolbar.heatbed')}
+              data-testid="toolbar-heatbed"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.heatbed')}</TooltipContent>
         </Tooltip>
         )}
 

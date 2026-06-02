@@ -11,6 +11,7 @@
   "toolbar.zUp": "Z轴朝上",
   "toolbar.perspective": "透视视图",
   "toolbar.orthographic": "正交视图",
+  "toolbar.heatbed": "切换热床",
   "toolbar.fullscreen": "全屏",
   "toolbar.modelInfo": "模型信息",
   "toolbar.history": "历史模型",
