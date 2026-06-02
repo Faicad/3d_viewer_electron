@@ -23,10 +23,18 @@ export function mat4From12Values(v: number[]): THREE.Matrix4 {
 
 /** Convert a 16-value 4×4 row-major array to THREE.Matrix4.
  *
- *  Input: [M11, M12, M13, M14, M21, M22, M23, M24, M31, M32, M33, M34, M41, M42, M43, M44]
+ *  THREE.Matrix4.set() expects row-major args, so the 16 values are passed
+ *  in natural order (row 1, row 2, row 3, row 4).
+ *
+ *  Input:  [M11, M12, M13, M14, M21, M22, M23, M24, M31, M32, M33, M34, M41, M42, M43, M44]
  */
 export function mat4From16Values(v: number[]): THREE.Matrix4 {
-  return new THREE.Matrix4().fromArray(v)
+  return new THREE.Matrix4().set(
+    v[0], v[1], v[2], v[3],
+    v[4], v[5], v[6], v[7],
+    v[8], v[9], v[10], v[11],
+    v[12], v[13], v[14], v[15],
+  )
 }
 
 /** Create a translation-only matrix from an offset tuple. */

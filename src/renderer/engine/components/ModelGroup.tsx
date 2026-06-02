@@ -12,7 +12,7 @@ import type { FormatId } from '@/config/file-formats'
 import { FORMAT_MAP } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { parse3mfUnit, parseAmfUnit, guessStlUnit } from '@/config/file-formats'
-import { getCachedResult, setCachedResult, markLoaded } from '@/engine/loaderResultCache'
+import { getCachedResult, setCachedResult, markLoaded, clearLoaded } from '@/engine/loaderResultCache'
 import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
 import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
@@ -630,6 +630,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     load()
     return () => {
       cancelled = true
+      if (fileId) clearLoaded(fileId)
       for (const mat of materialsRef.current) {
         disposeMaterial(mat)
       }
