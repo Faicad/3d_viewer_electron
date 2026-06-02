@@ -12,7 +12,6 @@ import {
   parse3mfUnit,
   parseAmfUnit,
   guessStlUnit,
-  sourceUnitToLabel,
 } from './file-formats'
 
 describe('file-formats config', () => {

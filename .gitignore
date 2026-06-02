@@ -31,7 +31,8 @@ release/
 out/
 *.hdr
 !src/renderer/public/env/*.hdr
-docs/
+docs/outdated/
+docs/analysis/
 pages/.vitepress/cache/
 pages/.vitepress/dist/
 resources/
