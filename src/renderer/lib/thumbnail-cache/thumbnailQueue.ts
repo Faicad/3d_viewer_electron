@@ -15,6 +15,7 @@ export type ThumbnailProgressCallback = (filePath: string) => void
 
 const GAP_MS = 200
 const GAP_MS_2D = 20
+const GAP_MS_DXF = 50
 /** Maximum times a file can time out before being marked as permanently failed. */
 const MAX_RETRIES = 3
 /** How many cache hits to serve in one batch before yielding the main thread. */
@@ -28,11 +29,13 @@ function timeoutForFormat(format: string | null): number {
   return 15_000 // stl, glb, 3mf, stp, unknown, …
 }
 
-/** Per-format gap between real-work items. 2D files generate almost
- *  instantly so a short 50ms tick is enough to yield the main thread;
- *  3D formats keep the original 200ms to avoid jank during WebGL renders. */
+/** Per-format gap between real-work items. SVG generates almost
+ *  instantly so 20ms is enough to yield the main thread. DXF needs
+ *  a quick SVG conversion step so 50ms is safer. 3D formats keep
+ *  the original 200ms to avoid jank during WebGL renders. */
 function gapForFormat(format: string | null): number {
-  if (format === 'svg' || format === 'dxf') return GAP_MS_2D
+  if (format === 'svg') return GAP_MS_2D
+  if (format === 'dxf') return GAP_MS_DXF
   return GAP_MS
 }
 
