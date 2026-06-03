@@ -14,12 +14,27 @@ export type ThumbnailCallback = (filePath: string, objectURL: string) => void
 export type ThumbnailProgressCallback = (filePath: string) => void
 
 const GAP_MS = 200
-/** Per-file timeout for real work (file read + thumbnail generation). */
-const WORK_TIMEOUT_MS = 30_000
+const GAP_MS_2D = 50
 /** Maximum times a file can time out before being marked as permanently failed. */
 const MAX_RETRIES = 3
 /** How many cache hits to serve in one batch before yielding the main thread. */
 const CACHE_BATCH_SIZE = 20
+
+/** Per-format work timeout. SVG/DXF thumbnails are fast (pure Canvas 2D);
+ *  STEP needs OCCT WASM conversion; other 3D formats fall in between. */
+function timeoutForFormat(format: string | null): number {
+  if (format === 'svg' || format === 'dxf') return 3_000
+  if (format === 'step') return 60_000
+  return 15_000 // stl, glb, 3mf, stp, unknown, …
+}
+
+/** Per-format gap between real-work items. 2D files generate almost
+ *  instantly so a short 50ms tick is enough to yield the main thread;
+ *  3D formats keep the original 200ms to avoid jank during WebGL renders. */
+function gapForFormat(format: string | null): number {
+  if (format === 'svg' || format === 'dxf') return GAP_MS_2D
+  return GAP_MS
+}
 
 /** Tracks how many times each file has timed out in the current queue. */
 const retryCount = new Map<string, number>()
@@ -96,9 +111,13 @@ async function processNext(): Promise<void> {
   }
 
   // Phase 2: one real work item (file read + thumbnail generation).
-  // Wrap in a timeout so a single stuck file cannot block the entire queue.
+  // Wrap in a per-format timeout so a single stuck file cannot block
+  // the entire queue (3 s for SVG/DXF, 60 s for STEP, 15 s for others).
   const file = queue.shift()!
   const key = cacheKey(file.path, file.mtimeMs)
+  const format = detectFormat(file.name)
+  const workTimeout = timeoutForFormat(format)
+  const gap = gapForFormat(format)
 
   onProcessing?.(file.path)
 
@@ -111,7 +130,6 @@ async function processNext(): Promise<void> {
           onReady(file.path, url)
           return 'done'
         }
-        const format = detectFormat(file.name)
         if (!format) {
           onReady?.(file.path, '') // trigger re-render to clear spinner
           return 'done'
@@ -188,7 +206,7 @@ async function processNext(): Promise<void> {
       }
     })(),
     new Promise<'timeout'>((resolve) =>
-      setTimeout(() => resolve('timeout'), WORK_TIMEOUT_MS),
+      setTimeout(() => resolve('timeout'), workTimeout),
     ),
   ])
 
@@ -210,10 +228,10 @@ async function processNext(): Promise<void> {
     }
   }
 
-  // Only delay after real work — cache hits were already served
-  // without any artificial gap.
+  // Per-format gap after real work (50 ms for fast SVG/DXF,
+  // 200 ms for 3D formats).  Cache hits in Phase 1 need no gap.
   if (!abortFlag && queue.length > 0) {
-    timeoutId = setTimeout(processNext, GAP_MS)
+    timeoutId = setTimeout(processNext, gap)
   } else {
     processing = false
   }
