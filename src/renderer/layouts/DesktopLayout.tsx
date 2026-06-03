@@ -1072,7 +1072,7 @@ export default function DesktopLayout() {
         {/* Left Sidebar */}
         {ui.leftPanelOpen && (
           <>
-            <aside style={{ width: `${leftPanelPct}%` } as React.CSSProperties} className="border-r flex flex-col shrink-0">
+            <aside style={{ width: `${leftPanelPct}%` } as React.CSSProperties} className="flex flex-col shrink-0">
               {isSvgMode ? (
                 <SvgLayerTree />
               ) : (
@@ -1106,7 +1106,7 @@ export default function DesktopLayout() {
         {(ui.rightPanelOpen || ui.historyPanelOpen) && (
           <>
             <ResizeHandle onMouseDown={() => setResizing('right')} />
-            <aside style={{ width: `${rightPanelPct}%` } as React.CSSProperties} className="border-l flex flex-col shrink-0">
+            <aside style={{ width: `${rightPanelPct}%` } as React.CSSProperties} className="flex flex-col shrink-0">
               {ui.historyPanelOpen ? (
                 <HistoryPanel onClose={() => useUIStore.getState().toggleHistoryPanel()} />
               ) : (
