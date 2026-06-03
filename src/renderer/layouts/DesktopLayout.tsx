@@ -921,7 +921,7 @@ export default function DesktopLayout() {
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('toolbar.heatbed')}</TooltipContent>
+          <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.heatbed')}</TooltipContent>
         </Tooltip>
         )}
 
@@ -975,7 +975,7 @@ export default function DesktopLayout() {
               <Play className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('toolbar.animationPlayer')}</TooltipContent>
+          <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
         </Tooltip>
         )}
 
@@ -1005,7 +1005,7 @@ export default function DesktopLayout() {
               <Info className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('toolbar.modelInfo')}</TooltipContent>
+          <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.modelInfo')}</TooltipContent>
         </Tooltip>
         )}
 
