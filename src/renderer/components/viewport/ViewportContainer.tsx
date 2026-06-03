@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useModelStore } from '@/stores/model-store'
 import type { UnitSystem, FileGroup } from '@/config/file-formats'
+import { UNIT_TO_MM } from '@/config/file-formats'
 import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
 import { useMaterialStore } from '@/stores/material-store'
@@ -559,7 +560,7 @@ export default function ViewportContainer() {
     return allPlatesBox
   }
 
-  const handleModelLoaded = useCallback((box: THREE.Box3) => {
+  const handleModelLoaded = useCallback((box: THREE.Box3, fileId?: string) => {
     const size = box.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
     const current = largestBoxRef.current
@@ -609,16 +610,20 @@ export default function ViewportContainer() {
     const store2 = useEngineStore.getState()
     const hasMultiPlate = store2.bambuPlateConfigs && store2.bambuPlateConfigs.length > 0
 
+    // Resolve sourceUnit: per-file takes precedence (multi-file mode),
+    // falling back to the top-level active-file unit (single-file mode).
+    const sourceUnit: UnitSystem = fileId
+      ? (modelStoreState.loadedFiles.find(f => f.id === fileId)?.sourceUnit ?? modelStoreState.sourceUnit)
+      : modelStoreState.sourceUnit
+
     // Auto-select bed size from model (single-bed path only)
     let bedSize = store2.bedSize
     if (store2.showHeatbed && largestBoxRef.current && !hasMultiPlate) {
-      const fmt = modelStoreState.modelFormat
-      const rawToMM = (fmt === 'glb' || fmt === 'gltf') ? 1000 : 1
+      const rawToMM = UNIT_TO_MM[sourceUnit]
       const autoSize = autoSelectBedSize(largestBoxRef.current, rawToMM)
       bedSize = autoSize
       if (Math.abs(autoSize - store2.bedSize) > 0.001) {
-        store2.setBedSize(autoSize)
-        store2.setBedRawToMM(rawToMM)
+        useEngineStore.setState({ bedSize: autoSize, bedRawToMM: rawToMM })
       }
     }
 
@@ -809,8 +814,11 @@ export default function ViewportContainer() {
                 onPartInfosChange={(infos) => updateFilePartInfos(file.id, infos)}
                 onCenteringOffsetChange={(offset) => updateFileCenteringOffset(file.id, offset)}
                 onLoadingPhaseChange={(phase) => updateFileLoadingPhase(file.id, phase)}
+                onSourceUnitChange={(unit) =>
+                  useModelStore.getState().updateFileSourceUnit(file.id, unit as UnitSystem)
+                }
                 onParsed={makeHandleParsed(file.id)}
-                onLoaded={handleModelLoaded}
+                onLoaded={(box) => handleModelLoaded(box, file.id)}
                 onError={handleModelError}
                 onAnimationsReady={(sceneRoot, animations) =>
                   useModelStore.getState().updateFileAnimations(file.id, sceneRoot, animations)

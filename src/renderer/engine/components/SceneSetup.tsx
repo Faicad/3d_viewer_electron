@@ -341,6 +341,7 @@ export default function SceneSetup() {
           squareBedDimensions(sizeMM),
         ) * (1 / state.bedRawToMM), // mm → scene units
       })
+      singleHeatbedRef.current?.setLabel(`${Math.round(sizeMM)} × ${Math.round(sizeMM)} mm`)
     })
     return unsub
   }, [])
