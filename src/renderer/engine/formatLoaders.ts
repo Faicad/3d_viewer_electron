@@ -421,6 +421,9 @@ export async function loadFormat(
         meshes.push(mesh)
         group.add(mesh)
       }
+      if (meshes.length === 0) {
+        throw new Error('该模型为空，文件里没有几何数据')
+      }
       const unitMatch = text.match(/<model[^>]*\sunit="([^"]+)"/i)
       const sourceUnit = unitMatch ? unitMatch[1].toLowerCase() as UnitSystem : undefined
       return { meshes, objects: [], sceneRoot: group, sourceUnit }

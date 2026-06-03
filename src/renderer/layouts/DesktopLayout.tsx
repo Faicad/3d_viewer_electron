@@ -792,9 +792,10 @@ export default function DesktopLayout() {
           fileGroup: FORMAT_MAP[format].group,
           loadingPhase: 'loading',
         })
-      } catch {
+      } catch (e) {
         useModelStore.getState().setIsConverting(false)
-        toast.error(`Load failed: ${fileName}`)
+        const msg = e instanceof Error ? e.message : String(e)
+        toast.error(msg || `Load failed: ${fileName}`)
       }
     }
 
