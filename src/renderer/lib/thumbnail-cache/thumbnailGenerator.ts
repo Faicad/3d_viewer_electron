@@ -366,56 +366,133 @@ export function disposeThumbnailRenderer(): void {
   canvas = null
 }
 
-/** Generate a thumbnail for an SVG file using pure Canvas 2D (no WebGL/Three.js). */
+/**
+ * Try to inject a viewBox attribute into an SVG string when it is missing.
+ * Handles several edge cases:
+ *  - SVGs with width/height but no viewBox → infer viewBox from width/height
+ *  - SVGs with non-px units (mm, pt, cm) → strip units and use numeric values
+ *  - SVGs with no dimensional attributes at all → use a conservative default
+ *
+ * Returns the original string unchanged if a viewBox is already present.
+ */
+function injectViewBox(svgText: string): string {
+  if (/\bviewBox\s*=\s*["']/i.test(svgText)) return svgText
+
+  const wMatch = svgText.match(/\bwidth\s*=\s*["'](\d+(?:\.\d+)?)\s*(?:px|mm|pt|cm|em|in)?["']/i)
+  const hMatch = svgText.match(/\bheight\s*=\s*["'](\d+(?:\.\d+)?)\s*(?:px|mm|pt|cm|em|in)?["']/i)
+  if (wMatch && hMatch) {
+    const w = parseFloat(wMatch[1])
+    const h = parseFloat(hMatch[1])
+    if (w > 0 && h > 0) {
+      return svgText.replace(/<svg\b/i, `<svg viewBox="0 0 ${w} ${h}"`)
+    }
+  }
+
+  // Last resort for SVGs that have no dimensional info at all
+  return svgText.replace(/<svg\b/i, '<svg viewBox="0 0 300 150"')
+}
+
+/** Maximum allowed intrinsic dimension for an SVG. Values beyond this are
+ *  clamped to avoid excessive memory use when drawing to canvas. */
+const SVG_MAX_DIM = 10000
+
+/**
+ * Generate a thumbnail for an SVG file using pure Canvas 2D (no WebGL/Three.js).
+ *
+ * Uses the same 200×150 (4:3) canvas size as 3D thumbnails so that all file
+ * thumbnails have a consistent aspect ratio in the preview grid.
+ *
+ * Compatibility strategy for edge-case SVGs:
+ *  1. Load the raw SVG text into a blob-backed HTMLImageElement.
+ *  2. On success: validate intrinsic size (zero / overly large), scale to fit.
+ *  3. On error: inject a viewBox if missing, then retry once.  If the retry
+ *     also fails, resolve null so the UI shows a placeholder.
+ */
 export async function generateSvgThumbnail(svgText: string): Promise<Blob | null> {
+  // Use the same W×H as 3D thumbnails for a consistent look in the preview grid
+  const W = WIDTH   // 200
+  const H = HEIGHT  // 150
+  const PAD = 12
+
   return new Promise((resolve) => {
     const img = new Image()
-    const blob = new Blob([svgText], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
 
-    img.onload = () => {
-      const W = 120, H = 120, PAD = 10
-      const canvas = document.createElement('canvas')
-      canvas.width = W
-      canvas.height = H
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
+    const tryLoad = (text: string, isRetry: boolean) => {
+      const blob = new Blob([text], { type: 'image/svg+xml' })
+      const url = URL.createObjectURL(blob)
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = W
+        canvas.height = H
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          URL.revokeObjectURL(url)
+          resolve(null)
+          return
+        }
+
+        // Background
+        ctx.fillStyle = '#f0f0f3'
+        ctx.fillRect(0, 0, W, H)
+
+        // Prefer naturalWidth/Height (the rendered pixel dimensions); fall back
+        // to .width/.height (which may reflect the DOM attribute).  Both can be
+        // zero for SVGs without viewBox or with percentage dimensions.
+        let imgW = img.naturalWidth || img.width || 0
+        let imgH = img.naturalHeight || img.height || 0
+
+        // Guard: zero-size SVGs (no viewBox + no width/height, or 100% dims)
+        if (imgW <= 0 || imgH <= 0) {
+          imgW = W
+          imgH = H
+        }
+
+        // Clamp extremely large coordinate spaces to avoid memory pressure
+        if (imgW > SVG_MAX_DIM || imgH > SVG_MAX_DIM) {
+          const s = Math.min(SVG_MAX_DIM / imgW, SVG_MAX_DIM / imgH)
+          imgW = Math.round(imgW * s)
+          imgH = Math.round(imgH * s)
+        }
+
+        // Scale to fit within the padded box, preserving aspect ratio
+        const maxW = W - PAD * 2
+        const maxH = H - PAD * 2
+        const scale = Math.min(maxW / imgW, maxH / imgH)
+
+        const drawW = imgW * scale
+        const drawH = imgH * scale
+        const x = (W - drawW) / 2
+        const y = (H - drawH) / 2
+
+        // White mat behind SVG
+        ctx.fillStyle = '#ffffff'
+        ctx.beginPath()
+        ctx.roundRect(x - 2, y - 2, drawW + 4, drawH + 4, 3)
+        ctx.fill()
+
+        ctx.drawImage(img, x, y, drawW, drawH)
+        canvas.toBlob((b) => resolve(b), 'image/png')
         URL.revokeObjectURL(url)
-        resolve(null)
-        return
       }
 
-      // Background
-      ctx.fillStyle = '#f0f0f3'
-      ctx.fillRect(0, 0, W, H)
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        if (!isRetry) {
+          // First failure — try injecting a viewBox and retry once
+          const fixed = injectViewBox(text)
+          if (fixed !== text) {
+            tryLoad(fixed, true)
+            return
+          }
+        }
+        // Retry also failed, or viewBox already present → give up
+        resolve(null)
+      }
 
-      // SVG is vector — no upper cap on scale. Small icons fill the frame,
-      // large SVGs fit within the padded box.
-      const maxW = W - PAD * 2
-      const maxH = H - PAD * 2
-      const scale = Math.min(maxW / img.width, maxH / img.height)
-
-      const imgW = img.width * scale
-      const imgH = img.height * scale
-      const x = (W - imgW) / 2
-      const y = (H - imgH) / 2
-
-      // White mat behind SVG
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.roundRect(x - 2, y - 2, imgW + 4, imgH + 4, 3)
-      ctx.fill()
-
-      ctx.drawImage(img, x, y, imgW, imgH)
-      canvas.toBlob((b) => resolve(b), 'image/png')
-      URL.revokeObjectURL(url)
+      img.src = url
     }
 
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      resolve(null)
-    }
-
-    img.src = url
+    tryLoad(svgText, false)
   })
 }
