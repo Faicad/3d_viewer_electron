@@ -6,6 +6,13 @@ import { ALL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-for
 // Workaround for "Network service crashed" on Windows with Electron 39+
 // The network service sandbox conflicts with webSecurity:false + localhost loading in dev mode
 app.commandLine.appendSwitch('disable-features', 'NetworkServiceSandbox')
+// Force SwiftShader software renderer in WSL (no GPU passthrough)
+// --enable-unsafe-swiftshader is required since Chrome/Electron 39+ where
+// automatic SwiftShader fallback was deprecated.
+if (process.env.WSL_DISTRO_NAME) {
+  app.commandLine.appendSwitch('use-angle', 'swiftshader')
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader')
+}
 
 // Single-instance lock (required for file associations on Windows)
 const gotTheLock = app.requestSingleInstanceLock()
