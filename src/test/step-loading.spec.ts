@@ -367,7 +367,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     // Heatbed group must exist in the scene
     expect(heatbedState.heatbedGroup, 'Heatbed group must exist in scene').not.toBeNull()
     expect(heatbedState.heatbedGroup.visible, 'Heatbed group must be visible').toBe(true)
-    expect(heatbedState.heatbedGroup.childCount, 'Heatbed must have 2 children (plane + grid)').toBe(2)
+    expect(heatbedState.heatbedGroup.childCount, 'Heatbed must have 3 children (plane + grid + label)').toBe(3)
 
     // Verify plane mesh
     const plane = heatbedState.heatbedGroup.children[0]
@@ -380,6 +380,11 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     expect(grid.type, 'Second child must be grid LineSegments').toBe('LineSegments')
     expect(grid.visible, 'Grid lines must be visible').toBe(true)
     expect(grid.vertexCount, 'Grid lines must have vertices (>0)').toBeGreaterThan(0)
+
+    // Verify label sprite
+    const label = heatbedState.heatbedGroup.children[2]
+    expect(label.type, 'Third child must be label Mesh').toBe('Mesh')
+    expect(label.visible, 'Label must be visible').toBe(true)
 
     // BUG CHECK: model meshes must exist AND be visible when heatbed is shown
     expect(heatbedState.modelMeshCount, 'Model meshes must exist when showHeatbed=true').toBeGreaterThan(0)

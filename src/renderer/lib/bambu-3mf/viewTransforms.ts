@@ -6,17 +6,18 @@ import type { GlbPartInfo } from '@/stores/model-store'
 
 export type ViewMode = 'print' | 'assembly' | 'import'
 
-/** Convert a 12-value 4×3 row-major transform array to THREE.Matrix4.
+/** Convert a 12-value 4×3 column-major transform array to THREE.Matrix4.
  *
- *  Input: [M11, M12, M13, M21, M22, M23, M31, M32, M33, TX, TY, TZ]
- *  Output Matrix4 (column-major elements):
- *    [M11, M12, M13, TX, M21, M22, M23, TY, M31, M32, M33, TZ, 0, 0, 0, 1]
+ *  Per 3MF spec (Section 3.5.1), the 12 values are stored column-major:
+ *    Column 0: [v0, v1, v2], Column 1: [v3, v4, v5],
+ *    Column 2: [v6, v7, v8], Column 3: [v9, v10, v11] (translation)
+ *  THREE.Matrix4.set() expects row-major, so we transpose.
  */
 export function mat4From12Values(v: number[]): THREE.Matrix4 {
   return new THREE.Matrix4().set(
-    v[0], v[1], v[2], v[9],
-    v[3], v[4], v[5], v[10],
-    v[6], v[7], v[8], v[11],
+    v[0], v[3], v[6], v[9],
+    v[1], v[4], v[7], v[10],
+    v[2], v[5], v[8], v[11],
     0, 0, 0, 1,
   )
 }
@@ -66,7 +67,6 @@ export function computeViewDelta(
     const assembleItem = bambuMeta.assembleTransforms?.get(objectId)
     if (!assembleItem) return null
     const assembleMatrix = mat4From12Values(assembleItem.transform)
-    assembleMatrix.multiply(makeTranslationMatrix(assembleItem.offset))
     return assembleMatrix.multiply(buildMatrix.clone().invert())
   }
 

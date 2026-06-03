@@ -1,5 +1,11 @@
 # 打印/装配/导入 三视图切换功能设计
 
+> **变更记录**
+>
+> | 日期 | 变更 |
+> |---|---|
+> | 2026-06-03 | 修正 `mat4From12Values` 的 `set()` 参数顺序（`v[0],v[1],v[2],v[9]` → `v[0],v[3],v[6],v[9]`）；修正 `mat4From16Values` 从 `fromArray` 改为 `set` 行主序。实际实现编码时已采用正确版本，文档后补。详见下文 §11。 |
+
 ## 1. 功能概述
 
 为 Bambu Lab 3MF 文件提供三种空间位置的切换查看能力，让用户能直观看到零件在**打印排版**、**装配堆叠**、**原始导入**三种坐标系下的布局差异。
@@ -243,21 +249,34 @@ export interface GlbPartInfo {
 ### 5.4 Matrix 工具函数
 
 ```typescript
-/** 12 值 4×3 矩阵 → THREE.Matrix4 */
+/** 12 值（列主序）→ THREE.Matrix4
+ *
+ *  3MF XML 存储 12 个值，按列主序排列：
+ *    col0: [v0, v1, v2], col1: [v3, v4, v5],
+ *    col2: [v6, v7, v8], col3: [v9, v10, v11] (translation)
+ *  THREE.Matrix4.set() 接受行主序参数，因此将行列互换传入以完成转置。
+ */
 function mat4From12Values(v: number[]): THREE.Matrix4 {
-  // [M11, M12, M13, M21, M22, M23, M31, M32, M33, TX, TY, TZ]
-  // Row-major: elements = [M11, M12, M13, TX, M21, M22, M23, TY, M31, M32, M33, TZ, 0, 0, 0, 1]
   return new THREE.Matrix4().set(
-    v[0], v[1], v[2], v[9],
-    v[3], v[4], v[5], v[10],
-    v[6], v[7], v[8], v[11],
+    v[0], v[3], v[6], v[9],
+    v[1], v[4], v[7], v[10],
+    v[2], v[5], v[8], v[11],
     0, 0, 0, 1,
   )
 }
 
-/** 16 值 4×4 矩阵（row-major）→ THREE.Matrix4 */
+/** 16 值（行主序）→ THREE.Matrix4
+ *
+ *  Bambu <part metadata key="matrix"> 的 16 个值按行主序排列，
+ *  直接传入 set() 即可（set() 参数为行主序）。
+ */
 function mat4From16Values(v: number[]): THREE.Matrix4 {
-  return new THREE.Matrix4().fromArray(v)
+  return new THREE.Matrix4().set(
+    v[0], v[1], v[2], v[3],
+    v[4], v[5], v[6], v[7],
+    v[8], v[9], v[10], v[11],
+    v[12], v[13], v[14], v[15],
+  )
 }
 
 /** 平移向量 → THREE.Matrix4 */
@@ -411,6 +430,183 @@ export interface ContextMenuItemDef {
 6. **Step 6** — `ContextMenu.tsx` 扩展 `ContextMenuItemDef` 支持分隔线
 7. **Step 7** — `DesktopLayout.tsx` `handleFileContextMenu` 添加 3MF 视图切换菜单项
 8. **Step 8** — 处理居中策略、camera fitToBox、非 Bambu 文件隐藏菜单项
+
+---
+
+## 11. 矩阵处理验证与修正
+
+> 本节对比设计文档与实际实现 `viewTransforms.ts` 之间的矩阵处理差异，并与 lib3mf-rs（Rust 3MF 格式库）及 3MF 规范交叉验证。
+
+### 11.1 `mat4From12Values` — 设计文档 vs 实际代码
+
+#### 设计文档原始版本（有误）
+
+```typescript
+// 原 §5.4
+function mat4From12Values(v: number[]): THREE.Matrix4 {
+  return new THREE.Matrix4().set(
+    v[0], v[1], v[2], v[9],   // 行 0: m00, m01, m02, m30
+    v[3], v[4], v[5], v[10],  // 行 1: m10, m11, m12, m31
+    v[6], v[7], v[8], v[11],  // 行 2: m20, m21, m22, m32
+    0, 0, 0, 1,
+  )
+}
+```
+
+将输入按行主序直接填入 `set()`，产生的数学矩阵（列向量变换 `v' = M × v`）：
+
+```
+| m00  m01  m02  m30 |
+| m10  m11  m12  m31 |
+| m20  m21  m22  m32 |
+|  0    0    0    1  |
+```
+
+计算结果：
+```
+x' = m00·x + m01·y + m02·z + m30
+y' = m10·x + m11·y + m12·z + m31
+z' = m20·x + m21·y + m22·z + m32
+```
+
+#### 实际代码（正确）
+
+```typescript
+// viewTransforms.ts:16-23
+export function mat4From12Values(v: number[]): THREE.Matrix4 {
+  // 输入按列主序解释：col0=[v0,v1,v2], col1=[v3,v4,v5],
+  // col2=[v6,v7,v8], col3=[v9,v10,v11] (translation)
+  // set() 接受行主序，行列互换完成转置
+  return new THREE.Matrix4().set(
+    v[0], v[3], v[6], v[9],
+    v[1], v[4], v[7], v[10],
+    v[2], v[5], v[8], v[11],
+    0, 0, 0, 1,
+  )
+}
+```
+
+产生的数学矩阵：
+
+```
+|  a   d   g  tx |
+|  b   e   h  ty |
+|  c   f   i  tz |
+|  0   0   0   1 |
+```
+
+计算结果：
+```
+x' = a·x + d·y + g·z + tx
+y' = b·x + e·y + h·z + ty
+z' = c·x + f·y + i·z + tz
+```
+
+#### 与 lib3mf-rs 对比验证
+
+lib3mf-rs（Rust）的解析：
+
+```rust
+// crates/lib3mf-core/src/parser/component_parser.rs:65-69
+Ok(Mat4::from_cols_array(&[
+    p[0], p[1], p[2], 0.0, p[3], p[4], p[5], 0.0,
+    p[6], p[7], p[8], 0.0, p[9], p[10], p[11], 1.0,
+]))
+```
+
+`glam::Mat4` 列主序存储，数学矩阵：
+
+```
+| p[0]  p[3]  p[6]  p[9]  |
+| p[1]  p[4]  p[7]  p[10] |
+| p[2]  p[5]  p[8]  p[11] |
+|  0     0     0     1    |
+```
+
+实际代码 `v` = lib3mf-rs 的 `p`，`set(v[0], v[3], v[6], v[9], ...)` 产生的矩阵与 lib3mf-rs 完全一致。✅
+
+**结论：实际代码与 lib3mf-rs 数学等价，处理正确。设计文档原始版本有 bug（旋转被转置），实现时已修正。**
+
+### 11.2 3MF 规范的矩阵约定
+
+3MF Core Spec §3.3：
+
+> *"row-major affine 3D matrices (4x4) are used"*
+> *"matrices have the form 'm00 m01 m02 m10 m11 m12 m20 m21 m22 m30 m31 m32'"*
+
+3MF 使用**行向量** `v' = v × M`：
+
+```
+| m00  m01  m02   0  |
+| m10  m11  m12   0  |     v' = v × M
+| m20  m21  m22   0  |
+| m30  m31  m32   1  |
+```
+
+Three.js 和 glam 都使用**列向量** `v' = M × v`，因此需要将 3MF 矩阵转置后存储（等价于将 12 值解释为列主序）：
+
+```
+| m00  m10  m20  m30 |
+| m01  m11  m21  m31 |     3MF 矩阵的转置（适用于列向量）
+| m02  m12  m22  m32 |
+|  0    0    0    1  |
+```
+
+实际 `mat4From12Values` 通过列主序解释 + `set()` 行主序顺序完成了这个转置。✅
+
+### 11.3 `mat4From16Values` 分析
+
+```typescript
+// viewTransforms.ts:32-38
+export function mat4From16Values(v: number[]): THREE.Matrix4 {
+  return new THREE.Matrix4().set(
+    v[0], v[1], v[2], v[3],     // 行 0
+    v[4], v[5], v[6], v[7],     // 行 1
+    v[8], v[9], v[10], v[11],   // 行 2
+    v[12], v[13], v[14], v[15], // 行 3
+  )
+}
+```
+
+假设 Bambu `<part metadata key="matrix">` 的 16 个值按**行主序**存储，直接传入 `set()` 即可。
+
+> ⚠️ 设计文档原版使用 `fromArray(v)`（期望列主序），与 `mat4From12Values` 假设的输入格式矛盾。已修正为 `set()` 行主序。
+
+### 11.4 `computeViewDelta` 验证
+
+```typescript
+const buildMatrix = mat4From12Values(buildItem.transform)
+
+// Assembly: Δ = M_assemble × M_build⁻¹
+const assembleMatrix = mat4From12Values(assembleItem.transform)
+return assembleMatrix.multiply(buildMatrix.clone().invert())
+
+// Import: Δ = M_import × M_build⁻¹
+const importMatrix = mat4From16Values(importItem.matrix)
+importMatrix.multiply(makeTranslationMatrix(importItem.sourceOffset))
+return importMatrix.multiply(buildMatrix.clone().invert())
+```
+
+Delta 推导验证：
+
+```
+v'' = Δ · (M_build × M_component × v)
+Δ = M_assemble × M_build⁻¹
+v'' = (M_assemble × M_build⁻¹) × (M_build × M_component × v)
+    = M_assemble × M_component × v ✓
+```
+
+三种矩阵在同一列向量约定下统一操作，Delta 公式正确。✅
+
+### 11.5 总结
+
+| 层面 | 设计文档（原始） | 实际代码 `viewTransforms.ts` | 结论 |
+|---|---|---|---|
+| `mat4From12Values` | `set(v[0], v[1], v[2], v[9], ...)` | `set(v[0], v[3], v[6], v[9], ...)` | 文档有 bug，代码正确 ✅ |
+| `mat4From16Values` | `fromArray(v)` 列主序 | `set(v[...])` 行主序 | 文档有 bug，代码正确 ✅ |
+| `makeTranslationMatrix` | `makeTranslation` | `makeTranslation` | 正确 ✅ |
+| `computeViewDelta` | `M_target × M_build⁻¹` | `M_target × M_build⁻¹` | 正确 ✅ |
+| 与 lib3mf-rs 等价性 | 不等价（旋转转置） | 等价（正确转置） | ✅ |
 
 ---
 

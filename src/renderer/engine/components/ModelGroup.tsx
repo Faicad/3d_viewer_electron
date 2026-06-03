@@ -23,8 +23,7 @@ import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
 import { computePlateLayout } from '@/engine/heatbed'
 import type { PlateLayoutEntry } from '@/engine/heatbed'
-import type { ViewMode } from '@/lib/bambu-3mf/viewTransforms'
-import { computeViewDelta, hasViewData } from '@/lib/bambu-3mf/viewTransforms'
+import { computeViewDelta } from '@/lib/bambu-3mf/viewTransforms'
 
 // ---- types ----
 
@@ -312,13 +311,12 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             // View mode delta: reposition mesh for assembly/import view
             if (currentViewMode !== 'print' && bambuMeta) {
               const partInfo = {
-                partId: src.userData?.partId || src.name || `part-${i}`,
+                partId: bambuMeta.parts[i]?.partId ?? (src.userData?.partId || src.name || `part-${i}`),
                 meshIndex: i,
                 name: '',
                 triangleCount: 0,
                 materialIndex: -1,
                 objectId: bambuMeta.parts[i]?.objectId,
-                partId: bambuMeta.parts[i]?.partId,
               } as GlbPartInfo
               const delta = computeViewDelta(currentViewMode, bambuMeta, partInfo)
               if (delta) {

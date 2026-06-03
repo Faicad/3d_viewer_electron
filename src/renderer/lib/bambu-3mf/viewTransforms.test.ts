@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import * as THREE from 'three'
 import { JSDOM } from 'jsdom'
-import { unzipSync } from 'three/examples/jsm/libs/fflate.module.js'
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
 import { parseBambu3mf, type Bambu3mfMetadata } from './bambu-3mf'
 import { computeViewDelta, hasViewData, mat4From12Values, mat4From16Values } from './viewTransforms'
@@ -35,9 +34,10 @@ describe('viewTransforms — matrix utilities', () => {
     expect(pos.z).toBe(30)
   })
 
-  it('mat4From12Values handles rotation matrix with tx,ty,tz', () => {
-    // Rx(90°): Y→-Z, Z→Y with translation (100, 200, 50)
-    // Row-major: [1, 0, 0, 0, 0, -1, 0, 1, 0, 100, 200, 50]
+  it('mat4From12Values handles column-major rotation matrix with tx,ty,tz', () => {
+    // 3MF stores 4×3 transforms in column-major.
+    // Input: Col0=(1,0,0), Col1=(0,0,-1), Col2=(0,1,0), Col3=(100,200,50)
+    // This is Rx(-90°): Y maps to -Z, Z maps to Y with translation (100, 200, 50)
     const m = mat4From12Values([1, 0, 0, 0, 0, -1, 0, 1, 0, 100, 200, 50])
     const pos = new THREE.Vector3().setFromMatrixPosition(m)
     expect(pos.x).toBe(100)
@@ -48,11 +48,11 @@ describe('viewTransforms — matrix utilities', () => {
     expect(origin.x).toBeCloseTo(100, 5)
     expect(origin.y).toBeCloseTo(200, 5)
     expect(origin.z).toBeCloseTo(50, 5)
-    // (0,1,0): y' = 0*0 + 0*1 + (-1)*0 + 200 = 200, z' = 0*0 + 1*1 + 0*0 + 50 = 51
+    // (0,1,0): Y maps to -Z → z' = -1 + 50 = 49
     const v = new THREE.Vector3(0, 1, 0).applyMatrix4(m)
     expect(v.x).toBeCloseTo(100, 5)
     expect(v.y).toBeCloseTo(200, 5)
-    expect(v.z).toBeCloseTo(51, 5)
+    expect(v.z).toBeCloseTo(49, 5)
   })
 
   it('mat4From16Values converts row-major 4x4 to THREE.Matrix4', () => {
@@ -225,11 +225,6 @@ describe('viewTransforms — integration with ThreeMFLoader meshes', () => {
 
     const delta = computeViewDelta('assembly', metadata, partInfo)
     expect(delta).not.toBeNull()
-
-    // Compute expected position
-    const buildMat = mat4From12Values(metadata.buildItems![0].transform!)
-    const assembleItem = metadata.assembleTransforms!.get(partMeta.objectId)!
-    const assembleMat = mat4From12Values(assembleItem.transform)
 
     // After applying delta to baked geometry:
     // baked_pos = build * component * local_vertex
