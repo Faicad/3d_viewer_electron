@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { hasViewData, type ViewMode } from '@/lib/bambu-3mf/viewTransforms'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
-import { loadFormat } from '@/engine/formatLoaders'
+import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -563,36 +563,42 @@ export default function DesktopLayout() {
                 }
               }
               if (!format) return
-              const loadResult = await loadFormat(buffer, format, file.path)
-              const fileId = crypto.randomUUID()
-              setCachedResult(fileId, loadResult)
-              const upAxis = getDefaultUpAxis(format, buffer)
-              generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-                .then(blob => {
-                  if (blob) putThumbnail(cacheKey(file.path, file.mtimeMs), blob)
+              try {
+                const loadResult = await loadFormat(buffer, format, file.path)
+                const fileId = crypto.randomUUID()
+                setCachedResult(fileId, loadResult)
+                const upAxis = getDefaultUpAxis(format, buffer)
+                generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+                  .then(blob => {
+                    if (blob) putThumbnail(cacheKey(file.path, file.mtimeMs), blob)
+                  })
+                useModelStore.getState().addLoadedFile({
+                  id: fileId,
+                  fileName: file.name,
+                  filePath: file.path,
+                  mtimeMs: file.mtimeMs,
+                  buffer,
+                  format,
+                  sceneTree: [],
+                  glbPartInfos: [],
+                  modelCenteringOffset: null,
+                  sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+                  fileGroup: FORMAT_MAP[format].group,
+                  loadingPhase: 'loading',
                 })
-              useModelStore.getState().addLoadedFile({
-                id: fileId,
-                fileName: file.name,
-                filePath: file.path,
-                mtimeMs: file.mtimeMs,
-                buffer,
-                format,
-                sceneTree: [],
-                glbPartInfos: [],
-                modelCenteringOffset: null,
-                sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
-                fileGroup: FORMAT_MAP[format].group,
-                loadingPhase: 'loading',
-              })
+              } catch (e) {
+                if (e instanceof ModelEmptyError) {
+                  toast.error(t('error.modelEmpty', { fileName: e.fileName }))
+                } else {
+                  console.error('[DesktopLayout] load error:', e)
+                  toast.error(`Load failed: ${file.name}`)
+                }
+              }
             }
           })
         }
       }
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [ui.rightPanelOpen, folderFilesLen, selectedFileIndex])
 
   // Delete key — remove selected model(s) from scene and canvas
@@ -794,8 +800,12 @@ export default function DesktopLayout() {
         })
       } catch (e) {
         useModelStore.getState().setIsConverting(false)
-        const msg = e instanceof Error ? e.message : String(e)
-        toast.error(msg || `Load failed: ${fileName}`)
+        if (e instanceof ModelEmptyError) {
+          toast.error(t('error.modelEmpty', { fileName: e.fileName }))
+        } else {
+          const msg = e instanceof Error ? e.message : String(e)
+          toast.error(msg || `Load failed: ${fileName}`)
+        }
       }
     }
 

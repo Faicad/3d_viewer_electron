@@ -66,6 +66,7 @@
   "view.top": "上",
   "view.bottom": "下",
 
+  "error.modelEmpty": "文件{{fileName}}里没有几何数据",
   "error.loadFailed": "加载失败: {{message}}",
   "error.unsupportedFormat": "不支持的文件格式: {{format}}",
   "error.retry": "重试",

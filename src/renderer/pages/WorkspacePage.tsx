@@ -10,7 +10,7 @@ import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
-import { loadFormat } from '@/engine/formatLoaders'
+import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult, getCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -157,7 +157,11 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       })
     } catch (e) {
       useModelStore.getState().setIsConverting(false)
-      toast.error('Load failed: ' + String(e))
+      if (e instanceof ModelEmptyError) {
+        toast.error(t('error.modelEmpty', { fileName: e.fileName }))
+      } else {
+        toast.error('Load failed: ' + String(e))
+      }
     }
   }, [])
 

@@ -66,6 +66,7 @@
   "view.top": "Top",
   "view.bottom": "Bottom",
 
+  "error.modelEmpty": "File {{fileName}} contains no geometry data",
   "error.loadFailed": "Load failed: {{message}}",
   "error.unsupportedFormat": "Unsupported format: {{format}}",
   "error.retry": "Retry",

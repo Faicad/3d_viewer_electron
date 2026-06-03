@@ -29,6 +29,16 @@ import type { FormatId, UnitSystem } from '@/config/file-formats'
 import { buildGlbExtensionData, type GlbExtensionData } from './gltfExtensions'
 import { parseBambu3mf, type Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 
+/** Thrown when a .model file has no objects with geometry data. */
+export class ModelEmptyError extends Error {
+  readonly fileName: string
+  constructor(fileName: string) {
+    super('MODEL_EMPTY')
+    this.name = 'ModelEmptyError'
+    this.fileName = fileName
+  }
+}
+
 export interface LoaderResult {
   meshes: THREE.Mesh[]
   /** Non-mesh objects (lines, points, etc.) — rendered separately */
@@ -422,7 +432,8 @@ export async function loadFormat(
         group.add(mesh)
       }
       if (meshes.length === 0) {
-        throw new Error('该模型为空，文件里没有几何数据')
+        const fileName = filePath ? filePath.split(/[/\\]/).pop() || filePath : 'unknown'
+        throw new ModelEmptyError(fileName)
       }
       const unitMatch = text.match(/<model[^>]*\sunit="([^"]+)"/i)
       const sourceUnit = unitMatch ? unitMatch[1].toLowerCase() as UnitSystem : undefined

@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
-import { loadFormat } from '@/engine/formatLoaders'
+import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -15,6 +16,7 @@ interface UseFileUploadOptions {
 }
 
 export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
+  const { t } = useTranslation()
   const [isUploading, setIsUploading] = useState(false)
 
   const uploadFile = useCallback(
@@ -176,8 +178,12 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
       } catch (err) {
         useModelStore.getState().setIsConverting(false)
         console.error('[useFileUpload] upload failed:', err)
-        const message = err instanceof Error ? err.message : String(err)
-        toast.error(message || 'Load failed')
+        if (err instanceof ModelEmptyError) {
+          toast.error(t('error.modelEmpty', { fileName: err.fileName }))
+        } else {
+          const message = err instanceof Error ? err.message : String(err)
+          toast.error(message || 'Load failed')
+        }
       } finally {
         setIsUploading(false)
       }
