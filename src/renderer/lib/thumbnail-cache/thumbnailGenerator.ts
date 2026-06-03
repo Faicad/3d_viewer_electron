@@ -402,11 +402,10 @@ const SVG_MAX_DIM = 10000
  * Uses the same 200×150 (4:3) canvas size as 3D thumbnails so that all file
  * thumbnails have a consistent aspect ratio in the preview grid.
  *
- * Compatibility strategy for edge-case SVGs:
- *  1. Load the raw SVG text into a blob-backed HTMLImageElement.
- *  2. On success: validate intrinsic size (zero / overly large), scale to fit.
- *  3. On error: inject a viewBox if missing, then retry once.  If the retry
- *     also fails, resolve null so the UI shows a placeholder.
+ * Compatibility: SVGs without a viewBox attribute are fixed up-front by
+ * injecting one derived from width/height.  This is critical because the
+ * browser does NOT raise an error for viewBox-less SVGs — it simply clips
+ * content to the declared width×height viewport, causing "显示不全".
  */
 export async function generateSvgThumbnail(svgText: string): Promise<Blob | null> {
   // Use the same W×H as 3D thumbnails for a consistent look in the preview grid
@@ -414,85 +413,76 @@ export async function generateSvgThumbnail(svgText: string): Promise<Blob | null
   const H = HEIGHT  // 150
   const PAD = 12
 
+  // Inject viewBox BEFORE the first load attempt — not just on error.
+  // SVGs without viewBox load "successfully" but get clipped by the
+  // browser's SVG viewport, so we must fix them proactively.
+  const text = injectViewBox(svgText)
+
   return new Promise((resolve) => {
     const img = new Image()
+    const blob = new Blob([text], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
 
-    const tryLoad = (text: string, isRetry: boolean) => {
-      const blob = new Blob([text], { type: 'image/svg+xml' })
-      const url = URL.createObjectURL(blob)
-
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        canvas.width = W
-        canvas.height = H
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          URL.revokeObjectURL(url)
-          resolve(null)
-          return
-        }
-
-        // Background
-        ctx.fillStyle = '#f0f0f3'
-        ctx.fillRect(0, 0, W, H)
-
-        // Prefer naturalWidth/Height (the rendered pixel dimensions); fall back
-        // to .width/.height (which may reflect the DOM attribute).  Both can be
-        // zero for SVGs without viewBox or with percentage dimensions.
-        let imgW = img.naturalWidth || img.width || 0
-        let imgH = img.naturalHeight || img.height || 0
-
-        // Guard: zero-size SVGs (no viewBox + no width/height, or 100% dims)
-        if (imgW <= 0 || imgH <= 0) {
-          imgW = W
-          imgH = H
-        }
-
-        // Clamp extremely large coordinate spaces to avoid memory pressure
-        if (imgW > SVG_MAX_DIM || imgH > SVG_MAX_DIM) {
-          const s = Math.min(SVG_MAX_DIM / imgW, SVG_MAX_DIM / imgH)
-          imgW = Math.round(imgW * s)
-          imgH = Math.round(imgH * s)
-        }
-
-        // Scale to fit within the padded box, preserving aspect ratio
-        const maxW = W - PAD * 2
-        const maxH = H - PAD * 2
-        const scale = Math.min(maxW / imgW, maxH / imgH)
-
-        const drawW = imgW * scale
-        const drawH = imgH * scale
-        const x = (W - drawW) / 2
-        const y = (H - drawH) / 2
-
-        // White mat behind SVG
-        ctx.fillStyle = '#ffffff'
-        ctx.beginPath()
-        ctx.roundRect(x - 2, y - 2, drawW + 4, drawH + 4, 3)
-        ctx.fill()
-
-        ctx.drawImage(img, x, y, drawW, drawH)
-        canvas.toBlob((b) => resolve(b), 'image/png')
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = W
+      canvas.height = H
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
         URL.revokeObjectURL(url)
-      }
-
-      img.onerror = () => {
-        URL.revokeObjectURL(url)
-        if (!isRetry) {
-          // First failure — try injecting a viewBox and retry once
-          const fixed = injectViewBox(text)
-          if (fixed !== text) {
-            tryLoad(fixed, true)
-            return
-          }
-        }
-        // Retry also failed, or viewBox already present → give up
         resolve(null)
+        return
       }
 
-      img.src = url
+      // Background
+      ctx.fillStyle = '#f0f0f3'
+      ctx.fillRect(0, 0, W, H)
+
+      // Prefer naturalWidth/Height (the rendered pixel dimensions); fall back
+      // to .width/.height (which may reflect the DOM attribute).  Both can be
+      // zero for SVGs without viewBox or with percentage dimensions.
+      let imgW = img.naturalWidth || img.width || 0
+      let imgH = img.naturalHeight || img.height || 0
+
+      // Guard: zero-size SVGs (no viewBox + no width/height, or 100% dims)
+      if (imgW <= 0 || imgH <= 0) {
+        imgW = W
+        imgH = H
+      }
+
+      // Clamp extremely large coordinate spaces to avoid memory pressure
+      if (imgW > SVG_MAX_DIM || imgH > SVG_MAX_DIM) {
+        const s = Math.min(SVG_MAX_DIM / imgW, SVG_MAX_DIM / imgH)
+        imgW = Math.round(imgW * s)
+        imgH = Math.round(imgH * s)
+      }
+
+      // Scale to fit within the padded box, preserving aspect ratio
+      const maxW = W - PAD * 2
+      const maxH = H - PAD * 2
+      const scale = Math.min(maxW / imgW, maxH / imgH)
+
+      const drawW = imgW * scale
+      const drawH = imgH * scale
+      const x = (W - drawW) / 2
+      const y = (H - drawH) / 2
+
+      // White mat behind SVG
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.roundRect(x - 2, y - 2, drawW + 4, drawH + 4, 3)
+      ctx.fill()
+
+      ctx.drawImage(img, x, y, drawW, drawH)
+      canvas.toBlob((b) => resolve(b), 'image/png')
+      URL.revokeObjectURL(url)
     }
 
-    tryLoad(svgText, false)
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+
+    img.src = url
   })
 }
