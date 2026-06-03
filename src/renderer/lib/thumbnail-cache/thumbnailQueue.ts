@@ -14,7 +14,7 @@ export type ThumbnailCallback = (filePath: string, objectURL: string) => void
 export type ThumbnailProgressCallback = (filePath: string) => void
 
 const GAP_MS = 200
-const GAP_MS_2D = 50
+const GAP_MS_2D = 20
 /** Maximum times a file can time out before being marked as permanently failed. */
 const MAX_RETRIES = 3
 /** How many cache hits to serve in one batch before yielding the main thread. */
