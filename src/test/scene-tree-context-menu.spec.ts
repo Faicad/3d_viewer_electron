@@ -11,7 +11,7 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronPath, createErrorGuard, type ErrorGuard } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createErrorGuard, type ErrorGuard } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROBOT_GLB = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
@@ -30,7 +30,7 @@ test.describe('Scene Tree Context Menu', () => {
   test.beforeAll(async () => {
     app = await _electron.launch({
       executablePath: getElectronPath(),
-      args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+      args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
     })
   })

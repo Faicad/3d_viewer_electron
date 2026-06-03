@@ -73,9 +73,18 @@ export function createErrorGuard(page: Page): ErrorGuard {
  * Controlled by the `E2E_NO_GPU` environment variable.
  */
 export function getElectronLaunchArgs(): string[] {
-  const noGpu = process.env.E2E_NO_GPU === '1'
-  const args = ['--no-sandbox']
-  if (noGpu) {
+  const args = [
+    '--no-sandbox',
+    // Prevent Chromium GPU shader disk cache conflicts when multiple Electron
+    // instances run concurrently (e.g. Playwright --workers=4). Without this,
+    // Chromium tries to lock/reuse the cache dir and hits "拒绝访问" on Windows.
+    '--disable-gpu-shader-disk-cache',
+  ]
+  // X11 is Linux-only; passing it on Windows/macOS crashes Electron (no X11 server)
+  if (process.platform === 'linux') {
+    args.push('--ozone-platform-hint=x11')
+  }
+  if (process.env.E2E_NO_GPU === '1') {
     // --use-angle=swiftshader forces software WebGL via ANGLE + Vulkan SwiftShader.
     // We use this instead of --disable-gpu because --disable-gpu kills the entire
     // GPU process, preventing WebGL context creation entirely.

@@ -3,7 +3,7 @@
  * with the correct alphaMode pre-selected.
  */
 import { test, expect, _electron, Page } from '@playwright/test'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -25,7 +25,7 @@ test.describe('alphaMode', () => {
   test('BLEND then MASK', async () => {
     const app = await _electron.launch({
       executablePath: getElectronPath(),
-      args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+      args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
     })
     const page = await app.firstWindow()

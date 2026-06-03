@@ -2,6 +2,9 @@
 // Mocks browser APIs not provided by jsdom
 // Guarded: when @vitest-environment node is used, window is not defined
 
+// Polyfill indexedDB for jsdom (fake-indexeddb auto-installs on import)
+import 'fake-indexeddb/auto'
+
 if (typeof window !== 'undefined') {
   // ResizeObserver — required by Radix ScrollArea
   if (typeof globalThis.ResizeObserver === 'undefined') {

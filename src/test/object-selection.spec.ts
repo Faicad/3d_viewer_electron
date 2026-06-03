@@ -2,7 +2,7 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -39,7 +39,7 @@ test.describe.serial('Object Selection E2E', () => {
   test.beforeAll(async () => {
     app = await _electron.launch({
       executablePath: getElectronPath(),
-      args: ['--no-sandbox', '--in-process-gpu', '--disable-gpu-sandbox'],
+      args: [...getElectronLaunchArgs(), '--in-process-gpu', '--disable-gpu-sandbox'],
       env: { ...process.env, E2E: '1' },
     })
     page = await app.firstWindow()

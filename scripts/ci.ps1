@@ -56,11 +56,14 @@ Step "4/7  Component & integration tests (vitest, jsdom env)" {
 }
 
 Step "5/7  Build (build:unpacked)" {
+    Remove-Item -Recurse -Force dist\win-unpacked, out -ErrorAction SilentlyContinue
     pnpm run build:unpacked
 }
 
 Step "6/7  E2E tests (playwright)" {
-    pnpm exec playwright test --workers=4
+    # Kill any leftover Electron processes from previous runs
+    Get-Process "3D_Viewer" -ErrorAction SilentlyContinue | Stop-Process -Force
+    pnpm exec playwright test
 }
 
 $totalSw.Stop()

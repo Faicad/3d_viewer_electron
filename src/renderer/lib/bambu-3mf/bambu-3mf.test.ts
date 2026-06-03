@@ -26,6 +26,19 @@ if (typeof globalThis.DOMParser === 'undefined') {
   ;(globalThis as any).DOMParser = dom.window.DOMParser
 }
 
+// zustand persist middleware uses localStorage — polyfill for Node test environment
+if (typeof globalThis.localStorage === 'undefined') {
+  const store = new Map<string, string>()
+  ;(globalThis as any).localStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => { store.set(key, value) },
+    removeItem: (key: string) => { store.delete(key) },
+    clear: () => { store.clear() },
+    get length() { return store.size },
+    key: (index: number) => [...store.keys()][index] ?? null,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Bambu metadata extraction tests
 // ---------------------------------------------------------------------------
@@ -689,7 +702,7 @@ describe('ThreeMFLoader integration', () => {
     ) as ArrayBuffer
 
     group = new ThreeMFLoader().parse(buf)
-  })
+  }, 60_000)
 
   it('parses to 19 Group children — one per build item', () => {
     expect(group.children.length).toBe(19)

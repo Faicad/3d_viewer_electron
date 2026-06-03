@@ -5,7 +5,7 @@
  * change the base colour, roughness, or metalness of the material.
  */
 import { test, expect, _electron, ElectronApplication } from '@playwright/test'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 
 function trackErrors(page: Page) {
   const pageErrors: string[] = []
@@ -27,7 +27,7 @@ test.describe('MaterialEditor alpha mode colour preservation', () => {
   test.beforeAll(async () => {
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
-      args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+      args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
     })
   })

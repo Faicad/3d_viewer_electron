@@ -2,7 +2,7 @@ import { test, _electron, expect } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -13,7 +13,7 @@ test('shadow should not have severe aliasing on box_fillet.glb', async () => {
   test.setTimeout(90000)
   const app = await _electron.launch({
     executablePath: EXE,
-    args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+    args: getElectronLaunchArgs(),
     env: { ...process.env, E2E: '1' },
   })
   const page = await app.firstWindow()

@@ -7,6 +7,8 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.ts', 'pages/**/*.test.ts'],
     exclude: ['src/test/**', 'src/**/__tests__/**'],
     setupFiles: ['fake-indexeddb/auto'],
+    teardownTimeout: 15000,
+    pool: 'forks',
     server: {
       deps: {
         inline: ['@linkiez/dxf-renew'],

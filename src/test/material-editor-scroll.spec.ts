@@ -6,7 +6,7 @@
  * computed height, enabling vertical scrolling when content overflows.
  */
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 
 function trackErrors(page: Page) {
   const pageErrors: string[] = []
@@ -28,7 +28,7 @@ test.describe('MaterialEditor scroll', () => {
   test.beforeAll(async () => {
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
-      args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+      args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
     })
   })

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog'
 import { Trash2, HardDrive, RefreshCw, Database, Check, Image } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -284,6 +284,7 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
       <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('cache.title')}</DialogTitle>
+          <DialogDescription className="sr-only">{t('cache.title')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center justify-between mb-2">

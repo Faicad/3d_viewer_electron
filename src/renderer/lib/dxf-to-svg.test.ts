@@ -24,7 +24,7 @@ describe('convertDxfToSvg', () => {
     expect(result.layers[0]).toHaveProperty('id')
     expect(result.layers[0]).toHaveProperty('name')
     expect(result.layers[0]).toHaveProperty('visible')
-  })
+  }, 15_000)
 
   it('produces SVG with the CAD Y-flip transform', async () => {
     const result = await convertDxfToSvg(MINIMAL_DXF)

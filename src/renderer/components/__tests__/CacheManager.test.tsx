@@ -46,12 +46,12 @@ describe('CacheManager', () => {
     const trigger = screen.getByRole('button')
     expect(trigger).toBeDefined()
 
-    const titleBefore = screen.queryByText('cache.title')
+    const titleBefore = screen.queryByRole('heading', { name: 'cache.title' })
     expect(titleBefore).toBeNull()
 
     await user.click(trigger)
 
-    const dialogTitle = await screen.findByText('cache.title')
+    const dialogTitle = await screen.findByRole('heading', { name: 'cache.title' })
     expect(dialogTitle).toBeDefined()
   })
 })

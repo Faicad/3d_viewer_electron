@@ -2,7 +2,7 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync, readdirSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SVG_FIXTURES_DIR = path.join(__dirname, 'fixtures', 'svg')
@@ -37,7 +37,7 @@ test.describe('SVG Workspace E2E', () => {
   test.beforeAll(async () => {
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
-      args: ['--no-sandbox', '--ozone-platform-hint=x11'],
+      args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
     })
   })

@@ -50,7 +50,7 @@ test('hardware GPU → __isSoftwareGpu is false', async () => {
 
   const app = await _electron.launch({
     executablePath: getElectronPath(),
-    args: ['--no-sandbox'],
+    args: ['--no-sandbox', '--disable-gpu-shader-disk-cache'],
     env: { ...process.env, E2E: '1' },
   })
 

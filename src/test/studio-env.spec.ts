@@ -2,7 +2,7 @@ import { test, _electron } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
@@ -25,7 +25,7 @@ test('procedural studio shows room box with lights when rotated', async () => {
   test.setTimeout(90000)
   const app = await _electron.launch({
     executablePath: EXE,
-    args: ['--no-sandbox', '--disable-gpu-sandbox'],
+    args: [...getElectronLaunchArgs(), '--disable-gpu-sandbox'],
     env: { ...process.env, E2E: '1' },
   })
   const page = await app.firstWindow()
