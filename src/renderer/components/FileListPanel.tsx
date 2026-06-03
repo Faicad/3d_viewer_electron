@@ -16,7 +16,7 @@ import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { Button } from '@/components/ui/button'
-import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2, Maximize2, X } from 'lucide-react'
+import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2, Maximize2, Minimize2 } from 'lucide-react'
 import {
   startThumbnailQueue,
   stopThumbnailQueue,
@@ -518,7 +518,7 @@ function FullscreenGrid({
             ESC / Enter {t('fileList.toClose')}
           </span>
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-            <X className="h-4 w-4" />
+            <Minimize2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
