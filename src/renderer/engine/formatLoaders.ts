@@ -391,28 +391,39 @@ export async function loadFormat(
       const text = bufferToText(buffer)
       const doc = new DOMParser().parseFromString(text, 'application/xml')
       const NS = 'http://schemas.microsoft.com/3dmanufacturing/core/2015/02'
-      const vertexEls = doc.getElementsByTagNameNS(NS, 'vertex')
-      const positions = new Float32Array(vertexEls.length * 3)
-      for (let i = 0; i < vertexEls.length; i++) {
-        positions[i * 3] = parseFloat(vertexEls[i].getAttribute('x')!)
-        positions[i * 3 + 1] = parseFloat(vertexEls[i].getAttribute('y')!)
-        positions[i * 3 + 2] = parseFloat(vertexEls[i].getAttribute('z')!)
+      const objectEls = Array.from(doc.getElementsByTagNameNS(NS, 'object'))
+      const meshes: THREE.Mesh[] = []
+      const group = new THREE.Group()
+      for (const objEl of objectEls) {
+        const meshEl = objEl.getElementsByTagNameNS(NS, 'mesh')[0]
+        if (!meshEl) continue
+        const vertexEls = meshEl.getElementsByTagNameNS(NS, 'vertex')
+        const positions = new Float32Array(vertexEls.length * 3)
+        for (let i = 0; i < vertexEls.length; i++) {
+          positions[i * 3] = parseFloat(vertexEls[i].getAttribute('x')!)
+          positions[i * 3 + 1] = parseFloat(vertexEls[i].getAttribute('y')!)
+          positions[i * 3 + 2] = parseFloat(vertexEls[i].getAttribute('z')!)
+        }
+        const triEls = meshEl.getElementsByTagNameNS(NS, 'triangle')
+        const indices = new Uint32Array(triEls.length * 3)
+        for (let i = 0; i < triEls.length; i++) {
+          indices[i * 3] = parseInt(triEls[i].getAttribute('v1')!, 10)
+          indices[i * 3 + 1] = parseInt(triEls[i].getAttribute('v2')!, 10)
+          indices[i * 3 + 2] = parseInt(triEls[i].getAttribute('v3')!, 10)
+        }
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+        geo.setIndex(new THREE.BufferAttribute(indices, 1))
+        geo.computeVertexNormals()
+        const objectId = objEl.getAttribute('id')!
+        const mesh = new THREE.Mesh(geo)
+        mesh.name = `object ${objectId}`
+        meshes.push(mesh)
+        group.add(mesh)
       }
-      const triEls = doc.getElementsByTagNameNS(NS, 'triangle')
-      const indices = new Uint32Array(triEls.length * 3)
-      for (let i = 0; i < triEls.length; i++) {
-        indices[i * 3] = parseInt(triEls[i].getAttribute('v1')!, 10)
-        indices[i * 3 + 1] = parseInt(triEls[i].getAttribute('v2')!, 10)
-        indices[i * 3 + 2] = parseInt(triEls[i].getAttribute('v3')!, 10)
-      }
-      const geo = new THREE.BufferGeometry()
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      geo.setIndex(new THREE.BufferAttribute(indices, 1))
-      geo.computeVertexNormals()
-      const mesh = new THREE.Mesh(geo)
       const unitMatch = text.match(/<model[^>]*\sunit="([^"]+)"/i)
       const sourceUnit = unitMatch ? unitMatch[1].toLowerCase() as UnitSystem : undefined
-      return { meshes: [mesh], objects: [], sourceUnit }
+      return { meshes, objects: [], sceneRoot: group, sourceUnit }
     }
 
     // ---- mesh formats: text-based ----
