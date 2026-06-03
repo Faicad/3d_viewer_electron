@@ -14,6 +14,15 @@ export type ThumbnailCallback = (filePath: string, objectURL: string) => void
 export type ThumbnailProgressCallback = (filePath: string) => void
 
 const GAP_MS = 200
+/** Per-file timeout for real work (file read + thumbnail generation). */
+const WORK_TIMEOUT_MS = 30_000
+/** Maximum times a file can time out before being marked as permanently failed. */
+const MAX_RETRIES = 3
+/** How many cache hits to serve in one batch before yielding the main thread. */
+const CACHE_BATCH_SIZE = 20
+
+/** Tracks how many times each file has timed out in the current queue. */
+const retryCount = new Map<string, number>()
 
 let currentFiles: QueueFile[] = []
 let visiblePaths = new Set<string>()
@@ -44,8 +53,6 @@ function cancelSchedule(): void {
     timeoutId = null
   }
 }
-
-const CACHE_BATCH_SIZE = 20
 
 async function processNext(): Promise<void> {
   if (abortFlag || queue.length === 0) {
@@ -89,75 +96,79 @@ async function processNext(): Promise<void> {
   }
 
   // Phase 2: one real work item (file read + thumbnail generation).
+  // Wrap in a timeout so a single stuck file cannot block the entire queue.
   const file = queue.shift()!
   const key = cacheKey(file.path, file.mtimeMs)
 
   onProcessing?.(file.path)
 
-  try {
-    const cached = await getThumbnail(key)
-    if (cached && onReady) {
-      const url = URL.createObjectURL(cached)
-      onReady(file.path, url)
-    } else {
-      const format = detectFormat(file.name)
-      if (!format) {
-        onReady?.(file.path, '') // trigger re-render to clear spinner
-      } else if (format === 'svg' || format === 'dxf') {
-        const result = await window.electronAPI.readFile(file.path)
-        if (result.success && result.data) {
-          const text = new TextDecoder().decode(result.data)
-          const svgText = format === 'dxf' ? (await convertDxfToSvg(text)).svgText : text
-          const blob = await generateSvgThumbnail(svgText)
-          if (blob && onReady) {
-            await putThumbnail(key, blob)
-            const url = URL.createObjectURL(blob)
-            onReady(file.path, url)
-          } else {
-            onReady?.(file.path, '')
-          }
-        } else {
-          onReady?.(file.path, '')
+  const outcome = await Promise.race([
+    (async (): Promise<'done' | 'failed'> => {
+      try {
+        const cached = await getThumbnail(key)
+        if (cached && onReady) {
+          const url = URL.createObjectURL(cached)
+          onReady(file.path, url)
+          return 'done'
         }
-      } else if (format === 'step') {
-        // For STEP files, wait for pre-cache to finish
-        const stepCached = await getStepCached(key)
-        if (stepCached) {
-          const blob = await generateThumbnail(stepCached, 'glb')
-          if (blob && onReady) {
-            await putThumbnail(key, blob)
-            const url = URL.createObjectURL(blob)
-            onReady(file.path, url)
-          } else {
-            onReady?.(file.path, '')
-          }
-        } else {
-          onReady?.(file.path, '')
+        const format = detectFormat(file.name)
+        if (!format) {
+          onReady?.(file.path, '') // trigger re-render to clear spinner
+          return 'done'
         }
-      } else if (format === '3mf') {
-        // 3MF: try embedded thumbnail first (fast — no geometry parsing)
-        const result = await window.electronAPI.readFile(file.path)
-        if (result.success && result.data) {
-          const embeddedBlob = await extractAndProcess3mfThumbnail(result.data)
-          if (embeddedBlob && onReady) {
-            await putThumbnail(key, embeddedBlob)
-            const url = URL.createObjectURL(embeddedBlob)
-            onReady(file.path, url)
-          } else {
+        if (format === 'svg' || format === 'dxf') {
+          const result = await window.electronAPI.readFile(file.path)
+          if (result.success && result.data) {
+            const text = new TextDecoder().decode(result.data)
+            const svgText = format === 'dxf' ? (await convertDxfToSvg(text)).svgText : text
+            const blob = await generateSvgThumbnail(svgText)
+            if (blob && onReady) {
+              await putThumbnail(key, blob)
+              const url = URL.createObjectURL(blob)
+              onReady(file.path, url)
+              return 'done'
+            }
+          }
+          onReady?.(file.path, '')
+          return 'done'
+        }
+        if (format === 'step') {
+          const stepCached = await getStepCached(key)
+          if (stepCached) {
+            const blob = await generateThumbnail(stepCached, 'glb')
+            if (blob && onReady) {
+              await putThumbnail(key, blob)
+              const url = URL.createObjectURL(blob)
+              onReady(file.path, url)
+              return 'done'
+            }
+          }
+          onReady?.(file.path, '')
+          return 'done'
+        }
+        if (format === '3mf') {
+          const result = await window.electronAPI.readFile(file.path)
+          if (result.success && result.data) {
+            const embeddedBlob = await extractAndProcess3mfThumbnail(result.data)
+            if (embeddedBlob && onReady) {
+              await putThumbnail(key, embeddedBlob)
+              const url = URL.createObjectURL(embeddedBlob)
+              onReady(file.path, url)
+              return 'done'
+            }
             // Fall back to WebGL render
             const blob = await generateThumbnail(result.data, format)
             if (blob && onReady) {
               await putThumbnail(key, blob)
               const url = URL.createObjectURL(blob)
               onReady(file.path, url)
-            } else {
-              onReady?.(file.path, '')
+              return 'done'
             }
           }
-        } else {
           onReady?.(file.path, '')
+          return 'done'
         }
-      } else {
+        // Other 3D formats (stl, glb, stp, …)
         const result = await window.electronAPI.readFile(file.path)
         if (result.success && result.data) {
           const blob = await generateThumbnail(result.data, format)
@@ -165,17 +176,38 @@ async function processNext(): Promise<void> {
             await putThumbnail(key, blob)
             const url = URL.createObjectURL(blob)
             onReady(file.path, url)
-          } else {
-            onReady?.(file.path, '')
+            return 'done'
           }
-        } else {
-          onReady?.(file.path, '')
         }
+        onReady?.(file.path, '')
+        return 'done'
+      } catch (err) {
+        console.warn('[thumbnailQueue] failed for', file.name, err)
+        onReady?.(file.path, '')
+        return 'failed'
       }
+    })(),
+    new Promise<'timeout'>((resolve) =>
+      setTimeout(() => resolve('timeout'), WORK_TIMEOUT_MS),
+    ),
+  ])
+
+  if (outcome === 'timeout') {
+    const tries = (retryCount.get(file.path) ?? 0) + 1
+    retryCount.set(file.path, tries)
+    if (tries >= MAX_RETRIES) {
+      retryCount.delete(file.path)
+      console.warn(
+        `[thumbnailQueue] timeout after ${MAX_RETRIES} attempts, giving up: ${file.name}`,
+      )
+      onReady?.(file.path, '') // permanent fail — stop spinner
+    } else {
+      console.warn(
+        `[thumbnailQueue] timeout (attempt ${tries}/${MAX_RETRIES}), requeuing: ${file.name}`,
+      )
+      // Requeue at the end so other files get a chance
+      queue.push(file)
     }
-  } catch (err) {
-    console.warn('[thumbnailQueue] failed for', file.name, err)
-    onReady?.(file.path, '')
   }
 
   // Only delay after real work — cache hits were already served
@@ -212,6 +244,7 @@ export function startThumbnailQueue(
 
   abortFlag = true
   cancelSchedule()
+  retryCount.clear()
   currentFiles = [...files]
   onReady = callback
   onProcessing = progressCallback ?? null
@@ -226,6 +259,7 @@ export function startThumbnailQueue(
 export function stopThumbnailQueue(): void {
   abortFlag = true
   cancelSchedule()
+  retryCount.clear()
   currentFiles = []
   visiblePaths.clear()
   priorityPaths.clear()
