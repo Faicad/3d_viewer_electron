@@ -64,6 +64,7 @@ export default function FileListPanel() {
   const [thumbState, setThumbState] = useState<ThumbState>({ urls: new Map(), failed: new Set() })
   const observerRef = useRef<IntersectionObserver | null>(null)
   const visiblePathsRef = useRef<Set<string>>(new Set())
+  const prevFilesKeyRef = useRef<string>('')
 
   // Scroll selected item into view
   useEffect(() => {
@@ -116,17 +117,45 @@ export default function FileListPanel() {
       return
     }
 
+    // Build a stable key from file paths + mtimes so we can detect
+    // whether the list has *actually* changed.  If not, skip the
+    // destructive reset — this is the primary fix for the "thumbnails
+    // keep flashing / refreshing" problem when setFolderFiles is
+    // called with the same data (e.g. after a model finishes loading).
+    const newKey = folderFiles
+      .map((f) => `${f.path}|${Math.trunc(f.mtimeMs)}`)
+      .sort()
+      .join('\n')
+    if (newKey === prevFilesKeyRef.current && newKey !== '') {
+      return
+    }
+    prevFilesKeyRef.current = newKey
+
     const files: QueueFile[] = folderFiles.map((f) => ({
       name: f.name,
       path: f.path,
       mtimeMs: f.mtimeMs,
     }))
 
-    // Reset thumbnail state when folder changes
+    // Only revoke blob URLs for files that are *no longer* in the
+    // folder.  Existing thumbnails stay visible while the queue
+    // catches up on any new additions.
+    const newPaths = new Set(folderFiles.map((f) => f.path))
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setThumbState((prev) => {
-      prev.urls.forEach((url) => URL.revokeObjectURL(url))
-      return { urls: new Map(), failed: new Set() }
+      const urls = new Map(prev.urls)
+      let removed = false
+      for (const [path, url] of urls) {
+        if (!newPaths.has(path)) {
+          URL.revokeObjectURL(url)
+          urls.delete(path)
+          removed = true
+        }
+      }
+      if (!removed && urls.size === prev.urls.size) {
+        return prev // avoid unnecessary re-render
+      }
+      return { urls, failed: new Set() }
     })
 
     startThumbnailQueue(files, handleThumbReady, handleThumbProgress)

@@ -45,6 +45,8 @@ function cancelSchedule(): void {
   }
 }
 
+const CACHE_BATCH_SIZE = 20
+
 async function processNext(): Promise<void> {
   if (abortFlag || queue.length === 0) {
     processing = false
@@ -56,6 +58,37 @@ async function processNext(): Promise<void> {
     return
   }
 
+  // Phase 1: drain all cache hits in a tight batch (no 200ms gap).
+  // When the queue restarts on the same folder this restores 1,000+
+  // cached thumbnails in ~1-2 seconds instead of 200+ seconds.
+  let batchCount = 0
+  while (
+    !abortFlag &&
+    queue.length > 0 &&
+    batchCount < CACHE_BATCH_SIZE
+  ) {
+    const peek = queue[0]
+    const peekKey = cacheKey(peek.path, peek.mtimeMs)
+    const cached = await getThumbnail(peekKey)
+    if (!cached) break // first cache miss stops the batch
+
+    queue.shift() // consume
+    onProcessing?.(peek.path)
+    const url = URL.createObjectURL(cached)
+    onReady?.(peek.path, url)
+    batchCount++
+  }
+
+  if (abortFlag) {
+    processing = false
+    return
+  }
+  if (queue.length === 0) {
+    processing = false
+    return
+  }
+
+  // Phase 2: one real work item (file read + thumbnail generation).
   const file = queue.shift()!
   const key = cacheKey(file.path, file.mtimeMs)
 
@@ -145,6 +178,8 @@ async function processNext(): Promise<void> {
     onReady?.(file.path, '')
   }
 
+  // Only delay after real work — cache hits were already served
+  // without any artificial gap.
   if (!abortFlag && queue.length > 0) {
     timeoutId = setTimeout(processNext, GAP_MS)
   } else {
@@ -157,6 +192,24 @@ export function startThumbnailQueue(
   callback: ThumbnailCallback,
   progressCallback?: ThumbnailProgressCallback,
 ): void {
+  // If the file list hasn't changed and a queue is already running,
+  // just update the callbacks and visibility ordering — no need to
+  // abort in-flight work or rebuild the queue from scratch.
+  const newKeys = new Set(files.map((f) => `${f.path}|${Math.trunc(f.mtimeMs)}`))
+  const oldKeys = new Set(
+    currentFiles.map((f) => `${f.path}|${Math.trunc(f.mtimeMs)}`),
+  )
+  const sameFiles =
+    newKeys.size === oldKeys.size &&
+    [...newKeys].every((k) => oldKeys.has(k))
+
+  if (sameFiles && processing) {
+    onReady = callback
+    onProcessing = progressCallback ?? null
+    updateVisibleFiles(visiblePaths)
+    return
+  }
+
   abortFlag = true
   cancelSchedule()
   currentFiles = [...files]

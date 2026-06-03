@@ -311,7 +311,22 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   setModelCenteringOffset: (offset) => set({ modelCenteringOffset: offset }),
   setActiveUpAxis: (axis) => set({ activeUpAxis: axis }),
 
-  setFolderFiles: (folderPath, files) => set({ currentFolderPath: folderPath, folderFiles: files, selectedFileIndex: -1 }),
+  setFolderFiles: (folderPath, files) => {
+    const state = get()
+    // Skip if both the folder path and file list are identical —
+    // avoids cascading re-renders in FileListPanel that would
+    // destroy all thumbnail blob URLs and restart the queue.
+    if (
+      state.currentFolderPath === folderPath &&
+      state.folderFiles.length === files.length &&
+      state.folderFiles.every(
+        (f, i) => f.path === files[i].path && f.mtimeMs === files[i].mtimeMs,
+      )
+    ) {
+      return
+    }
+    set({ currentFolderPath: folderPath, folderFiles: files, selectedFileIndex: -1 })
+  },
   setSelectedFileIndex: (index) => set({ selectedFileIndex: index }),
   setFileSortMode: (mode) => set({ fileSortMode: mode }),
   setSortOrder: (order) => set({ sortOrder: order }),
