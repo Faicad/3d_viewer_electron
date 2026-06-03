@@ -256,8 +256,18 @@ export default function FileListPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-2 text-xs font-semibold text-muted-foreground border-b flex items-center justify-between">
-        <span>{t('fileList.title')}</span>
+      <div className="p-2 text-xs font-semibold text-muted-foreground border-b flex items-center justify-between gap-1">
+        <span className="shrink-0">{t('fileList.title')}</span>
+        {enablePreview && folderFiles.length > 0 && (
+          <span className="text-[10px] text-muted-foreground/60 truncate min-w-0">
+            {thumbState.urls.size + thumbState.failed.size}/{folderFiles.length}
+            {processingPath && (
+              <span className="text-muted-foreground/80" title={processingPath}>
+                {' — ' + (processingPath.split(/[/\\]/).pop() || '')}
+              </span>
+            )}
+          </span>
+        )}
         <div className="flex items-center gap-0.5">
           {enablePreview && folderFiles.length > 0 && (
             <Button
