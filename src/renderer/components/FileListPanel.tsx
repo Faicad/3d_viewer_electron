@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
-import { loadFormat } from '@/engine/formatLoaders'
+import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
+import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -511,6 +512,13 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     }
     let buffer = result.data
 
+    // Parse STEP header from original buffer before conversion
+    let fileMeta: FileMeta | undefined
+    if (format === 'step') {
+      const stepHeader = parseStepHeader(buffer)
+      if (stepHeader) fileMeta = { step: stepHeader }
+    }
+
     if (format === 'step') {
       store.setIsConverting(true)
       try {
@@ -535,6 +543,9 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     const loadResult = await loadFormat(buffer, format, file.path)
     const fileId = crypto.randomUUID()
     setCachedResult(fileId, loadResult)
+
+    // Merge fileMeta from loadResult (GLB/3MF) with pre-parsed (STEP)
+    if (!fileMeta) fileMeta = loadResult.fileMeta
 
     // Thumbnail: prefer Bambu 3MF embedded thumbnail, else render-based
     if (format === '3mf' && loadResult.bambuMetadata?.thumbnailBlob) {
@@ -563,6 +574,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       fileGroup: FORMAT_MAP[format].group,
       loadingPhase: 'loading',
       bambuMetadata: loadResult.bambuMetadata,
+      fileMeta,
     })
   } catch (e) {
     console.error('[handleFileClick] exception:', e)

@@ -430,26 +430,35 @@ describe('parseModelMeta', () => {
   })
 
   it('extracts title from <metadata name="Title">', () => {
-    const meta = parseModelMeta(modelXml)
-    expect(meta.title).toBe(
+    const { modelMeta } = parseModelMeta(modelXml)
+    expect(modelMeta?.title).toBe(
       'Table Vise - fully printable with changable jaws',
     )
   })
 
   it('extracts designer from <metadata name="Designer">', () => {
-    const meta = parseModelMeta(modelXml)
-    expect(meta.designer).toBe('3D anarchy')
+    const { modelMeta } = parseModelMeta(modelXml)
+    expect(modelMeta?.designer).toBe('3D anarchy')
   })
 
   it('extracts license from <metadata name="License">', () => {
-    const meta = parseModelMeta(modelXml)
-    expect(meta.license).toBe('BY-ND')
+    const { modelMeta } = parseModelMeta(modelXml)
+    expect(modelMeta?.license).toBe('BY-ND')
   })
 
   it('extracts description from <metadata name="Description">', () => {
-    const meta = parseModelMeta(modelXml)
-    expect(meta.description).toBeTruthy()
-    expect(meta.description).toContain('Vise')
+    const { modelMeta } = parseModelMeta(modelXml)
+    expect(modelMeta?.description).toBeTruthy()
+    expect(modelMeta?.description).toContain('Vise')
+  })
+
+  it('collects all metadata entries including extras', () => {
+    const { metadataEntries } = parseModelMeta(modelXml)
+    const names = metadataEntries.map(e => e.name)
+    expect(names).toContain('Title')
+    expect(names).toContain('Designer')
+    expect(names).toContain('Description')
+    expect(names).toContain('License')
   })
 })
 

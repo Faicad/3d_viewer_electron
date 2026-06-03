@@ -4,12 +4,13 @@ import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
-import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
+import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
+import type { FileMeta } from '@/lib/file-meta'
 
 interface UseFileUploadOptions {
   projectId?: string
@@ -96,6 +97,14 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         // 3D file: clear SVG workspace when switching modes
         useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
 
+        // Parse STEP header metadata from raw buffer before conversion
+        let fileMeta: FileMeta | undefined
+        const isStep = format === 'step'
+        if (isStep) {
+          const stepHeader = parseStepHeader(rawBuffer)
+          if (stepHeader) fileMeta = { step: stepHeader }
+        }
+
         if (format === 'step') {
           useModelStore.getState().setIsConverting(true)
           const filePath = window.electronAPI?.getFilePath(file) ?? file.name
@@ -132,6 +141,9 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
             })
         }
 
+        // Merge fileMeta from loadResult (GLB/3MF) with pre-parsed (STEP)
+        if (!fileMeta) fileMeta = loadResult.fileMeta
+
         // Add to store
         useModelStore.getState().addLoadedFile({
           id: fileId,
@@ -147,6 +159,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           fileGroup: FORMAT_MAP[format].group,
           loadingPhase: 'loading',
           bambuMetadata: loadResult.bambuMetadata,
+          fileMeta,
         })
 
         // Scan folder for other model files if in Electron environment

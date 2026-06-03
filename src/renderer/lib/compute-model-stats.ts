@@ -10,23 +10,23 @@ export interface ComputedModelStats {
   partCount: number
 }
 
-export function formatNumber(n: number): string {
-  if (!Number.isFinite(n)) return '-'
-  if (n === 0) return '0'
-  if (Math.abs(n) >= 100) return Math.round(n).toLocaleString()
-  // For values between 1 and 100, show up to 4 significant digits
-  if (Math.abs(n) >= 1) return n.toLocaleString(undefined, { maximumSignificantDigits: 4 })
-  // For values < 1, show up to 3 significant digits
-  return n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
-}
-
-function computeMeshStats(mesh: THREE.Mesh): {
+export interface MeshStats {
   vertices: number
   triangles: number
   surfaceArea: number
   volume: number
   box: THREE.Box3
-} {
+}
+
+export function formatNumber(n: number): string {
+  if (!Number.isFinite(n)) return '-'
+  if (n === 0) return '0'
+  if (Math.abs(n) >= 100) return Math.round(n).toLocaleString()
+  if (Math.abs(n) >= 1) return n.toLocaleString(undefined, { maximumSignificantDigits: 4 })
+  return n.toLocaleString(undefined, { maximumSignificantDigits: 3 })
+}
+
+export function computeMeshStats(mesh: THREE.Mesh): MeshStats {
   const geo = mesh.geometry
   if (!geo) {
     return { vertices: 0, triangles: 0, surfaceArea: 0, volume: 0, box: new THREE.Box3() }
@@ -99,6 +99,61 @@ function computeMeshStats(mesh: THREE.Mesh): {
   }
 
   return { vertices, triangles, surfaceArea, volume, box }
+}
+
+export function findMeshByPartId(group: THREE.Group, partId: string): THREE.Mesh | null {
+  let found: THREE.Mesh | null = null
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.userData.partId === partId) {
+      found = child
+    }
+  })
+  return found
+}
+
+export function isValidPartId(partId: string, group: THREE.Group | null): boolean {
+  if (!group) return false
+  return findMeshByPartId(group, partId) !== null
+}
+
+interface TreeNode {
+  id: string
+  meshIndex?: number
+  children?: TreeNode[]
+}
+
+function findNodeInTree(nodes: TreeNode[], id: string): TreeNode | null {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    if (n.children) {
+      const found = findNodeInTree(n.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+export function expandGroupToPartIds(
+  groupId: string,
+  sceneTree: TreeNode[],
+): string[] {
+  const node = findNodeInTree(sceneTree, groupId)
+  if (!node) return []
+  const partIds: string[] = []
+  function walk(n: TreeNode) {
+    if (n.meshIndex !== undefined) partIds.push(n.id)
+    if (n.children) n.children.forEach(walk)
+  }
+  walk(node)
+  return partIds
+}
+
+export interface AggregatePartStats {
+  count: number
+  vertices: number
+  triangles: number
+  surfaceArea: number
+  volume: number
 }
 
 export function computeModelStats(group: THREE.Group): ComputedModelStats {

@@ -28,6 +28,40 @@ import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
 import type { FormatId, UnitSystem } from '@/config/file-formats'
 import { buildGlbExtensionData, type GlbExtensionData } from './gltfExtensions'
 import { parseBambu3mf, type Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
+import type { FileMeta } from '@/lib/file-meta'
+
+/** Parse ISO 10303-21 HEADER section from a STEP file buffer. */
+export function parseStepHeader(buffer: ArrayBuffer): FileMeta['step'] | undefined {
+  const text = new TextDecoder().decode(buffer.slice(0, Math.min(buffer.byteLength, 4096)))
+
+  const fnIdx = text.indexOf('FILE_NAME')
+  if (fnIdx < 0) return undefined
+
+  const header: FileMeta['step'] = {}
+  const afterFn = text.slice(fnIdx + 9)
+  const quotes = afterFn.match(/'([^']*)'/g)
+  if (quotes && quotes.length >= 6) {
+    header.name = quotes[0].slice(1, -1)
+    header.time_stamp = quotes[1].slice(1, -1)
+    header.author = quotes[2].slice(1, -1)
+    header.organization = quotes[3].slice(1, -1)
+    if (quotes[4]) header.preprocessor_version = quotes[4].slice(1, -1)
+    if (quotes[5]) header.originating_system = quotes[5].slice(1, -1)
+    if (quotes[6]) header.authorization = quotes[6].slice(1, -1)
+  }
+
+  const descMatch = text.match(/FILE_DESCRIPTION\s*\(\s*\(\s*'([^']*)'\s*\)/)
+  if (descMatch) header.file_description = descMatch[1]
+
+  const afterDesc = text.slice(text.indexOf('FILE_DESCRIPTION'))
+  const levelMatch = afterDesc.match(/,?\s*'([^']*)'\s*\)/)
+  if (levelMatch) header.implementation_level = levelMatch[1]
+
+  const schemaMatch = text.match(/FILE_SCHEMA\s*\(\s*\(\s*'([^']*)'\s*\)/)
+  if (schemaMatch) header.file_schema = schemaMatch[1]
+
+  return Object.keys(header).length > 0 ? header : undefined
+}
 
 /** Thrown when a .model file has no objects with geometry data. */
 export class ModelEmptyError extends Error {
@@ -57,6 +91,8 @@ export interface LoaderResult {
   gltfExtensions?: GlbExtensionData
   /** Bambu Lab 3MF metadata (only for 3mf files originating from Bambu Studio) */
   bambuMetadata?: Bambu3mfMetadata
+  /** File-level metadata extracted from the format header/tags. */
+  fileMeta?: FileMeta
 }
 
 function bufferToText(buffer: ArrayBuffer): string {
@@ -368,7 +404,16 @@ export async function loadFormat(
       const json = gltf.parser.json
       const { resolutionMap, thumbnailMap, previewMap } = buildTextureExtras(gltf)
       const gltfExtensions = buildGlbExtensionData(json, gltf.animations, resolutionMap, thumbnailMap, previewMap)
-      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions }
+      const asset = json.asset as Record<string, unknown> | undefined
+      const fileMeta: FileMeta = {
+        glb: {
+          generator: typeof asset?.generator === 'string' ? asset.generator : undefined,
+          version: typeof asset?.version === 'string' ? asset.version : undefined,
+          minVersion: typeof asset?.minVersion === 'string' ? asset.minVersion : undefined,
+          copyright: typeof asset?.copyright === 'string' ? asset.copyright : undefined,
+        },
+      }
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions, fileMeta }
     }
     case 'gltf': {
       if (resourcePath) {
@@ -384,18 +429,31 @@ export async function loadFormat(
       const json = JSON.parse(gltfText)
       const { resolutionMap, thumbnailMap, previewMap } = buildTextureExtras(gltf)
       const gltfExtensions = buildGlbExtensionData(json, gltf.animations, resolutionMap, thumbnailMap, previewMap)
-      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions }
+      const asset = json.asset as Record<string, unknown> | undefined
+      const fileMeta: FileMeta = {
+        glb: {
+          generator: typeof asset?.generator === 'string' ? asset.generator : undefined,
+          version: typeof asset?.version === 'string' ? asset.version : undefined,
+          minVersion: typeof asset?.minVersion === 'string' ? asset.minVersion : undefined,
+          copyright: typeof asset?.copyright === 'string' ? asset.copyright : undefined,
+        },
+      }
+      return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions, fileMeta }
     }
     case '3mf': {
       const group = new ThreeMFLoader().parse(buffer)
       const meshes = extractMeshes(group)
       let bambuMetadata: Bambu3mfMetadata | undefined
+      let fileMeta: FileMeta | undefined
       try {
         bambuMetadata = parseBambu3mf(buffer)
+        if (bambuMetadata.metadataEntries.length > 0) {
+          fileMeta = { '3mf': { entries: bambuMetadata.metadataEntries } }
+        }
       } catch {
         // non-Bambu 3MF — proceed without metadata
       }
-      return { meshes, objects: extractAllObjects(group), bambuMetadata }
+      return { meshes, objects: extractAllObjects(group), bambuMetadata, fileMeta }
     }
     case 'model': {
       const text = bufferToText(buffer)

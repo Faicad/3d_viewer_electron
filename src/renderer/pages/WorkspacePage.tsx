@@ -154,6 +154,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         fileGroup: FORMAT_MAP[format].group,
         loadingPhase: 'loading',
         bambuMetadata: loadResult.bambuMetadata,
+        fileMeta: loadResult.fileMeta,
       })
     } catch (e) {
       useModelStore.getState().setIsConverting(false)

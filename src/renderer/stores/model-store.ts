@@ -5,6 +5,7 @@ import { clearAllResults, releaseResult, clearLoaded } from '@/engine/loaderResu
 import { useHistoryStore } from '@/stores/history-store'
 import { useAnimationStore } from '@/stores/animation-store'
 import type { Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
+import type { FileMeta } from '@/lib/file-meta'
 import * as THREE from 'three'
 
 export interface SvgLayer {
@@ -60,6 +61,8 @@ export interface LoadedFileModel {
   svgText?: string
   /** Bambu Lab 3MF metadata (only for 3mf files originating from Bambu Studio) */
   bambuMetadata?: Bambu3mfMetadata
+  /** File-level metadata (format-specific header/tag info). */
+  fileMeta?: FileMeta
 }
 
 export type FileSortMode = 'name' | 'type+name'

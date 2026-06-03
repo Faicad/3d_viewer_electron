@@ -74,6 +74,8 @@ export interface Bambu3mfMetadata {
   plates: Map<number, BambuPlateInfo>
   /** Model-level metadata from 3D/3dmodel.model <metadata> tags. */
   modelMeta?: BambuModelMeta
+  /** All raw <metadata name="..."> entries from 3D/3dmodel.model, in document order. */
+  metadataEntries: Array<{ name: string; value: string }>
   /** Extracted standard 3MF thumbnail PNG blob, if found in the ZIP. */
   thumbnailBlob?: Blob
   /** Assembly item transforms (keyed by objectId). */
@@ -128,20 +130,28 @@ export function parse3mfBuild(xml: string): BuildItem[] {
  * Parse model-level <metadata> tags from 3D/3dmodel.model XML.
  * These use <metadata name="...">value</metadata> format (3MF standard),
  * distinct from Bambu's <metadata key="..." value="..."/> format.
+ *
+ * Returns both the structured BambuModelMeta (known fields) and
+ * all raw entries for display in the metadata panel.
  */
-export function parseModelMeta(xml: string): BambuModelMeta {
+export function parseModelMeta(xml: string): {
+  modelMeta: BambuModelMeta
+  metadataEntries: Array<{ name: string; value: string }>
+} {
   const meta: BambuModelMeta = {}
+  const entries: Array<{ name: string; value: string }> = []
   const re = /<metadata\s+name="([^"]*)"[^>]*>([\s\S]*?)<\/metadata>/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(xml)) !== null) {
     const name = m[1]
     const value = m[2].trim()
+    entries.push({ name, value })
     if (name === 'Title') meta.title = value
     else if (name === 'Designer') meta.designer = value
     else if (name === 'Description') meta.description = value
     else if (name === 'License') meta.license = value
   }
-  return meta
+  return { modelMeta: Object.keys(meta).length > 0 ? meta : undefined, metadataEntries: entries }
 }
 
 /**
@@ -415,6 +425,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
 
   // ---- 3. Model-level metadata + build items from 3D/3dmodel.model ----
   let modelMeta: BambuModelMeta | undefined
+  let metadataEntries: Array<{ name: string; value: string }> = []
   const thumbnailBlob: Blob | undefined = extractThumbnailBlob(unzipped)
   let buildItems: BuildItem[] = []
 
@@ -425,8 +436,9 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
     const modelXml = decoder.decode(unzipped[modelFile])
 
     // 3a. Model-level metadata
-    modelMeta = parseModelMeta(modelXml)
-    if (Object.keys(modelMeta).length === 0) modelMeta = undefined
+    const parsed = parseModelMeta(modelXml)
+    modelMeta = parsed.modelMeta
+    metadataEntries = parsed.metadataEntries
 
     // 3b. Build items for ordering
     buildItems = parse3mfBuild(modelXml)
@@ -463,6 +475,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
     parts,
     plates,
     modelMeta,
+    metadataEntries,
     thumbnailBlob,
     assembleTransforms: assembleTransforms.size > 0 ? assembleTransforms : undefined,
     importTransforms: importTransforms.size > 0 ? importTransforms : undefined,

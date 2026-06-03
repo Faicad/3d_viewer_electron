@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS } from '@/config/file-formats'
-import { loadFormat } from '@/engine/formatLoaders'
+import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
+import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey, getThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -78,6 +79,13 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
       let buffer = result.data
       let format = detectFormat(entry.fileName)
 
+      // Parse STEP header from original buffer before conversion
+      let fileMeta: FileMeta | undefined
+      if (format === 'step') {
+        const stepHeader = parseStepHeader(buffer)
+        if (stepHeader) fileMeta = { step: stepHeader }
+      }
+
       if (format === 'step') {
         store.setIsConverting(true)
         try {
@@ -101,6 +109,8 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
       const fileId = crypto.randomUUID()
       setCachedResult(fileId, loadResult)
 
+      if (!fileMeta) fileMeta = loadResult.fileMeta
+
       const upAxis = getDefaultUpAxis(format, buffer)
       generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
         .then((blob) => {
@@ -120,6 +130,7 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
         fileGroup: FORMAT_MAP[format].group,
         loadingPhase: 'loading',
+        fileMeta,
       })
     } catch (e) {
       store.setIsConverting(false)
