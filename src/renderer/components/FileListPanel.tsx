@@ -346,6 +346,8 @@ export default function FileListPanel() {
               const thumbUrl = thumbState.urls.get(file.path)
               const failed = thumbState.failed.has(file.path)
 
+              const isProcessing = processingPath === file.path
+
               return (
                 <div
                   key={file.path}
@@ -355,7 +357,8 @@ export default function FileListPanel() {
                     'rounded-lg overflow-hidden cursor-pointer transition-all duration-100',
                     isSelected && 'ring-2 ring-primary',
                     isCurrent && !isSelected && 'ring-2 ring-primary/60',
-                    !isSelected && !isCurrent && 'hover:ring-1 hover:ring-primary/40',
+                    isProcessing && !isSelected && !isCurrent && 'ring-2 ring-primary/30 animate-pulse',
+                    !isSelected && !isCurrent && !isProcessing && 'hover:ring-1 hover:ring-primary/40',
                   )}
                   onClick={() => handleFileClick(file, i)}
                   onMouseEnter={() => {
@@ -374,7 +377,7 @@ export default function FileListPanel() {
                         onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1' }}
                       />
                     ) : (
-                      <PlaceholderCard file={file} failed={failed} loading={processingPath === file.path} />
+                      <PlaceholderCard file={file} failed={failed} loading={isProcessing} />
                     )}
 
                     {isCurrent && (
@@ -475,7 +478,12 @@ function PlaceholderCard({ file, failed, loading }: { file: { name: string }; fa
         {extLabel}
       </span>
       {loading && (
-        <Loader2 className="relative z-10 h-4 w-4 animate-spin text-muted-foreground/60" />
+        <>
+          <Loader2 className="relative z-10 h-5 w-5 animate-spin text-primary/70" />
+          <span className="relative z-10 text-[9px] text-muted-foreground/70 truncate max-w-[90%] text-center leading-tight">
+            {file.name}
+          </span>
+        </>
       )}
       {!loading && failed && (
         <AlertCircle className="relative z-10 h-4 w-4 text-muted-foreground/50" />
