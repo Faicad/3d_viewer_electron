@@ -3,6 +3,8 @@ import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { extractThumbnailBlob } from '@/lib/bambu-3mf/bambu-3mf'
+import { useMaterialStore } from '@/stores/material-store'
+import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
 
 const WIDTH = 200
 const HEIGHT = 150
@@ -296,6 +298,20 @@ export async function generateThumbnailFromResult(
       }
     }
     scene.add(group)
+
+    // Apply user's default material to meshes that lack source materials.
+    // Formats like STL and .model produce meshes with MeshBasicMaterial
+    // (Three.js auto-assigned fallback) — replace those with the user's
+    // chosen default so thumbnails match the viewport appearance.
+    const defaultAppearance = useMaterialStore.getState().defaultMaterial
+    if (defaultAppearance) {
+      const defaultMat = getSharedMaterialFactory().createMaterial(defaultAppearance)
+      group.traverse((obj) => {
+        if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshBasicMaterial) {
+          obj.material = defaultMat
+        }
+      })
+    }
 
     const allMeshes: THREE.Mesh[] = []
     group.traverse((obj) => {

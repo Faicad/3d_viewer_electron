@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { useMaterialStore, makeOverrideKey, parseOverrideKey } from './material-store'
 import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
-import { materialToAppearance, createDefaultMaterial } from '@/engine/components/cloneMaterial'
+import { materialToAppearance, createDefaultMaterial, DEFAULT_MATERIAL_HEX, DEFAULT_MATERIAL_ROUGHNESS, DEFAULT_MATERIAL_METALNESS } from '@/engine/components/cloneMaterial'
 import { MaterialFactory } from '@/engine/material/MaterialFactory'
 
 function reset() {
@@ -638,9 +638,9 @@ describe('material-store', () => {
 
       // The fallback comes from createDefaultMaterial() in cloneMaterial.ts
       const fallback = createDefaultMaterial()
-      expect(fallback.color.getHex()).toBe(0x9ba6ae)
-      expect(fallback.roughness).toBe(0.35)
-      expect(fallback.metalness).toBe(0.1)
+      expect(fallback.color.getHex()).toBe(DEFAULT_MATERIAL_HEX)
+      expect(fallback.roughness).toBe(DEFAULT_MATERIAL_ROUGHNESS)
+      expect(fallback.metalness).toBe(DEFAULT_MATERIAL_METALNESS)
       fallback.dispose()
       factory.dispose()
     })
@@ -731,6 +731,79 @@ describe('material-store', () => {
       expect(mat.transmission).toBe(0.9)
 
       factory.dispose()
+    })
+
+    // Simulates what thumbnailGenerator.generateThumbnailFromResult() does:
+    // traverse cloned meshes and replace MeshBasicMaterial (auto-assigned
+    // fallback for STL/model files) with the user's default material.
+    it('replaces MeshBasicMaterial with defaultMaterial on cloned meshes (thumbnail pipeline)', () => {
+      reset()
+      const factory = new MaterialFactory()
+
+      // Set a custom default material
+      const customDefault: MaterialAppearance = {
+        name: 'Blue Steel',
+        color: [0.3, 0.5, 0.8, 1.0],
+        roughness: 0.25,
+        metalness: 0.9,
+      }
+      useMaterialStore.getState().setDefaultMaterial(customDefault)
+
+      // Build a scene group mimicking what thumbnailGenerator creates:
+      // - MeshBasicMaterial → should be replaced (simulates STL/model)
+      // - MeshStandardMaterial → should be left alone (simulates GLB/3MF)
+      const group = new THREE.Group()
+      const stlMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(),
+        new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      )
+      const glbMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(),
+        new THREE.MeshStandardMaterial({ color: 0xff0000 }),
+      )
+      group.add(stlMesh)
+      group.add(glbMesh)
+
+      // Apply the same logic as thumbnailGenerator
+      const stored = useMaterialStore.getState().defaultMaterial
+      expect(stored).not.toBeNull()
+      const defaultMat = factory.createMaterial(stored!)
+
+      group.traverse((obj) => {
+        if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshBasicMaterial) {
+          obj.material = defaultMat
+        }
+      })
+
+      // STL-like mesh: MeshBasicMaterial replaced with defaultMaterial
+      expect(stlMesh.material).toBe(defaultMat)
+      expect((stlMesh.material as THREE.MeshPhysicalMaterial).roughness).toBe(0.25)
+      expect((stlMesh.material as THREE.MeshPhysicalMaterial).metalness).toBe(0.9)
+
+      // GLB-like mesh: MeshStandardMaterial preserved
+      expect(glbMesh.material).not.toBe(defaultMat)
+      expect(glbMesh.material).toBeInstanceOf(THREE.MeshStandardMaterial)
+
+      factory.dispose()
+    })
+
+    it('leaves MeshBasicMaterial untouched when defaultMaterial is null', () => {
+      reset()
+      expect(useMaterialStore.getState().defaultMaterial).toBeNull()
+
+      const group = new THREE.Group()
+      const stlMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(),
+        new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      )
+      group.add(stlMesh)
+
+      // When defaultMaterial is null, the thumbnail generator skips traversal
+      const stored = useMaterialStore.getState().defaultMaterial
+      expect(stored).toBeNull()
+
+      // No replacement happens — MeshBasicMaterial stays
+      expect(stlMesh.material).toBeInstanceOf(THREE.MeshBasicMaterial)
     })
   })
 

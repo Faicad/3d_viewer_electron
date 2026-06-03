@@ -15,7 +15,7 @@ import { parse3mfUnit, parseAmfUnit, guessStlUnit } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded, clearLoaded } from '@/engine/loaderResultCache'
 import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
-import { cloneAndConvertMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
+import { cloneAndConvertMaterial, createDefaultMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
 import { useMaterialStore } from '@/stores/material-store'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
@@ -652,13 +652,21 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   const defaultMaterialAppearance = useMaterialStore((s) => s.defaultMaterial)
 
   // Derive a Three.js material from the user's default material preference.
-  // Falls back to the hardcoded #9BA6AE defaults when no default is set.
+  // Falls back to createDefaultMaterial() (shared constant) when no user default is set.
   const defaultMaterial = useMemo(() => {
     if (defaultMaterialAppearance) {
       return getSharedMaterialFactory().createMaterial(defaultMaterialAppearance)
     }
-    return null
+    return createDefaultMaterial()
   }, [defaultMaterialAppearance])
+
+  // Wireframe variant of defaultMaterial for the merged-geometry mesh-only mode
+  const defaultMaterialWireframe = useMemo(() => {
+    const mat = defaultMaterial.clone()
+    mat.wireframe = true
+    mat.needsUpdate = true
+    return mat
+  }, [defaultMaterial])
 
   // Derive checker-applied materials (view-layer, does not touch store)
   const checkerMaterials = useMemo(() => {
@@ -821,16 +829,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 _overrideKey: mesh.userData._overrideKey,
               }}
             >
-              {mat == null && defaultMaterial == null && !isMeshOnly && (
-                <meshPhysicalMaterial
-                  color="#9BA6AE"
-                  roughness={0.35}
-                  metalness={0.1}
-                  polygonOffset
-                  polygonOffsetFactor={-1}
-                  polygonOffsetUnits={-1}
-                />
-              )}
               {isMeshOnly && (
                 <meshPhysicalMaterial
                   color={matColor}
@@ -876,20 +874,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         geometry={mergedGeometry}
         castShadow
         receiveShadow
-        material={defaultMaterial ?? undefined}
-      >
-        {defaultMaterial == null && (
-          <meshPhysicalMaterial
-            color={'#9BA6AE'}
-            roughness={0.35}
-            metalness={0.1}
-            wireframe={isMeshOnly}
-            polygonOffset
-            polygonOffsetFactor={-1}
-            polygonOffsetUnits={-1}
-          />
-        )}
-      </mesh>
+        material={isMeshOnly ? defaultMaterialWireframe : defaultMaterial}
+      />
     </group>
   )
 })

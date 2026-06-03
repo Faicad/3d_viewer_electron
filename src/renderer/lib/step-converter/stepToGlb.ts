@@ -1,9 +1,9 @@
 import { loadOcct, type OcctMesh, type OcctNode } from './occtLoader';
 import { GlbBuilder } from './GlbBuilder';
 import { addStepTopology } from './topologyExt';
+import { DEFAULT_MATERIAL_SRGB } from '@/engine/components/cloneMaterial';
 
 const CAD_TO_GLB_SCALE = 0.001;
-const DEFAULT_MATERIAL = [0.608, 0.651, 0.682, 1.0]; // #9BA6AE — matches createDefaultMaterial()
 
 export interface StepToGlbOptions {
   linearDeflection?: number;
@@ -141,7 +141,7 @@ function buildNodeForMesh(
   const rawColor = color || mesh.color;
   const matColor = rawColor
     ? [rawColor[0], rawColor[1], rawColor[2], rawColor.length >= 4 ? rawColor[3] : 1.0]
-    : DEFAULT_MATERIAL;
+    : DEFAULT_MATERIAL_SRGB;
   const materialIndex = builder.addMaterial(matColor);
 
   const indices = new Uint32Array(idxArray);

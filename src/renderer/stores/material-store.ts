@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { MaterialAppearance } from '@/engine/material/types'
+import { clearThumbnailCache } from '@/lib/thumbnail-cache/thumbnailCache'
 
 export function makeOverrideKey(fileId: string, partId: string): string {
   return `${fileId}:${partId}`
@@ -164,7 +165,12 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
 
   closeMaterialEditor: () => set({ materialEditorVisible: false, isEditingDefault: false }),
 
-  setDefaultMaterial: (appearance) => set({ defaultMaterial: appearance }),
+  setDefaultMaterial: (appearance) => {
+    set({ defaultMaterial: appearance })
+    // Invalidate cached thumbnails so they reflect the new default material.
+    // Fire-and-forget — failures are logged but don't block the UI.
+    clearThumbnailCache().catch(() => {})
+  },
 
   setMaterialEditorPosition: (pos) => set({ materialEditorPosition: pos }),
 

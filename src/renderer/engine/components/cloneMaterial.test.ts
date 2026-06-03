@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
-import { cloneAndConvertMaterial, createDefaultMaterial, disposeMaterial, getMaterialColor, materialToAppearance, textureThumbnail, standardToPhysical } from './cloneMaterial'
+import { cloneAndConvertMaterial, createDefaultMaterial, DEFAULT_MATERIAL_HEX, DEFAULT_MATERIAL_ROUGHNESS, DEFAULT_MATERIAL_METALNESS, disposeMaterial, getMaterialColor, materialToAppearance, textureThumbnail, standardToPhysical } from './cloneMaterial'
 
 function makeFakeTexture() {
   const canvas = Buffer.alloc(16) // dummy — Texture won't render in node but props work
@@ -153,9 +153,9 @@ describe('createDefaultMaterial', () => {
   it('returns MeshPhysicalMaterial with default PBR properties', () => {
     const mat = createDefaultMaterial()
     expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
-    expect(mat.color.getHex()).toBe(0x9ba6ae)
-    expect(mat.roughness).toBe(0.35)
-    expect(mat.metalness).toBe(0.1)
+    expect(mat.color.getHex()).toBe(DEFAULT_MATERIAL_HEX)
+    expect(mat.roughness).toBe(DEFAULT_MATERIAL_ROUGHNESS)
+    expect(mat.metalness).toBe(DEFAULT_MATERIAL_METALNESS)
     expect(mat.side).toBe(THREE.FrontSide)
     mat.dispose()
   })
