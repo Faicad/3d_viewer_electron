@@ -73,12 +73,12 @@ export default function FileListPanel() {
 
   // Auto pre-cache uncached STEP files in background after file list populates
   useEffect(() => {
-    if (folderFiles.length === 0) return
+    if (!enablePreview || folderFiles.length === 0) return
     const timer = setTimeout(() => {
       startPreCache(folderFiles, '/wasm/occt-import-js.wasm')
     }, 1000)
     return () => clearTimeout(timer)
-  }, [folderFiles])
+  }, [enablePreview, folderFiles])
 
   const [processingPath, setProcessingPath] = useState<string | null>(null)
 
