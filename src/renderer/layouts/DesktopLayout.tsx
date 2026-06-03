@@ -95,7 +95,7 @@ function SceneTreeItem({ node, depth, parentFileId, treePath, onPartContextMenu,
             return
           }
           const { setSelectedReference } = useSelectionStore.getState()
-          setSelectedReference(node.id, { shiftKey: e.shiftKey })
+          setSelectedReference(node.id, { shiftKey: e.shiftKey || e.ctrlKey || e.metaKey })
         }}
         onContextMenu={(e) => {
           if (isPartNode && onPartContextMenu && fileId) {

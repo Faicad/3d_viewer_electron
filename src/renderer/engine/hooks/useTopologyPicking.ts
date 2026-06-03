@@ -460,7 +460,7 @@ export function useTopologyPicking({
         if (ref) {
           console.log('[TopologyPicker] click at', event.clientX, event.clientY,
             'mode: point (snapped), picked:', ref.id)
-          onClickRef.current(ref.id, event.shiftKey)
+          onClickRef.current(ref.id, event.shiftKey || event.ctrlKey || event.metaKey)
           return
         }
       }
@@ -473,11 +473,11 @@ export function useTopologyPicking({
         'runtime:', !!selectorRuntimeRef.current,
         'displayMeshes:', collectDisplayMeshes(modelGroupMapRef.current).length)
       if (id) {
-        onClickRef.current(id, event.shiftKey)
+        onClickRef.current(id, event.shiftKey || event.ctrlKey || event.metaKey)
         if (selectionModeRef.current === 'face') {
           onClickPointRef.current?.(lastHitPointRef.current)
         }
-      } else if (selectionModeRef.current === 'object' && !event.shiftKey) {
+      } else if (selectionModeRef.current === 'object' && !(event.shiftKey || event.ctrlKey || event.metaKey)) {
         // Clicking empty space in object mode deselects
         onClickRef.current(null)
       }
