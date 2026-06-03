@@ -649,6 +649,16 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   const materialOverrides = useMaterialStore((s) => s.materialOverrides)
   const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
   const viewingOriginal = useMaterialStore((s) => s.viewingOriginal)
+  const defaultMaterialAppearance = useMaterialStore((s) => s.defaultMaterial)
+
+  // Derive a Three.js material from the user's default material preference.
+  // Falls back to the hardcoded #9BA6AE defaults when no default is set.
+  const defaultMaterial = useMemo(() => {
+    if (defaultMaterialAppearance) {
+      return getSharedMaterialFactory().createMaterial(defaultMaterialAppearance)
+    }
+    return null
+  }, [defaultMaterialAppearance])
 
   // Derive checker-applied materials (view-layer, does not touch store)
   const checkerMaterials = useMemo(() => {
@@ -799,7 +809,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               visible={vis}
               geometry={mesh.geometry}
               position={mesh.position}
-              material={mat ?? undefined}
+              material={mat ?? defaultMaterial ?? undefined}
               morphTargetInfluences={morphInfluenceArrays[i]}
               castShadow
               receiveShadow
@@ -811,7 +821,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 _overrideKey: mesh.userData._overrideKey,
               }}
             >
-              {mat == null && !isMeshOnly && (
+              {mat == null && defaultMaterial == null && !isMeshOnly && (
                 <meshPhysicalMaterial
                   color="#9BA6AE"
                   roughness={0.35}
@@ -862,16 +872,23 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   return (
     <group ref={combinedRef}>
-      <mesh geometry={mergedGeometry} castShadow receiveShadow>
-        <meshPhysicalMaterial
-          color={'#9BA6AE'}
-          roughness={0.35}
-          metalness={0.1}
-          wireframe={isMeshOnly}
-          polygonOffset
-          polygonOffsetFactor={-1}
-          polygonOffsetUnits={-1}
-        />
+      <mesh
+        geometry={mergedGeometry}
+        castShadow
+        receiveShadow
+        material={defaultMaterial ?? undefined}
+      >
+        {defaultMaterial == null && (
+          <meshPhysicalMaterial
+            color={'#9BA6AE'}
+            roughness={0.35}
+            metalness={0.1}
+            wireframe={isMeshOnly}
+            polygonOffset
+            polygonOffsetFactor={-1}
+            polygonOffsetUnits={-1}
+          />
+        )}
       </mesh>
     </group>
   )

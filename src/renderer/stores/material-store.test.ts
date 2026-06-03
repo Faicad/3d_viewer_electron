@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { useMaterialStore, makeOverrideKey, parseOverrideKey } from './material-store'
 import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
-import { materialToAppearance } from '@/engine/components/cloneMaterial'
+import { materialToAppearance, createDefaultMaterial } from '@/engine/components/cloneMaterial'
 import { MaterialFactory } from '@/engine/material/MaterialFactory'
 
 function reset() {
@@ -16,6 +16,8 @@ function reset() {
     materialEditorPosition: { x: 100, y: 100 },
     texturePreviewSlot: null,
     texturePreviewLabel: null,
+    defaultMaterial: null,
+    isEditingDefault: false,
   })
 }
 
@@ -542,6 +544,191 @@ describe('material-store', () => {
       expect(matFinal.color.b).toBe(matOpaque.color.b)
       expect(matFinal.roughness).toBe(matOpaque.roughness)
       expect(matFinal.metalness).toBe(matOpaque.metalness)
+
+      factory.dispose()
+    })
+  })
+
+  describe('defaultMaterial', () => {
+    it('initial state is null', () => {
+      reset()
+      expect(useMaterialStore.getState().defaultMaterial).toBeNull()
+    })
+
+    it('setDefaultMaterial stores an appearance', () => {
+      reset()
+      const app: MaterialAppearance = {
+        name: 'Custom Default',
+        color: [0.2, 0.6, 0.9, 1.0],
+        roughness: 0.15,
+        metalness: 0.85,
+      }
+      useMaterialStore.getState().setDefaultMaterial(app)
+      expect(useMaterialStore.getState().defaultMaterial).toEqual(app)
+    })
+
+    it('setDefaultMaterial(null) clears the default', () => {
+      reset()
+      const app: MaterialAppearance = { color: [1, 0, 0] }
+      useMaterialStore.getState().setDefaultMaterial(app)
+      expect(useMaterialStore.getState().defaultMaterial).not.toBeNull()
+      useMaterialStore.getState().setDefaultMaterial(null)
+      expect(useMaterialStore.getState().defaultMaterial).toBeNull()
+    })
+
+    it('openDefaultMaterialEditor sets isEditingDefault and opens editor', () => {
+      reset()
+      useMaterialStore.getState().openDefaultMaterialEditor()
+      const s = useMaterialStore.getState()
+      expect(s.isEditingDefault).toBe(true)
+      expect(s.materialEditorVisible).toBe(true)
+      expect(s.editingOverrideKeys).toEqual([])
+    })
+
+    it('closeMaterialEditor clears isEditingDefault', () => {
+      reset()
+      useMaterialStore.getState().openDefaultMaterialEditor()
+      expect(useMaterialStore.getState().isEditingDefault).toBe(true)
+      useMaterialStore.getState().closeMaterialEditor()
+      expect(useMaterialStore.getState().isEditingDefault).toBe(false)
+      expect(useMaterialStore.getState().materialEditorVisible).toBe(false)
+    })
+  })
+
+  // ---- integration: defaultMaterial store → MaterialFactory (ModelGroup pipeline) ----
+  describe('integration: defaultMaterial → MaterialFactory (STL/Model pipeline)', () => {
+    it('creates a Three.js material matching the stored defaultMaterial appearance', () => {
+      reset()
+      const factory = new MaterialFactory()
+
+      // Simulate user setting a custom default material (e.g. gold-like)
+      const goldDefault: MaterialAppearance = {
+        name: 'Gold Default',
+        color: [0.944, 0.776, 0.216, 1.0],  // #f0c637
+        roughness: 0.2,
+        metalness: 1.0,
+      }
+      useMaterialStore.getState().setDefaultMaterial(goldDefault)
+
+      // This is what ModelGroup does: read defaultMaterial → createMaterial
+      const stored = useMaterialStore.getState().defaultMaterial
+      expect(stored).not.toBeNull()
+      const mat = factory.createMaterial(stored!)
+
+      // Verify the Three.js material reflects the stored appearance
+      expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+      expect(mat.roughness).toBe(0.2)
+      expect(mat.metalness).toBe(1.0)
+      // Color goes through setRGB(r,g,b, SRGB) — sRGB→linear conversion.
+      // Verify the color is non-white and the material was created.
+      expect(mat.color.r).toBeLessThan(1.0)
+      expect(mat.color.g).toBeLessThan(1.0)
+      expect(mat.color.b).toBeLessThan(1.0)
+
+      factory.dispose()
+    })
+
+    it('falls back to hardcoded default when defaultMaterial is null', () => {
+      reset()
+      const factory = new MaterialFactory()
+
+      // When defaultMaterial is null, ModelGroup uses the hardcoded fallback.
+      // Verify the fallback (createDefaultMaterial) has the expected values.
+      expect(useMaterialStore.getState().defaultMaterial).toBeNull()
+
+      // The fallback comes from createDefaultMaterial() in cloneMaterial.ts
+      const fallback = createDefaultMaterial()
+      expect(fallback.color.getHex()).toBe(0x9ba6ae)
+      expect(fallback.roughness).toBe(0.35)
+      expect(fallback.metalness).toBe(0.1)
+      fallback.dispose()
+      factory.dispose()
+    })
+
+    it('changing defaultMaterial is reflected in newly created materials', () => {
+      reset()
+      const factory = new MaterialFactory()
+
+      // Start with a blue plastic default
+      const bluePlastic: MaterialAppearance = {
+        color: [0.1, 0.3, 0.9, 1.0],
+        roughness: 0.5,
+        metalness: 0.0,
+      }
+      useMaterialStore.getState().setDefaultMaterial(bluePlastic)
+      const mat1 = factory.createMaterial(useMaterialStore.getState().defaultMaterial!)
+      expect(mat1.roughness).toBe(0.5)
+      expect(mat1.metalness).toBe(0.0)
+      // Color went through sRGB→linear conversion — verify it's not black/white
+      expect(mat1.color.r + mat1.color.g + mat1.color.b).toBeGreaterThan(0.0)
+      expect(mat1.color.r + mat1.color.g + mat1.color.b).toBeLessThan(3.0)
+
+      // User changes default to a red rough material
+      const redRough: MaterialAppearance = {
+        color: [0.9, 0.1, 0.1, 1.0],
+        roughness: 0.9,
+        metalness: 0.1,
+      }
+      useMaterialStore.getState().setDefaultMaterial(redRough)
+      const mat2 = factory.createMaterial(useMaterialStore.getState().defaultMaterial!)
+      expect(mat2.roughness).toBe(0.9)
+      expect(mat2.metalness).toBe(0.1)
+
+      // The two materials should differ (different roughness and different color)
+      expect(mat1.color.getHex()).not.toBe(mat2.color.getHex())
+      expect(mat1.roughness).not.toBe(mat2.roughness)
+
+      mat1.dispose()
+      mat2.dispose()
+      factory.dispose()
+    })
+
+    it('defaultMaterial with textures is correctly materialised', () => {
+      reset()
+      const factory = new MaterialFactory()
+
+      // A default material that includes a base color texture data-URI
+      const withTexture: MaterialAppearance = {
+        color: [0.8, 0.8, 0.8, 1.0],
+        roughness: 0.3,
+        metalness: 0.2,
+        map: 'data:image/png;base64,fakeTextureData',
+      }
+      useMaterialStore.getState().setDefaultMaterial(withTexture)
+
+      const stored = useMaterialStore.getState().defaultMaterial
+      expect(stored).not.toBeNull()
+      expect(stored!.map).toBe('data:image/png;base64,fakeTextureData')
+
+      // MaterialFactory tracks texture URIs even without a TextureCache
+      const mat = factory.createMaterial(stored!)
+      expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial)
+      expect(mat.roughness).toBe(0.3)
+      expect(mat.metalness).toBe(0.2)
+
+      factory.dispose()
+    })
+
+    it('defaultMaterial with alpha mode BLEND is materialised correctly', () => {
+      reset()
+      const factory = new MaterialFactory()
+
+      const glassDefault: MaterialAppearance = {
+        name: 'Glass Default',
+        color: [0.9, 0.95, 1.0, 0.3],
+        roughness: 0.05,
+        metalness: 0.0,
+        alphaMode: 'BLEND',
+        transmission: 0.9,
+        ior: 1.5,
+      }
+      useMaterialStore.getState().setDefaultMaterial(glassDefault)
+
+      const mat = factory.createMaterial(useMaterialStore.getState().defaultMaterial!)
+      expect(mat.transparent).toBe(true)
+      // MaterialFactory keeps depthWrite=true even for BLEND (CAD-style rendering)
+      expect(mat.depthWrite).toBe(true)
+      expect(mat.transmission).toBe(0.9)
 
       factory.dispose()
     })
