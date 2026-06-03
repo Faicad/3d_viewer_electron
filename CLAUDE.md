@@ -106,3 +106,11 @@ These are definitions specific to this project's UI layer. The terms may carry d
 - **wireframe** — topology lines from the CAD model. Only available for STEP/STP formats (which carry topological data).
 - **mesh** — triangle mesh edge rendering. Available for all file formats.
 - Both display as lines in the viewport, but they come from different data sources.
+
+## Memory Files
+
+Project memory is stored in `.claude/memory/` (git-tracked). Load them on every session:
+
+- [MEMORY.md](.claude/memory/MEMORY.md) — Memory index
+- [ci-checklist.md](.claude/memory/ci-checklist.md) — Pre-CI 6-step mandatory checklist
+- [fix-all-test-failures.md](.claude/memory/fix-all-test-failures.md) — All failures must be recorded and fixed one by one

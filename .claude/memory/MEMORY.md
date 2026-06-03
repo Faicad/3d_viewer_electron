@@ -1,0 +1,2 @@
+- [fix-all-test-failures](fix-all-test-failures.md) — All test failures must be memorized and fixed one by one, never dismissed
+- [ci-checklist](ci-checklist.md) — Mandatory 6-step checklist before claiming CI passes
