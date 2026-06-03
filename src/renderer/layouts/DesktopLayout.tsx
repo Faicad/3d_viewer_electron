@@ -590,8 +590,9 @@ export default function DesktopLayout() {
                 if (e instanceof ModelEmptyError) {
                   toast.error(t('error.modelEmpty', { fileName: e.fileName }))
                 } else {
-                  console.error('[DesktopLayout] load error:', e)
-                  toast.error(`Load failed: ${file.name}`)
+                  console.error('[DesktopLayout] keyboard load error:', e)
+                  const msg = e instanceof Error ? e.message : String(e)
+                  toast.error(msg || `Load failed: ${file.name}`)
                 }
               }
             }
@@ -599,6 +600,9 @@ export default function DesktopLayout() {
         }
       }
     }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [ui.rightPanelOpen, folderFilesLen, selectedFileIndex])
 
   // Delete key — remove selected model(s) from scene and canvas
