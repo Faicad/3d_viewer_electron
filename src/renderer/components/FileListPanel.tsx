@@ -259,15 +259,6 @@ export default function FileListPanel() {
       <div className="p-2 text-xs font-semibold text-muted-foreground border-b flex items-center justify-between">
         <span>{t('fileList.title')}</span>
         <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5"
-            onClick={() => setEnablePreview(!enablePreview)}
-            title={enablePreview ? t('fileList.previewView') : t('fileList.listView')}
-          >
-            {enablePreview ? <Eye className={cn('h-3 w-3', enablePreview && 'text-primary')} /> : <EyeOff className="h-3 w-3" />}
-          </Button>
           {enablePreview && folderFiles.length > 0 && (
             <Button
               variant="ghost"
@@ -279,6 +270,15 @@ export default function FileListPanel() {
               <Maximize2 className="h-3 w-3" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            onClick={() => setEnablePreview(!enablePreview)}
+            title={enablePreview ? t('fileList.previewView') : t('fileList.listView')}
+          >
+            {enablePreview ? <Eye className={cn('h-3 w-3', enablePreview && 'text-primary')} /> : <EyeOff className="h-3 w-3" />}
+          </Button>
           {folderFiles.length > 0 && (
           <>
           <Button
