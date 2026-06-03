@@ -5,7 +5,7 @@
  * change the base colour, roughness, or metalness of the material.
  */
 import { test, expect, _electron, ElectronApplication } from '@playwright/test'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 function trackErrors(page: Page) {
   const pageErrors: string[] = []
@@ -23,17 +23,21 @@ function trackErrors(page: Page) {
 
 test.describe('MaterialEditor alpha mode colour preservation', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     await electronApp.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('GLB material: OPAQUE → BLEND → OPAQUE preserves colour', async () => {

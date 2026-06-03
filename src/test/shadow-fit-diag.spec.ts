@@ -2,7 +2,7 @@ import { test, _electron, expect } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
@@ -33,10 +33,12 @@ const SAMPLE_FN = `(() => {
 
 test('shadow visible on small model after camera auto-fit', async () => {
   test.setTimeout(90000)
+  const _userDataDir = createUserDataDir()
   const app = await _electron.launch({
     executablePath: EXE,
     args: getElectronLaunchArgs(),
     env: { ...process.env, E2E: '1' },
+    userDataDir: _userDataDir,
   })
   const page = await app.firstWindow()
   await page.waitForLoadState('domcontentloaded')
@@ -94,13 +96,14 @@ test('shadow visible on small model after camera auto-fit', async () => {
   }
 
   // Take screenshot for visual inspection
-  await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag-fit.png') })
+  // await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag-fit.png') })
 
   // Skip pixel-level shadow checks on software GPU — PMREM / shadow maps
   // are unavailable. See simple-rendering-mode-design.md.
   if (await isSoftwareGpu(page)) {
     console.log('SKIP: software GPU — pixel shadow assertions unavailable')
     await app.close()
+    cleanupUserDataDir(_userDataDir)
     return
   }
 
@@ -114,4 +117,5 @@ test('shadow visible on small model after camera auto-fit', async () => {
   expect(fitPixels.brightnessHistogram[0], 'must have very dark shadow pixels').toBeGreaterThan(10)
 
   await app.close()
+  cleanupUserDataDir(_userDataDir)
 })

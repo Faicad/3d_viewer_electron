@@ -2,7 +2,7 @@ import { test, _electron } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
@@ -23,10 +23,12 @@ const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
  */
 test('procedural studio shows room box with lights when rotated', async () => {
   test.setTimeout(90000)
+  const _userDataDir = createUserDataDir()
   const app = await _electron.launch({
     executablePath: EXE,
     args: [...getElectronLaunchArgs(), '--disable-gpu-sandbox'],
     env: { ...process.env, E2E: '1' },
+    userDataDir: _userDataDir,
   })
   const page = await app.firstWindow()
 
@@ -49,6 +51,7 @@ test('procedural studio shows room box with lights when rotated', async () => {
   if (await isSoftwareGpu(page)) {
     console.log('SKIP: software GPU detected — PMREM / shadow / IBL unavailable')
     await app.close()
+    cleanupUserDataDir(_userDataDir)
     return
   }
 
@@ -164,4 +167,5 @@ test('procedural studio shows room box with lights when rotated', async () => {
   ).toBe(true)
 
   await app.close()
+  cleanupUserDataDir(_userDataDir)
 })

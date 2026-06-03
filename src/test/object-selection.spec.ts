@@ -2,7 +2,7 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -35,12 +35,15 @@ function trackErrors(page: Page) {
 test.describe.serial('Object Selection E2E', () => {
   let app: ElectronApplication
   let page: Page
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     app = await _electron.launch({
       executablePath: getElectronPath(),
       args: [...getElectronLaunchArgs(), '--in-process-gpu', '--disable-gpu-sandbox'],
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
     page = await app.firstWindow()
     await page.waitForLoadState('domcontentloaded')
@@ -78,6 +81,7 @@ test.describe.serial('Object Selection E2E', () => {
 
   test.afterAll(async () => {
     if (app) await app.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   async function getHighlights() {

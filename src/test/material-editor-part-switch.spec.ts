@@ -10,7 +10,7 @@ import { test, expect, _electron, type ElectronApplication, type Page } from '@p
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const GLB_BUFFER = readFileSync(path.join(__dirname, 'fixtures', 'AnisotropyBarnLamp.glb'))
@@ -53,17 +53,21 @@ async function openEditorForPart(page: Page, partIndex: number) {
 
 test.describe('MaterialEditor part switch layout', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     await electronApp.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('alpha mode buttons remain visible after switching parts via scene tree', async () => {
@@ -96,7 +100,7 @@ test.describe('MaterialEditor part switch layout', () => {
     await openEditorForPart(page, 0)
 
     // Take screenshot
-    await page.screenshot({ path: 'test-results/part-switch-part1.png' })
+    // await page.screenshot({ path: 'test-results/part-switch-part1.png' })
 
     // Verify alpha mode buttons are all visible
     const checkButtons = async (label: string) => {
@@ -164,7 +168,7 @@ test.describe('MaterialEditor part switch layout', () => {
     await openEditorForPart(page, 1)
 
     // Take screenshot
-    await page.screenshot({ path: 'test-results/part-switch-part2.png' })
+    // await page.screenshot({ path: 'test-results/part-switch-part2.png' })
 
     // Check panel position after switch
     const panelPos2 = await page.evaluate(() => {

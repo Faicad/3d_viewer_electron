@@ -2,7 +2,7 @@ import { test, _electron } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronPath, getElectronLaunchArgs, killElectronApp } from './utils'
+import { getElectronPath, getElectronLaunchArgs, killElectronApp, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
@@ -10,10 +10,12 @@ const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_boss.glb'))
 
 test('shadow visibility diagnostic', async () => {
   test.setTimeout(180000)
+  const _userDataDir = createUserDataDir()
   const app = await _electron.launch({
     executablePath: EXE,
     args: getElectronLaunchArgs(),
     env: { ...process.env, E2E: '1' },
+    userDataDir: _userDataDir,
   })
   const page = await app.firstWindow()
 
@@ -26,6 +28,7 @@ test('shadow visibility diagnostic', async () => {
   if (await isSoftwareGpu(page)) {
     console.log('SKIP: software GPU detected — shadow floor / pixel assertions unavailable')
     killElectronApp(app) // kill process tree — SwiftShader GPU child survives .kill()
+    cleanupUserDataDir(_userDataDir)
     return
   }
 
@@ -169,7 +172,7 @@ test('shadow visibility diagnostic', async () => {
   console.log('SHADOW DIAG:', JSON.stringify(diag, null, 2))
 
   // Take screenshot for visual inspection
-  await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag.png') })
+  // await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag.png') })
 
   // --- Pixel-level shadow check (dense sampling, matches shadow-fit approach) ---
   const pixelCheck = await page.evaluate(() => {
@@ -248,4 +251,5 @@ test('shadow visibility diagnostic', async () => {
   test.expect(pixelCheck.hasDarkPixels, 'should have dark pixels indicating shadows on the ground').toBe(true)
 
   await app.close()
+  cleanupUserDataDir(_userDataDir)
 })

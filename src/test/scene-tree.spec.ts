@@ -2,7 +2,7 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROBOT_GLB = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
@@ -34,17 +34,21 @@ function setupConsoleCapture(page: Page) {
 
 test.describe.serial('Multi-level scene tree', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     await electronApp.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   /** Ensure the left (scene tree) panel is open. On CI some runners create

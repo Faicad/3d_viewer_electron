@@ -10,7 +10,7 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DXF_FIXTURE = path.join(__dirname, 'fixtures', 'testdata', '1001.dxf')
@@ -78,17 +78,21 @@ async function loadDxfIntoWorkspace(window: Page, dxfText: string, fileName: str
 
 test.describe('DXF Loading & Zoom E2E', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     if (electronApp) await electronApp.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('1. load DXF file → appears in SVG workspace with canvas rendered', async () => {

@@ -13,7 +13,7 @@
  *   npx playwright test src/test/software-gpu.spec.ts --grep "software"
  */
 import { test, _electron, expect } from '@playwright/test'
-import { getElectronPath, killElectronApp } from './utils'
+import { getElectronPath, killElectronApp, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 
 // ---------------------------------------------------------------------------
@@ -47,14 +47,17 @@ async function setupAndCheck(
 // ---------------------------------------------------------------------------
 test('hardware GPU → __isSoftwareGpu is false', async () => {
   test.setTimeout(60000)
+  const userDataDir = createUserDataDir()
 
   const app = await _electron.launch({
     executablePath: getElectronPath(),
     args: ['--no-sandbox', '--disable-gpu-shader-disk-cache'],
     env: { ...process.env, E2E: '1' },
+    userDataDir,
   })
 
   await setupAndCheck(app, false, 'hardware')
+  cleanupUserDataDir(userDataDir)
 })
 
 // ---------------------------------------------------------------------------
@@ -62,12 +65,15 @@ test('hardware GPU → __isSoftwareGpu is false', async () => {
 // ---------------------------------------------------------------------------
 test('--use-angle=swiftshader → __isSoftwareGpu is true', async () => {
   test.setTimeout(180000)
+  const userDataDir = createUserDataDir()
 
   const app = await _electron.launch({
     executablePath: getElectronPath(),
     args: ['--no-sandbox', '--use-angle=swiftshader'],
     env: { ...process.env, E2E: '1' },
+    userDataDir,
   })
 
   await setupAndCheck(app, true, 'swiftshader')
+  cleanupUserDataDir(userDataDir)
 })

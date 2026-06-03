@@ -2,7 +2,7 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync, readdirSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SVG_FIXTURES_DIR = path.join(__dirname, 'fixtures', 'svg')
@@ -33,17 +33,21 @@ async function loadSvgBatch(window: Page, fixtures: Record<string, string>) {
 
 test.describe('SVG Workspace E2E', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     if (electronApp) await electronApp.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('1. load 9 SVG files → left tree + grid canvas + no errors', async () => {

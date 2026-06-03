@@ -10,7 +10,7 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES_DIR = path.join(__dirname, 'fixtures')
@@ -47,12 +47,15 @@ async function waitForLoadDone(page: Page, timeout = 30000) {
 
 test.describe('3D Viewer - Key Format E2E', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
@@ -60,6 +63,7 @@ test.describe('3D Viewer - Key Format E2E', () => {
     if (electronApp) {
       await electronApp.close()
     }
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('app starts and renders canvas', async () => {

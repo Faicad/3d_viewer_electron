@@ -14,21 +14,7 @@ if (process.env.WSL_DISTRO_NAME) {
   app.commandLine.appendSwitch('enable-unsafe-swiftshader')
 }
 
-// Single-instance lock (required for file associations on Windows)
-const gotTheLock = app.requestSingleInstanceLock()
-if (!gotTheLock) {
-  app.quit()
-} else {
-  app.on('second-instance', (_event, commandLine) => {
-    // Windows: user double-clicks a file while app is already running
-    const filePath = extractFilePath(commandLine)
-    if (filePath && mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-      mainWindow.webContents.send('open-external-file', filePath)
-    }
-  })
-}
+// Single-instance lock removed — user prefers each double-click to open a new window.
 
 /** On Windows, file path comes as the second arg (first is the exe itself) */
 function extractFilePath(argv: string[]): string | null {

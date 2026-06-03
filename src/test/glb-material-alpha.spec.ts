@@ -3,7 +3,7 @@
  * with the correct alphaMode pre-selected.
  */
 import { test, expect, _electron, Page } from '@playwright/test'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -23,10 +23,12 @@ test.describe('alphaMode', () => {
   test.setTimeout(60000)
 
   test('BLEND then MASK', async () => {
+    const _userDataDir = createUserDataDir()
     const app = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
     const page = await app.firstWindow()
     // Capture browser console
@@ -46,6 +48,7 @@ test.describe('alphaMode', () => {
     if (await isSoftwareGpu(page)) {
       console.log('SKIP: software GPU — GLB extension context menu unavailable')
       await app.close()
+      cleanupUserDataDir(_userDataDir)
       return
     }
     await page.waitForTimeout(300)
@@ -94,5 +97,6 @@ test.describe('alphaMode', () => {
     expect(r2.find(b => b.text === '遮罩')?.sel, 'MASK selected').toBe(true)
 
     await app.close()
+    cleanupUserDataDir(_userDataDir)
   })
 })

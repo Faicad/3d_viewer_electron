@@ -1,5 +1,7 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
 import type { Page } from '@playwright/test'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -121,4 +123,19 @@ export function getElectronPath(): string {
     return path.join(PROJECT_ROOT, 'dist', 'linux-unpacked', '3d_viewer_electron')
   }
   throw new Error(`Unsupported platform: ${platform}`)
+}
+
+// ---------------------------------------------------------------------------
+// User data directory helpers — each parallel Electron instance needs its own
+// userDataDir to avoid IndexedDB / localStorage conflicts.
+// ---------------------------------------------------------------------------
+
+/** Create a unique temporary user data directory for an Electron instance. */
+export function createUserDataDir(): string {
+  return mkdtempSync(path.join(tmpdir(), 'e2e-userdata-'))
+}
+
+/** Remove a user data directory created by createUserDataDir(). */
+export function cleanupUserDataDir(dir: string): void {
+  try { rmSync(dir, { recursive: true, force: true }) } catch { /* ok */ }
 }

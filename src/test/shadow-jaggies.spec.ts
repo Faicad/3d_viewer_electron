@@ -2,7 +2,7 @@ import { test, _electron, expect } from '@playwright/test'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -11,10 +11,12 @@ const GLB = readFileSync(path.join(__dirname, 'fixtures', 'box_fillet.glb'))
 
 test('shadow should not have severe aliasing on box_fillet.glb', async () => {
   test.setTimeout(90000)
+  const _userDataDir = createUserDataDir()
   const app = await _electron.launch({
     executablePath: EXE,
     args: getElectronLaunchArgs(),
     env: { ...process.env, E2E: '1' },
+    userDataDir: _userDataDir,
   })
   const page = await app.firstWindow()
   await page.waitForLoadState('domcontentloaded')
@@ -85,6 +87,7 @@ test('shadow should not have severe aliasing on box_fillet.glb', async () => {
   if (await isSoftwareGpu(page)) {
     console.log('SKIP: software GPU — shadow map assertions unavailable')
     await app.close()
+    cleanupUserDataDir(_userDataDir)
     return
   }
 
@@ -109,7 +112,8 @@ test('shadow should not have severe aliasing on box_fillet.glb', async () => {
   expect(ratio, `far/near ratio ${ratio.toFixed(1)} ≥ 50`).toBeLessThan(50)
 
   // Take screenshot for visual inspection
-  await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag-box-fillet.png') })
+  // await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag-box-fillet.png') })
 
   await app.close()
+  cleanupUserDataDir(_userDataDir)
 })

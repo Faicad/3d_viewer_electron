@@ -17,7 +17,7 @@ import { test, expect, _electron, ElectronApplication, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -33,17 +33,21 @@ async function waitForLoadDone(page: Page, timeout = 30000) {
 
 test.describe('Selection Highlight Artifacts', () => {
   let app: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     app = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     if (app) await app.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('highlight does not use depthTest, preventing z-fighting with the model', async () => {

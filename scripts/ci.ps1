@@ -63,7 +63,7 @@ Step "5/7  Build (build:unpacked)" {
 Step "6/7  E2E tests (playwright)" {
     # Kill any leftover Electron processes from previous runs
     Get-Process "3D_Viewer" -ErrorAction SilentlyContinue | Stop-Process -Force
-    pnpm exec playwright test
+    pnpm exec playwright test --workers=4
 }
 
 $totalSw.Stop()

@@ -6,7 +6,7 @@
  * computed height, enabling vertical scrolling when content overflows.
  */
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { getElectronLaunchArgs, getElectronPath } from './utils'
+import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 function trackErrors(page: Page) {
   const pageErrors: string[] = []
@@ -24,17 +24,21 @@ function trackErrors(page: Page) {
 
 test.describe('MaterialEditor scroll', () => {
   let electronApp: ElectronApplication
+  let _userDataDir: string
 
   test.beforeAll(async () => {
+    _userDataDir = createUserDataDir()
     electronApp = await _electron.launch({
       executablePath: getElectronPath(),
       args: getElectronLaunchArgs(),
       env: { ...process.env, E2E: '1' },
+      userDataDir: _userDataDir,
     })
   })
 
   test.afterAll(async () => {
     await electronApp.close()
+    cleanupUserDataDir(_userDataDir)
   })
 
   test('scroll area viewport gets constrained height from CSS grid', async () => {
