@@ -40,6 +40,8 @@ import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { computeCameraFitTarget, autoSelectBedSize, computePlateLayout } from '@/engine/heatbed'
 import { toast } from 'sonner'
 
+const DEFAULT_CAM_POS: [number, number, number] = [5, -5, 4]
+
 /** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
  *  the camera around the world X axis so the model appears stationary while the
  *  "up" direction smoothly transitions. Does NOT touch the model at all. */
@@ -734,7 +736,7 @@ export default function ViewportContainer() {
     }
 
     // Fallback: if no model loaded, use default view
-    const defaultPos = new THREE.Vector3(5, -5, 3)
+    const defaultPos = new THREE.Vector3(...DEFAULT_CAM_POS)
     const defaultUp = activeUpAxis === 'y'
       ? new THREE.Vector3(0, 1, 0)
       : new THREE.Vector3(0, 0, 1)
@@ -750,7 +752,7 @@ export default function ViewportContainer() {
       <Canvas
         style={{ width: '100%', height: '100%', background: canvasBackground }}
         scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
-        camera={{ fov: 50, near: 0.001, far: 10000, position: [5, -5, 3], up: [0, 0, 1] as [number, number, number] }}
+        camera={{ fov: 50, near: 0.001, far: 10000, position: DEFAULT_CAM_POS, up: [0, 0, 1] as [number, number, number] }}
         shadows="accumulative"
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         onCreated={({ camera, scene, gl }) => {
