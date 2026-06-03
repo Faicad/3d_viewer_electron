@@ -490,7 +490,7 @@ export async function loadFormat(
         group.add(mesh)
       }
       if (meshes.length === 0) {
-        const fileName = filePath ? filePath.split(/[/\\]/).pop() || filePath : 'unknown'
+        const fileName = resourcePath ? resourcePath.split(/[/\\]/).pop() || resourcePath : 'unknown'
         throw new ModelEmptyError(fileName)
       }
       const unitMatch = text.match(/<model[^>]*\sunit="([^"]+)"/i)

@@ -404,7 +404,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       {!hasAnyModel && !isSvgMode && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
-            className="flex flex-col items-center gap-4 p-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto"
+            className="flex flex-col items-center gap-4 p-12 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto bg-background/70 backdrop-blur-sm"
             onClick={handleNativeOpenFile}
             role="button"
             tabIndex={0}
