@@ -63,6 +63,25 @@ function mergeGeometries(meshes: THREE.Mesh[]): THREE.BufferGeometry {
   return mergeBufferGeometries(geoms, false)
 }
 
+/**
+ * Detect when a material is the Three.js internal default — a plain
+ * MeshBasicMaterial({ color: 0xffffff }) that Three.js auto-assigns
+ * when `new THREE.Mesh(geo)` is called without a material argument.
+ *
+ * Formats like .model, .stl, .ply, .drc, .md2 carry no material data.
+ * Their meshes should NOT inherit the Three.js white default; the
+ * render layer should apply its own default material instead.
+ */
+function isThreeJsDefaultMaterial(mat: THREE.Material): boolean {
+  if (!(mat instanceof THREE.MeshBasicMaterial)) return false
+  // White is the factory default. A file-defined white material would
+  // typically arrive as MeshStandardMaterial (GLTF) or carry texture
+  // maps — plain MeshBasicMaterial white means "no material data".
+  if (mat.color.getHex() !== 0xffffff) return false
+  if (mat.map || mat.alphaMap) return false
+  return true
+}
+
 /** Recursively set skinning=true on a material or array of materials. */
 function setSkinningFlag(
   mat: THREE.Material | THREE.Material[] | null,
@@ -336,8 +355,13 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               overallBox.expandByObject(new THREE.Mesh(geo))
             }
 
-            // Clone and convert material from source mesh
-            const mat = cloneAndConvertMaterial(src.material)
+            // Clone and convert material from source mesh.
+            // If the source has only the Three.js default (no file-defined
+            // material), treat it as null so the renderer applies its own
+            // default material (light blue) instead of the white fallback.
+            const mat = isThreeJsDefaultMaterial(src.material)
+              ? null
+              : cloneAndConvertMaterial(src.material)
 
             // Bambu 3MF: apply filament color from metadata
             const partMeta = bambuMeta?.parts[i]
