@@ -847,7 +847,7 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={handleOpenFile} aria-label={t('toolbar.openFile')}>
-              <FolderOpen className="h-4 w-4" />
+              <FolderOpen className="toolbar-icon h-4 w-4 text-sky-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.openFile')}</TooltipContent>
@@ -897,7 +897,7 @@ export default function DesktopLayout() {
               onClick={() => ui.setCameraMode('perspective')}
               aria-label={t('toolbar.perspective')}
             >
-              <Cuboid className="h-4 w-4" />
+              <Cuboid className="toolbar-icon h-4 w-4 text-violet-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.perspective')}</TooltipContent>
@@ -910,7 +910,7 @@ export default function DesktopLayout() {
               onClick={() => ui.setCameraMode('orthographic')}
               aria-label={t('toolbar.orthographic')}
             >
-              <Grid3x3 className="h-4 w-4" />
+              <Grid3x3 className="toolbar-icon h-4 w-4 text-emerald-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
@@ -929,7 +929,7 @@ export default function DesktopLayout() {
               onClick={handleOpenMaterialEditor}
               aria-label={t('toolbar.materialEditor')}
             >
-              <Palette className="h-4 w-4" />
+              <Palette className="toolbar-icon h-4 w-4 text-pink-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.materialEditor')}</TooltipContent>
@@ -942,7 +942,7 @@ export default function DesktopLayout() {
               onClick={ui.toggleEnvironmentPanel}
               aria-label={t('toolbar.environment')}
             >
-              <Sun className="h-4 w-4" />
+              <Sun className="toolbar-icon h-4 w-4 text-amber-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.environment')}</TooltipContent>
@@ -966,7 +966,7 @@ export default function DesktopLayout() {
               aria-label={t('toolbar.animationPlayer')}
               data-testid="toolbar-animation-player"
             >
-              <Play className="h-4 w-4" />
+              <Play className="toolbar-icon h-4 w-4 text-green-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
@@ -974,7 +974,7 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} aria-label={t('toolbar.fullscreen')}>
-              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              {isFullscreen ? <Minimize className="toolbar-icon h-4 w-4 text-slate-500" /> : <Maximize className="toolbar-icon h-4 w-4 text-slate-500" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.fullscreen')}</TooltipContent>
@@ -989,7 +989,7 @@ export default function DesktopLayout() {
               aria-label={t('toolbar.heatbed')}
               data-testid="toolbar-heatbed"
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="toolbar-icon h-4 w-4 text-orange-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.heatbed')}</TooltipContent>
@@ -1007,7 +1007,7 @@ export default function DesktopLayout() {
               onClick={ui.toggleHistoryPanel}
               aria-label={t('toolbar.history')}
             >
-              <Clock className="h-4 w-4" />
+              <Clock className="toolbar-icon h-4 w-4 text-cyan-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.history')}</TooltipContent>
@@ -1022,7 +1022,7 @@ export default function DesktopLayout() {
               onClick={ui.toggleModelInfo}
               aria-label={t('toolbar.modelInfo')}
             >
-              <Info className="h-4 w-4" />
+              <Info className="toolbar-icon h-4 w-4 text-blue-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.modelInfo')}</TooltipContent>
@@ -1035,7 +1035,7 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel} aria-label={t('toolbar.leftPanel')}>
-              {ui.leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              {ui.leftPanelOpen ? <PanelLeftClose className="toolbar-icon h-4 w-4 text-slate-500" /> : <PanelLeftOpen className="toolbar-icon h-4 w-4 text-slate-500" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.leftPanel')}</TooltipContent>
@@ -1043,7 +1043,7 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={ui.toggleRightPanel} aria-label={t('toolbar.rightPanel')}>
-              {ui.rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              {ui.rightPanelOpen ? <PanelRightClose className="toolbar-icon h-4 w-4 text-slate-500" /> : <PanelRightOpen className="toolbar-icon h-4 w-4 text-slate-500" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.rightPanel')}</TooltipContent>

@@ -277,7 +277,7 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
               fontSize: 12,
             }}
           >
-            <Database size={14} />
+            <Database size={14} className="toolbar-icon text-slate-500" />
           </button>
         )}
       </DialogTrigger>
