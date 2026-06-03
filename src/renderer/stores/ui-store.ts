@@ -42,6 +42,8 @@ interface UIStore {
   toggleEnvironmentPanel: () => void
   envPanelPosition: { x: number; y: number }
   setEnvPanelPosition: (pos: { x: number; y: number }) => void
+  modelInfoPanelPosition: { x: number; y: number }
+  setModelInfoPanelPosition: (pos: { x: number; y: number }) => void
   setMobileDrawerOpen: (open: boolean) => void
   setMobileChatOpen: (open: boolean) => void
   setLanguage: (lang: SupportedLanguage | 'system') => void
@@ -78,6 +80,8 @@ export const useUIStore = create<UIStore>()(
       toggleEnvironmentPanel: () => set((s) => ({ environmentPanelOpen: !s.environmentPanelOpen })),
       envPanelPosition: { x: typeof window !== 'undefined' ? Math.max(100, window.innerWidth - 300) : 900, y: 80 },
       setEnvPanelPosition: (pos) => set({ envPanelPosition: pos }),
+      modelInfoPanelPosition: { x: typeof window !== 'undefined' ? Math.max(100, window.innerWidth - 340) : 860, y: 80 },
+      setModelInfoPanelPosition: (pos) => set({ modelInfoPanelPosition: pos }),
       setMobileDrawerOpen: (open) => set({ mobileDrawerOpen: open }),
       setMobileChatOpen: (open) => set({ mobileChatOpen: open }),
       setLanguage: (language) => {

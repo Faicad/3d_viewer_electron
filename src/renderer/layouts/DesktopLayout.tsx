@@ -1021,6 +1021,7 @@ export default function DesktopLayout() {
               disabled={!activeTool}
               onClick={ui.toggleModelInfo}
               aria-label={t('toolbar.modelInfo')}
+              data-testid="toolbar-model-info"
             >
               <Info className="toolbar-icon h-4 w-4 text-blue-500" />
             </Button>
@@ -1102,14 +1103,12 @@ export default function DesktopLayout() {
         </div>
 
         {/* Right Panel */}
-        {(ui.rightPanelOpen || ui.modelInfoOpen || ui.historyPanelOpen) && (
+        {(ui.rightPanelOpen || ui.historyPanelOpen) && (
           <>
             <ResizeHandle onMouseDown={() => setResizing('right')} />
             <aside style={{ width: `${rightPanelPct}%` } as React.CSSProperties} className="border-l flex flex-col shrink-0">
               {ui.historyPanelOpen ? (
                 <HistoryPanel onClose={() => useUIStore.getState().toggleHistoryPanel()} />
-              ) : ui.modelInfoOpen ? (
-                <ModelInfoPanel />
               ) : (
                 <FileListPanel />
               )}
@@ -1117,6 +1116,9 @@ export default function DesktopLayout() {
           </>
         )}
       </div>
+
+      {/* Model Info Panel (floating) */}
+      {!isSvgMode && <ModelInfoPanel />}
 
       {/* Environment Panel (floating) */}
       {!isSvgMode && <EnvironmentPanel />}
