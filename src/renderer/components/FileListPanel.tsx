@@ -445,6 +445,10 @@ export default function FileListPanel() {
           selectedFileIndex={selectedFileIndex}
           setSelectedFileIndex={setSelectedFileIndex}
           folderPath={currentFolderPath}
+          fileSortMode={fileSortMode}
+          sortOrder={sortOrder}
+          onCycleSortMode={cycleSortMode}
+          onToggleSortOrder={toggleSortOrder}
         />,
         document.body,
       )}
@@ -502,6 +506,10 @@ function FullscreenGrid({
   selectedFileIndex,
   setSelectedFileIndex,
   folderPath,
+  fileSortMode,
+  sortOrder,
+  onCycleSortMode,
+  onToggleSortOrder,
 }: {
   files: { name: string; path: string; mtimeMs: number }[]
   thumbState: ThumbState
@@ -512,9 +520,14 @@ function FullscreenGrid({
   selectedFileIndex: number
   setSelectedFileIndex: (i: number) => void
   folderPath: string | null
+  fileSortMode: FileSortMode
+  sortOrder: 'asc' | 'desc'
+  onCycleSortMode: () => void
+  onToggleSortOrder: () => void
 }) {
   const { t } = useTranslation()
   const gridRef = useRef<HTMLDivElement>(null)
+  const done = thumbState.urls.size + thumbState.failed.size
 
   return (
     <div
@@ -528,13 +541,37 @@ function FullscreenGrid({
             <span className="truncate hidden sm:inline">{folderPath}</span>
           )}
           <span className="text-xs opacity-60 whitespace-nowrap">
-            {files.length} {t('fileList.files')}
+            {done}/{files.length}
+            {processingPath && (
+              <span className="opacity-80" title={processingPath}>
+                {' — ' + (processingPath.split(/[/\\]/).pop() || '')}
+              </span>
+            )}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            ESC / Enter {t('fileList.toClose')}
-          </span>
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            onClick={onCycleSortMode}
+            title={fileSortMode === 'name' ? t('fileList.sortByName') : t('fileList.sortByType')}
+          >
+            <List className={cn('h-3 w-3', fileSortMode === 'type+name' && 'text-primary')} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            onClick={onToggleSortOrder}
+            title={sortOrder === 'asc' ? t('fileList.sortAsc') : t('fileList.sortDesc')}
+          >
+            {sortOrder === 'asc' ? (
+              <ArrowUpAZ className="h-3 w-3" />
+            ) : (
+              <ArrowDownZA className="h-3 w-3" />
+            )}
+          </Button>
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
             <Minimize2 className="h-4 w-4" />
           </Button>
