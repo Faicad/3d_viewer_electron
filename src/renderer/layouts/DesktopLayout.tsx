@@ -853,8 +853,10 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.openFile')}</TooltipContent>
         </Tooltip>
 
-        {/* Y Axis Up */}
-        {!isSvgMode && (
+        <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {/* Y↑ / Z↑ */}
+        {!isSvgMode && (<>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -868,10 +870,6 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.yUp')}</TooltipContent>
         </Tooltip>
-        )}
-
-        {/* Z Axis Up */}
-        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -885,10 +883,12 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.zUp')}</TooltipContent>
         </Tooltip>
-        )}
+        </>)}
 
-        {/* Perspective View */}
-        {!isSvgMode && (
+        <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {/* Perspective / Orthographic */}
+        {!isSvgMode && (<>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -902,10 +902,6 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.perspective')}</TooltipContent>
         </Tooltip>
-        )}
-
-        {/* Orthographic View */}
-        {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -919,44 +915,12 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
         </Tooltip>
-        )}
+        </>)}
 
-        {/* Heatbed Toggle */}
-        {!isSvgMode && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={showHeatbed ? 'secondary' : 'ghost'}
-              size="icon"
-              disabled={!activeTool}
-              onClick={() => setShowHeatbed(!showHeatbed)}
-              aria-label={t('toolbar.heatbed')}
-              data-testid="toolbar-heatbed"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.heatbed')}</TooltipContent>
-        </Tooltip>
-        )}
+        <Separator orientation="vertical" className="h-5 shrink-0" />
 
-        {/* History */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={ui.historyPanelOpen ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={ui.toggleHistoryPanel}
-              aria-label={t('toolbar.history')}
-            >
-              <Clock className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('toolbar.history')}</TooltipContent>
-        </Tooltip>
-
-        {/* Material Editor */}
-        {!isSvgMode && (
+        {/* Material Editor / Render Settings */}
+        {!isSvgMode && (<>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -970,10 +934,25 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.materialEditor')}</TooltipContent>
         </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.environmentPanelOpen ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={ui.toggleEnvironmentPanel}
+              aria-label={t('toolbar.environment')}
+            >
+              <Sun className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.environment')}</TooltipContent>
+        </Tooltip>
+        </>)}
 
-        {/* Animation Player — only enabled when a loaded file has animations */}
-        {!isSvgMode && (
+        <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {/* Animation / Fullscreen / Heatbed */}
+        {!isSvgMode && (<>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -992,11 +971,6 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
         </Tooltip>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Fullscreen */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} aria-label={t('toolbar.fullscreen')}>
@@ -1005,8 +979,39 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.fullscreen')}</TooltipContent>
         </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={showHeatbed ? 'secondary' : 'ghost'}
+              size="icon"
+              disabled={!activeTool}
+              onClick={() => setShowHeatbed(!showHeatbed)}
+              aria-label={t('toolbar.heatbed')}
+              data-testid="toolbar-heatbed"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.heatbed')}</TooltipContent>
+        </Tooltip>
+        </>)}
 
-        {/* Model Info */}
+        <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {/* History / Model Info */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={ui.historyPanelOpen ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={ui.toggleHistoryPanel}
+              aria-label={t('toolbar.history')}
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.history')}</TooltipContent>
+        </Tooltip>
         {!isSvgMode && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1024,7 +1029,9 @@ export default function DesktopLayout() {
         </Tooltip>
         )}
 
-        {/* Panel toggles */}
+        <div className="flex-1" />
+
+        {/* Left / Right Panel */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel} aria-label={t('toolbar.leftPanel')}>
@@ -1042,23 +1049,9 @@ export default function DesktopLayout() {
           <TooltipContent>{t('toolbar.rightPanel')}</TooltipContent>
         </Tooltip>
 
-        {/* Environment */}
-        {!isSvgMode && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={ui.environmentPanelOpen ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={ui.toggleEnvironmentPanel}
-              aria-label={t('toolbar.environment')}
-            >
-              <Sun className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('toolbar.environment')}</TooltipContent>
-        </Tooltip>
-        )}
+        <Separator orientation="vertical" className="h-5 shrink-0" />
 
+        {/* Cache / Settings */}
         <Tooltip>
           <TooltipTrigger asChild>
             <CacheManager />
