@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { useHistoryStore, type HistoryEntry } from '@/stores/history-store'
+import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -11,8 +12,9 @@ import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS } from '@/config
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey, getThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { X, Clock, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
 
 const PAGE_SIZE = 20
@@ -67,9 +69,35 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
     const store = useModelStore.getState()
     const existing = store.loadedFiles.find((f) => f.filePath === entry.filePath)
     if (existing) {
-      store.removeLoadedFile(existing.id)
+      // If it's an SVG workspace file, remove via workspace store so both stores stay in sync
+      const svgStore = useSvgWorkspaceStore.getState()
+      if (existing.format === 'svg' || existing.format === 'dxf') {
+        svgStore.removeFile(existing.id)
+      } else {
+        store.removeLoadedFile(existing.id)
+      }
       return
     }
+
+    // Detect format early to decide view switching
+    let format = detectFormat(entry.fileName)
+    if (!format) {
+      toast.error('Unsupported file format: ' + entry.fileName)
+      return
+    }
+
+    // Determine if we need to switch views (2D ↔ 3D)
+    const isIncoming2D = format === 'svg' || format === 'dxf'
+    const isCurrently2D = useSvgWorkspaceStore.getState().files.length > 0
+
+    if (isIncoming2D !== isCurrently2D) {
+      // View switch needed — clear opposite mode
+      if (isCurrently2D) {
+        useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
+      }
+      store.reset()
+    }
+
     try {
       const result = await window.electronAPI.readFile(entry.filePath)
       if (!result.success || !result.data) {
@@ -77,9 +105,62 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         return
       }
       let buffer = result.data
-      let format = detectFormat(entry.fileName)
 
-      // Parse STEP header from original buffer before conversion
+      // ── 2D: SVG / DXF ──────────────────────────────────────────
+      if (format === 'svg' || format === 'dxf') {
+        const text = new TextDecoder().decode(buffer)
+
+        let svgText: string
+        let layers: ReturnType<typeof parseSvgLayers>
+        let naturalWidth: number
+        let naturalHeight: number
+
+        if (format === 'dxf') {
+          const dxfResult = await convertDxfToSvg(text)
+          svgText = dxfResult.svgText
+          layers = dxfResult.layers
+          naturalWidth = dxfResult.naturalWidth
+          naturalHeight = dxfResult.naturalHeight
+        } else {
+          svgText = text
+          layers = parseSvgLayers(text)
+          const vb = parseSvgViewBox(text)
+          naturalWidth = vb.naturalWidth
+          naturalHeight = vb.naturalHeight
+        }
+
+        const fileId = crypto.randomUUID()
+
+        store.addLoadedFile({
+          id: fileId,
+          fileName: entry.fileName,
+          filePath: entry.filePath,
+          mtimeMs: entry.mtimeMs,
+          buffer,
+          format,
+          sceneTree: [],
+          glbPartInfos: [],
+          modelCenteringOffset: null,
+          sourceUnit: 'millimeter',
+          fileGroup: 'vector',
+          loadingPhase: 'done',
+          svgLayers: layers,
+          svgText: svgText,
+        })
+
+        useSvgWorkspaceStore.getState().addFilesBatch([{
+          fileId, fileName: entry.fileName, svgText,
+          layers, naturalWidth, naturalHeight,
+        }])
+
+        generateSvgThumbnail(svgText).then((blob) => {
+          if (blob) putThumbnail(cacheKey(entry.filePath, entry.mtimeMs ?? Date.now()), blob)
+        })
+
+        return
+      }
+
+      // ── 3D: STEP / STL / GLB / 3MF / etc. ─────────────────────
       let fileMeta: FileMeta | undefined
       if (format === 'step') {
         const stepHeader = parseStepHeader(buffer)
@@ -98,11 +179,6 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         } finally {
           store.setIsConverting(false)
         }
-      }
-
-      if (!format) {
-        toast.error('Unsupported file format: ' + entry.fileName)
-        return
       }
 
       const loadResult = await loadFormat(buffer, format, entry.filePath)

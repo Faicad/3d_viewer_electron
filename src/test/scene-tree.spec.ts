@@ -60,7 +60,7 @@ test.describe.serial('Multi-level scene tree', () => {
     await window.setViewportSize({ width: 1280, height: 800 })
     // Wait for the left panel to actually open (effect is async)
     await window.waitForFunction(
-      () => document.querySelector('aside.border-r') !== null,
+      () => document.querySelector('aside[data-testid="left-panel"]') !== null,
       { timeout: 5000 },
     )
   }
@@ -71,18 +71,18 @@ test.describe.serial('Multi-level scene tree', () => {
 
     // Start wide — panel should be visible
     await window.setViewportSize({ width: 1280, height: 800 })
-    await expect(window.locator('aside.border-r').first()).toBeAttached({ timeout: 5000 })
+    await expect(window.locator('aside[data-testid="left-panel"]').first()).toBeAttached({ timeout: 5000 })
 
     // Shrink below 1024px — panel should collapse
     await window.setViewportSize({ width: 800, height: 800 })
     await window.waitForFunction(
-      () => document.querySelector('aside.border-r') === null,
+      () => document.querySelector('aside[data-testid="left-panel"]') === null,
       { timeout: 5000 },
     )
 
     // Widen again — panel should reappear
     await window.setViewportSize({ width: 1280, height: 800 })
-    await expect(window.locator('aside.border-r').first()).toBeAttached({ timeout: 5000 })
+    await expect(window.locator('aside[data-testid="left-panel"]').first()).toBeAttached({ timeout: 5000 })
   })
 
   test('scene tree panel title is visible', async () => {
@@ -90,7 +90,7 @@ test.describe.serial('Multi-level scene tree', () => {
     await ensureLeftPanelOpen(window)
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
-    const title = window.locator('aside.border-r').first().locator('.text-xs.font-semibold')
+    const title = window.locator('aside[data-testid="left-panel"]').first().locator('.text-xs.font-semibold')
     await expect(title).toBeVisible()
     const text = await title.textContent()
     // Title text varies by locale (Scene / 场景)
@@ -131,14 +131,14 @@ test.describe.serial('Multi-level scene tree', () => {
     await waitForLoadDone(window)
     getErrors()
 
-    const leftPanel = window.locator('aside.border-r').first()
+    const leftPanel = window.locator('aside[data-testid="left-panel"]').first()
     const treeNodes = leftPanel.locator('.whitespace-nowrap')
 
     const nodeFound = await window.waitForFunction(
       () => {
         const s = window.__modelStore?.getState()
         if (s?.sceneTree && s.sceneTree.length > 0) {
-          const aside = document.querySelector('aside.border-r')
+          const aside = document.querySelector('aside[data-testid="left-panel"]')
           return aside && aside.querySelectorAll('.whitespace-nowrap').length > 0
         }
         return false
@@ -150,8 +150,8 @@ test.describe.serial('Multi-level scene tree', () => {
       // Diagnostic: check store state and panel state
       const diag = await window.evaluate(() => {
         const s = window.__modelStore?.getState()
-        const leftAside = document.querySelector('aside.border-r')
-        const rightAside = document.querySelector('aside.border-l')
+        const leftAside = document.querySelector('aside[data-testid="left-panel"]')
+        const rightAside = document.querySelector('aside[data-testid="left-panel"]')
         return {
           loadingPhase: s?.__loadingPhase,
           sceneTreeLength: s?.sceneTree?.length,
@@ -186,7 +186,7 @@ test.describe.serial('Multi-level scene tree', () => {
   test('expand/collapse toggles children visibility', async () => {
     const window = await electronApp.firstWindow()
     await ensureLeftPanelOpen(window)
-    const leftPanel = window.locator('aside.border-r').first()
+    const leftPanel = window.locator('aside[data-testid="left-panel"]').first()
 
     const initialCount = await leftPanel.locator('.whitespace-nowrap').count()
     // Skip if no hierarchy to expand/collapse
@@ -198,7 +198,7 @@ test.describe.serial('Multi-level scene tree', () => {
       await collapseBtn.click()
       await window.waitForFunction(
         (initial: number) => {
-          const panel = document.querySelector('aside.border-r')
+          const panel = document.querySelector('aside[data-testid="left-panel"]')
           return (panel?.querySelectorAll('.whitespace-nowrap').length ?? 0) < initial
         },
         initialCount,
@@ -211,7 +211,7 @@ test.describe.serial('Multi-level scene tree', () => {
       await expandBtn.click()
       await window.waitForFunction(
         (initial: number) => {
-          const panel = document.querySelector('aside.border-r')
+          const panel = document.querySelector('aside[data-testid="left-panel"]')
           return (panel?.querySelectorAll('.whitespace-nowrap').length ?? 0) === initial
         },
         initialCount,
@@ -227,7 +227,7 @@ test.describe.serial('Multi-level scene tree', () => {
   test('eye icon toggles visibility on hover', async () => {
     const window = await electronApp.firstWindow()
     await ensureLeftPanelOpen(window)
-    const leftPanel = window.locator('aside.border-r').first()
+    const leftPanel = window.locator('aside[data-testid="left-panel"]').first()
     const firstNode = leftPanel.locator('.whitespace-nowrap').first()
 
     await expect(firstNode).toBeAttached({ timeout: 10000 })
@@ -249,7 +249,7 @@ test.describe.serial('Multi-level scene tree', () => {
     await ensureLeftPanelOpen(window)
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
-    const leftPanel = window.locator('aside.border-r').first()
+    const leftPanel = window.locator('aside[data-testid="left-panel"]').first()
     const fileNode = leftPanel.locator('.whitespace-nowrap').first()
     await fileNode.hover()
 
@@ -418,7 +418,7 @@ test.describe.serial('Multi-level scene tree', () => {
     console.log(`[test] RobotExpressive tree: ${treeState.childCount} children, first="${treeState.firstChildName}"`)
 
     // 4. Hide RobotExpressive and verify its scene tree children are set to invisible
-    const leftPanel = window.locator('aside.border-r').first()
+    const leftPanel = window.locator('aside[data-testid="left-panel"]').first()
     const fileNodes = leftPanel.locator('.whitespace-nowrap')
     const robotNode = fileNodes.nth(2) // third node: box_boss(0), box_boss_child(1), RobotExpressive(2)
 

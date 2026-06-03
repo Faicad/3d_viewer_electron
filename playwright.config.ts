@@ -8,6 +8,7 @@ export default defineConfig({
   testDir: './src/test',
   timeout: 60000,
   retries: 0,
+  workers: 4,
   use: {
     viewport: { width: 1280, height: 800 },
   },

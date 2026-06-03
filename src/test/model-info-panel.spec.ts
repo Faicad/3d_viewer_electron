@@ -90,8 +90,8 @@ test.describe('Model Info Panel', () => {
     await expect(panel.getByText('文件格式')).toBeVisible()
     await expect(panel.getByText('预估耗材')).toBeVisible()
 
-    // Verify format is GLB
-    await expect(panel.getByText('GLB')).toBeVisible()
+    // Verify format is GLB (exact: true avoids matching "test-box.glb" filename)
+    await expect(panel.getByText('GLB', { exact: true })).toBeVisible()
   })
 
   test('file list panel remains visible alongside floating model info', async () => {

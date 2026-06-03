@@ -85,7 +85,7 @@ test.describe('MaterialEditor part switch layout', () => {
     await waitForLoadDone(page)
 
     // Ensure left panel is visible
-    const leftPanel = page.locator('aside.border-r').first()
+    const leftPanel = page.locator('aside[data-testid="left-panel"]').first()
     await leftPanel.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
     await page.waitForTimeout(500)
 

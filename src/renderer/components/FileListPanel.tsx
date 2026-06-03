@@ -156,7 +156,6 @@ export default function FileListPanel() {
     // folder.  Existing thumbnails stay visible while the queue
     // catches up on any new additions.
     const newPaths = new Set(folderFiles.map((f) => f.path))
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThumbState((prev) => {
       const urls = new Map(prev.urls)
       let removed = false

@@ -1072,7 +1072,7 @@ export default function DesktopLayout() {
         {/* Left Sidebar */}
         {ui.leftPanelOpen && (
           <>
-            <aside style={{ width: `${leftPanelPct}%` } as React.CSSProperties} className="flex flex-col shrink-0">
+            <aside data-testid="left-panel" style={{ width: `${leftPanelPct}%` } as React.CSSProperties} className="flex flex-col shrink-0">
               {isSvgMode ? (
                 <SvgLayerTree />
               ) : (
