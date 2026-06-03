@@ -387,6 +387,33 @@ export async function loadFormat(
       }
       return { meshes, objects: extractAllObjects(group), bambuMetadata }
     }
+    case 'model': {
+      const text = bufferToText(buffer)
+      const doc = new DOMParser().parseFromString(text, 'application/xml')
+      const NS = 'http://schemas.microsoft.com/3dmanufacturing/core/2015/02'
+      const vertexEls = doc.getElementsByTagNameNS(NS, 'vertex')
+      const positions = new Float32Array(vertexEls.length * 3)
+      for (let i = 0; i < vertexEls.length; i++) {
+        positions[i * 3] = parseFloat(vertexEls[i].getAttribute('x')!)
+        positions[i * 3 + 1] = parseFloat(vertexEls[i].getAttribute('y')!)
+        positions[i * 3 + 2] = parseFloat(vertexEls[i].getAttribute('z')!)
+      }
+      const triEls = doc.getElementsByTagNameNS(NS, 'triangle')
+      const indices = new Uint32Array(triEls.length * 3)
+      for (let i = 0; i < triEls.length; i++) {
+        indices[i * 3] = parseInt(triEls[i].getAttribute('v1')!, 10)
+        indices[i * 3 + 1] = parseInt(triEls[i].getAttribute('v2')!, 10)
+        indices[i * 3 + 2] = parseInt(triEls[i].getAttribute('v3')!, 10)
+      }
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      geo.setIndex(new THREE.BufferAttribute(indices, 1))
+      geo.computeVertexNormals()
+      const mesh = new THREE.Mesh(geo)
+      const unitMatch = text.match(/<model[^>]*\sunit="([^"]+)"/i)
+      const sourceUnit = unitMatch ? unitMatch[1].toLowerCase() as UnitSystem : undefined
+      return { meshes: [mesh], objects: [], sourceUnit }
+    }
 
     // ---- mesh formats: text-based ----
     case 'obj': {

@@ -26,6 +26,7 @@ export type FormatId =
   | 'glb'
   | 'gltf'
   | '3mf'
+  | 'model'
   | 'step'
   | 'obj'
   | 'ply'
@@ -141,6 +142,20 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'mesh',
     defaultUnit: 'millimeter',
     color: 'text-orange-500',
+  },
+  {
+    id: 'model',
+    label: '3MF Model',
+    extensions: ['.model'],
+    loaderModule: '',
+    group: 'other',
+    sampleFile: '',
+    textBased: true,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'mesh',
+    defaultUnit: 'millimeter',
+    color: 'text-orange-300',
   },
   {
     id: 'step',
