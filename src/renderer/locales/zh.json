@@ -106,6 +106,9 @@
   "fileList.sortDesc": "降序",
   "fileList.previewView": "预览模型",
   "fileList.listView": "禁止预览",
+  "fileList.maximize": "全屏查看缩略图",
+  "fileList.files": "个文件",
+  "fileList.toClose": "关闭",
 
   "openFile.title": "打开文件",
   "openFile.description": "选择一个3D模型文件打开",

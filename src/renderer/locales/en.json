@@ -106,6 +106,9 @@
   "fileList.sortDesc": "Descending",
   "fileList.previewView": "Preview thumbnails",
   "fileList.listView": "List view",
+  "fileList.maximize": "Maximize thumbnails",
+  "fileList.files": "files",
+  "fileList.toClose": "to close",
 
   "openFile.title": "Open File",
   "openFile.description": "Select a 3D model file to open",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useModelStore, type FileSortMode } from '@/stores/model-store'
 import { useUIStore } from '@/stores/ui-store'
@@ -15,7 +16,7 @@ import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { Button } from '@/components/ui/button'
-import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2, Maximize2 } from 'lucide-react'
 import {
   startThumbnailQueue,
   stopThumbnailQueue,
@@ -83,6 +84,20 @@ export default function FileListPanel() {
   }, [enablePreview, folderFiles])
 
   const [processingPath, setProcessingPath] = useState<string | null>(null)
+  const [fullscreen, setFullscreen] = useState(false)
+
+  // ESC / Enter to exit fullscreen thumbnail grid
+  useEffect(() => {
+    if (!fullscreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        e.preventDefault()
+        setFullscreen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [fullscreen])
 
   // Thumbnail queue lifecycle
   const handleThumbReady = useCallback((filePath: string, objectURL: string) => {
@@ -253,6 +268,17 @@ export default function FileListPanel() {
           >
             {enablePreview ? <Eye className={cn('h-3 w-3', enablePreview && 'text-primary')} /> : <EyeOff className="h-3 w-3" />}
           </Button>
+          {enablePreview && folderFiles.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              onClick={() => setFullscreen(true)}
+              title={t('fileList.maximize')}
+            >
+              <Maximize2 className="h-3 w-3" />
+            </Button>
+          )}
           {folderFiles.length > 0 && (
           <>
           <Button
@@ -395,6 +421,20 @@ export default function FileListPanel() {
       )}
     </>
     )}
+      {fullscreen && createPortal(
+        <FullscreenGrid
+          files={sortedFiles}
+          thumbState={thumbState}
+          processingPath={processingPath}
+          loadedFilePaths={loadedFilePaths}
+          onClose={() => setFullscreen(false)}
+          onFileClick={(file, i) => { handleFileClick(file, i); setFullscreen(false) }}
+          selectedFileIndex={selectedFileIndex}
+          setSelectedFileIndex={setSelectedFileIndex}
+          folderPath={currentFolderPath}
+        />,
+        document.body,
+      )}
     </div>
   )
 }
@@ -430,6 +470,115 @@ function PlaceholderCard({ file, failed, loading }: { file: { name: string }; fa
       {!loading && failed && (
         <AlertCircle className="relative z-10 h-4 w-4 text-muted-foreground/50" />
       )}
+    </div>
+  )
+}
+
+function FullscreenGrid({
+  files,
+  thumbState,
+  processingPath,
+  loadedFilePaths,
+  onClose,
+  onFileClick,
+  selectedFileIndex,
+  setSelectedFileIndex,
+  folderPath,
+}: {
+  files: { name: string; path: string; mtimeMs: number }[]
+  thumbState: ThumbState
+  processingPath: string | null
+  loadedFilePaths: Set<string>
+  onClose: () => void
+  onFileClick: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
+  selectedFileIndex: number
+  setSelectedFileIndex: (i: number) => void
+  folderPath: string | null
+}) {
+  const { t } = useTranslation()
+  const gridRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b shrink-0">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+          {folderPath && (
+            <span className="truncate hidden sm:inline">{folderPath}</span>
+          )}
+          <span className="text-xs opacity-60 whitespace-nowrap">
+            {files.length} {t('fileList.files')}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            ESC / Enter {t('fileList.toClose')}
+          </span>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            ✕
+          </Button>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <ScrollArea className="flex-1">
+        <div
+          ref={gridRef}
+          className="p-4 grid gap-3"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}
+        >
+          {files.map((file, i) => {
+            const isSelected = i === selectedFileIndex
+            const isCurrent = loadedFilePaths.has(file.path)
+            const thumbUrl = thumbState.urls.get(file.path)
+            const failed = thumbState.failed.has(file.path)
+
+            return (
+              <div
+                key={file.path}
+                data-index={i}
+                className={cn(
+                  'rounded-lg overflow-hidden cursor-pointer transition-all duration-100',
+                  isSelected && 'ring-2 ring-primary',
+                  isCurrent && !isSelected && 'ring-2 ring-primary/60',
+                  !isSelected && !isCurrent && 'hover:ring-1 hover:ring-primary/40',
+                )}
+                onClick={() => onFileClick(file, i)}
+                onMouseEnter={() => {
+                  if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
+                }}
+              >
+                <div
+                  className="relative w-full bg-muted flex items-center justify-center overflow-hidden"
+                  style={{ aspectRatio: '4/3' }}
+                >
+                  {thumbUrl ? (
+                    <img
+                      src={thumbUrl}
+                      alt={file.name}
+                      className="w-full h-full object-contain opacity-0 transition-opacity duration-300"
+                      onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1' }}
+                    />
+                  ) : (
+                    <PlaceholderCard file={file} failed={failed} loading={processingPath === file.path} />
+                  )}
+                  {isCurrent && (
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary shadow-sm" />
+                  )}
+                </div>
+                <div className="px-1.5 py-0.5 bg-muted">
+                  <span className="text-[10px] text-muted-foreground truncate block" title={file.name}>
+                    {file.name}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </ScrollArea>
     </div>
   )
 }
