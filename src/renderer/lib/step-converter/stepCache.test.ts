@@ -1,9 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { memCache, getCached, putCached, clearStepCache } from './stepCache'
+import {
+  memCache,
+  getCached,
+  putCached,
+  clearStepCache,
+  STEP_CACHE_DB_NAME,
+  STEP_CACHE_DB_VERSION,
+  STORE_NAME,
+} from './stepCache'
 
 function makeBuf(size: number): ArrayBuffer {
   return new ArrayBuffer(size)
 }
+
+describe('exported constants', () => {
+  it('has correct DB name, version and store name', () => {
+    expect(STEP_CACHE_DB_NAME).toBe('step-glb-cache')
+    expect(STEP_CACHE_DB_VERSION).toBe(2)
+    expect(STORE_NAME).toBe('buffers')
+  })
+})
 
 describe('memCache', () => {
   afterEach(() => memCache.clear())

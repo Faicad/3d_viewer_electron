@@ -13,11 +13,17 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/lib/step-converter/stepCache', () => ({
   clearStepCache: vi.fn().mockResolvedValue(undefined),
   memCache: new Map(),
+  STEP_CACHE_DB_NAME: 'step-glb-cache',
+  STEP_CACHE_DB_VERSION: 2,
+  STORE_NAME: 'buffers',
 }))
 
 vi.mock('@/lib/thumbnail-cache/thumbnailCache', () => ({
   clearThumbnailCache: vi.fn().mockResolvedValue(undefined),
   memCache: new Map(),
+  THUMB_CACHE_DB_NAME: 'thumbnail-cache',
+  THUMB_CACHE_DB_VERSION: 1,
+  THUMB_STORE_NAME: 'thumbnails',
 }))
 
 vi.mock('@/components/settings/useThemeColors', () => ({

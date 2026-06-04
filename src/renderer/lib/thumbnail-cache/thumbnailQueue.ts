@@ -192,7 +192,7 @@ async function processNext(): Promise<void> {
         // Other 3D formats (stl, glb, stp, …)
         const result = await window.electronAPI.readFile(file.path)
         if (result.success && result.data) {
-          const blob = await generateThumbnail(result.data, format)
+          const blob = await generateThumbnail(result.data, format, file.path)
           if (blob && onReady) {
             await putThumbnail(key, blob)
             const url = URL.createObjectURL(blob)
@@ -204,7 +204,21 @@ async function processNext(): Promise<void> {
         return 'done'
       } catch (err) {
         console.warn('[thumbnailQueue] failed for', file.name, err)
-        onReady?.(file.path, '')
+        const tries = (retryCount.get(file.path) ?? 0) + 1
+        retryCount.set(file.path, tries)
+        if (tries >= MAX_RETRIES) {
+          retryCount.delete(file.path)
+          console.warn(
+            `[thumbnailQueue] failed after ${MAX_RETRIES} attempts, giving up: ${file.name}`,
+          )
+          onReady?.(file.path, '') // permanent fail — stop spinner
+        } else {
+          console.warn(
+            `[thumbnailQueue] failed (attempt ${tries}/${MAX_RETRIES}), requeuing: ${file.name}`,
+          )
+          // Requeue at the end so other files get a chance
+          queue.push(file)
+        }
         return 'failed'
       }
     })(),

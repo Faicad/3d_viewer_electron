@@ -389,6 +389,7 @@ export async function generateThumbnailFromResult(
   } catch (err) {
     console.warn('[thumbnailGenerator] failed from result:', err)
     disposeScene(scene)
+    if (import.meta.env.DEV) throw err
     return null
   }
 }
@@ -396,13 +397,15 @@ export async function generateThumbnailFromResult(
 export async function generateThumbnail(
   buffer: ArrayBuffer,
   format: FormatId,
+  resourcePath?: string,
 ): Promise<Blob | null> {
   try {
-    const result = await loadFormat(buffer, format)
+    const result = await loadFormat(buffer, format, resourcePath)
     const upAxis = getDefaultUpAxis(format, buffer)
     return generateThumbnailFromResult(result.meshes, result.objects, upAxis)
   } catch (err) {
     console.warn('[thumbnailGenerator] failed for format', format, err)
+    if (import.meta.env.DEV) throw err
     return null
   }
 }

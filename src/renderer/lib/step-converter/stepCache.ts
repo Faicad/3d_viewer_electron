@@ -1,6 +1,6 @@
-const DB_NAME = 'step-glb-cache'
-const DB_VERSION = 2
-const STORE_NAME = 'buffers'
+export const STEP_CACHE_DB_NAME = 'step-glb-cache'
+export const STEP_CACHE_DB_VERSION = 2
+export const STORE_NAME = 'buffers'
 
 export const memCache = new Map<string, ArrayBuffer>()
 
@@ -9,7 +9,7 @@ let dbPromise: Promise<IDBDatabase> | null = null
 function openCache(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise
   dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    const request = indexedDB.open(STEP_CACHE_DB_NAME, STEP_CACHE_DB_VERSION)
     request.onupgradeneeded = () => {
       if (request.result.objectStoreNames.contains(STORE_NAME)) {
         request.result.deleteObjectStore(STORE_NAME)
@@ -31,7 +31,8 @@ export async function getCached(key: string): Promise<ArrayBuffer | null> {
       request.onsuccess = () => resolve(request.result ?? null)
       request.onerror = () => resolve(null)
     })
-  } catch {
+  } catch (e) {
+    if (import.meta.env.DEV) throw e
     return null
   }
 }
@@ -59,6 +60,7 @@ export async function clearStepCache(): Promise<void> {
     })
   } catch (err) {
     console.warn('[clearStepCache] IndexedDB clear failed:', err)
+    if (import.meta.env.DEV) throw err
   }
   memCache.clear()
   console.log('[clearStepCache] Done')

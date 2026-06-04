@@ -5,10 +5,12 @@ import {
 import { Trash2, HardDrive, RefreshCw, Database, Check, Image } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
+import { STEP_CACHE_DB_NAME, STEP_CACHE_DB_VERSION, STORE_NAME as STEP_STORE_NAME } from '@/lib/step-converter/stepCache'
 import {
   clearThumbnailCache,
   memCache as thumbMemCache,
 } from '@/lib/thumbnail-cache/thumbnailCache'
+import { THUMB_CACHE_DB_NAME, THUMB_CACHE_DB_VERSION, THUMB_STORE_NAME } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useThemeColors } from '@/components/settings/useThemeColors'
 
 type CacheKind = 'step' | 'thumbnail'
@@ -34,13 +36,9 @@ function parseKey(key: string): { path: string; mtime: string } {
   }
 }
 
-const STEP_DB_NAME = 'step-glb-cache'
-const STEP_DB_VERSION = 1
-const STEP_STORE_NAME = 'buffers'
-
 function openStepIDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(STEP_DB_NAME, STEP_DB_VERSION)
+    const request = indexedDB.open(STEP_CACHE_DB_NAME, STEP_CACHE_DB_VERSION)
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STEP_STORE_NAME)) {
         request.result.createObjectStore(STEP_STORE_NAME)
@@ -51,13 +49,9 @@ function openStepIDB(): Promise<IDBDatabase> {
   })
 }
 
-const THUMB_DB_NAME = 'thumbnail-cache'
-const THUMB_DB_VERSION = 1
-const THUMB_STORE_NAME = 'thumbnails'
-
 function openThumbIDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(THUMB_DB_NAME, THUMB_DB_VERSION)
+    const request = indexedDB.open(THUMB_CACHE_DB_NAME, THUMB_CACHE_DB_VERSION)
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(THUMB_STORE_NAME)) {
         request.result.createObjectStore(THUMB_STORE_NAME)
@@ -101,7 +95,7 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
       const store = tx.objectStore(STEP_STORE_NAME)
       const request = store.openCursor()
 
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         request.onsuccess = () => {
           const cursor = request.result
           if (cursor) {
@@ -116,10 +110,11 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
             resolve()
           }
         }
-        request.onerror = () => resolve()
+        request.onerror = () => reject(request.error || new Error('STEP IndexedDB cursor failed'))
       })
     } catch (e) {
-      console.warn('[CacheManager] STEP IndexedDB read failed:', e)
+      console.error('[CacheManager] STEP IndexedDB read failed:', e)
+      if (import.meta.env.DEV) throw e
     }
 
     // Thumbnail IndexedDB
@@ -129,7 +124,7 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
       const store = tx.objectStore(THUMB_STORE_NAME)
       const request = store.openCursor()
 
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         request.onsuccess = () => {
           const cursor = request.result
           if (cursor) {
@@ -144,10 +139,11 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
             resolve()
           }
         }
-        request.onerror = () => resolve()
+        request.onerror = () => reject(request.error || new Error('Thumbnail IndexedDB cursor failed'))
       })
     } catch (e) {
-      console.warn('[CacheManager] Thumbnail IndexedDB read failed:', e)
+      console.error('[CacheManager] Thumbnail IndexedDB read failed:', e)
+      if (import.meta.env.DEV) throw e
     }
 
     setEntries(items)
