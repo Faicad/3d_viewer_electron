@@ -15,7 +15,7 @@ The `vise.3mf` demo model is used by default for illustration.
 - [Render Settings](/toolbar/render-settings) — Adjust rendering parameters and visual effects
 - [Animation Player](/toolbar/animation-player) — Play animation data embedded in models
 - [Bed Management](/toolbar/bed-management) — 3D printing bed visualization and settings
-- [History](/toolbar/history) — View and undo operation history
+- [History](/toolbar/history) — View previously loaded models
 - [Model Info](/toolbar/model-info) — View detailed information about the current model
 - [Fullscreen](/toolbar/fullscreen) — Toggle fullscreen display mode
 - [Sidebar Control](/toolbar/sidebar-control) — Show/hide left and right panels

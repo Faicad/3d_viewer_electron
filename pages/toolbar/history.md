@@ -1,10 +1,10 @@
 # History
 
-Click the **History** button in the toolbar to open the operation history panel and review actions in the current session.
+Click the **History** button in the toolbar to open the history panel showing models you have previously loaded.
 
-- **Undo** — Revert to the previous operation
-- **Redo** — Restore a previously undone operation
+- **File entries** — Each loaded model is listed with its file name, load time, and thumbnail preview
+- **Reopen** — Click any entry to reload that file
 
 ![](/screenshots/toolbar/en/history-panel.png)
 
-Each operation is listed chronologically for easy tracking.
+The history persists across sessions, making it easy to reopen recently viewed models.

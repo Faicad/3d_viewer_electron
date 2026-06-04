@@ -15,7 +15,7 @@
 - [渲染设置](/zh/toolbar/render-settings) — 调整渲染参数和视觉效果
 - [动画播放](/zh/toolbar/animation-player) — 播放模型中的动画数据
 - [热床管理](/zh/toolbar/bed-management) — 3D 打印热床可视化和设置
-- [历史记录](/zh/toolbar/history) — 查看和回退操作历史
+- [历史记录](/zh/toolbar/history) — 查看已加载过的模型
 - [模型信息](/zh/toolbar/model-info) — 查看当前模型的详细信息
 - [全屏显示](/zh/toolbar/fullscreen) — 切换全屏显示模式
 - [边栏控制](/zh/toolbar/sidebar-control) — 显示/隐藏左面板和右面板
