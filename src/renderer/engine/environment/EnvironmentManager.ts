@@ -266,7 +266,8 @@ export class EnvironmentManager {
    * Only replaces `scene.background` when the texture/mode actually changes.
    * Rotation-only updates should use `setBackgroundRotation` instead.
    */
-  applyBackground(scene: THREE.Scene, envRotation: number): void {
+  applyBackground(scene: THREE.Scene, envRotation: number, upAxis: 'y' | 'z' = 'z'): void {
+    const envXRot = upAxis === 'y' ? 0 : Math.PI / 2
     switch (this._backgroundMode) {
       case 'grey':
         scene.background = new THREE.Color(0x888888)
@@ -283,14 +284,14 @@ export class EnvironmentManager {
       case 'environment':
         if (this._currentBgTex) {
           scene.background = this._currentBgTex
-          scene.backgroundRotation.set(Math.PI / 2, 0, envRotation, 'YXZ')
+          scene.backgroundRotation.set(envXRot, 0, envRotation, 'YXZ')
         } else if (this._currentTex) {
           // Procedural studio: use the PMREM cubemap (CubeUVReflectionMapping)
           // directly as background. Three.js r184 routes CubeUVReflectionMapping
           // textures through the cubemap skybox path, which supports
           // backgroundRotation correctly (unlike the equirect flat-plane path).
           scene.background = this._currentTex
-          scene.backgroundRotation.set(Math.PI / 2, 0, envRotation, 'YXZ')
+          scene.backgroundRotation.set(envXRot, 0, envRotation, 'YXZ')
         } else {
           scene.background = this._createGradientBg()
         }
@@ -302,9 +303,10 @@ export class EnvironmentManager {
   }
 
   /** Update only the background rotation without replacing the texture. */
-  setBackgroundRotation(scene: THREE.Scene, envRotation: number): void {
+  setBackgroundRotation(scene: THREE.Scene, envRotation: number, upAxis: 'y' | 'z' = 'z'): void {
     if (this._backgroundMode === 'environment' && scene.background instanceof THREE.Texture) {
-      scene.backgroundRotation.set(Math.PI / 2, 0, envRotation, 'YXZ')
+      const envXRot = upAxis === 'y' ? 0 : Math.PI / 2
+      scene.backgroundRotation.set(envXRot, 0, envRotation, 'YXZ')
     }
   }
 

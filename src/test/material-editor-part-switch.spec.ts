@@ -92,6 +92,62 @@ test.describe('MaterialEditor part switch layout', () => {
     })
     await waitForLoadDone(page)
 
+    // --- Y-up assertions (AnisotropyBarnLamp.glb has no STEP_T extension → Y-up) ---
+    const upDiag = await page.evaluate(() => {
+      const ms = (window as any).__modelStore?.getState()
+      const dev = (window as any).__r3f_dev as any
+      const scene: any = dev?.scene
+      if (!scene) return { err: 'no scene' }
+
+      // Find directional light
+      let lightUp: number[] | null = null
+      scene.traverse((obj: any) => {
+        if (obj.isDirectionalLight && !lightUp) {
+          lightUp = [obj.up.x, obj.up.y, obj.up.z]
+        }
+      })
+
+      // Find shadow floor
+      let floorRot: number[] | null = null
+      scene.traverse((obj: any) => {
+        if (obj.name === 'shadowFloor') {
+          obj.traverse((child: any) => {
+            if (child.isMesh && !floorRot) {
+              floorRot = [child.rotation.x, child.rotation.y, child.rotation.z]
+            }
+          })
+        }
+      })
+
+      return {
+        activeUpAxis: ms?.activeUpAxis,
+        sceneUp: [scene.up.x, scene.up.y, scene.up.z],
+        envRotX: scene.environmentRotation?.x,
+        bgRotX: scene.backgroundRotation?.x,
+        lightUp,
+        floorRotX: floorRot?.[0] ?? null,
+      }
+    })
+    console.log('Y-up diag:', JSON.stringify(upDiag))
+
+    // activeUpAxis should be 'y'
+    test.expect(upDiag.activeUpAxis, 'activeUpAxis should be y for non-STEP_T GLB').toBe('y')
+
+    // scene.environmentRotation.x should be ~0 (Y-up maps sky to Y+)
+    test.expect(Math.abs(upDiag.envRotX), 'env X rotation should be ~0 for Y-up').toBeLessThan(0.01)
+
+    // scene.backgroundRotation.x should be ~0
+    test.expect(Math.abs(upDiag.bgRotX), 'bg X rotation should be ~0 for Y-up').toBeLessThan(0.01)
+
+    // directional light up should be [0, 1, 0] for Y-up
+    test.expect(upDiag.lightUp, 'light up should be [0,1,0] for Y-up').toEqual([0, 1, 0])
+
+    // shadow floor should be on XZ plane (rotation.x ≈ -π/2 for Y-up)
+    test.expect(upDiag.floorRotX, 'floor rotation.x should be ~-π/2 for Y-up').toBeLessThan(-1.5)
+
+    // scene.up should always be [0, 0, 1] (never changes)
+    test.expect(upDiag.sceneUp, 'scene.up should always be [0,0,1]').toEqual([0, 0, 1])
+
     // Ensure left panel is visible
     const leftPanel = page.locator('aside[data-testid="left-panel"]').first()
     await leftPanel.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})

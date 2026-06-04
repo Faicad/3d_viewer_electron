@@ -45,6 +45,8 @@ export interface LoadedFileModel {
   mtimeMs?: number
   buffer: ArrayBuffer
   format: FormatId
+  /** Native up-axis for this file (auto-detected from format + buffer by addLoadedFile). */
+  upAxis?: UpAxis
   sceneTree: SceneTreeNode[]
   glbPartInfos: GlbPartInfo[]
   modelCenteringOffset: [number, number, number] | null
@@ -388,12 +390,15 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   // Multi-file actions
   addLoadedFile: (file) => {
     useHistoryStore.getState().addEntry(file.filePath, file.fileName, file.mtimeMs)
+    const upAxis = getDefaultUpAxis(file.format, file.buffer)
+    const fileWithAxis = { ...file, upAxis }
     return set((state) => {
-      const newFiles = [...state.loadedFiles, file]
+      const newFiles = [...state.loadedFiles, fileWithAxis]
       const isFirst = state.loadedFiles.length === 0
       return {
         loadedFiles: newFiles,
-        ...(isFirst ? syncActiveFileFields(file, newFiles, state.sceneTree) : { sceneTree: buildCombinedTree(newFiles, state.sceneTree) }),
+        activeUpAxis: upAxis,
+        ...(isFirst ? syncActiveFileFields(fileWithAxis, newFiles, state.sceneTree) : { sceneTree: buildCombinedTree(newFiles, state.sceneTree) }),
       }
     })
   },
@@ -433,7 +438,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
     set((state) => {
       const file = state.loadedFiles.find((f) => f.id === id)
       if (!file) return {}
-      return syncActiveFileFields(file, state.loadedFiles, state.sceneTree)
+      return { activeUpAxis: file.upAxis ?? getDefaultUpAxis(file.format, file.buffer), ...syncActiveFileFields(file, state.loadedFiles, state.sceneTree) }
     }),
 
   updateFileSceneTree: (fileId, tree) =>

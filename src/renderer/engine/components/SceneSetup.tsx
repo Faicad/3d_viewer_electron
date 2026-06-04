@@ -11,6 +11,7 @@ import {
 } from '../heatbed/types'
 import type { PlateLayoutEntry } from '../heatbed/types'
 import { useEngineStore } from '@/stores/engine-store'
+import { useModelStore } from '@/stores/model-store'
 import { getSharedTextureCache } from '../material/MaterialFactory'
 import { computeShadowFrustum } from './shadowFrustum'
 
@@ -30,13 +31,17 @@ export default function SceneSetup() {
   const clearPendingCustomLoad = useEngineStore((s) => s.clearPendingCustomLoad)
   const envRotation = useEngineStore((s) => s.envRotation)
   const envBackground = useEngineStore((s) => s.envBackground)
+  const activeUpAxis = useModelStore((s) => s.activeUpAxis)
 
   useEffect(() => {
     const mgr = new EnvironmentManager(gl)
     mgr.initDefault()
+    const initAxis = useModelStore.getState().activeUpAxis
+    const initXRot = initAxis === 'y' ? 0 : Math.PI / 2
     mgr.setBackgroundMode(envBackground as Parameters<EnvironmentManager['setBackgroundMode']>[0])
-    mgr.applyBackground(scene, envRotation)
+    mgr.applyBackground(scene, envRotation, initAxis)
     scene.environment = mgr.currentTexture as THREE.Texture
+    scene.environmentRotation.set(initXRot, 0, envRotation, 'YXZ')
     scene.environmentIntensity = useEngineStore.getState().envIntensity
     envRef.current = mgr
 
@@ -48,10 +53,12 @@ export default function SceneSetup() {
   }, [gl, scene])
 
   const applyEnvToScene = (mgr: EnvironmentManager, rot: number) => {
+    const axis = useModelStore.getState().activeUpAxis
+    const exr = axis === 'y' ? 0 : Math.PI / 2
     scene.environment = mgr.currentTexture
-    scene.environmentRotation.set(Math.PI / 2, 0, rot, 'YXZ')
+    scene.environmentRotation.set(exr, 0, rot, 'YXZ')
     scene.environmentIntensity = useEngineStore.getState().envIntensity
-    mgr.applyBackground(scene, rot)
+    mgr.applyBackground(scene, rot, axis)
   }
 
   useEffect(() => {
@@ -93,19 +100,25 @@ export default function SceneSetup() {
     return () => { cancelled = true }
   }, [pendingCustomLoad])
 
-  // envRotation-only: update the Euler without re-loading the texture
+  // envRotation / upAxis: update the Euler without re-loading the texture
   useEffect(() => {
     if (!scene.environment) return
-    scene.environmentRotation.set(Math.PI / 2, 0, envRotation, 'YXZ')
-    envRef.current?.setBackgroundRotation(scene, envRotation)
-  }, [envRotation, scene])
+    const exr = activeUpAxis === 'y' ? 0 : Math.PI / 2
+    scene.environmentRotation.set(exr, 0, envRotation, 'YXZ')
+    envRef.current?.setBackgroundRotation(scene, envRotation, activeUpAxis)
+    // Keep shadow floor synced with up-axis
+    const bbox = useEngineStore.getState().modelBbox
+    if (bbox && shadowFloorRef.current) {
+      shadowFloorRef.current.configure(bbox, activeUpAxis)
+    }
+  }, [envRotation, activeUpAxis, scene])
 
   useEffect(() => {
     const mgr = envRef.current
     if (!mgr) return
     mgr.setBackgroundMode(envBackground as Parameters<EnvironmentManager['setBackgroundMode']>[0])
-    mgr.applyBackground(scene, envRotation)
-  }, [envBackground, scene])
+    mgr.applyBackground(scene, envRotation, activeUpAxis)
+  }, [envBackground, activeUpAxis, scene])
 
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state, prevState) => {
@@ -125,7 +138,7 @@ export default function SceneSetup() {
     // Apply initial state immediately — subscriptions may fire before the ref
     // is captured, so we read current values directly.
     const s = useEngineStore.getState()
-    if (s.modelBbox) floor.configure(s.modelBbox, 'z')
+    if (s.modelBbox) floor.configure(s.modelBbox, activeUpAxis)
     floor.setEnabled(s.shadowFloorEnabled)
     floor.setOpacity(s.shadowOpacity)
 
@@ -142,7 +155,7 @@ export default function SceneSetup() {
           state.modelBbox[4] === prevState.modelBbox[4] &&
           state.modelBbox[5] === prevState.modelBbox[5]) return
 
-      shadowFloorRef.current.configure(state.modelBbox, 'z')
+      shadowFloorRef.current.configure(state.modelBbox, useModelStore.getState().activeUpAxis)
 
       // Adapt the procedural studio floor to model size
       const mgr = envRef.current
@@ -413,7 +426,7 @@ export default function SceneSetup() {
     <>
       <directionalLight
         ref={dirLightRef}
-        color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={[0, 0, 1]}
+        color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={activeUpAxis === 'y' ? [0, 1, 0] : [0, 0, 1]}
         castShadow
         shadow-mapSize-width={4096} shadow-mapSize-height={4096}
         shadow-camera-near={0.5} shadow-camera-far={500}

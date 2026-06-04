@@ -232,13 +232,36 @@ test('shadow visibility diagnostic', async () => {
 
   const light = diag.directionalLights[0]
   test.expect(light.castShadow, 'light should castShadow').toBe(true)
-  test.expect(light.up, 'light up should be [0,0,1]').toEqual([0, 0, 1])
+  test.expect(light.up, 'light up should be [0,0,1] for Z-up').toEqual([0, 0, 1])
+
+  // --- Z-up assertions (box_boss.glb has STEP_T extension → Z-up) ---
+  // activeUpAxis in model store
+  const msDiag = await page.evaluate(() => {
+    const s = (window as any).__modelStore?.getState()
+    return { activeUpAxis: s?.activeUpAxis }
+  })
+  test.expect(msDiag.activeUpAxis, 'activeUpAxis should be z for STEP_T GLB').toBe('z')
+
+  // scene.environmentRotation.x should be ~π/2 (Z-up maps sky to Z+)
+  const envXRotZ = diag.sceneEnvRotation?.[0]
+  console.log('env rotation X (Z-up):', envXRotZ)
+  test.expect(Math.abs(envXRotZ - Math.PI / 2), 'env X rotation should be ~π/2 for Z-up').toBeLessThan(0.01)
+
+  // scene.backgroundRotation.x should be ~π/2
+  const bgXRotZ = diag.sceneBgRotation?.[0]
+  console.log('bg rotation X (Z-up):', bgXRotZ)
+  test.expect(Math.abs(bgXRotZ - Math.PI / 2), 'bg X rotation should be ~π/2 for Z-up').toBeLessThan(0.01)
+
+  // scene.up should always be [0, 0, 1]
+  test.expect(diag.sceneUp, 'scene.up should be [0,0,1]').toEqual([0, 0, 1])
 
   test.expect(diag.shadowFloors.length, 'shadow floor mesh should exist').toBeGreaterThan(0)
 
   const floorMesh = diag.shadowFloors.find((f: any) => f.isMesh)
   test.expect(floorMesh, 'shadow floor should have a mesh child').toBeTruthy()
   test.expect(floorMesh.receiveShadow, 'shadow floor should receiveShadow').toBe(true)
+  // shadow floor plane should be on XY plane (rotation.x ≈ 0 for Z-up)
+  test.expect(Math.abs(floorMesh.rotation[0]), 'floor rotation.x should be ~0 for Z-up').toBeLessThan(0.01)
 
   // Verify model meshes cast shadows
   test.expect(diag.totalCastShadow, 'model meshes should castShadow').toBeGreaterThan(0)

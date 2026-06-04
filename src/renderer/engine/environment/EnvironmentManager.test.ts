@@ -207,4 +207,24 @@ describe('EnvironmentManager', () => {
     mgr.dispose()
     expect(mgr.currentTexture).toBeNull()
   })
+
+  it('applyBackground with Y-up uses 0 X rotation', () => {
+    const mgr = new EnvironmentManager(renderer)
+    mgr.initDefault()
+    mgr.setBackgroundMode('environment')
+    const scene = new THREE.Scene()
+    mgr.applyBackground(scene, 0, 'y')
+    expect(scene.backgroundRotation.x).toBeCloseTo(0)
+    mgr.dispose()
+  })
+
+  it('applyBackground with Z-up uses π/2 X rotation', () => {
+    const mgr = new EnvironmentManager(renderer)
+    mgr.initDefault()
+    mgr.setBackgroundMode('environment')
+    const scene = new THREE.Scene()
+    mgr.applyBackground(scene, 0, 'z')
+    expect(scene.backgroundRotation.x).toBeCloseTo(Math.PI / 2)
+    mgr.dispose()
+  })
 })
