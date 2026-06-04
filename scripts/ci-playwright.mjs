@@ -68,7 +68,7 @@ function main() {
   env.PLAYWRIGHT_JSON_OUTPUT_NAME = reportFile
 
   const { cmd, args } = buildPlaywrightCmd([
-    '--workers=1',
+    '--workers=2',
     '--reporter=list,json',
     ...testFilter,
   ])
@@ -144,7 +144,7 @@ function main() {
   for (const spec of failedSpecs) {
     console.log(`Re-running: ${spec}`)
     const { cmd: retryCmd, args: retryArgs } = buildPlaywrightCmd([
-      '--workers=1',
+      '--workers=2',
       '--reporter=line',
       spec,
     ])
