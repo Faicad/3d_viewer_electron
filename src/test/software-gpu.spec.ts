@@ -28,7 +28,7 @@ async function setupAndCheck(
   await page.waitForLoadState('domcontentloaded', { timeout: 60000 })
   await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 120000 })
 
-  const detected = isSoftwareGpu()
+  const detected = await page.evaluate(() => (window as any).__isSoftwareGpu)
   console.log(`[gpu-check] ${label}: __isSoftwareGpu = ${detected}`)
 
   expect(
