@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, LayoutGrid, Check,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -490,16 +490,25 @@ export default function DesktopLayout() {
     useUIStore.getState().setFullscreen(result)
   }, [])
 
-  // Fullscreen auto-hide: top toolbar hides upward, bottom controls hide downward
+  // Fullscreen auto-hide panels + toolbar
+  const prevPanelStateRef = useRef({ left: true, right: true })
   useEffect(() => {
-    if (!isFullscreen) {
+    if (isFullscreen) {
+      const { leftPanelOpen, rightPanelOpen } = useUIStore.getState()
+      prevPanelStateRef.current = { left: leftPanelOpen, right: rightPanelOpen }
+      if (leftPanelOpen) useUIStore.getState().toggleLeftPanel()
+      if (rightPanelOpen) useUIStore.getState().toggleRightPanel()
+      setHeaderVisible(false)
+      setBottomVisible(false)
+    } else {
       setHeaderVisible(true)
       setBottomVisible(true)
+      const { left: prevLeft, right: prevRight } = prevPanelStateRef.current
+      const { leftPanelOpen, rightPanelOpen } = useUIStore.getState()
+      if (prevLeft && !leftPanelOpen) useUIStore.getState().toggleLeftPanel()
+      if (prevRight && !rightPanelOpen) useUIStore.getState().toggleRightPanel()
       return
     }
-
-    setHeaderVisible(false)
-    setBottomVisible(false)
 
     const handleMouseMove = (e: MouseEvent) => {
       setHeaderVisible(e.clientY <= 40)
@@ -910,7 +919,7 @@ export default function DesktopLayout() {
               onClick={() => ui.setCameraMode('orthographic')}
               aria-label={t('toolbar.orthographic')}
             >
-              <Grid3x3 className="toolbar-icon h-4 w-4 text-emerald-500" />
+              <Box className="toolbar-icon h-4 w-4 text-emerald-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.orthographic')}</TooltipContent>
@@ -919,7 +928,7 @@ export default function DesktopLayout() {
 
         <Separator orientation="vertical" className="h-5 shrink-0" />
 
-        {/* Material Editor / Render Settings */}
+        {/* Material Editor / Render Settings / Heatbed */}
         {!isSvgMode && (<>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -947,30 +956,6 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.environment')}</TooltipContent>
         </Tooltip>
-        </>)}
-
-        <Separator orientation="vertical" className="h-5 shrink-0" />
-
-        {/* Animation / Heatbed */}
-        {!isSvgMode && (<>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={!hasAnimations}
-              onClick={() => {
-                const file = useModelStore.getState().loadedFiles.find((f) => f.animations?.length)
-                if (file) useModelStore.getState().openAnimDialog(file.id)
-              }}
-              aria-label={t('toolbar.animationPlayer')}
-              data-testid="toolbar-animation-player"
-            >
-              <Play className="toolbar-icon h-4 w-4 text-green-500" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
-        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -981,7 +966,7 @@ export default function DesktopLayout() {
               aria-label={t('toolbar.heatbed')}
               data-testid="toolbar-heatbed"
             >
-              <LayoutGrid className="toolbar-icon h-4 w-4 text-orange-500" />
+              <Grid3x3 className="toolbar-icon h-4 w-4 text-orange-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.heatbed')}</TooltipContent>
@@ -990,7 +975,7 @@ export default function DesktopLayout() {
 
         <Separator orientation="vertical" className="h-5 shrink-0" />
 
-        {/* History / Model Info */}
+        {/* History / Model Info / Animation */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -1022,13 +1007,36 @@ export default function DesktopLayout() {
         </Tooltip>
         )}
 
+        <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {!isSvgMode && (<>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!hasAnimations}
+              onClick={() => {
+                const file = useModelStore.getState().loadedFiles.find((f) => f.animations?.length)
+                if (file) useModelStore.getState().openAnimDialog(file.id)
+              }}
+              aria-label={t('toolbar.animationPlayer')}
+              data-testid="toolbar-animation-player"
+            >
+              <Play className="toolbar-icon h-4 w-4 text-green-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
+        </Tooltip>
+        </>)}
+
         <div className="flex-1" />
 
         {/* Fullscreen / Left / Right Panel */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} aria-label={t('toolbar.fullscreen')}>
-              {isFullscreen ? <Minimize className="toolbar-icon h-4 w-4 text-slate-500" /> : <Maximize className="toolbar-icon h-4 w-4 text-slate-500" />}
+              {isFullscreen ? <Minimize className="toolbar-icon h-4 w-4 text-fuchsia-500" /> : <Maximize className="toolbar-icon h-4 w-4 text-fuchsia-500" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.fullscreen')}</TooltipContent>
@@ -1036,7 +1044,7 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel} aria-label={t('toolbar.leftPanel')}>
-              {ui.leftPanelOpen ? <PanelLeftClose className="toolbar-icon h-4 w-4 text-slate-500" /> : <PanelLeftOpen className="toolbar-icon h-4 w-4 text-slate-500" />}
+              {ui.leftPanelOpen ? <PanelLeftClose className="toolbar-icon h-4 w-4 text-indigo-500" /> : <PanelLeftOpen className="toolbar-icon h-4 w-4 text-indigo-500" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.leftPanel')}</TooltipContent>
@@ -1044,7 +1052,7 @@ export default function DesktopLayout() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={ui.toggleRightPanel} aria-label={t('toolbar.rightPanel')}>
-              {ui.rightPanelOpen ? <PanelRightClose className="toolbar-icon h-4 w-4 text-slate-500" /> : <PanelRightOpen className="toolbar-icon h-4 w-4 text-slate-500" />}
+              {ui.rightPanelOpen ? <PanelRightClose className="toolbar-icon h-4 w-4 text-indigo-500" /> : <PanelRightOpen className="toolbar-icon h-4 w-4 text-indigo-500" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.rightPanel')}</TooltipContent>

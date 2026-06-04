@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
 import { useFileUpload } from '@/hooks/useFileUpload'
-import { Upload } from 'lucide-react'
+import { Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import ViewportContainer from '@/components/viewport/ViewportContainer'
 import SvgWorkspace from '@/components/viewport/SvgWorkspace'
@@ -32,6 +32,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const [searchParams] = useSearchParams()
   const skipUpload = searchParams.get('skip_upload') === '1' && import.meta.env.DEV
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [showDropOverlay, setShowDropOverlay] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // SVG mode: true if any loaded file is SVG
@@ -436,15 +437,22 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         <ViewportContainer />
       )}
 
-      {!hasAnyModel && !isSvgMode && (
+      {!hasAnyModel && !isSvgMode && showDropOverlay && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
-            className="flex flex-col items-center gap-4 p-12 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto bg-background/70 backdrop-blur-sm"
+            className="relative flex flex-col items-center gap-4 p-12 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto bg-background/70 backdrop-blur-sm"
             onClick={handleNativeOpenFile}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleNativeOpenFile() }}
           >
+            <button
+              className="absolute top-2 right-2 p-1 rounded hover:bg-muted transition-colors"
+              onClick={(e) => { e.stopPropagation(); setShowDropOverlay(false) }}
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <Upload className="h-12 w-12" />
             <p className="text-lg font-medium">{t('chat.uploadFormats')}</p>
             <p className="text-sm">{t('chat.uploadHint')}</p>
