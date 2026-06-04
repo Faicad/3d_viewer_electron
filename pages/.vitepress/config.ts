@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitepress'
-import pkg from '../../package.json'
 import { FORMATS } from '../../scripts/format-data.mjs'
 import { NAV, SIDEBAR } from '../../scripts/translations.mjs'
 
@@ -91,7 +90,6 @@ function nav(lang) {
     { text: t.features, link: p + '/features/overview' },
     { text: t.toolbar, link: p + '/toolbar/' },
     { text: t.formats, link: p + '/formats/' },
-    { text: 'GitHub', link: 'https://github.com/faicad/3d_viewer_electron' },
   ]
 }
 
@@ -188,11 +186,6 @@ export default defineConfig({
     logo: '/favicon.svg',
 
     search: { provider: 'local' },
-
-    footer: {
-      message: `v${pkg.version} — LGPL-2.0`,
-      copyright: `Copyright © ${new Date().getFullYear()} Faicad`,
-    },
 
     nav: nav('en'),
     sidebar: sidebar('en'),

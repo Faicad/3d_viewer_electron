@@ -9,9 +9,7 @@ hero:
     - theme: brand
       text: 始める
       link: /ja/guide/getting-started
-    - theme: alt
-      text: GitHub
-      link: https://github.com/faicad/3d_viewer_electron
+
 
 features:
   - icon: 🚀

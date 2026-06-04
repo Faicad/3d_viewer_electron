@@ -8,10 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /en/guide/getting-started
-    - theme: alt
-      text: GitHub
-      link: https://github.com/faicad/3d_viewer_electron
+      link: /guide/getting-started
 
 features:
   - icon: 🚀

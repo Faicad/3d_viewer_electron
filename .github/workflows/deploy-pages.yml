@@ -41,6 +41,12 @@ jobs:
       - name: Build documentation
         run: pnpm run build:docs
 
+      - name: Install Playwright browsers
+        run: pnpm --prefix pages exec playwright install --with-deps chromium
+
+      - name: Run pages e2e tests
+        run: pnpm --prefix pages exec playwright test --config playwright.config.ts
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
