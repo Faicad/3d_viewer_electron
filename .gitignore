@@ -33,6 +33,7 @@ out/
 !src/renderer/public/env/*.hdr
 docs/outdated/
 docs/analysis/
+.vitepress/
 pages/.vitepress/cache/
 pages/.vitepress/dist/
 resources/
