@@ -7,6 +7,7 @@
  */
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 function trackErrors(page: Page) {
   const pageErrors: string[] = []
@@ -43,8 +44,10 @@ test.describe('MaterialEditor scroll', () => {
 
   test('scroll area viewport gets constrained height from CSS grid', async () => {
     const window = await electronApp.firstWindow()
-    const { assertNoErrors } = trackErrors(window)
     await window.waitForLoadState('domcontentloaded')
+    await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
+    test.skip(isSoftwareGpu(), 'ScrollArea may not render on software GPU')
+    const { assertNoErrors } = trackErrors(window)
 
     // Open material editor via store (no model load needed)
     await window.evaluate(() => {

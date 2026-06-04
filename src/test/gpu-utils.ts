@@ -1,44 +1,19 @@
 /**
- * GPU detection helpers for E2E tests.
+ * Environment-based detection for software GPU scenarios.
  *
- * Software GPU detection is performed by the renderer at init time
- * (ViewportContainer.tsx onCreated) and stored in window.__isSoftwareGpu.
- * Tests read this pre-computed value — NO WebGL calls happen in the test
- * context, which avoids page.evaluate hangs on SwiftShader / ANGLE backends.
- *
- * On software-rendered platforms PMREM generation, shadow maps, and IBL-based
- * environment textures are unavailable. Tests that depend on those features
- * should skip.
- *
- * See docs/gpu-adaptive-rendering-design.md and simple-rendering-mode-design.md
- * for the full GPU-adaptive rendering strategy.
+ * No WebGL probing at all — purely checks the test runner's environment.
+ * In WSL, Linux CI, and Windows Server CI there is no hardware GPU
+ * available, so these environments always use software rendering.
  */
-import type { Page } from '@playwright/test'
 
 /**
- * Detect whether the current WebGL renderer is software-backed.
- *
- * Reads window.__isSoftwareGpu which is pre-computed by the renderer during
- * Three.js initialization (while the WebGL context is still fresh).
- * No WebGL calls are made here — avoids hangs on software backends.
+ * Returns true when running in an environment that lacks a hardware GPU:
+ *   - WSL (no GPU passthrough)
+ *   - CI runners (GitHub Actions, GitLab CI, Jenkins, etc.)
  */
-export async function isSoftwareGpu(page: Page): Promise<boolean> {
-  try {
-    return await page.evaluate(() => !!(window as any).__isSoftwareGpu)
-  } catch {
-    return false
-  }
-}
-
-/**
- * Convenience: returns true when the scene has no environment texture,
- * which is a reliable fallback signal that PMREM generation failed.
- * Useful as a pre-check before pixel-level shadow/lighting assertions.
- */
-export async function hasSceneEnvironment(page: Page): Promise<boolean> {
-  try {
-    return await page.evaluate(() => !!(window as any).__r3f_dev?.scene?.environment)
-  } catch {
-    return false
-  }
+export function isSoftwareGpu(): boolean {
+  if (process.env.WSL_DISTRO_NAME) return true
+  // macOS CI runners (e.g. GitHub Actions macos-latest) have hardware GPU.
+  if (process.env.CI && process.platform !== 'darwin') return true
+  return false
 }

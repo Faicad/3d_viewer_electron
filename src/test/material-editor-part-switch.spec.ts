@@ -11,6 +11,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const GLB_BUFFER = readFileSync(path.join(__dirname, 'fixtures', 'AnisotropyBarnLamp.glb'))
@@ -54,6 +55,7 @@ async function openEditorForPart(page: Page, partIndex: number) {
 test.describe('MaterialEditor part switch layout', () => {
   let electronApp: ElectronApplication
   let _userDataDir: string
+  let _isSwGpu = false
 
   test.beforeAll(async () => {
     _userDataDir = createUserDataDir()
@@ -63,6 +65,11 @@ test.describe('MaterialEditor part switch layout', () => {
       env: { ...process.env, E2E: '1' },
       userDataDir: _userDataDir,
     })
+
+    const page = await electronApp.firstWindow()
+    await page.waitForLoadState('domcontentloaded')
+    await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
+    _isSwGpu = isSoftwareGpu()
   })
 
   test.afterAll(async () => {
@@ -72,6 +79,7 @@ test.describe('MaterialEditor part switch layout', () => {
 
   test('alpha mode buttons remain visible after switching parts via scene tree', async () => {
     const page = await electronApp.firstWindow()
+    test.skip(_isSwGpu, 'Context menu may close on software GPU due to WebGL context loss')
     const { assertNoErrors } = trackErrors(page)
     await page.waitForLoadState('domcontentloaded')
     await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })

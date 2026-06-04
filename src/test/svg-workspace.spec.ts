@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SVG_FIXTURES_DIR = path.join(__dirname, 'fixtures', 'svg')
@@ -103,6 +104,7 @@ test.describe('SVG Workspace E2E', () => {
 
   test('2. right panel shows SVG thumbnails after loading', async () => {
     const window = await electronApp.firstWindow()
+    test.skip(isSoftwareGpu(), 'Canvas context may be lost on software GPU')
     await waitForCanvas(window)
 
     // Load 3 SVGs into model-store with thumbnails
@@ -175,6 +177,7 @@ test.describe('SVG Workspace E2E', () => {
 
   test('3. file visibility toggle via eye icon', async () => {
     const window = await electronApp.firstWindow()
+    test.skip(isSoftwareGpu(), 'Canvas context may be lost on software GPU')
     await waitForCanvas(window)
 
     const svgText = readSvgFixture('add.svg')

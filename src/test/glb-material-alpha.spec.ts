@@ -38,21 +38,16 @@ test.describe('alphaMode', () => {
     await page.waitForLoadState('domcontentloaded')
     await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
+    // On software GPU the context menu items for GLB files may not render
+    // and model loading may time out.
+    const _isSwGpu = isSoftwareGpu()
+    test.skip(_isSwGpu, 'GLB material alpha tests require hardware GPU')
+
     // Load bath_day.glb
     await page.locator('input[type="file"]').setInputFiles({
       name: 'bath_day.glb', mimeType: 'model/gltf-binary', buffer: BATH_DAY_BUFFER,
     })
     await waitForLoadDone(page)
-
-    // On software GPU the context menu items for GLB files may not render.
-    if (await isSoftwareGpu(page)) {
-      console.log('SKIP: software GPU — GLB extension context menu unavailable')
-      await app.close()
-      cleanupUserDataDir(_userDataDir)
-      return
-    }
-    await page.waitForTimeout(300)
-
     // Right-click file → 材质管理
     await page.locator('[data-testid="scene-tree-file"]').first().click({ button: 'right' })
     await page.waitForTimeout(300)

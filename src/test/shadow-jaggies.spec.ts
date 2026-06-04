@@ -84,10 +84,11 @@ test('shadow should not have severe aliasing on box_fillet.glb', async () => {
 
   // On software GPU shadow maps are disabled — skip the remaining assertions.
   // See simple-rendering-mode-design.md.
-  if (await isSoftwareGpu(page)) {
+  if (isSoftwareGpu()) {
     console.log('SKIP: software GPU — shadow map assertions unavailable')
     await app.close()
     cleanupUserDataDir(_userDataDir)
+    test.skip()
     return
   }
 

@@ -80,7 +80,7 @@ step "4/7  Component & integration tests (vitest, jsdom env)" pnpm exec vitest r
 
 step "5/7  Build ($BUILD_SCRIPT)" pnpm run "$BUILD_SCRIPT"
 
-step "6/7  E2E tests (playwright)" pnpm exec playwright test --max-failures=1
+step "6/7  E2E tests (playwright)" pnpm exec playwright test --workers=1 --max-failures=1
 
 TOTAL_END=$(date +%s)
 TOTAL_ELAPSED=$((TOTAL_END - TOTAL_START))

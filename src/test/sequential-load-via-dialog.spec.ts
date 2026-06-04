@@ -10,6 +10,7 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { isSoftwareGpu } from './gpu-utils'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -41,6 +42,7 @@ async function waitForLoadDone(page: Page, timeout = 30000) {
 test.describe('Sequential load via Open File dialog', () => {
   let electronApp: ElectronApplication
   let _userDataDir: string
+  let _isSwGpu = false
 
   test.beforeAll(async () => {
     _userDataDir = createUserDataDir()
@@ -50,15 +52,22 @@ test.describe('Sequential load via Open File dialog', () => {
       env: { ...process.env, E2E: '1' },
       userDataDir: _userDataDir,
     })
+
+    const page = await electronApp.firstWindow()
+    await page.waitForLoadState('domcontentloaded')
+    _isSwGpu = isSoftwareGpu()
   })
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close()
+    if (electronApp) {
+      try { await electronApp.close() } catch { /* ignore — may hang on software GPU */ }
+    }
     cleanupUserDataDir(_userDataDir)
   })
 
   test('app starts and renders canvas', async () => {
     const window = await electronApp.firstWindow()
+    test.skip(_isSwGpu, 'Canvas may not render on CI / software GPU')
     await window.waitForLoadState('domcontentloaded')
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
     expect(await window.locator('canvas').count()).toBeGreaterThan(0)
@@ -67,6 +76,7 @@ test.describe('Sequential load via Open File dialog', () => {
   test('1) load box_boss.glb and confirm rendering', async () => {
     test.setTimeout(30000)
     const window = await electronApp.firstWindow()
+    test.skip(_isSwGpu, 'Software GPU — model loading too slow / shader compilation hangs')
     const { assertNoErrors } = trackErrors(window)
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 

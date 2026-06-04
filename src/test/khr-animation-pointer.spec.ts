@@ -12,6 +12,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const KHR_GLB = readFileSync(path.join(__dirname, 'fixtures', 'khr-animation-pointer.glb'))
@@ -26,6 +27,7 @@ async function waitForLoadDone(page: Page, timeout = 30000) {
 test.describe('KHR_animation_pointer', () => {
   let app: ElectronApplication
   let _userDataDir: string
+  let _isSwGpu = false
 
   test.beforeAll(async () => {
     _userDataDir = createUserDataDir()
@@ -39,6 +41,7 @@ test.describe('KHR_animation_pointer', () => {
     const page = await app.firstWindow()
     await page.waitForLoadState('domcontentloaded')
     await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
+    _isSwGpu = isSoftwareGpu()
     await page.evaluate(() => { (window as any).__errors = [] })
   })
 
@@ -95,6 +98,7 @@ test.describe('KHR_animation_pointer', () => {
 
   test('KHR_animation_pointer clips load into store with material property tracks', async () => {
     const page = await app.firstWindow()
+    test.skip(_isSwGpu, 'Animation clock does not advance on software GPU')
 
     // Model already loaded in beforeAll test
     await page.locator('[data-testid="toolbar-animation-player"]').click()

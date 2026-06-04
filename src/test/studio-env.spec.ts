@@ -48,10 +48,11 @@ test('procedural studio shows room box with lights when rotated', async () => {
   // PMREM environment generation requires hardware WebGL; on llvmpipe /
   // SwiftShader / WARP it either fails or takes minutes.  See
   // simple-rendering-mode-design.md for the full strategy.
-  if (await isSoftwareGpu(page)) {
-    console.log('SKIP: software GPU detected — PMREM / shadow / IBL unavailable')
+  if (isSoftwareGpu()) {
+    console.log('SKIP: software GPU — PMREM / shadow / IBL unavailable')
     await app.close()
     cleanupUserDataDir(_userDataDir)
+    test.skip()
     return
   }
 

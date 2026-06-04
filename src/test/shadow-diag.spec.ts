@@ -23,12 +23,13 @@ test('shadow visibility diagnostic', async () => {
   await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 15000 })
 
   // --- Early GPU check: skip heavy rendering on software GPU ---
-  // Wait for Three.js scene to mount so window.__isSoftwareGpu is set
+  // window.__isSoftwareGpu is set in the preload — available from page start
   await page.waitForFunction(() => !!(window as any).__r3f_dev?.gl, { timeout: 30000 }).catch(() => {})
-  if (await isSoftwareGpu(page)) {
+  if (isSoftwareGpu()) {
     console.log('SKIP: software GPU detected — shadow floor / pixel assertions unavailable')
     killElectronApp(app) // kill process tree — SwiftShader GPU child survives .kill()
     cleanupUserDataDir(_userDataDir)
+    test.skip()
     return
   }
 

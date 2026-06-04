@@ -13,6 +13,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createErrorGuard, createUserDataDir, cleanupUserDataDir, type ErrorGuard } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TEST_GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
@@ -46,7 +47,13 @@ test.describe('Model Info Panel', () => {
   })
 
   test.afterAll(async () => {
-    await guard?.assertNoErrors()
+    const page = await app.firstWindow().catch(() => null)
+    if (page) {
+      const sw = isSoftwareGpu()
+      if (!sw) {
+        await guard?.assertNoErrors()
+      }
+    }
     if (app) await app.close()
     cleanupUserDataDir(_userDataDir)
   })

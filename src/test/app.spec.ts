@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TEST_GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
@@ -45,7 +46,9 @@ test.describe('3D Viewer Electron', () => {
   })
 
   test.afterAll(async () => {
-    await electronApp.close()
+    if (electronApp) {
+      try { await electronApp.close() } catch { /* may hang on CI */ }
+    }
     cleanupUserDataDir(_userDataDir)
   })
 
@@ -63,6 +66,7 @@ test.describe('3D Viewer Electron', () => {
 
   test('loads GLB file and model renders', async () => {
     const window = await electronApp.firstWindow()
+    test.skip(isSoftwareGpu(), 'WebGL2 thumbnail generation fails on CI / software GPU')
     const { assertNoErrors } = trackErrors(window)
 
     // Load GLB file

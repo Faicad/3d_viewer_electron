@@ -51,6 +51,7 @@ function main() {
   console.log('\n=== Integration tests (first attempt) ===\n')
 
   const { cmd, args } = buildPlaywrightCmd([
+    '--workers=1',
     '--reporter=json',
     ...testFilter,
   ])
@@ -125,6 +126,7 @@ function main() {
   for (const spec of failedSpecs) {
     console.log(`Re-running: ${spec}`)
     const { cmd: retryCmd, args: retryArgs } = buildPlaywrightCmd([
+      '--workers=1',
       '--reporter=line',
       spec,
     ])

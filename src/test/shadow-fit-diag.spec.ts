@@ -100,10 +100,11 @@ test('shadow visible on small model after camera auto-fit', async () => {
 
   // Skip pixel-level shadow checks on software GPU — PMREM / shadow maps
   // are unavailable. See simple-rendering-mode-design.md.
-  if (await isSoftwareGpu(page)) {
+  if (isSoftwareGpu()) {
     console.log('SKIP: software GPU — pixel shadow assertions unavailable')
     await app.close()
     cleanupUserDataDir(_userDataDir)
+    test.skip()
     return
   }
 

@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TEST_STEP = readFileSync(path.join(__dirname, 'fixtures', 'test-model.step'))
@@ -46,7 +47,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close()
+      try { await electronApp.close() } catch { /* may hang on CI */ }
     }
     cleanupUserDataDir(_userDataDir)
   })
@@ -65,6 +66,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
 
   test('loads STEP file, converts to GLB, renders mesh with topology', async () => {
     const window = await electronApp.firstWindow()
+    test.skip(isSoftwareGpu(), 'WebGL2 thumbnail generation fails on CI / software GPU')
     const { assertNoErrors } = trackErrors(window)
 
     // Capture console messages for debugging

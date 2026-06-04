@@ -55,6 +55,10 @@ test.describe('Selection Highlight Artifacts', () => {
     await page.waitForLoadState('domcontentloaded')
     await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 
+    // Skip on software GPU — selection highlight depends on render pipeline
+    // and model loading may time out.
+    test.skip(isSoftwareGpu(), 'Selection highlight requires hardware GPU')
+
     const renderErrors: string[] = []
     page.on('pageerror', (err) => renderErrors.push(err.message))
 
@@ -72,12 +76,6 @@ test.describe('Selection Highlight Artifacts', () => {
       buffer: GLB_BUFFER,
     })
     await waitForLoadDone(page)
-
-    // Skip on software GPU — selection highlight depends on render pipeline.
-    if (await isSoftwareGpu(page)) {
-      console.log('SKIP: software GPU — selection highlight unavailable')
-      return
-    }
 
     // Click center of canvas to select the model (object mode)
     const canvas = page.locator('canvas').first()

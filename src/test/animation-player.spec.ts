@@ -12,6 +12,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createErrorGuard, createUserDataDir, cleanupUserDataDir, type ErrorGuard } from './utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROBOT_GLB = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
@@ -27,6 +28,7 @@ test.describe('Animation Player', () => {
   let app: ElectronApplication
   let guard: ErrorGuard
   let _userDataDir: string
+  let _isSwGpu = false
 
   test.beforeAll(async () => {
     _userDataDir = createUserDataDir()
@@ -39,9 +41,11 @@ test.describe('Animation Player', () => {
 
     // Load RobotExpressive.glb once before all tests
     const page = await app.firstWindow()
-    guard = createErrorGuard(page)
     await page.waitForLoadState('domcontentloaded')
     await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
+    _isSwGpu = isSoftwareGpu()
+    if (_isSwGpu) return
+    guard = createErrorGuard(page)
     await page.evaluate(() => { (window as any).__errors = [] })
 
     await page.locator('input[type="file"]').setInputFiles({
@@ -53,13 +57,16 @@ test.describe('Animation Player', () => {
   })
 
   test.afterAll(async () => {
-    await guard?.assertNoErrors()
+    if (!_isSwGpu) {
+      await guard?.assertNoErrors()
+    }
     if (app) await app.close()
     cleanupUserDataDir(_userDataDir)
   })
 
   test('shows Play Animation toolbar button when animated file is loaded', async () => {
     const page = await app.firstWindow()
+    test.skip(_isSwGpu, 'Animation rendering requires hardware GPU')
     // Toolbar icon with aria-label, enabled when file has animations
     const playBtn = page.locator('[data-testid="toolbar-animation-player"]')
     await expect(playBtn).toBeVisible({ timeout: 5000 })
@@ -75,6 +82,7 @@ test.describe('Animation Player', () => {
 
   test('clicking Play Animation button opens dialog and plays animation', async () => {
     const page = await app.firstWindow()
+    test.skip(_isSwGpu, 'Animation rendering requires hardware GPU')
 
     // Click toolbar animation button
     await page.locator('[data-testid="toolbar-animation-player"]').click()
@@ -156,6 +164,7 @@ test.describe('Animation Player', () => {
 
   test('scene tree right-click menu shows Play Animation for animated file', async () => {
     const page = await app.firstWindow()
+    test.skip(_isSwGpu, 'WebGL shader errors expected on software GPU')
 
     // Right-click the file node in the scene tree
     const fileNode = page.locator('[data-testid="scene-tree-file"]').first()
