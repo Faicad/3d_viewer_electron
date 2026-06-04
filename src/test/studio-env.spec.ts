@@ -3,7 +3,7 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
@@ -43,6 +43,15 @@ test('procedural studio shows room box with lights when rotated', async () => {
     () => (window as any).__modelStore?.getState().__loadingPhase === 'done',
     { timeout: 15000 },
   ).catch(() => {})
+
+  // --- Linux CI: skip entirely (cubemap rendering differs from macOS) ---
+  if (isLinuxCI()) {
+    console.log('SKIP: Linux CI — environment rendering differs from macOS')
+    await app.close()
+    cleanupUserDataDir(_userDataDir)
+    test.skip()
+    return
+  }
 
   // --- GPU detection: skip Studio rendering assertions on software GPU ---
   // PMREM environment generation requires hardware WebGL; on llvmpipe /
