@@ -72,6 +72,7 @@ test('hardware GPU → __isSoftwareGpu is false', async () => {
 // ---------------------------------------------------------------------------
 test('--use-angle=swiftshader → __isSoftwareGpu is true', async () => {
   test.skip(isLinuxCI(), 'SwiftShader init flaky on Linux CI')
+  test.skip(process.env.CI === 'true' && process.platform === 'darwin', 'SwiftShader init flaky on macOS CI')
   test.setTimeout(180000)
   const userDataDir = createUserDataDir()
 

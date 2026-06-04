@@ -22,6 +22,7 @@ const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
  * 3. The background contains bright regions (area lights).
  */
 test('procedural studio shows room box with lights when rotated', async () => {
+  test.skip(isLinuxCI(), 'Unstable on Linux CI — setInputFiles timeout')
   test.setTimeout(90000)
   const _userDataDir = createUserDataDir()
   const app = await _electron.launch({
@@ -35,24 +36,6 @@ test('procedural studio shows room box with lights when rotated', async () => {
   await page.waitForLoadState('domcontentloaded')
   await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 15000 })
 
-  // Load a test model so the scene is active
-  await page.locator('input[type="file"]').setInputFiles({
-    name: 't.glb', mimeType: 'model/gltf-binary', buffer: GLB,
-  })
-  await page.waitForFunction(
-    () => (window as any).__modelStore?.getState().__loadingPhase === 'done',
-    { timeout: 15000 },
-  ).catch(() => {})
-
-  // --- Linux CI: skip entirely (cubemap rendering differs from macOS) ---
-  if (isLinuxCI()) {
-    console.log('SKIP: Linux CI — environment rendering differs from macOS')
-    await app.close()
-    cleanupUserDataDir(_userDataDir)
-    test.skip()
-    return
-  }
-
   // --- GPU detection: skip Studio rendering assertions on software GPU ---
   // PMREM environment generation requires hardware WebGL; on llvmpipe /
   // SwiftShader / WARP it either fails or takes minutes.  See
@@ -64,6 +47,15 @@ test('procedural studio shows room box with lights when rotated', async () => {
     test.skip()
     return
   }
+
+  // Load a test model so the scene is active
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 't.glb', mimeType: 'model/gltf-binary', buffer: GLB,
+  })
+  await page.waitForFunction(
+    () => (window as any).__modelStore?.getState().__loadingPhase === 'done',
+    { timeout: 15000 },
+  ).catch(() => {})
 
   // Switch to studio preset with environment background
   await page.evaluate(() => {
