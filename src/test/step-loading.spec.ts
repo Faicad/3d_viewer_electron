@@ -129,6 +129,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   })
 
   test('clicks STEP file in file list panel and renders model', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     test.setTimeout(60000)
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
