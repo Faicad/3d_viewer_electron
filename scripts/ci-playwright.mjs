@@ -8,6 +8,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const RETRY_THRESHOLD = 3
 const IS_LINUX = process.platform === 'linux'
 const IS_WINDOWS = process.platform === 'win32'
+const WORKERS = IS_LINUX ? '1' : '2'
 
 /** Clean environment: remove proxy vars that can interfere with local dev */
 function cleanEnv() {
@@ -68,7 +69,7 @@ function main() {
   env.PLAYWRIGHT_JSON_OUTPUT_NAME = reportFile
 
   const { cmd, args } = buildPlaywrightCmd([
-    '--workers=2',
+    `--workers=${WORKERS}`,
     '--reporter=list,json',
     ...testFilter,
   ])
@@ -144,7 +145,7 @@ function main() {
   for (const spec of failedSpecs) {
     console.log(`Re-running: ${spec}`)
     const { cmd: retryCmd, args: retryArgs } = buildPlaywrightCmd([
-      '--workers=2',
+      `--workers=${WORKERS}`,
       '--reporter=line',
       spec,
     ])
