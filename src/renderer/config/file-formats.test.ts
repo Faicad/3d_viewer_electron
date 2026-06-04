@@ -4,6 +4,7 @@ import {
   EXT_TO_FORMAT,
   ALL_EXTENSIONS,
   ALL_EXTENSIONS_NO_DOT,
+  ALL_MODEL_EXTENSIONS,
   FORMAT_MAP,
   ALL_ACCEPT,
   getGroupAccept,
@@ -15,8 +16,8 @@ import {
 } from './file-formats'
 
 describe('file-formats config', () => {
-  it('all 31 formats defined', () => {
-    expect(FILE_FORMATS.length).toBe(31)
+  it('all 33 formats defined', () => {
+    expect(FILE_FORMATS.length).toBe(33)
   })
 
   it('no duplicate format ids', () => {
@@ -85,6 +86,20 @@ describe('detectFormat', () => {
     expect(EXT_TO_FORMAT['.svg']).toBe('svg')
     expect(ALL_EXTENSIONS).toContain('.svg')
     expect(ALL_ACCEPT).toContain('.svg')
+  })
+
+  it('hdr and exr are detectable and in ALL_EXTENSIONS but excluded from model lists', () => {
+    expect(detectFormat('env.hdr')).toBe('hdr')
+    expect(detectFormat('env.exr')).toBe('exr')
+    expect(EXT_TO_FORMAT['.hdr']).toBe('hdr')
+    expect(EXT_TO_FORMAT['.exr']).toBe('exr')
+    expect(ALL_EXTENSIONS).toContain('.hdr')
+    expect(ALL_EXTENSIONS).toContain('.exr')
+    // Should NOT be in model-only lists
+    expect(ALL_MODEL_EXTENSIONS).not.toContain('.hdr')
+    expect(ALL_MODEL_EXTENSIONS).not.toContain('.exr')
+    expect(ALL_ACCEPT).not.toContain('.hdr')
+    expect(ALL_ACCEPT).not.toContain('.exr')
   })
 
   it('detects case insensitive', () => {

@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog, Menu } from 'electron'
 import { join, extname } from 'path'
 import * as fs from 'fs'
-import { ALL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
+import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 
 // Workaround for "Network service crashed" on Windows with Electron 39+
 // The network service sandbox conflicts with webSecurity:false + localhost loading in dev mode
@@ -158,7 +158,7 @@ ipcMain.handle('dialog:openFile', async () => {
     title: 'Open 3D Model',
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: 'All Supported Formats', extensions: ALL_EXTENSIONS.map((e) => e.slice(1)) },
+      { name: 'All Supported Formats', extensions: ALL_MODEL_EXTENSIONS.map((e) => e.slice(1)) },
       ...GROUP_ORDER.map((group) => ({
         name: GROUP_LABELS[group],
         extensions: ENABLED_FORMATS
@@ -203,7 +203,7 @@ ipcMain.handle('electron:getAppVersion', () => app.getVersion())
 ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExternal(url))
 
 // File system IPC handlers
-const SUPPORTED_EXTENSIONS = new Set(ALL_EXTENSIONS)
+const SUPPORTED_EXTENSIONS = new Set(ALL_MODEL_EXTENSIONS)
 
 ipcMain.handle('fs:readDirectory', async (_event, dirPath: string) => {
   try {

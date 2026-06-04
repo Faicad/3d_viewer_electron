@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
+import { useEngineStore } from '@/stores/engine-store'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { Upload } from 'lucide-react'
 import { toast } from 'sonner'
@@ -50,6 +51,12 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
     // Skip if already loaded
     if (useModelStore.getState().isFileLoaded(filePath)) {
+      return
+    }
+
+    // HDR / EXR: load as environment map (delegates to SceneSetup via pendingCustomLoad)
+    if (format === 'hdr' || format === 'exr') {
+      useEngineStore.getState().addCustomEnv(filePath, name)
       return
     }
 
@@ -177,22 +184,29 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     // Classify selected files
     const svgPaths: string[] = []
     const d3Paths: string[] = []
+    const envPaths: string[] = []
     for (const p of result.filePaths) {
       const name = p.split(/[/\\]/).pop() || p
       const fmt = detectFormat(name)
       if (fmt === 'svg' || fmt === 'dxf') {
         svgPaths.push(p)
+      } else if (fmt === 'hdr' || fmt === 'exr') {
+        envPaths.push(p)
       } else {
         d3Paths.push(p)
       }
     }
 
-    // Mixed: 3D wins, SVG skipped
-    if (svgPaths.length > 0 && d3Paths.length > 0) {
-      console.log(
-        '[handleNativeOpenFile] Mixed SVG + 3D selection. Loading only 3D files. Skipped SVG:',
-        svgPaths.map((p) => p.split(/[/\\]/).pop()),
-      )
+    // Mixed: 3D wins, SVG & env map files skipped
+    if (d3Paths.length > 0) {
+      if (svgPaths.length > 0 || envPaths.length > 0) {
+        console.log(
+          '[handleNativeOpenFile] Mixed selection. Loading only 3D files. Skipped:',
+          [...svgPaths, ...envPaths].map((p) => p.split(/[/\\]/).pop()),
+        )
+      }
+      // Clear all currently loaded content before loading new files
+      useModelStore.getState().reset()
       for (const filePath of d3Paths) {
         const fileName = filePath.split(/[/\\]/).pop() || filePath
         await loadFilePath(filePath, fileName)
@@ -200,12 +214,23 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       return
     }
 
-    // Clear all currently loaded content before loading new files
-    useModelStore.getState().reset()
+    // SVG-only selection
+    if (svgPaths.length > 0) {
+      useModelStore.getState().reset()
+      for (const filePath of svgPaths) {
+        const fileName = filePath.split(/[/\\]/).pop() || filePath
+        await loadFilePath(filePath, fileName)
+      }
+      return
+    }
 
-    for (const filePath of result.filePaths) {
-      const fileName = filePath.split(/[/\\]/).pop() || filePath
-      await loadFilePath(filePath, fileName)
+    // Env map only: load each as custom environment
+    if (envPaths.length > 0) {
+      for (const filePath of envPaths) {
+        const fileName = filePath.split(/[/\\]/).pop() || filePath
+        useEngineStore.getState().addCustomEnv(filePath, fileName)
+      }
+      return
     }
   }, [])
 
@@ -273,6 +298,16 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       console.error('[WorkspacePage] unsupported format:', file.name)
       return
     }
+
+    // HDR / EXR: load as environment map via native file path
+    if (format === 'hdr' || format === 'exr') {
+      const filePath = window.electronAPI?.getFilePath(file) ?? null
+      if (filePath) {
+        useEngineStore.getState().addCustomEnv(filePath, file.name)
+      }
+      return
+    }
+
     const rawBuffer = await file.arrayBuffer()
 
     if (format === 'step') {

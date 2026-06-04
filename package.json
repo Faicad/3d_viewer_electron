@@ -198,6 +198,16 @@
         "description": "3D Model File",
         "role": "Viewer",
         "icon": "resources/icon.ico"
+      },
+      {
+        "ext": [
+          "hdr",
+          "exr"
+        ],
+        "name": "HDR/EXR Environment Map",
+        "description": "HDR/EXR Environment Map",
+        "role": "Viewer",
+        "icon": "resources/icon.ico"
       }
     ],
     "nsis": {

@@ -11,6 +11,7 @@ export type FileGroup =
   | 'gcode'
   | 'vector'
   | 'other'
+  | 'environment'
 
 export type UnitSystem =
   | 'millimeter'
@@ -53,6 +54,8 @@ export type FormatId =
   | '3dm'
   | 'svg'
   | 'dxf'
+  | 'hdr'
+  | 'exr'
 
 export interface FileFormatEntry {
   id: FormatId
@@ -73,7 +76,7 @@ export interface FileFormatEntry {
   /** Whether this format needs an external npm package not bundled with three.js */
   needsExternalDep: boolean
   /** Whether this format uses a render hint (e.g. volume, skeleton, toolpath) */
-  renderHint: 'mesh' | 'volume' | 'skeleton' | 'toolpath' | 'pointcloud' | 'svg'
+  renderHint: 'mesh' | 'volume' | 'skeleton' | 'toolpath' | 'pointcloud' | 'svg' | 'environment'
   /** Whether this format is disabled (not in accept list, can't be loaded) */
   disabled?: boolean
   /** Whether to exclude from ALL_EXTENSIONS / "All Supported Formats" filter.
@@ -524,6 +527,36 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     defaultUnit: 'millimeter',
     color: 'text-orange-400',
   },
+  {
+    id: 'hdr',
+    label: 'HDR',
+    extensions: ['.hdr'],
+    loaderModule: '',             // no Three.js loader — loaded as environment map
+    group: 'environment',
+    sampleFile: '',
+    textBased: false,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'environment',
+    defaultUnit: 'millimeter',
+    excludeFromAll: true,
+    color: 'text-blue-400',
+  },
+  {
+    id: 'exr',
+    label: 'EXR',
+    extensions: ['.exr'],
+    loaderModule: '',             // no Three.js loader — loaded as environment map
+    group: 'environment',
+    sampleFile: '',
+    textBased: false,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'environment',
+    defaultUnit: 'millimeter',
+    excludeFromAll: true,
+    color: 'text-purple-400',
+  },
 ]
 
 // ---- derived lookup tables ----
@@ -542,6 +575,20 @@ for (const fmt of ENABLED_FORMATS) {
     EXT_TO_FORMAT[ext] = fmt.id
     ALL_EXTENSIONS.push(ext)
     ALL_EXTENSIONS_NO_DOT.push(ext.slice(1))
+  }
+}
+
+/** All extensions for 3D model / vector files only (excludes environment maps and other
+ *  formats marked excludeFromAll). Used by file dialogs and directory listing. */
+export const ALL_MODEL_EXTENSIONS: string[] = []
+/** ALL_MODEL_EXTENSIONS without dots */
+export const ALL_MODEL_EXTENSIONS_NO_DOT: string[] = []
+
+for (const fmt of ENABLED_FORMATS) {
+  if (fmt.excludeFromAll) continue
+  for (const ext of fmt.extensions) {
+    ALL_MODEL_EXTENSIONS.push(ext)
+    ALL_MODEL_EXTENSIONS_NO_DOT.push(ext.slice(1))
   }
 }
 
@@ -567,8 +614,8 @@ export function getGroupAccept(group: FileGroup): string {
     .join(',')
 }
 
-/** All extensions accept string */
-export const ALL_ACCEPT = ALL_EXTENSIONS.join(',')
+/** All extensions accept string (model/vector formats only, excludes environment maps) */
+export const ALL_ACCEPT = ALL_MODEL_EXTENSIONS.join(',')
 
 export type UpAxis = 'y' | 'z'
 
