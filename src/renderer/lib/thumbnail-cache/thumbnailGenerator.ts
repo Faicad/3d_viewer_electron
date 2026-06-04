@@ -5,6 +5,8 @@ import { getDefaultUpAxis } from '@/config/file-formats'
 import { extractThumbnailBlob } from '@/lib/bambu-3mf/bambu-3mf'
 import { useMaterialStore } from '@/stores/material-store'
 import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
+import { CleanRoomEnvironment } from '@/engine/environment/CleanRoomEnvironment'
+import { createDefaultMaterial } from '@/engine/components/cloneMaterial'
 
 const WIDTH = 200
 const HEIGHT = 150
@@ -113,6 +115,8 @@ export async function extractAndProcess3mfThumbnail(
 
 let renderer: THREE.WebGLRenderer | null = null
 let canvas: HTMLCanvasElement | null = null
+/** Cached studio PMREM environment map — baked once, reused across all thumbnails. */
+let cachedEnvMap: THREE.Texture | null = null
 
 function getRenderer(): THREE.WebGLRenderer {
   if (renderer) return renderer
@@ -148,22 +152,33 @@ function getRenderer(): THREE.WebGLRenderer {
   return renderer
 }
 
-function setupLighting(scene: THREE.Scene): void {
-  // Brighter ambient to compensate for the lack of HDR environment map in thumbnails.
-  const ambient = new THREE.AmbientLight(0xFFFFFF, 1.0)
+/** Bake (or retrieve cached) studio environment map for image-based lighting. */
+function getOrCreateEnvMap(r: THREE.WebGLRenderer): THREE.Texture {
+  if (cachedEnvMap) return cachedEnvMap
+
+  const pmrem = new THREE.PMREMGenerator(r)
+  const room = new CleanRoomEnvironment()
+  // Low resolution — thumbnails are only 200×150, no need for high-res cubemap.
+  const rt = pmrem.fromScene(room, 0, 0.01, 100, { size: 128 })
+  cachedEnvMap = rt.texture
+  room.dispose()
+  pmrem.dispose()
+
+  return cachedEnvMap
+}
+
+function setupLighting(scene: THREE.Scene, r: THREE.WebGLRenderer): void {
+  // Studio environment map for realistic PBR image-based lighting.
+  // CleanRoomEnvironment has bright white walls + area lights — much more
+  // natural than a handful of point lights and eliminates harsh black shadows.
+  scene.environment = getOrCreateEnvMap(r)
+  scene.environmentIntensity = 1.0
+
+  // Bare-minimum ambient as fallback for non-PBR materials (e.g. the
+  // MeshBasicMaterial Three.js auto-assigns when a format has no materials).
+  // MeshStandardMaterial meshes are lit entirely by the environment map above.
+  const ambient = new THREE.AmbientLight(0xFFFFFF, 0.4)
   scene.add(ambient)
-  // Key light: warm white, stronger to make the main faces pop.
-  const dir1 = new THREE.DirectionalLight(0xFFF5EE, 1.8)
-  dir1.position.set(1, 1, 1)
-  scene.add(dir1)
-  // Fill light: cool blue from opposite side, reduces harsh shadows.
-  const dir2 = new THREE.DirectionalLight(0xC0D4E8, 0.9)
-  dir2.position.set(-0.5, -0.3, -1)
-  scene.add(dir2)
-  // Rim/back light: teal accent to separate model from background.
-  const dir3 = new THREE.DirectionalLight(0x8FD6D6, 0.5)
-  dir3.position.set(0, 0.5, -0.5)
-  scene.add(dir3)
 }
 
 export async function waitForTextures(root: THREE.Object3D, timeout = 3000): Promise<void> {
@@ -294,7 +309,7 @@ export async function generateThumbnailFromResult(
 ): Promise<Blob | null> {
   const r = getRenderer()
   const scene = new THREE.Scene()
-  setupLighting(scene)
+  setupLighting(scene, r)
 
   const camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT)
 
@@ -318,19 +333,37 @@ export async function generateThumbnailFromResult(
     }
     scene.add(group)
 
-    // Apply user's default material to meshes that lack source materials.
-    // Formats like STL and .model produce meshes with MeshBasicMaterial
-    // (Three.js auto-assigned fallback) — replace those with the user's
-    // chosen default so thumbnails match the viewport appearance.
+    // Apply sensible default materials to meshes/objects that lack source
+    // materials. Formats like STL, VTK, DRC, NRRD produce meshes with
+    // MeshBasicMaterial (Three.js auto-assigned fallback); OBJ produces
+    // MeshPhongMaterial; XYZ produces PointsMaterial. Replace these
+    // placeholders so thumbnails show proper colors instead of flat white.
     const defaultAppearance = useMaterialStore.getState().defaultMaterial
-    if (defaultAppearance) {
-      const defaultMat = getSharedMaterialFactory().createMaterial(defaultAppearance)
-      group.traverse((obj) => {
-        if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshBasicMaterial) {
-          obj.material = defaultMat
+    const userDefaultMat = defaultAppearance
+      ? getSharedMaterialFactory().createMaterial(defaultAppearance)
+      : null
+    const lightBlueFallback = createDefaultMaterial()
+
+    group.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        const mat = obj.material as THREE.Material
+        const isPlaceholder =
+          (mat instanceof THREE.MeshBasicMaterial &&
+            mat.color.getHex() === 0xffffff && !mat.map && !mat.alphaMap) ||
+          (mat instanceof THREE.MeshPhongMaterial &&
+            mat.color.getHex() === 0xffffff && !mat.map && !mat.alphaMap)
+        if (isPlaceholder) {
+          obj.material = userDefaultMat ?? lightBlueFallback
         }
-      })
-    }
+      }
+      if (obj instanceof THREE.Points) {
+        const mat = obj.material
+        if (mat instanceof THREE.PointsMaterial &&
+            mat.color.getHex() === 0xffffff && !mat.vertexColors) {
+          mat.color.copy(lightBlueFallback.color)
+        }
+      }
+    })
 
     const allMeshes: THREE.Mesh[] = []
     group.traverse((obj) => {
@@ -375,6 +408,10 @@ export async function generateThumbnail(
 }
 
 export function disposeThumbnailRenderer(): void {
+  if (cachedEnvMap) {
+    cachedEnvMap.dispose()
+    cachedEnvMap = null
+  }
   if (renderer) {
     renderer.dispose()
     renderer = null

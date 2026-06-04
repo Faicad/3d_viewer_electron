@@ -619,11 +619,13 @@ export const ALL_ACCEPT = ALL_MODEL_EXTENSIONS.join(',')
 
 export type UpAxis = 'y' | 'z'
 
-const Y_UP_FORMATS: ReadonlySet<FormatId> = new Set([
-  'wrl', 'bvh', 'lwo', 'usdz', 'dae', 'fbx', 'obj', 'gltf',
+/** Formats native to Z-up (3D printing / CAD manufacturing). */
+const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
+  '3mf', 'stl', 'amf', 'step',
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.
+ *  Most formats default to Y-up; only 3D-printing / CAD formats use Z-up.
  *  For GLB, the presence of a STEP_T extension signals Z-up (CAD data);
  *  otherwise GLB defaults to Y-up (standard glTF convention). */
 export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis {
@@ -631,8 +633,8 @@ export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis
     if (buffer && isCadSkillGlb(buffer)) return 'z'
     return 'y'
   }
-  if (Y_UP_FORMATS.has(format)) return 'y'
-  return 'z'
+  if (Z_UP_FORMATS.has(format)) return 'z'
+  return 'y'
 }
 
 /** Detect if GLB has STEP_T extension */
