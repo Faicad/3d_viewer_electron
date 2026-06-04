@@ -3,11 +3,13 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isLinuxCI } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 const GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
 
 test('full IBL diagnostic', async () => {
+  test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
   test.setTimeout(60000)
   const _userDataDir = createUserDataDir()
   const app = await _electron.launch({

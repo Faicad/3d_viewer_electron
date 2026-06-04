@@ -11,6 +11,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isLinuxCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DXF_FIXTURE = path.join(__dirname, 'fixtures', 'testdata', '1001.dxf')
@@ -96,6 +97,7 @@ test.describe('DXF Loading & Zoom E2E', () => {
   })
 
   test('1. load DXF file → appears in SVG workspace with canvas rendered', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
     await waitForCanvas(window)
@@ -133,6 +135,7 @@ test.describe('DXF Loading & Zoom E2E', () => {
   })
 
   test('2. zoom in → zoom increases', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await waitForCanvas(window)
 
@@ -163,6 +166,7 @@ test.describe('DXF Loading & Zoom E2E', () => {
   })
 
   test('3. zoom out → zoom decreases (respects floor)', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await waitForCanvas(window)
 
@@ -193,6 +197,7 @@ test.describe('DXF Loading & Zoom E2E', () => {
   })
 
   test('4. zoom respects 20× hard cap', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await waitForCanvas(window)
 

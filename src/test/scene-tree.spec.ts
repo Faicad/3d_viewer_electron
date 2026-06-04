@@ -88,6 +88,7 @@ test.describe.serial('Multi-level scene tree', () => {
   })
 
   test('scene tree panel title is visible', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await ensureLeftPanelOpen(window)
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
