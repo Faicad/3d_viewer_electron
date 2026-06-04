@@ -134,7 +134,7 @@ importers:
         version: 4.1.8(vitest@4.1.8)
       electron:
         specifier: ^39.8.5
-        version: 39.8.10
+        version: 39.8.5
       electron-builder:
         specifier: ^26.0.0
         version: 26.8.1(electron-builder-squirrel-windows@26.8.1)
@@ -165,6 +165,9 @@ importers:
       standard-version:
         specifier: ^9.5.0
         version: 9.5.0
+      tailwindcss:
+        specifier: ^4.3.0
+        version: 4.3.0
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
@@ -2205,8 +2208,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@39.8.10:
-    resolution: {integrity: sha512-zbYtGPYUI7PzqLAzkk21Rk6j67WN0hxn0Mq/njErZo1d0HSf33is4f8ICI5fMLy5vYe0JtCtM5sYunNOaochSQ==}
+  electron@39.8.5:
+    resolution: {integrity: sha512-q6+LiQIcTadSyvtPgLDQkCtVA9jQJXQVMrQcctfOJILh6OFMN+UJJLRkuUTy8CZDYeCIBn1ZycqsL1dAXugxZA==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -6195,7 +6198,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@39.8.10:
+  electron@39.8.5:
     dependencies:
       '@electron/get': 2.0.3
       '@types/node': 22.19.19
