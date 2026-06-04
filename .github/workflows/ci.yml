@@ -50,7 +50,9 @@ jobs:
         run: pnpm run build:unpacked:mac
 
       - name: Unit tests (node)
-        run: pnpm exec vitest run
+        run: |
+          pnpm exec vitest run --reporter=json --outputFile=test-results/vitest.json
+          node -e "const r=require('./test-results/vitest.json'); process.exit(r.numFailedTests + r.numFailedTestSuites > 0 ? 1 : 0)"
 
       - name: Component & integration tests (jsdom)
         run: pnpm exec vitest run --config vitest.jsdom.config.ts
