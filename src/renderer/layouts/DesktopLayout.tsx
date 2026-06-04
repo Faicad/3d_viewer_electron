@@ -951,7 +951,7 @@ export default function DesktopLayout() {
 
         <Separator orientation="vertical" className="h-5 shrink-0" />
 
-        {/* Animation / Fullscreen / Heatbed */}
+        {/* Animation / Heatbed */}
         {!isSvgMode && (<>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -970,14 +970,6 @@ export default function DesktopLayout() {
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} aria-label={t('toolbar.fullscreen')}>
-              {isFullscreen ? <Minimize className="toolbar-icon h-4 w-4 text-slate-500" /> : <Maximize className="toolbar-icon h-4 w-4 text-slate-500" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('toolbar.fullscreen')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1032,7 +1024,15 @@ export default function DesktopLayout() {
 
         <div className="flex-1" />
 
-        {/* Left / Right Panel */}
+        {/* Fullscreen / Left / Right Panel */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} aria-label={t('toolbar.fullscreen')}>
+              {isFullscreen ? <Minimize className="toolbar-icon h-4 w-4 text-slate-500" /> : <Maximize className="toolbar-icon h-4 w-4 text-slate-500" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.fullscreen')}</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={ui.toggleLeftPanel} aria-label={t('toolbar.leftPanel')}>

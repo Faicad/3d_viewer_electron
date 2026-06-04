@@ -46,3 +46,4 @@ test-results/
 diag*.png
 *.exr
 todo2*.txt
+scripts/time_ci.sh.txt
