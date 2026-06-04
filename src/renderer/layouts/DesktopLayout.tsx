@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -265,6 +265,15 @@ export default function DesktopLayout() {
             navigator.clipboard.writeText(nodePathStr ?? partId)
           },
         },
+        { type: 'separator' },
+        {
+          label: '从场景树中移除',
+          icon: Trash2,
+          danger: true,
+          action: () => {
+            useModelStore.getState().toggleNodeVisible(partId)
+          },
+        },
       ],
     })
   }, [])
@@ -335,6 +344,15 @@ export default function DesktopLayout() {
         }
       },
     })
+    items.push({ type: 'separator' })
+    items.push({
+      label: '从场景树中移除',
+      icon: Trash2,
+      danger: true,
+      action: () => {
+        useModelStore.getState().removeLoadedFile(fileId)
+      },
+    })
     setCtxMenu({ x: e.clientX, y: e.clientY, items })
   }, [t])
 
@@ -351,6 +369,15 @@ export default function DesktopLayout() {
           icon: Copy,
           action: () => {
             navigator.clipboard.writeText(nodePathStr)
+          },
+        },
+        { type: 'separator' },
+        {
+          label: '从场景树中移除',
+          icon: Trash2,
+          danger: true,
+          action: () => {
+            useModelStore.getState().toggleNodeVisible(nodeId)
           },
         },
       ],
