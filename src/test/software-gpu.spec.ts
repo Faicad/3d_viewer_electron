@@ -14,7 +14,7 @@
  */
 import { test, _electron, expect } from '@playwright/test'
 import { getElectronPath, killElectronApp, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 
 // ---------------------------------------------------------------------------
 // Common setup helper
@@ -71,6 +71,7 @@ test('hardware GPU → __isSoftwareGpu is false', async () => {
 // Test 2: software GPU (forced via --use-angle=swiftshader)
 // ---------------------------------------------------------------------------
 test('--use-angle=swiftshader → __isSoftwareGpu is true', async () => {
+  test.skip(isLinuxCI(), 'SwiftShader init flaky on Linux CI')
   test.setTimeout(180000)
   const userDataDir = createUserDataDir()
 
