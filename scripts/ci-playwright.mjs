@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const RETRY_THRESHOLD = 3
 const IS_LINUX = process.platform === 'linux'
+const IS_WINDOWS = process.platform === 'win32'
 
 /** Clean environment: remove proxy vars that can interfere with local dev */
 function cleanEnv() {
@@ -58,7 +59,7 @@ function main() {
 
   const pw = spawnSync(cmd, args, {
     cwd: ROOT,
-    shell: false,
+    shell: IS_WINDOWS,
     encoding: 'utf-8',
     maxBuffer: 100 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'inherit'],
@@ -132,7 +133,7 @@ function main() {
     ])
     const retry = spawnSync(retryCmd, retryArgs, {
       cwd: ROOT,
-      shell: false,
+      shell: IS_WINDOWS,
       stdio: 'inherit',
       encoding: 'utf-8',
       env: cleanEnv(),

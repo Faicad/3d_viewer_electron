@@ -9,6 +9,8 @@ export default defineConfig({
     setupFiles: ['fake-indexeddb/auto'],
     teardownTimeout: 15000,
     pool: 'forks',
+    maxForks: 2,
+    execArgv: ['--max-old-space-size=4096'],
     server: {
       deps: {
         inline: ['@linkiez/dxf-renew'],
