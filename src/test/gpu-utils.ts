@@ -17,3 +17,8 @@ export function isSoftwareGpu(): boolean {
   if (process.env.CI && process.platform !== 'darwin') return true
   return false
 }
+
+/** Returns true when running on GitHub Actions Linux CI (Ubuntu). */
+export function isLinuxCI(): boolean {
+  return process.env.CI === 'true' && process.platform === 'linux'
+}

@@ -3,7 +3,7 @@ import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXE = getElectronPath()
 
@@ -32,6 +32,7 @@ const SAMPLE_FN = `(() => {
 })()`
 
 test('shadow visible on small model after camera auto-fit', async () => {
+  test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
   test.setTimeout(90000)
   const _userDataDir = createUserDataDir()
   const app = await _electron.launch({

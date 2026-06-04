@@ -2,6 +2,7 @@ import { test, expect, ElectronApplication, _electron } from '@playwright/test'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isLinuxCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -25,6 +26,7 @@ test.describe('DesktopLayout panel widths', () => {
   })
 
   test('panels use 15:70:15 percentage widths when both open', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 

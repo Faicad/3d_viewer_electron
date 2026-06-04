@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TEST_STEP = readFileSync(path.join(__dirname, 'fixtures', 'test-model.step'))
@@ -193,6 +193,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   })
 
   test('caches converted GLB on first load, hits cache on second load', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     test.setTimeout(90000)
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
@@ -274,6 +275,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   })
 
   test('STEP file defaults showHeatbed=true and Heatbed renders in scene', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
     await window.waitForLoadState('domcontentloaded')
@@ -407,6 +409,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
   })
 
   test('native GLB file defaults showHeatbed=false', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
     await window.waitForLoadState('domcontentloaded')

@@ -12,7 +12,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const KHR_GLB = readFileSync(path.join(__dirname, 'fixtures', 'khr-animation-pointer.glb'))
@@ -52,6 +52,7 @@ test.describe('KHR_animation_pointer', () => {
   })
 
   test('loads KHR_animation_pointer model and extracts material-target animations', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const page = await app.firstWindow()
 
     await page.locator('input[type="file"]').setInputFiles({

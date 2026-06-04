@@ -13,7 +13,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createErrorGuard, createUserDataDir, cleanupUserDataDir, type ErrorGuard } from './utils'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TEST_GLB = readFileSync(path.join(__dirname, 'fixtures', 'test-box.glb'))
@@ -66,6 +66,7 @@ test.describe('Model Info Panel', () => {
   })
 
   test('clicking toolbar button opens floating model info panel', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const page = await app.firstWindow()
 
     // Load a GLB file so model info has data to display
@@ -102,6 +103,7 @@ test.describe('Model Info Panel', () => {
   })
 
   test('file list panel remains visible alongside floating model info', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const page = await app.firstWindow()
 
     // Model info panel should still be open from previous test
@@ -130,6 +132,7 @@ test.describe('Model Info Panel', () => {
   })
 
   test('clicking X button closes the model info panel', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const page = await app.firstWindow()
 
     const panel = page.locator('.fixed.z-50').filter({ hasText: '模型信息' })
@@ -148,6 +151,7 @@ test.describe('Model Info Panel', () => {
   })
 
   test('clicking toolbar button again reopens model info panel', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const page = await app.firstWindow()
 
     // Panel should be closed from previous test

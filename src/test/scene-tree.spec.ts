@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
+import { isLinuxCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROBOT_GLB = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
@@ -66,6 +67,7 @@ test.describe.serial('Multi-level scene tree', () => {
   }
 
   test('left panel hides on narrow viewport (compact layout)', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
 

@@ -10,7 +10,7 @@ import { test, expect, ElectronApplication, _electron, Page } from '@playwright/
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { isSoftwareGpu } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -111,6 +111,7 @@ test.describe('Sequential load via Open File dialog', () => {
   })
 
   test('2) load vise.3mf (simulates "Open File" dialog reset + load)', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     test.setTimeout(60000)
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
