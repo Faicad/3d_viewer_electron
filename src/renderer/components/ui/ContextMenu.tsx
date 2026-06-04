@@ -20,7 +20,7 @@ export function ContextMenu({ position, items, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
+    const handleOutside = (e: Event) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose()
       }
@@ -30,15 +30,19 @@ export function ContextMenu({ position, items, onClose }: ContextMenuProps) {
     }
     // Delay listener to avoid the same right-click event closing the menu
     const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick)
-      document.addEventListener('contextmenu', handleClick)
+      document.addEventListener('click', handleOutside)
+      document.addEventListener('contextmenu', handleOutside)
       document.addEventListener('keydown', handleKey)
+      // Use capture-phase pointerdown so clicks on R3F/Three.js canvas
+      // (which may stop propagation of click events) still close the menu.
+      document.addEventListener('pointerdown', handleOutside, { capture: true })
     }, 0)
     return () => {
       clearTimeout(timer)
-      document.removeEventListener('click', handleClick)
-      document.removeEventListener('contextmenu', handleClick)
+      document.removeEventListener('click', handleOutside)
+      document.removeEventListener('contextmenu', handleOutside)
       document.removeEventListener('keydown', handleKey)
+      document.removeEventListener('pointerdown', handleOutside, { capture: true })
     }
   }, [onClose])
 
