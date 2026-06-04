@@ -247,7 +247,22 @@ function fitCameraToMeshes(
   const maxDim = Math.max(size.x, size.y, size.z, 0.01)
 
   const dist = maxDim * 1.8
-  const camPos = new THREE.Vector3(dist * 0.7, dist * 0.6, dist)
+
+  // Keep X offset = 0 so the world X-axis stays horizontal in thumbnails.
+  // camera.right = lookDir × up must equal +X for the X-axis to be right.
+  //
+  // Z-up derivation (up=(0,0,1)): right = lookDir × (0,0,1)
+  //   For right.x > 0, lookDir.y must be > 0 → camera.y < target.y → camY < 0
+  //   → camera at (0, -0.6·dist, dist), right = (0.6, 0, 0) = +X ✓
+  //
+  // Y-up derivation (up=(0,1,0)): right = lookDir × (0,1,0)
+  //   For right.x > 0, lookDir.z must be < 0 → camera.z > target.z → camZ > 0
+  //   → camera at (0, dist, 0.6·dist), right = (0.6, 0, 0) = +X ✓
+  const camPos = new THREE.Vector3(
+    0,
+    upAxis === 'y' ? dist : -dist * 0.6,     // Y: zenith for Y-up, front (-Y) for Z-up
+    upAxis === 'y' ? dist * 0.6 : dist,       // Z: front (+Z) for Y-up, zenith for Z-up
+  )
   camPos.add(center)
 
   camera.position.copy(camPos)

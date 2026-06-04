@@ -40,7 +40,9 @@ import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { computeCameraFitTarget, autoSelectBedSize, computePlateLayout } from '@/engine/heatbed'
 import { toast } from 'sonner'
 
-const DEFAULT_CAM_POS: [number, number, number] = [5, -5, 4]
+/** X offset is 0 so the world X-axis stays horizontal-right on screen.
+ *  Camera is positioned in the YZ plane (front-top) looking at origin. */
+const DEFAULT_CAM_POS: [number, number, number] = [0, -6, 4]
 
 /** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
  *  the camera around the world X axis so the model appears stationary while the
@@ -508,7 +510,7 @@ export default function ViewportContainer() {
       const domElement = controls.domElement
       const viewport = { width: domElement.clientWidth, height: domElement.clientHeight }
 
-      const result = computeCameraFitTarget(camera, box, viewport, focusTarget)
+      const result = computeCameraFitTarget(camera, box, viewport, focusTarget, activeUpAxis)
       if (result) {
         // Don't mutate camera directly — let CameraAnimator lerp to the target
         setAnimTarget(result.position)
@@ -521,7 +523,8 @@ export default function ViewportContainer() {
       // Fall through to fallback on compute failure
     }
 
-    // Fallback for non-perspective camera or compute failure
+    // Fallback for non-perspective camera or compute failure.
+    // Keep X offset = 0 so the world X-axis stays horizontal on screen.
     const center = box.getCenter(new THREE.Vector3())
     let dist: number
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -530,7 +533,12 @@ export default function ViewportContainer() {
     } else {
       dist = maxDim * 1.5
     }
-    const pos = center.clone().add(new THREE.Vector3(dist * 0.7, -dist * 0.7, dist * 0.6))
+    const upAxisForFallback = useModelStore.getState().activeUpAxis
+    const pos = center.clone().add(
+      upAxisForFallback === 'y'
+        ? new THREE.Vector3(0, dist * 0.6, -dist * 0.7)
+        : new THREE.Vector3(0, -dist * 0.7, dist * 0.6),
+    )
 
     setAnimTarget(pos)
     setAnimTargetUp(activeUpAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1))
