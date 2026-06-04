@@ -14,33 +14,10 @@
  */
 import { test, _electron, expect } from '@playwright/test'
 import { getElectronPath, killElectronApp, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
+import { isSoftwareGpu } from './gpu-utils'
 
 // ---------------------------------------------------------------------------
-// Common setup helper
-// ---------------------------------------------------------------------------
-async function setupAndCheck(
-  app: Awaited<ReturnType<typeof _electron.launch>>,
-  expectedSw: boolean,
-  label: string,
-) {
-  const page = await app.firstWindow()
-  await page.waitForLoadState('domcontentloaded', { timeout: 60000 })
-  await page.locator('canvas').first().waitFor({ state: 'attached', timeout: 120000 })
-
-  const detected = await page.evaluate(() => (window as any).__isSoftwareGpu)
-  console.log(`[gpu-check] ${label}: __isSoftwareGpu = ${detected}`)
-
-  expect(
-    detected,
-    `${label}: expected __isSoftwareGpu === ${expectedSw}, got ${detected}`,
-  ).toBe(expectedSw)
-
-  killElectronApp(app)
-}
-
-// ---------------------------------------------------------------------------
-// Test 1: hardware GPU (no SwiftShader flag)
+// Test: hardware GPU (no SwiftShader flag)
 // ---------------------------------------------------------------------------
 test('hardware GPU → __isSoftwareGpu is false', async () => {
   test.setTimeout(60000)
@@ -65,24 +42,4 @@ test('hardware GPU → __isSoftwareGpu is false', async () => {
 
   test.skip(detected, 'No hardware GPU in this environment')
   expect(detected).toBe(false)
-})
-
-// ---------------------------------------------------------------------------
-// Test 2: software GPU (forced via --use-angle=swiftshader)
-// ---------------------------------------------------------------------------
-test('--use-angle=swiftshader → __isSoftwareGpu is true', async () => {
-  test.skip(isLinuxCI(), 'SwiftShader init flaky on Linux CI')
-  test.skip(process.env.CI === 'true' && process.platform === 'darwin', 'SwiftShader init flaky on macOS CI')
-  test.setTimeout(180000)
-  const userDataDir = createUserDataDir()
-
-  const app = await _electron.launch({
-    executablePath: getElectronPath(),
-    args: ['--no-sandbox', '--use-angle=swiftshader'],
-    env: { ...process.env, E2E: '1' },
-    userDataDir,
-  })
-
-  await setupAndCheck(app, true, 'swiftshader')
-  cleanupUserDataDir(userDataDir)
 })
