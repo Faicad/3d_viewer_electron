@@ -2,6 +2,7 @@
 import { spawnSync } from 'child_process'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { readFileSync } from 'fs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const RETRY_THRESHOLD = 3
@@ -15,6 +16,15 @@ function cleanEnv() {
     delete env[key]
   }
   return env
+}
+
+/** Read Playwright JSON report file, return null if not found */
+function readReportFile(filePath) {
+  try {
+    return readFileSync(filePath, 'utf-8').trim()
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -38,9 +48,9 @@ function buildPlaywrightCmd(testFilter = []) {
  * Run Playwright tests and retry flaky failures.
  *
  * Strategy:
- *   1. Run all tests with `--reporter=json` (machine-readable).
- *      Use `inherit` for stderr so progress is visible, capture stdout for JSON.
- *   2. Parse the JSON report to find failed specs.
+ *   1. Run all tests with `--reporter=list` (human-readable).
+ *      JSON report is written to a file via PLAYWRIGHT_JSON_OUTPUT_NAME.
+ *   2. Parse the JSON report file to find failed specs.
  *   3. If ≤ RETRY_THRESHOLD failures, re-run each individually.
  *   4. Exit 0 only if all retries pass.
  */
@@ -51,27 +61,32 @@ function main() {
   // ── Step 1: Run all integration tests ────────────────────────────────
   console.log('\n=== Integration tests (first attempt) ===\n')
 
+  const reportDir = resolve(ROOT, 'test-results')
+  const reportFile = resolve(reportDir, 'playwright-report.json')
+
+  const env = cleanEnv()
+  env.PLAYWRIGHT_JSON_OUTPUT_NAME = reportFile
+
   const { cmd, args } = buildPlaywrightCmd([
     '--workers=1',
-    '--reporter=json',
+    '--reporter=list,json',
     ...testFilter,
   ])
 
   const pw = spawnSync(cmd, args, {
     cwd: ROOT,
     shell: IS_WINDOWS,
+    stdio: 'inherit',
     encoding: 'utf-8',
-    maxBuffer: 100 * 1024 * 1024,
-    stdio: ['ignore', 'pipe', 'inherit'],
-    env: cleanEnv(),
+    env,
   })
 
-  const jsonOutput = (pw.stdout || '').trim()
+  const jsonOutput = readReportFile(reportFile)
   const exitCode = pw.status ?? 1
 
   // Also show the JSON to the user (truncated)
-  const passMatch = jsonOutput.match(/"expected"\s*:\s*(\d+)/)
-  const failMatch = jsonOutput.match(/"unexpected"\s*:\s*(\d+)/)
+  const passMatch = jsonOutput ? jsonOutput.match(/"expected"\s*:\s*(\d+)/) : null
+  const failMatch = jsonOutput ? jsonOutput.match(/"unexpected"\s*:\s*(\d+)/) : null
   const passed = passMatch ? parseInt(passMatch[1]) : '?'
   const failed = failMatch ? parseInt(failMatch[1]) : '?'
   console.log(`\nResults: ${passed} passed, ${failed} failed`)
@@ -83,9 +98,11 @@ function main() {
 
   // ── Step 2: Parse failures ──────────────────────────────────────────
   let report
-  try { report = JSON.parse(jsonOutput) } catch {
-    console.error('\n✘ Failed to parse Playwright JSON output. Raw output start:')
-    console.error(jsonOutput.slice(0, 500))
+  try {
+    report = jsonOutput ? JSON.parse(jsonOutput) : null
+    if (!report) throw new Error('empty report')
+  } catch {
+    console.error('\n✘ Failed to parse Playwright JSON output.')
     process.exit(1)
   }
 
