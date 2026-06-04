@@ -8,9 +8,9 @@ export default defineConfig({
     exclude: ['src/test/**', 'src/**/__tests__/**'],
     setupFiles: ['fake-indexeddb/auto'],
     teardownTimeout: 15000,
-    pool: 'forks',
-    maxForks: 1,
-    singleFork: true,
+    pool: 'threads',
+    maxThreads: 1,
+    singleThread: true,
     execArgv: ['--max-old-space-size=4096'],
     server: {
       deps: {
