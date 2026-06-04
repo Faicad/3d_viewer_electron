@@ -107,6 +107,38 @@ These are definitions specific to this project's UI layer. The terms may carry d
 - **mesh** — triangle mesh edge rendering. Available for all file formats.
 - Both display as lines in the viewport, but they come from different data sources.
 
+## Documentation & Screenshots
+
+### Quick Functions Docs
+
+Toolbar help pages are built with **VitePress** in `pages/`. Each toolbar feature has a `.md` page with real screenshots.
+
+### Screenshot Capture
+
+```bash
+# Prerequisite: build the unpacked app first
+npm run build:unpacked
+
+# Capture all screenshots (zh + en locales, 1920×1080)
+node scripts/capture-toolbar.mjs
+```
+
+**Script**: `scripts/capture-toolbar.mjs` — uses Playwright to launch the Electron app, load `vise.3mf`, click each toolbar button, and save screenshots.
+
+**Output**: `pages/public/screenshots/toolbar/{zh,en}/*.png` (18 screenshots per locale, 36 total)
+
+**Path conventions**:
+- `zh/` — used by Chinese docs pages (`pages/zh/toolbar/*.md`)
+- `en/` — used by all other language docs pages (`pages/toolbar/*.md`)
+
+### Build Docs
+
+```bash
+npm run build:docs
+```
+
+Generates `pages/` locale pages, format pages, and runs `vitepress build`.
+
 ## Memory Files
 
 Project memory is stored in `.claude/memory/` (git-tracked). Load them on every session:

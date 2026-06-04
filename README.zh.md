@@ -126,6 +126,30 @@ pnpm run build:unpacked:linux
 pnpm run build:unpacked:mac
 ```
 
+## 文档
+
+项目包含基于 **VitePress** 的文档站点，位于 `pages/`，支持 20 种语言的国际化。
+
+### 工具栏截图
+
+工具栏功能页面使用 Playwright 截取的实时截图进行说明：
+
+```bash
+# 1. 先构建免安装版应用
+npm run build:unpacked
+
+# 2. 截取所有截图（zh + en 语言，1920×1080）
+node scripts/capture-toolbar.mjs
+```
+
+截图输出到 `pages/public/screenshots/toolbar/{zh,en}/`（共 36 个文件）。
+
+### 构建文档
+
+```bash
+npm run build:docs
+```
+
 ## 项目结构
 
 ```

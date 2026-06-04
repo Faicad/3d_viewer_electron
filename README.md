@@ -126,6 +126,30 @@ pnpm run build:unpacked:linux
 pnpm run build:unpacked:mac
 ```
 
+## Documentation
+
+The project includes a **VitePress documentation site** in `pages/` with i18n support for 20 languages.
+
+### Toolbar Screenshots
+
+Toolbar feature pages are illustrated with real Playwright-captured screenshots:
+
+```bash
+# 1. Build the unpacked app first
+npm run build:unpacked
+
+# 2. Capture all screenshots (zh + en locales, 1920×1080)
+node scripts/capture-toolbar.mjs
+```
+
+Output goes to `pages/public/screenshots/toolbar/{zh,en}/` (36 files total).
+
+### Build Docs
+
+```bash
+npm run build:docs
+```
+
 ## Project Structure
 
 ```
