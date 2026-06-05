@@ -174,7 +174,7 @@ export default defineConfig({
     ['link', { rel: 'canonical', href: 'https://faicad.github.io/3d_viewer_electron/' }],
   ],
 
-  lastUpdated: true,
+  lastUpdated: !process.env.DOCKER_BUILD,
   cleanUrls: true,
 
   sitemap: {
