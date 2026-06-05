@@ -890,11 +890,13 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   // object-mode clicks and tree-node clicks select the same entity.
   // Scoped with fileId to prevent cross-file selection collision (21fe7da pattern).
   const mergedPartId = fileId ? `${fileId}:${format}-model` : `${format}-model`
+  const mergedVis = visibilityMap.get(mergedPartId) ?? true
 
   if (displayMode === 'wireframe') {
     return (
       <group ref={combinedRef}>
         <mesh
+          visible={mergedVis}
           geometry={mergedGeometry}
           castShadow
           receiveShadow
@@ -915,6 +917,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   return (
     <group ref={combinedRef}>
       <mesh
+        visible={mergedVis}
         geometry={mergedGeometry}
         castShadow
         receiveShadow
