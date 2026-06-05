@@ -109,6 +109,7 @@
   "fileList.maximize": "全屏查看缩略图",
   "fileList.files": "个文件",
   "fileList.toClose": "关闭",
+  "fileList.switchFolder": "切换到其它文件夹",
 
   "openFile.title": "打开文件",
   "openFile.description": "选择一个3D模型文件打开",

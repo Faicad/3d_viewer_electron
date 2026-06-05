@@ -181,6 +181,16 @@ ipcMain.handle('dialog:openFile', async () => {
   return { success: true, filePaths: result.filePaths }
 })
 
+ipcMain.handle('dialog:openDirectory', async () => {
+  if (!mainWindow) return { success: false, error: 'No window' }
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Folder',
+    properties: ['openDirectory'],
+  })
+  if (result.canceled) return { success: true, filePath: null }
+  return { success: true, filePath: result.filePaths[0] }
+})
+
 ipcMain.handle('dialog:openEnvironmentMap', async () => {
   if (!mainWindow) return { success: false, error: 'No window' }
   const result = await dialog.showOpenDialog(mainWindow, {

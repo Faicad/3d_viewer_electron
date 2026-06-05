@@ -16,7 +16,7 @@ import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { Button } from '@/components/ui/button'
-import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2, Maximize2, Minimize2 } from 'lucide-react'
+import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2, Maximize2, Minimize2, Folder } from 'lucide-react'
 import {
   startThumbnailQueue,
   stopThumbnailQueue,
@@ -126,6 +126,16 @@ export default function FileListPanel() {
   const handleThumbProgress = useCallback((filePath: string) => {
     setProcessingPath(filePath)
   }, [setProcessingPath])
+
+  const handleFolderClick = useCallback(async () => {
+    const result = await window.electronAPI.openDirectoryDialog()
+    if (!result.success || !result.filePath) return
+
+    const dirResult = await window.electronAPI.readDirectory(result.filePath)
+    if (dirResult.success && dirResult.files) {
+      useModelStore.getState().setFolderFiles(result.filePath, dirResult.files)
+    }
+  }, [])
 
   useEffect(() => {
     if (!enablePreview || folderFiles.length === 0) {
@@ -326,8 +336,13 @@ export default function FileListPanel() {
       <>
       {currentFolderPath && (
         <ScrollArea className="border-b">
-          <div className="px-3 py-1.5 text-xs text-muted-foreground whitespace-nowrap min-w-max">
-            {currentFolderPath}
+          <div
+            className="px-3 py-1.5 text-xs text-muted-foreground whitespace-nowrap min-w-max flex items-center gap-1.5 cursor-pointer hover:text-foreground transition-colors"
+            onClick={handleFolderClick}
+            title={t('fileList.switchFolder')}
+          >
+            <Folder className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0">{currentFolderPath}</span>
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>

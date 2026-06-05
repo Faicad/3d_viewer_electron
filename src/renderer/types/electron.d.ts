@@ -28,6 +28,11 @@ declare global {
         filePaths?: string[]
         error?: string
       }>
+      openDirectoryDialog: () => Promise<{
+        success: boolean
+        filePath?: string | null
+        error?: string
+      }>
       openEnvironmentMapDialog: () => Promise<{
         success: boolean
         filePath?: string | null
