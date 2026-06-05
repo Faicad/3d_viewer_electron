@@ -1,0 +1,59 @@
+[ci] ========================================================
+[ci]   1/6 Type check (tsc --noEmit)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+[ci]   OK (1.1s)
+[ci] ========================================================
+[ci]   2/6 Lint (eslint --max-warnings 0)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+[ci]   OK (15.8s)
+[ci] ========================================================
+[ci]   3/6 Unit tests (vitest, node env)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+ RUN  v4.1.8 C:/my/Ficad/3d_viewer_electron
+
+ ❯ src/renderer/lib/step-converter/stepCache.test.ts (20 tests | 1 failed) 31ms
+     × has correct DB name, version and store name 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer/lib/step-converter/stepCache.test.ts > exported constants > has correct DB name, version and store name
+AssertionError: expected 3 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 3
+
+ ❯ src/renderer/lib/step-converter/stepCache.test.ts:19:35
+     17|   it('has correct DB name, version and store name', () => {
+     18|     expect(STEP_CACHE_DB_NAME).toBe('step-glb-cache')
+     19|     expect(STEP_CACHE_DB_VERSION).toBe(2)
+       |                                   ^
+     20|     expect(STORE_NAME).toBe('buffers')
+     21|   })
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed | 37 passed (38)
+      Tests  1 failed | 742 passed | 4 skipped (747)
+   Start at  16:28:32
+   Duration  43.14s (transform 1.63s, setup 1.63s, import 5.74s, tests 28.42s, environment 4ms)
+
+[ci]   FAILED (exit 1, 44.6s)
+[ci] 
+[ci] ========================================================
+[ci]   Scanning log for missed errors
+[ci] ========================================================
+[ci]   1 suspicious line(s) found:
+[ci]     FAIL  src/renderer/lib/step-converter/stepCache.test.ts > exported constants > has correct DB name, version and store na
+[ci] 
+[ci] ========================================================
+[ci]   CI FAILED (61.6s)
+[ci]   Log: C:\my\Ficad\3d_viewer_electron\ci-logs\ci-output-2026-06-05T08-28-13.txt
+[ci] ========================================================

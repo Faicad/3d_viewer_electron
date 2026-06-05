@@ -16,7 +16,7 @@ function makeBuf(size: number): ArrayBuffer {
 describe('exported constants', () => {
   it('has correct DB name, version and store name', () => {
     expect(STEP_CACHE_DB_NAME).toBe('step-glb-cache')
-    expect(STEP_CACHE_DB_VERSION).toBe(2)
+    expect(STEP_CACHE_DB_VERSION).toBe(3)
     expect(STORE_NAME).toBe('buffers')
   })
 })
