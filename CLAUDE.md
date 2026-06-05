@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Pre-commit gate (run before every commit)
+
+```bash
+node scripts/local-ci.mjs   # tsc + vitest (all) + playwright (all), output to ci-logs/
+```
+
+**Must pass `node scripts/local-ci.mjs` before `git commit`. No exceptions.** This is the final gate — don't run it frequently during development (full Playwright suite is slow).
+
 ## Project Overview
 
 Faicad 3D Viewer is an Electron desktop application for viewing 3D model files (STL/GLB/3MF/STEP/STP). It uses a custom protocol `faicad-viewer://` to serve the renderer process.
@@ -9,14 +17,14 @@ Faicad 3D Viewer is an Electron desktop application for viewing 3D model files (
 ## Common Commands
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build all processes (main + preload + renderer)
-npm run build:unpacked  # Build + package as unpacked dir (dist/win-unpacked/)
-npm run build:win     # Build + package as NSIS installer (dist/)
-npm run lint          # Run ESLint
-npm run ci            # Full CI: tsc + vitest (all) + playwright (all)
-npx vitest run        # Run unit tests
-npx playwright test   # Run integration tests
+node scripts/local-ci.mjs   # Full CI: tsc + vitest (all) + playwright (all)
+npm run dev                 # Start development server
+npm run build               # Build all processes (main + preload + renderer)
+npm run build:unpacked      # Build + package as unpacked dir (dist/win-unpacked/)
+npm run build:win           # Build + package as NSIS installer (dist/)
+npm run lint                # Run ESLint
+npx vitest run              # Run unit tests
+npx playwright test         # Run integration tests
 ```
 
 **Single test file**: `npx vitest run src/renderer/lib/step-converter/stepToGlb.test.ts`
@@ -27,14 +35,6 @@ npx playwright test   # Run integration tests
 
 1. Write code, then run **related Playwright tests** + **all vitest unit tests**.
 2. Only proceed once those pass — never run the full Playwright suite during development (too time-consuming).
-
-### Pre-commit (final gate)
-
-```bash
-npm run ci   # tsc + vitest (all) + playwright (all)
-```
-
-**Must pass `npm run ci` before `git commit`. No exceptions.** CI is the final gate; don't run it frequently during development.
 
 Tests must not use `window.waitForTimeout` or similar brute-force delays.
 

@@ -91,6 +91,8 @@ function createWindow(): void {
   mainWindow.once('ready-to-show', () => {
     console.log('[Main] ready-to-show, showing window')
     mainWindow!.show()
+    // Minimize in E2E mode so test windows don't disrupt the desktop
+    if (process.env.E2E) mainWindow!.minimize()
   })
 
   mainWindow.webContents.on('did-finish-load', () => {

@@ -11,7 +11,7 @@ import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
 import { FORMAT_MAP } from '@/config/file-formats'
 import { getDefaultUpAxis, isStepFile } from '@/config/file-formats'
-import { parse3mfUnit, parseAmfUnit, guessStlUnit } from '@/config/file-formats'
+import { parse3mfUnit, parseAmfUnit, guessStlUnit, UNIT_TO_MM } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded, clearLoaded } from '@/engine/loaderResultCache'
 import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
@@ -278,7 +278,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setMergedGeometry(null)
           onPartInfosChangeRef.current([])
           const tree = applySinglePartName(
-            [{ id: `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }],
+            [{ id: fileId ? `${fileId}:${format}-objects` : `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }],
             fileName,
           )
           onSceneTreeChangeRef.current(tree)
@@ -613,13 +613,16 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           // Single merged geometry path (STL-like)
           const geo = mergeGeometries(meshes)
           geo.computeVertexNormals()
-          // STL heuristic: guess unit from bbox BEFORE centering
+          // STL heuristic: guess unit from bbox BEFORE centering, then normalize to mm.
+          // Without scaling, an inch STL appears 25.4× smaller than mm STLs,
+          // making it effectively invisible in multi-file scenes (see commit 0551317).
           if (format === 'stl') {
             geo.computeBoundingBox()
             if (geo.boundingBox) {
               const guessed = guessStlUnit(geo.boundingBox)
               if (guessed !== 'millimeter') {
-                onSourceUnitChangeRef.current?.(guessed)
+                const s = UNIT_TO_MM[guessed]
+                geo.scale(s, s, s)
               }
             }
           }
@@ -634,8 +637,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setGlbMeshes([])
           setObjects([])
           onPartInfosChangeRef.current([])
+          // Scope with fileId to prevent cross-file selection collision (21fe7da pattern)
+          const stlPartId = fileId ? `${fileId}:${format}-model` : `${format}-model`
           const tree = applySinglePartName(
-            [{ id: `${format}-model`, name: format.toUpperCase(), visible: true, expanded: true }],
+            [{ id: stlPartId, name: format.toUpperCase(), visible: true, expanded: true }],
             fileName,
           )
           onSceneTreeChangeRef.current(tree)
@@ -883,7 +888,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   // partId must match the scene-tree node id so that
   // object-mode clicks and tree-node clicks select the same entity.
-  const mergedPartId = `${format}-model`
+  // Scoped with fileId to prevent cross-file selection collision (21fe7da pattern).
+  const mergedPartId = fileId ? `${fileId}:${format}-model` : `${format}-model`
 
   if (displayMode === 'wireframe') {
     return (
