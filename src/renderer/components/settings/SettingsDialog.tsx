@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useUIStore } from '@/stores/ui-store'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
@@ -16,6 +17,11 @@ function useUILanguage() {
 
 export function SettingsDialog({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) {
   const isZh = useUILanguage()
+  const [appVersion, setAppVersion] = useState('')
+
+  useEffect(() => {
+    window.electronAPI.getAppVersion().then(setAppVersion)
+  }, [])
 
   const labels = {
     settings: isZh ? '设置' : 'Settings',
@@ -26,6 +32,7 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
     enablePreview: isZh ? '启用预览' : 'Enable Preview',
     language: isZh ? '语言' : 'Language',
     followSystem: isZh ? '跟随系统' : 'System',
+    version: isZh ? '版本' : 'Version',
   }
 
   return (
@@ -61,6 +68,10 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
                 <LanguageOption key={lang.code} value={lang.code} label={lang.name} />
               ))}
             </div>
+          </SettingSection>
+
+          <SettingSection title={labels.version}>
+            <VersionDisplay version={appVersion} />
           </SettingSection>
         </div>
       </DialogContent>
@@ -116,6 +127,14 @@ function LanguageOption({ value, label, icon: Icon }: {
         <span>{label}</span>
       </div>
     </button>
+  )
+}
+
+function VersionDisplay({ version }: { version: string }) {
+  return (
+    <div className="text-sm text-muted-foreground">
+      {version}
+    </div>
   )
 }
 
