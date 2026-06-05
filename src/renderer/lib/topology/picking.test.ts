@@ -210,4 +210,21 @@ describe('partIdFromIntersection', () => {
     })
     expect(partIdFromIntersection(intersection)).toBeNull()
   })
+
+  // Documents the root cause of the STL selection bug (fixed in ModelGroup.tsx):
+  // The STL single-merged-mesh path did not set userData.partId, so even
+  // though the raycaster hit the mesh (displayMeshes: 1), partIdFromIntersection
+  // returned null. Fix: ModelGroup now passes userData={{ partId: `${format}-model` }}
+  // on the merged geometry mesh.
+  it('returns null when userData.partId is absent (STL root cause)', () => {
+    // Simulate a THREE.Mesh created by the STL single-merged-geometry path
+    // in ModelGroup.tsx — visible mesh present, but no userData.partId set.
+    const intersection = makeIntersection({
+      faceIndex: 42, // raycaster hit triangle 42
+      object: { userData: {} }, // STL mesh: no partId, no faceIds
+    })
+    // Object-mode picking: raycaster hits the mesh → calls partIdFromIntersection
+    expect(partIdFromIntersection(intersection)).toBeNull()
+    // Expected: should return 'stl-model' (or scoped equivalent) so the mesh is selectable
+  })
 })

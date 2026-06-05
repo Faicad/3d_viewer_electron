@@ -881,10 +881,19 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
   const isMeshOnly = displayMode === 'mesh' || displayMode === 'debug'
 
+  // partId must match the scene-tree node id so that
+  // object-mode clicks and tree-node clicks select the same entity.
+  const mergedPartId = `${format}-model`
+
   if (displayMode === 'wireframe') {
     return (
       <group ref={combinedRef}>
-        <mesh geometry={mergedGeometry} castShadow receiveShadow>
+        <mesh
+          geometry={mergedGeometry}
+          castShadow
+          receiveShadow
+          userData={{ partId: mergedPartId }}
+        >
           <meshBasicMaterial
             color={'#cccccc'}
             transparent
@@ -903,6 +912,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         geometry={mergedGeometry}
         castShadow
         receiveShadow
+        userData={{ partId: mergedPartId }}
         material={isMeshOnly ? defaultMaterialWireframe : defaultMaterial}
       />
     </group>
