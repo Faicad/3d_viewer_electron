@@ -641,10 +641,14 @@ export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis
 export function isCadSkillGlb(buffer: ArrayBuffer): boolean {
   try {
     const header = new Uint32Array(buffer.slice(0, 12))
-    if (header[0] !== 0x46546C67) return false
-    const view = new Uint8Array(buffer)
+    if (header[0] !== 0x46546C67) return false // not a GLB
+    if (header[1] !== 2) return false           // not GLB v2
+    // Read JSON chunk length from GLB header (bytes 12-15, little-endian uint32)
+    const jsonChunkLength = new DataView(buffer).getUint32(12, true)
+    if (jsonChunkLength === 0 || jsonChunkLength > buffer.byteLength - 20) return false
+    const jsonData = new Uint8Array(buffer, 20, Math.min(jsonChunkLength, 2 * 1024 * 1024))
     const decoder = new TextDecoder()
-    const text = decoder.decode(view.slice(0, Math.min(view.length, 2048)))
+    const text = decoder.decode(jsonData)
     return text.includes('STEP_T')
   } catch {
     return false
