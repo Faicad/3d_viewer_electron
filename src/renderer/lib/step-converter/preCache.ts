@@ -4,13 +4,6 @@ import { getCached, putCached } from './stepCache'
 
 const memCache = new Map<string, ArrayBuffer>()
 
-const OCCT_PARAMS = {
-  linearUnit: 'millimeter',
-  linearDeflectionType: 'absolute_value',
-  linearDeflection: 0.001,
-  angularDeflection: 0.5,
-}
-
 function cacheKey(filePath: string, mtimeMs: number): string {
   const normalizedPath = filePath.replace(/\\/g, '/')
   const normalizedTime = Math.trunc(mtimeMs)
@@ -74,7 +67,7 @@ export async function startPreCache(
       if (preCacheAbort) break
 
       console.log('[preCache] converting:', file.name)
-      const importResult = await convertInWorker(key, result.data, OCCT_PARAMS, 'precache')
+      const importResult = await convertInWorker(key, result.data, null, 'precache')
 
       const glbBuffer = buildGlbFromResult(importResult, {
         wasmPath,

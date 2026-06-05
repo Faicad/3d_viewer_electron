@@ -58,7 +58,7 @@ self.onmessage = async (e) => {
       const m = await init();
       const t0 = performance.now();
 
-      const result = m.ReadStepFile(new Uint8Array(stepData), params || {});
+      const result = m.ReadStepFile(new Uint8Array(stepData), params);
       const ms = (performance.now() - t0).toFixed(0);
       console.log('[step-worker] ReadStepFile done in ' + ms + 'ms, meshes=' + (result.meshes?.length || 0));
 

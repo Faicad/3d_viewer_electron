@@ -1,5 +1,5 @@
 export const STEP_CACHE_DB_NAME = 'step-glb-cache'
-export const STEP_CACHE_DB_VERSION = 2
+export const STEP_CACHE_DB_VERSION = 3
 export const STORE_NAME = 'buffers'
 
 export const memCache = new Map<string, ArrayBuffer>()

@@ -17,13 +17,6 @@ function cacheKey(filePath: string, mtimeMs: number): string {
   return key
 }
 
-const OCCT_PARAMS = {
-  linearUnit: 'millimeter',
-  linearDeflectionType: 'absolute_value',
-  linearDeflection: 0.001,
-  angularDeflection: 0.5,
-}
-
 export async function stepToGlbCached(
   stepData: ArrayBuffer | Uint8Array,
   fileInfo: { filePath: string; mtimeMs: number },
@@ -58,7 +51,7 @@ export async function stepToGlbCached(
   console.log('[stepToGlbCached] miss, starting worker conversion:', key)
   onProgress?.('Converting STEP geometry...', 5)
   const stepBuffer = stepData instanceof ArrayBuffer ? stepData : stepData.buffer.slice(0)
-  const importResult = await convertInWorker(key, stepBuffer, OCCT_PARAMS)
+  const importResult = await convertInWorker(key, stepBuffer, null)
 
   onProgress?.('Building GLB geometry...', 60)
   const buffer = buildGlbFromResult(importResult, options, onProgress)

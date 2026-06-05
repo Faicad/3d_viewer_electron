@@ -28,15 +28,8 @@ export async function stepToGlb(
 ): Promise<ArrayBuffer> {
   const occt = await loadOcct({ wasmPath: options.wasmPath });
 
-  const params = {
-    linearUnit: 'millimeter',
-    linearDeflectionType: 'absolute_value',
-    linearDeflection: options.linearDeflection ?? 0.001,
-    angularDeflection: options.angularDeflection ?? 0.5,
-  };
-
   const buffer = stepData instanceof Uint8Array ? stepData : new Uint8Array(stepData);
-  const result = occt.ReadStepFile(buffer, params) as OcctImportResult;
+  const result = occt.ReadStepFile(buffer, null) as OcctImportResult;
 
   if (!result.success) {
     throw new Error('STEP import failed');

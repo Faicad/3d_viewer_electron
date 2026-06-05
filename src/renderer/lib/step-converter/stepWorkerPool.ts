@@ -102,7 +102,7 @@ function acquire(taskType: TaskType): WorkerSlot | null {
 export function convertInWorker(
   cacheKey: string,
   stepData: ArrayBuffer,
-  params: Record<string, unknown>,
+  params: Record<string, unknown> | null,
   priority: TaskType = 'user',
 ): Promise<OcctImportResult> {
   // Dedup: if this file is already being converted, wait for that same Promise
