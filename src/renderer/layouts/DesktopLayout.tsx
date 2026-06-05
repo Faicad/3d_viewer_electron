@@ -223,7 +223,11 @@ export default function DesktopLayout() {
   const handlePartContextMenu = useCallback((e: React.MouseEvent, partId: string, fileId: string, nodePathStr?: string) => {
     const materialStore = useMaterialStore.getState()
     const modelStore = useModelStore.getState()
-    const app = materialStore.getEffectiveAppearance(fileId, partId)
+    // In multi-file mode, partId (node.id) is scoped as "fileId:rawPartId".
+    // Extract the unscoped partId for material store operations that construct
+    // the override key via makeOverrideKey(fileId, rawPartId).
+    const rawPartId = partId.startsWith(fileId + ':') ? partId.slice(fileId.length + 1) : partId
+    const app = materialStore.getEffectiveAppearance(fileId, rawPartId)
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
     const fileName = file?.fileName ?? fileId
     const partName = partId
@@ -238,7 +242,10 @@ export default function DesktopLayout() {
           label: 'Edit Material',
           icon: Palette,
           action: () => {
-            const key = `${fileId}:${partId}`
+            // The override key is already stored as "fileId:rawPartId" in the
+            // material store (set by ModelGroup when fileId is provided).
+            // Since partId is scoped in multi-file mode, use it directly.
+            const key = partId
             materialStore.openMaterialEditor([key], title)
           },
         },
@@ -254,7 +261,7 @@ export default function DesktopLayout() {
           label: 'Paste Material',
           icon: ClipboardPaste,
           action: () => {
-            materialStore.pasteMaterialFromClipboard(fileId, partId)
+            materialStore.pasteMaterialFromClipboard(fileId, rawPartId)
           },
           disabled: !materialStore.materialClipboard,
         },
@@ -404,7 +411,8 @@ export default function DesktopLayout() {
         const file = modelStore.loadedFiles.find(f => f.id === fileId)
         const fileName = file?.fileName ?? fileId
         const title = `${selectedId} / ${fileName}`
-        materialStore.openMaterialEditor([`${fileId}:${selectedId}`], title)
+        // selectedId is already scoped (e.g. "uuid:o1") — use directly
+        materialStore.openMaterialEditor([selectedId], title)
         return
       }
     }
@@ -467,7 +475,8 @@ export default function DesktopLayout() {
     const file = modelStore.loadedFiles.find(f => f.id === fileId)
     const fileName = file?.fileName ?? fileId
     const title = `${partName} / ${fileName}`
-    const key = `${fileId}:${selectedId}`
+    // selectedId is already scoped (e.g. "uuid:o1") — use directly
+    const key = selectedId
     const currentKeys = materialStore.editingOverrideKeys
     if (currentKeys.length === 1 && currentKeys[0] === key) return // already editing this part
     materialStore.openMaterialEditor([key], title)

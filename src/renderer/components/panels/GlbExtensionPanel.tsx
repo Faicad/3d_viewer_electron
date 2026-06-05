@@ -107,7 +107,8 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
     if (partIds.length === 0) return
     const file = modelStore.loadedFiles.find((f) => f.id === fileId)
     const fileName = file?.fileName?.replace(/\.[^.]+$/, '') || fileId
-    const keys = partIds.map((pid) => `${fileId}:${pid}`)
+    // partIds from getPartIdsByMaterial are already scoped (e.g. "uuid:o1")
+    const keys = partIds
     const title = `${matName} / ${fileName}`
     useMaterialStore.getState().openMaterialEditor(keys, title)
   }, [])

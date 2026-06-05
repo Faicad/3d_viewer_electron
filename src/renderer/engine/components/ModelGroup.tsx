@@ -377,8 +377,12 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               setSkinningFlag(mat, true)
             }
 
-            const partId = src.userData?.partId || src.name || `part-${i}`
-            const overrideKey = fileId ? `${fileId}:${String(partId)}` : ''
+            const rawPartId = src.userData?.partId || src.name || `part-${i}`
+            // Scope partId with fileId so that meshes from different files
+            // never collide in the selection / highlight / drag / bounding-box
+            // system (all of which match by partId across all model groups).
+            const partId = fileId ? `${fileId}:${String(rawPartId)}` : String(rawPartId)
+            const overrideKey = fileId ? partId : ''
             const { materialOverrides, overrideMaterial } = useMaterialStore.getState()
             const overrideAppearance = overrideMaterial && overrideKey
               ? materialOverrides[overrideKey]
@@ -714,7 +718,8 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       let changed = false
 
       for (const partInfo of glbPartInfos) {
-        const key = `${fileId}:${String(partInfo.partId)}`
+        // partInfo.partId is already scoped with fileId prefix (e.g. "uuid:o1")
+        const key = String(partInfo.partId)
         const override = materialOverrides[key]
 
         if (overrideMaterial && override && !viewingOriginal) {
@@ -791,7 +796,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       return (
         <group ref={ref as unknown as React.Ref<THREE.Group>}>
           {glbMeshes.map((mesh, i) => {
-            const partId = glbPartInfos[i]?.partId || `part-${i}`
+            const partId = glbPartInfos[i]?.partId || (fileId ? `${fileId}:part-${i}` : `part-${i}`)
             const vis = visibilityMap.get(partId) ?? true
             return (
               <mesh
@@ -828,7 +833,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     return (
       <group ref={combinedRef}>
         {glbMeshes.map((mesh, i) => {
-          const partId = glbPartInfos[i]?.partId || `part-${i}`
+          const partId = glbPartInfos[i]?.partId || (fileId ? `${fileId}:part-${i}` : `part-${i}`)
           const vis = visibilityMap.get(partId) ?? true
           const effectiveMats = checkerMaterials ?? meshMaterials
           const mat = effectiveMats[i]

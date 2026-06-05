@@ -184,7 +184,10 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
         }
       }
       for (const [partId, app] of Object.entries(originals)) {
-        next[`${fileId}:${partId}`] = app
+        // partId may already be scoped (e.g. "fileId:o1" from multi-file
+        // ModelGroup) or unscoped (e.g. "o1" from single-file or tests).
+        // Only add the prefix when not already present.
+        next[partId.startsWith(prefix) ? partId : `${prefix}${partId}`] = app
       }
       return { materialOriginals: next }
     })
@@ -211,7 +214,8 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
         if (!key.startsWith(prefix)) next[key] = s.textureThumbnails[key]
       }
       for (const [partId, slotThumbs] of Object.entries(thumbs)) {
-        next[`${fileId}:${partId}`] = slotThumbs
+        // partId may already be scoped — only add prefix when not present
+        next[partId.startsWith(prefix) ? partId : `${prefix}${partId}`] = slotThumbs
       }
       return { textureThumbnails: next }
     })
