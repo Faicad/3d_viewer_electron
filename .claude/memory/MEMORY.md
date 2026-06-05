@@ -1,3 +1,5 @@
 - [fix-all-test-failures](fix-all-test-failures.md) — All test failures must be memorized and fixed one by one, never dismissed
 - [ci-checklist](ci-checklist.md) — Mandatory 6-step checklist before claiming CI passes
 - [report-test-failures-clearly](report-test-failures-clearly.md) — When reporting a test failure as unrelated, always name the test and give the rerun command
+- [Pre-commit test rule](feedback_precommit.md) — run `node scripts/local-ci.mjs` locally before committing
+- [CI debug workflow](ci-debug-workflow.md) — isolate failing step first, fix, verify, THEN run CI — never blind retry

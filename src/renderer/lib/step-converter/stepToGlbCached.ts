@@ -28,6 +28,7 @@ export async function stepToGlbCached(
   stepData: ArrayBuffer | Uint8Array,
   fileInfo: { filePath: string; mtimeMs: number },
   options: StepToGlbOptions = {},
+  onProgress?: (msg: string, pct: number) => void,
 ): Promise<{ buffer: ArrayBuffer; cached: boolean }> {
   const key = cacheKey(fileInfo.filePath, fileInfo.mtimeMs)
   const startTime = performance.now()
@@ -36,6 +37,7 @@ export async function stepToGlbCached(
   const memHit = memCache.get(key)
   if (memHit) {
     console.log('[stepToGlbCached] memory hit:', key, `(${memCache.size} entries in cache)`)
+    onProgress?.('Cache hit — loading scene...', 80)
     return { buffer: memHit, cached: true }
   }
 
@@ -45,6 +47,7 @@ export async function stepToGlbCached(
     if (dbHit) {
       console.log('[stepToGlbCached] IndexedDB hit:', key, `size=${dbHit.byteLength}`)
       memCache.set(key, dbHit)
+      onProgress?.('Cache hit — loading scene...', 80)
       return { buffer: dbHit, cached: true }
     }
   } catch (err) {
@@ -53,9 +56,12 @@ export async function stepToGlbCached(
 
   // 3. Worker conversion: ReadStepFile in worker → buildGlb on main thread
   console.log('[stepToGlbCached] miss, starting worker conversion:', key)
+  onProgress?.('Converting STEP geometry...', 5)
   const stepBuffer = stepData instanceof ArrayBuffer ? stepData : stepData.buffer.slice(0)
   const importResult = await convertInWorker(key, stepBuffer, OCCT_PARAMS)
-  const buffer = buildGlbFromResult(importResult, options)
+
+  onProgress?.('Building GLB geometry...', 60)
+  const buffer = buildGlbFromResult(importResult, options, onProgress)
   const elapsed = ((performance.now() - startTime) / 1000).toFixed(1)
   console.log(`[stepToGlbCached] conversion done in ${elapsed}s, size=${buffer.byteLength}`)
 

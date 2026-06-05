@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import ViewportContainer from '@/components/viewport/ViewportContainer'
 import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
+import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
@@ -26,7 +27,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
   const { t } = useTranslation()
   const glbUrl = useModelStore((s) => s.glbUrl)
   const loadedFiles = useModelStore((s) => s.loadedFiles)
-  const isConverting = useModelStore((s) => s.isConverting)
+  const loadingVisible = useModelStore((s) => s.loadingState.isVisible)
   const hasAnyModel = glbUrl !== null || loadedFiles.length > 0
   const { uploadFile } = useFileUpload({ projectId })
   const [searchParams] = useSearchParams()
@@ -71,7 +72,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
       if (format === 'step') {
         try {
-          useModelStore.getState().setIsConverting(true)
+          useModelStore.getState().showProgress('Converting STEP geometry...')
           const { buffer: glbBuffer } = await stepToGlbCached(buffer,
             { filePath, mtimeMs: Date.now() },
             { wasmPath: '/wasm/occt-import-js.wasm' },
@@ -83,7 +84,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
           toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
           return
         } finally {
-          useModelStore.getState().setIsConverting(false)
+          useModelStore.getState().hideProgress()
         }
       }
 
@@ -165,7 +166,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         fileMeta: loadResult.fileMeta,
       })
     } catch (e) {
-      useModelStore.getState().setIsConverting(false)
+      useModelStore.getState().hideProgress()
       if (e instanceof ModelEmptyError) {
         toast.error(t('error.modelEmpty', { fileName: e.fileName }))
       } else {
@@ -313,7 +314,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
     if (format === 'step') {
       try {
-        useModelStore.getState().setIsConverting(true)
+        useModelStore.getState().showProgress('Converting STEP geometry...')
         const filePath = window.electronAPI?.getFilePath(file) ?? file.name
         const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
           { filePath, mtimeMs: file.lastModified },
@@ -325,7 +326,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
         return
       } finally {
-        useModelStore.getState().setIsConverting(false)
+        useModelStore.getState().hideProgress()
       }
     } else if (format === 'svg' || format === 'dxf') {
       // SVG/DXF: decode text, convert DXF to SVG if needed, add to workspace
@@ -437,7 +438,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         <ViewportContainer />
       )}
 
-      {!hasAnyModel && !isSvgMode && showDropOverlay && (
+      {!hasAnyModel && !isSvgMode && showDropOverlay && !loadingVisible && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
             className="relative flex flex-col items-center gap-4 p-12 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground pointer-events-auto bg-background/70 backdrop-blur-sm"
@@ -480,40 +481,8 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         }}
       />
 
-      {isConverting && (
-        <div
-          id="step-loading-overlay"
-          data-testid="step-loading-overlay"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.45)',
-            zIndex: 30,
-            backdropFilter: 'blur(2px)',
-          }}
-        >
-          <div style={{
-            width: 40,
-            height: 40,
-            border: '3px solid rgba(255,255,255,0.2)',
-            borderTopColor: '#fff',
-            borderRadius: '50%',
-            animation: 'step-loading-spin 0.8s linear infinite',
-          }} />
-          <p style={{ color: '#fff', marginTop: 16, fontSize: 14, fontWeight: 500 }}>
-            Loading...
-          </p>
-          <style>{`
-            @keyframes step-loading-spin {
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
-        </div>
-      )}
+      {/* Loading progress card — controlled by store.loadingState */}
+      <LoadingOverlay />
     </div>
   )
 }

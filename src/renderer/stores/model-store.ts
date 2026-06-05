@@ -72,6 +72,23 @@ export type SortOrder = 'asc' | 'desc'
 
 export type LoadingPhase = 'idle' | 'loading' | 'done' | 'error'
 
+/** Progress state for the loading overlay card. */
+export interface LoadingProgressState {
+  isVisible: boolean
+  message: string
+  /** 0-100; -1 means indeterminate (spinner only, no progress bar). */
+  percentage: number
+  /** Last phase identifier — used for dedup to skip redundant updates. */
+  phase: string
+}
+
+const initialLoadingState: LoadingProgressState = {
+  isVisible: false,
+  message: '',
+  percentage: -1,
+  phase: '',
+}
+
 function buildCombinedTree(files: LoadedFileModel[], prevTree?: SceneTreeNode[]): SceneTreeNode[] {
   // Preserve expanded/visible state from the previous combined tree
   const prevMap = new Map<string, { expanded?: boolean; visible?: boolean }>()
@@ -192,6 +209,12 @@ interface ModelStore {
 
   /** Check if a file path is among the loaded files */
   isFileLoaded: (filePath: string) => boolean
+
+  // Loading progress overlay
+  loadingState: LoadingProgressState
+  showProgress: (message: string, percentage?: number) => void
+  updateProgress: (message: string, percentage?: number) => void
+  hideProgress: () => void
 }
 
 function toggleNodeInTree(
@@ -282,6 +305,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   sourceUnit: 'millimeter',
   fileGroup: 'mesh',
   isConverting: false,
+  loadingState: initialLoadingState,
   glbPartInfos: [],
   modelCenteringOffset: null,
 
@@ -306,6 +330,34 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   },
 
   setIsConverting: (v) => set({ isConverting: v }),
+
+  showProgress: (message, percentage) => set({
+    loadingState: {
+      isVisible: true,
+      message,
+      percentage: percentage ?? -1,
+      phase: message,
+    },
+  }),
+
+  updateProgress: (message, percentage) => set(state => {
+    const pct = percentage ?? -1
+    // Dedup: skip if neither message nor percentage changed
+    if (state.loadingState.phase === message && state.loadingState.percentage === pct) {
+      return {}
+    }
+    return {
+      loadingState: {
+        ...state.loadingState,
+        message,
+        percentage: pct,
+        phase: message,
+      },
+    }
+  }),
+
+  hideProgress: () => set({ loadingState: initialLoadingState }),
+
   setLoadingPhase: (phase) => set({ __loadingPhase: phase }),
   setSourceUnit: (unit) => set({ sourceUnit: unit }),
   setFileGroup: (group) => set({ fileGroup: group }),
@@ -381,7 +433,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
     set({
       glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null,
       modelFilePath: null, __loadingPhase: 'idle', sourceUnit: 'millimeter', fileGroup: 'mesh',
-      glbPartInfos: [], modelCenteringOffset: null, isConverting: false,
+      glbPartInfos: [], modelCenteringOffset: null, isConverting: false, loadingState: initialLoadingState,
       fileSortMode: 'name', sortOrder: 'asc', activeUpAxis: 'z',
       loadedFiles: [], activeFileId: null,
     })

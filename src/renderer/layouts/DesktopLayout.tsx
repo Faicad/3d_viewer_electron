@@ -583,7 +583,7 @@ export default function DesktopLayout() {
               let format = detectFormat(file.name)
               if (isStep) {
                 try {
-                  useModelStore.getState().setIsConverting(true)
+                  useModelStore.getState().showProgress('Converting STEP geometry...')
                   const { buffer: glbBuffer } = await stepToGlbCached(buffer,
                     { filePath: file.path, mtimeMs: file.mtimeMs },
                     { wasmPath: '/wasm/occt-import-js.wasm' },
@@ -593,13 +593,13 @@ export default function DesktopLayout() {
                 } catch (e) {
                   console.error('[DesktopLayout] STEP conversion failed:', e)
                   toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+                  useModelStore.getState().hideProgress()
                   return
-                } finally {
-                  useModelStore.getState().setIsConverting(false)
                 }
               }
               if (!format) return
               try {
+                if (!isStep) useModelStore.getState().showProgress(`Loading ${file.name}...`)
                 const loadResult = await loadFormat(buffer, format, file.path)
                 const fileId = crypto.randomUUID()
                 setCachedResult(fileId, loadResult)
@@ -622,7 +622,9 @@ export default function DesktopLayout() {
                   fileGroup: FORMAT_MAP[format].group,
                   loadingPhase: 'loading',
                 })
+                useModelStore.getState().hideProgress()
               } catch (e) {
+                useModelStore.getState().hideProgress()
                 if (e instanceof ModelEmptyError) {
                   toast.error(t('error.modelEmpty', { fileName: e.fileName }))
                 } else {
@@ -789,9 +791,10 @@ export default function DesktopLayout() {
         }
         let buffer = fileResult.data
         let format = detectFormat(fileName)
+        const isStep = format === 'step'
 
-        if (format === 'step') {
-          store.setIsConverting(true)
+        if (isStep) {
+          store.showProgress('Converting STEP geometry...')
           try {
             const { buffer: glbBuffer } = await stepToGlbCached(buffer,
               { filePath, mtimeMs: Date.now() },
@@ -799,8 +802,9 @@ export default function DesktopLayout() {
             )
             buffer = glbBuffer
             format = 'glb'
-          } finally {
-            store.setIsConverting(false)
+          } catch (e) {
+            store.hideProgress()
+            throw e
           }
         }
 
@@ -808,6 +812,9 @@ export default function DesktopLayout() {
           toast.error('Unsupported file format: ' + fileName)
           continue
         }
+
+        // Show progress for non-STEP formats (STEP already has progress from above)
+        if (!isStep) store.showProgress(`Loading ${fileName}...`)
 
         // Parse once — result feeds both canvas and thumbnail
         const loadResult = await loadFormat(buffer, format, filePath)
@@ -838,8 +845,9 @@ export default function DesktopLayout() {
           fileGroup: FORMAT_MAP[format].group,
           loadingPhase: 'loading',
         })
+        currentStore.hideProgress()
       } catch (e) {
-        useModelStore.getState().setIsConverting(false)
+        useModelStore.getState().hideProgress()
         if (e instanceof ModelEmptyError) {
           toast.error(t('error.modelEmpty', { fileName: e.fileName }))
         } else {

@@ -56,7 +56,11 @@ export async function sha256(data: ArrayBuffer | Uint8Array): Promise<string> {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-export function buildGlbFromResult(importResult: OcctImportResult, options: StepToGlbOptions): ArrayBuffer {
+export function buildGlbFromResult(
+  importResult: OcctImportResult,
+  options: StepToGlbOptions,
+  onProgress?: (msg: string, pct: number) => void,
+): ArrayBuffer {
   const builder = new GlbBuilder();
   const { color, entryKind = 'part', stepHash, cadPath } = options;
 
@@ -99,12 +103,16 @@ export function buildGlbFromResult(importResult: OcctImportResult, options: Step
     builder.setSceneNodes([rootIdx]);
   }
 
+  onProgress?.('Writing GLB buffer...', 75)
+
   addStepTopology(builder, importResult, {
     includeSelectorTopology: options.includeSelectorTopology ?? true,
     entryKind,
     stepHash,
     cadPath,
   });
+
+  onProgress?.('Adding topology data...', 80)
 
   return builder.write();
 }

@@ -209,7 +209,10 @@ export function extractThumbnailBlob(
  * mesh output of ThreeMFLoader: build items first, then components within each.
  * Part names have known 3D file extensions stripped (e.g. "vise body.stl" → "vise body").
  */
-export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
+export function parseBambu3mf(
+  buffer: ArrayBuffer,
+  onProgress?: (msg: string, pct: number) => void,
+): Bambu3mfMetadata {
   const data = new Uint8Array(buffer)
   const unzipped = unzipSync(data)
   const decoder = new TextDecoder()
@@ -220,6 +223,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
   const plates = new Map<number, BambuPlateInfo>()
 
   // ---- 1. project_settings.config (JSON) ----
+  onProgress?.('Reading filament config...', 40)
   const projFile = Object.keys(unzipped).find(f =>
     f.endsWith('project_settings.config'),
   )
@@ -267,6 +271,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
 
   // ---- 2. model_settings.config (XML) — collect per-object & per-part data ----
   // Store part info per objectId → [{partId, name, extruder}]
+  onProgress?.('Reading model settings...', 50)
   const objectParts = new Map<string, { partId: string; name: string; extruder: number }[]>()
 
   const assembleTransforms = new Map<string, AssembleItemTransform>()
@@ -424,6 +429,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
   }
 
   // ---- 3. Model-level metadata + build items from 3D/3dmodel.model ----
+  onProgress?.('Reading model metadata...', 65)
   let modelMeta: BambuModelMeta | undefined
   let metadataEntries: Array<{ name: string; value: string }> = []
   const thumbnailBlob: Blob | undefined = extractThumbnailBlob(unzipped)
@@ -447,6 +453,7 @@ export function parseBambu3mf(buffer: ArrayBuffer): Bambu3mfMetadata {
   // ---- 4. Build ordered flat parts list ----
   // The order must match ThreeMFLoader: iterate build items, then for each
   // object emit its parts in <part id> order.
+  onProgress?.('Building parts list...', 75)
   // Part names have known 3D file extensions stripped.
   const parts: BambuPartMeta[] = []
   let partIndex = 0

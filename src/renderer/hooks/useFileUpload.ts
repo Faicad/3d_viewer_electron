@@ -10,6 +10,7 @@ import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumb
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { convertDxfToSvg } from '@/lib/dxf-to-svg'
+import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 import type { FileMeta } from '@/lib/file-meta'
 
 interface UseFileUploadOptions {
@@ -35,7 +36,6 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         let buffer = rawBuffer
 
         if (format === 'svg' || format === 'dxf') {
-          // Switch to SVG mode: clear any 3D state
           useModelStore.getState().reset()
 
           // Decode text (both SVG and DXF are text-based)
@@ -106,13 +106,19 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         }
 
         if (format === 'step') {
-          useModelStore.getState().setIsConverting(true)
+          const { showProgress, updateProgress } = useModelStore.getState()
+          showProgress('Reading STEP file...', 0)
+          resetYieldTimer()
+
           const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+
           const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
             { filePath, mtimeMs: file.lastModified },
             { wasmPath: '/wasm/occt-import-js.wasm' },
           )
-          useModelStore.getState().setIsConverting(false)
+          updateProgress('Building 3D scene...', 85)
+          await yieldToUI(true)
+
           buffer = glbBuffer
           format = 'glb'
         } else if (!format) {
@@ -122,6 +128,12 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         }
 
         const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+
+        // Show progress for non-STEP formats (STEP already has progress from above)
+        if (format !== 'glb' || buffer === rawBuffer) {
+          const formatLabel = FORMAT_MAP[format]?.label ?? format.toUpperCase()
+          useModelStore.getState().showProgress(`Loading ${formatLabel}...`)
+        }
 
         // Parse once — feeds both canvas and thumbnail
         const loadResult = await loadFormat(buffer, format, filePath)
@@ -162,6 +174,9 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           fileMeta,
         })
 
+        // Done loading — hide progress overlay
+        useModelStore.getState().hideProgress()
+
         // Scan folder for other model files if in Electron environment
         if (window.electronAPI) {
           try {
@@ -189,7 +204,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           }
         }
       } catch (err) {
-        useModelStore.getState().setIsConverting(false)
+        useModelStore.getState().hideProgress()
         console.error('[useFileUpload] upload failed:', err)
         if (err instanceof ModelEmptyError) {
           toast.error(t('error.modelEmpty', { fileName: err.fileName }))

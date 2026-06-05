@@ -452,20 +452,20 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     const { assertNoErrors } = trackErrors(window)
     await window.waitForLoadState('domcontentloaded')
 
-    // Overlay is conditionally rendered — not in DOM when isConverting=false
-    const overlay = window.locator('[data-testid="step-loading-overlay"]')
+    // Overlay is conditionally rendered — not in DOM when loadingState.isVisible=false
+    const overlay = window.locator('[data-testid="loading-overlay"]')
     await expect(overlay).not.toBeAttached()
 
-    // Toggle on via store → React re-renders → overlay appears (main thread free, no WASM blocking)
-    await window.evaluate(() => window.__modelStore.getState().setIsConverting(true))
+    // Toggle on via store → React re-renders → overlay appears
+    await window.evaluate(() => window.__modelStore.getState().showProgress('Loading test...', 50))
     await expect(overlay).toBeAttached()
     await expect(overlay).toBeVisible()
-    console.log('[test] overlay visible after setIsConverting(true)')
+    console.log('[test] overlay visible after showProgress()')
 
     // Toggle off → React unmounts overlay
-    await window.evaluate(() => window.__modelStore.getState().setIsConverting(false))
+    await window.evaluate(() => window.__modelStore.getState().hideProgress())
     await expect(overlay).not.toBeAttached()
-    console.log('[test] overlay unmounted after setIsConverting(false)')
+    console.log('[test] overlay unmounted after hideProgress()')
     await assertNoErrors()
   })
 })

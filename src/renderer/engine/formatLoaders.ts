@@ -29,6 +29,8 @@ import type { FormatId, UnitSystem } from '@/config/file-formats'
 import { buildGlbExtensionData, type GlbExtensionData } from './gltfExtensions'
 import { parseBambu3mf, type Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 import type { FileMeta } from '@/lib/file-meta'
+import { useModelStore } from '@/stores/model-store'
+import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 
 /** Parse ISO 10303-21 HEADER section from a STEP file buffer. */
 export function parseStepHeader(buffer: ArrayBuffer): FileMeta['step'] | undefined {
@@ -398,13 +400,26 @@ export async function loadFormat(
       return { meshes: [mesh], objects: [] }
     }
     case 'glb': {
+      const { updateProgress } = useModelStore.getState()
+      resetYieldTimer()
+
+      updateProgress('Parsing GLB data...', 10)
       const gltf = await getGltfLoader().parseAsync(buffer, '')
+
+      updateProgress('Processing meshes...', 70)
+      await yieldToUI(true)
       const meshes = extractMeshes(gltf.scene)
       annotateMaterialIndices(gltf, gltf.parser.json)
+
+      updateProgress('Building extensions...', 85)
+      await yieldToUI(true)
       const json = gltf.parser.json
       const { resolutionMap, thumbnailMap, previewMap } = buildTextureExtras(gltf)
       const gltfExtensions = buildGlbExtensionData(json, gltf.animations, resolutionMap, thumbnailMap, previewMap)
       const asset = json.asset as Record<string, unknown> | undefined
+
+      updateProgress('Finalizing...', 95)
+      await yieldToUI(true)
       const fileMeta: FileMeta = {
         glb: {
           generator: typeof asset?.generator === 'string' ? asset.generator : undefined,
@@ -418,6 +433,7 @@ export async function loadFormat(
     case 'gltf': {
       if (resourcePath) {
         // Convert glTF + external files into self-contained GLB binary
+        useModelStore.getState().updateProgress('Converting GLTF to GLB...', 20)
         const glbBuffer = await gltfToGlb(bufferToText(buffer), resourcePath)
         return loadFormat(glbBuffer, 'glb')
       }
@@ -441,18 +457,31 @@ export async function loadFormat(
       return { meshes, objects: [], sceneRoot: gltf.scene, sourceUnit: 'meter', animations: gltf.animations, gltfExtensions, fileMeta }
     }
     case '3mf': {
+      const { updateProgress } = useModelStore.getState()
+      resetYieldTimer()
+
+      updateProgress('Parsing 3MF geometry...', 10)
       const group = new ThreeMFLoader().parse(buffer)
+      await yieldToUI(true)
+
       const meshes = extractMeshes(group)
       let bambuMetadata: Bambu3mfMetadata | undefined
       let fileMeta: FileMeta | undefined
       try {
-        bambuMetadata = parseBambu3mf(buffer)
+        updateProgress('Extracting metadata...', 40)
+        bambuMetadata = parseBambu3mf(buffer, (msg, pct) => {
+          updateProgress(msg, pct)
+        })
+        await yieldToUI(true)
         if (bambuMetadata.metadataEntries.length > 0) {
           fileMeta = { '3mf': { entries: bambuMetadata.metadataEntries } }
         }
       } catch {
         // non-Bambu 3MF — proceed without metadata
       }
+
+      updateProgress('Finalizing...', 90)
+      await yieldToUI(true)
       return { meshes, objects: extractAllObjects(group), bambuMetadata, fileMeta }
     }
     case 'model': {

@@ -743,6 +743,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       return
     }
     let buffer = result.data
+    const originalFormat = format
 
     // Parse STEP header from original buffer before conversion
     let fileMeta: FileMeta | undefined
@@ -752,7 +753,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     }
 
     if (format === 'step') {
-      store.setIsConverting(true)
+      store.showProgress('Converting STEP geometry...')
       try {
         const { buffer: glbBuffer } = await stepToGlbCached(buffer,
           { filePath: file.path, mtimeMs: file.mtimeMs },
@@ -760,8 +761,9 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
         )
         buffer = glbBuffer
         format = 'glb'
-      } finally {
-        store.setIsConverting(false)
+      } catch (e) {
+        store.hideProgress()
+        throw e
       }
     }
 
@@ -770,6 +772,9 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       toast.error('Unsupported file format: ' + file.name)
       return
     }
+
+    // Show progress for formats that weren't STEP-converted (STEP already has progress from above)
+    if (originalFormat !== 'step') store.showProgress(`Loading ${file.name}...`)
 
     // Parse once
     const loadResult = await loadFormat(buffer, format, file.path)
@@ -808,9 +813,11 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       bambuMetadata: loadResult.bambuMetadata,
       fileMeta,
     })
+    store.hideProgress()
   } catch (e) {
+    store.hideProgress()
     console.error('[handleFileClick] exception:', e)
-    useModelStore.getState().setIsConverting(false)
+    useModelStore.getState().hideProgress()
     toast.error('Load failed: ' + String(e))
   }
 }

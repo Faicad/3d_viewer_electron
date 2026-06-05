@@ -160,6 +160,9 @@ describe('model-store', () => {
     expect(s.modelBuffer).toBeNull()
     expect(s.modelFormat).toBeNull()
     expect(s.isConverting).toBe(false)
+    expect(s.loadingState.isVisible).toBe(false)
+    expect(s.loadingState.message).toBe('')
+    expect(s.loadingState.percentage).toBe(-1)
     expect(s.glbPartInfos).toEqual([])
     expect(s.folderFiles).toEqual([])
     expect(s.selectedFileIndex).toBe(-1)
@@ -177,6 +180,26 @@ describe('model-store', () => {
     expect(useModelStore.getState().isConverting).toBe(true)
     useModelStore.getState().setIsConverting(false)
     expect(useModelStore.getState().isConverting).toBe(false)
+  })
+
+  it('showProgress / updateProgress / hideProgress', () => {
+    const store = useModelStore.getState()
+    store.showProgress('Loading...', 30)
+    let s = useModelStore.getState()
+    expect(s.loadingState.isVisible).toBe(true)
+    expect(s.loadingState.message).toBe('Loading...')
+    expect(s.loadingState.percentage).toBe(30)
+
+    store.updateProgress('Processing...', 70)
+    s = useModelStore.getState()
+    expect(s.loadingState.message).toBe('Processing...')
+    expect(s.loadingState.percentage).toBe(70)
+
+    store.hideProgress()
+    s = useModelStore.getState()
+    expect(s.loadingState.isVisible).toBe(false)
+    expect(s.loadingState.message).toBe('')
+    expect(s.loadingState.percentage).toBe(-1)
   })
 
   it('setModelBuffer slices the buffer', () => {
@@ -303,6 +326,9 @@ describe('model-store', () => {
     expect(s.modelBuffer).toBeNull()
     expect(s.modelFormat).toBeNull()
     expect(s.isConverting).toBe(false)
+    expect(s.loadingState.isVisible).toBe(false)
+    expect(s.loadingState.message).toBe('')
+    expect(s.loadingState.percentage).toBe(-1)
     expect(s.glbPartInfos).toEqual([])
     // reset preserves folderFiles & selectedFileIndex (file list persists across model changes)
     expect(s.fileSortMode).toBe('name')
