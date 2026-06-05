@@ -139,10 +139,6 @@ interface ModelStore {
   __loadingPhase: LoadingPhase
   setLoadingPhase: (phase: LoadingPhase) => void
 
-  /** Detected or default unit system for the loaded file */
-  sourceUnit: UnitSystem
-  setSourceUnit: (unit: UnitSystem) => void
-
   /** File format group (mesh/cad/point/volume/animation/gcode/other) */
   fileGroup: FileGroup
   setFileGroup: (group: FileGroup) => void
@@ -272,7 +268,6 @@ function syncActiveFileFields(
       modelFormat: null,
       modelFilePath: null,
       __loadingPhase: 'idle' as LoadingPhase,
-      sourceUnit: 'millimeter' as UnitSystem,
       fileGroup: 'mesh' as FileGroup,
       glbPartInfos: [] as GlbPartInfo[],
       modelCenteringOffset: null,
@@ -286,7 +281,6 @@ function syncActiveFileFields(
     modelFormat: file.format,
     modelFilePath: file.filePath,
     __loadingPhase: file.loadingPhase,
-    sourceUnit: file.sourceUnit,
     fileGroup: file.fileGroup,
     glbPartInfos: file.glbPartInfos,
     modelCenteringOffset: file.modelCenteringOffset,
@@ -302,7 +296,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   modelFormat: null,
   modelFilePath: null,
   __loadingPhase: 'idle',
-  sourceUnit: 'millimeter',
   fileGroup: 'mesh',
   isConverting: false,
   loadingState: initialLoadingState,
@@ -359,7 +352,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   hideProgress: () => set({ loadingState: initialLoadingState }),
 
   setLoadingPhase: (phase) => set({ __loadingPhase: phase }),
-  setSourceUnit: (unit) => set({ sourceUnit: unit }),
   setFileGroup: (group) => set({ fileGroup: group }),
   setGlbPartInfos: (infos) => set({ glbPartInfos: infos }),
   setModelCenteringOffset: (offset) => set({ modelCenteringOffset: offset }),
@@ -432,7 +424,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
     clearAllResults()
     set({
       glbUrl: null, sceneTree: [], modelVersion: 0, modelBuffer: null, modelFormat: null,
-      modelFilePath: null, __loadingPhase: 'idle', sourceUnit: 'millimeter', fileGroup: 'mesh',
+      modelFilePath: null, __loadingPhase: 'idle', fileGroup: 'mesh',
       glbPartInfos: [], modelCenteringOffset: null, isConverting: false, loadingState: initialLoadingState,
       fileSortMode: 'name', sortOrder: 'asc', activeUpAxis: 'z',
       loadedFiles: [], activeFileId: null,
@@ -470,7 +462,6 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
           modelFormat: null,
           modelFilePath: null,
           __loadingPhase: 'idle' as LoadingPhase,
-          sourceUnit: 'millimeter' as UnitSystem,
           fileGroup: 'mesh' as FileGroup,
           glbPartInfos: [] as GlbPartInfo[],
           modelCenteringOffset: null,
@@ -544,15 +535,11 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
     })),
 
   updateFileSourceUnit: (fileId, unit) =>
-    set((state) => {
-      const newFiles = state.loadedFiles.map((f) =>
+    set((state) => ({
+      loadedFiles: state.loadedFiles.map((f) =>
         f.id === fileId ? { ...f, sourceUnit: unit } : f,
-      )
-      const synced = state.activeFileId === fileId
-        ? { sourceUnit: unit }
-        : {}
-      return { loadedFiles: newFiles, ...synced }
-    }),
+      ),
+    })),
 
   getPartIdsByMaterial: (fileId, materialIndex) => {
     const file = get().loadedFiles.find((f) => f.id === fileId)

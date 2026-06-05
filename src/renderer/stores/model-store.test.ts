@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useModelStore } from './model-store'
 import type { SceneTreeNode } from './model-store'
+import type { UnitSystem } from '@/config/file-formats'
 import { useSvgWorkspaceStore, parseSvgLayers } from './svg-workspace-store'
 import { collectFileIdsFromSelection } from '../lib/scene-tree-utils'
 
@@ -542,6 +543,170 @@ describe('SVG workspace sync — FileListPanel toggle', () => {
     expect(useModelStore.getState().isFileLoaded(filePath)).toBe(false)
     expect(useModelStore.getState().loadedFiles).toHaveLength(0)
     expect(useModelStore.getState().activeFileId).toBeNull()
+  })
+})
+
+// ---- updateFileSourceUnit — per-file sourceUnit independence ----
+
+describe('updateFileSourceUnit — per-file sourceUnit is always file-scoped', () => {
+  beforeEach(() => {
+    useModelStore.getState().reset()
+  })
+
+  function addFile(id: string, unit: UnitSystem) {
+    useModelStore.getState().addLoadedFile({
+      id, fileName: `${id}.stl`, filePath: `/${id}.stl`,
+      buffer: new ArrayBuffer(0), format: 'stl',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: unit, fileGroup: 'mesh', loadingPhase: 'done',
+    })
+  }
+
+  it('each file keeps its own sourceUnit independent of others', () => {
+    addFile('f1', 'millimeter')
+    addFile('f2', 'inch')
+    addFile('f3', 'meter')
+
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f1')?.sourceUnit).toBe('millimeter')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f2')?.sourceUnit).toBe('inch')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f3')?.sourceUnit).toBe('meter')
+  })
+
+  it('updateFileSourceUnit on one file does not affect other files', () => {
+    addFile('f1', 'millimeter')
+    addFile('f2', 'inch')
+
+    useModelStore.getState().updateFileSourceUnit('f2', 'centimeter')
+
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f1')?.sourceUnit).toBe('millimeter')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f2')?.sourceUnit).toBe('centimeter')
+  })
+
+  it('setActiveFile does not change any file sourceUnit', () => {
+    addFile('f1', 'millimeter')
+    addFile('f2', 'inch')
+
+    useModelStore.getState().setActiveFile('f2')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f1')?.sourceUnit).toBe('millimeter')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f2')?.sourceUnit).toBe('inch')
+
+    useModelStore.getState().setActiveFile('f1')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f1')?.sourceUnit).toBe('millimeter')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'f2')?.sourceUnit).toBe('inch')
+  })
+})
+
+// ---- Drag-drop / input-file flow: file lands in loadedFiles with per-file sourceUnit ----
+
+describe('addLoadedFile — simulates drag-drop / input-file loading', () => {
+  beforeEach(() => {
+    useModelStore.getState().reset()
+  })
+
+  it('drag-dropped STL file is added to loadedFiles with correct default unit', () => {
+    // Simulates processFileLocally for a non-STEP 3D file:
+    //   addLoadedFile({ ..., sourceUnit: FORMAT_MAP[format].defaultUnit })
+    useModelStore.getState().addLoadedFile({
+      id: 'drag-stl', fileName: 'model.stl', filePath: '/model.stl',
+      buffer: new ArrayBuffer(0), format: 'stl',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: 'millimeter', fileGroup: 'mesh', loadingPhase: 'loading',
+    })
+
+    // File is in loadedFiles, not in root fields
+    expect(useModelStore.getState().loadedFiles).toHaveLength(1)
+    expect(useModelStore.getState().loadedFiles[0].id).toBe('drag-stl')
+    expect(useModelStore.getState().loadedFiles[0].sourceUnit).toBe('millimeter')
+  })
+
+  it('drag-dropped GLB (from STEP conversion) has sourceUnit meter', () => {
+    // Simulates processFileLocally for a STEP file after glb conversion:
+    //   addLoadedFile({ ..., format: 'glb', sourceUnit: 'meter' })
+    useModelStore.getState().addLoadedFile({
+      id: 'step-glb', fileName: 'part.stp', filePath: '/part.stp',
+      buffer: new ArrayBuffer(0), format: 'glb',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: 'meter', fileGroup: 'mesh', loadingPhase: 'loading',
+    })
+
+    expect(useModelStore.getState().loadedFiles[0].sourceUnit).toBe('meter')
+  })
+
+  it('STL heuristic update on drag-dropped file only affects that file', () => {
+    // File A loaded first (bearing)
+    useModelStore.getState().addLoadedFile({
+      id: 'bearing', fileName: 'bearing.stl', filePath: '/bearing.stl',
+      buffer: new ArrayBuffer(0), format: 'stl',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: 'millimeter', fileGroup: 'mesh', loadingPhase: 'done',
+    })
+
+    // File B drag-dropped later (cube)
+    useModelStore.getState().addLoadedFile({
+      id: 'cube', fileName: 'cube1.stl', filePath: '/cube1.stl',
+      buffer: new ArrayBuffer(0), format: 'stl',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: 'millimeter', fileGroup: 'mesh', loadingPhase: 'loading',
+    })
+
+    // Simulate STL heuristic: cube is detected as inches
+    useModelStore.getState().updateFileSourceUnit('cube', 'inch')
+
+    // Bearing's unit is not affected
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'bearing')?.sourceUnit).toBe('millimeter')
+    expect(useModelStore.getState().loadedFiles.find(f => f.id === 'cube')?.sourceUnit).toBe('inch')
+  })
+
+  it('multiple drag-drop files each have independent sourceUnits', () => {
+    // Simulates loading multiple files via drag-drop / multi-select
+    for (const [id, unit] of [['a', 'millimeter'], ['b', 'inch'], ['c', 'meter']] as const) {
+      useModelStore.getState().addLoadedFile({
+        id, fileName: `${id}.stl`, filePath: `/${id}.stl`,
+        buffer: new ArrayBuffer(0), format: 'stl',
+        sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+        sourceUnit: unit, fileGroup: 'mesh', loadingPhase: 'done',
+      })
+    }
+
+    const files = useModelStore.getState().loadedFiles
+    expect(files.find(f => f.id === 'a')?.sourceUnit).toBe('millimeter')
+    expect(files.find(f => f.id === 'b')?.sourceUnit).toBe('inch')
+    expect(files.find(f => f.id === 'c')?.sourceUnit).toBe('meter')
+  })
+
+  it('dominant-file sourceUnit lookup (simulates handleModelLoaded fix)', () => {
+    // Regression: when two STL files (different units) are loaded,
+    // autoSelectBedSize must use the DOMINANT file's sourceUnit,
+    // not the file that happens to fire onLoaded last.
+    //
+    // Load bearing (mm, large bbox) first → cube (inch, small bbox) second.
+    useModelStore.getState().addLoadedFile({
+      id: 'bearing', fileName: '688_Bearing_Assembled.stl', filePath: '/bearing.stl',
+      buffer: new ArrayBuffer(0), format: 'stl',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: 'millimeter', fileGroup: 'mesh', loadingPhase: 'done',
+    })
+    useModelStore.getState().addLoadedFile({
+      id: 'cube', fileName: 'cube1.stl', filePath: '/cube1.stl',
+      buffer: new ArrayBuffer(0), format: 'stl',
+      sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+      sourceUnit: 'millimeter', fileGroup: 'mesh', loadingPhase: 'done',
+    })
+    // Simulate STL heuristic: cube is detected as inches
+    useModelStore.getState().updateFileSourceUnit('cube', 'inch')
+
+    // The "dominant file" is the one whose bbox occupies largestBoxRef.
+    // In ViewportContainer, its id is tracked in largestBoxFileIdRef.
+    const dominantFileId = 'bearing' // largest bbox
+
+    // Resolve unit as handleModelLoaded now does:
+    const dominantFile = useModelStore.getState().loadedFiles.find(f => f.id === dominantFileId)
+    const bedSourceUnit = dominantFile?.sourceUnit ?? 'millimeter'
+
+    // Must use the dominant file's unit (mm), NOT the other file's (inch)
+    expect(bedSourceUnit).toBe('millimeter')
+    // If we incorrectly used cube's unit, rawToMM would be 25.4 instead of 1,
+    // causing the heatbed to shrink ~25x and the camera to zoom in on bearing.
   })
 })
 

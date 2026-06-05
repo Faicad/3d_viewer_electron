@@ -253,6 +253,8 @@ export default function ViewportContainer() {
   const pendingBoxRef = useRef<THREE.Box3 | null>(null)
   // Track largest bounding box across all loaded models for multi-file camera fit
   const largestBoxRef = useRef<THREE.Box3 | null>(null)
+  // Which file's bbox is currently in largestBoxRef (for correct unit lookup)
+  const largestBoxFileIdRef = useRef<string | null>(null)
   const prevFileCountRef = useRef(0)
 
   // Reset largest-box tracker when files are cleared (new file dialog selection)
@@ -576,10 +578,12 @@ export default function ViewportContainer() {
     const current = largestBoxRef.current
     if (!current) {
       largestBoxRef.current = box.clone()
+      largestBoxFileIdRef.current = fileId ?? null
     } else {
       const curSize = current.getSize(new THREE.Vector3())
       if (maxDim > Math.max(curSize.x, curSize.y, curSize.z)) {
         largestBoxRef.current = box.clone()
+        largestBoxFileIdRef.current = fileId ?? null
       }
     }
     // Store bbox for ShadowFloor positioning
@@ -620,16 +624,17 @@ export default function ViewportContainer() {
     const store2 = useEngineStore.getState()
     const hasMultiPlate = store2.bambuPlateConfigs && store2.bambuPlateConfigs.length > 0
 
-    // Resolve sourceUnit: per-file takes precedence (multi-file mode),
-    // falling back to the top-level active-file unit (single-file mode).
-    const sourceUnit: UnitSystem = fileId
-      ? (modelStoreState.loadedFiles.find(f => f.id === fileId)?.sourceUnit ?? modelStoreState.sourceUnit)
-      : modelStoreState.sourceUnit
+    // Source unit is always per-file (all files go through loadedFiles).
+    // For bed sizing, use the dominant file's unit (the one that owns largestBoxRef).
+    const dominantFile = largestBoxFileIdRef.current
+      ? modelStoreState.loadedFiles.find(f => f.id === largestBoxFileIdRef.current)
+      : null
+    const bedSourceUnit: UnitSystem = dominantFile?.sourceUnit ?? 'millimeter'
 
     // Auto-select bed size from model (single-bed path only)
     let bedSize = store2.bedSize
     if (store2.showHeatbed && largestBoxRef.current && !hasMultiPlate) {
-      const rawToMM = UNIT_TO_MM[sourceUnit]
+      const rawToMM = UNIT_TO_MM[bedSourceUnit]
       const autoSize = autoSelectBedSize(largestBoxRef.current, rawToMM)
       bedSize = autoSize
       if (Math.abs(autoSize - store2.bedSize) > 0.001) {
@@ -859,7 +864,6 @@ export default function ViewportContainer() {
             onPartInfosChange={(infos) => useModelStore.getState().setGlbPartInfos(infos)}
             onCenteringOffsetChange={(offset) => useModelStore.getState().setModelCenteringOffset(offset)}
             onLoadingPhaseChange={(phase) => useModelStore.getState().setLoadingPhase(phase)}
-            onSourceUnitChange={(unit) => useModelStore.getState().setSourceUnit(unit as UnitSystem)}
             onFileGroupChange={(group) => useModelStore.getState().setFileGroup(group as FileGroup)}
             onLoaded={handleModelLoaded}
             onError={handleModelError}

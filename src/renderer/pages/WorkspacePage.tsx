@@ -320,7 +320,21 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
           { filePath, mtimeMs: file.lastModified },
           { wasmPath: '/wasm/occt-import-js.wasm' },
         )
-        useModelStore.getState().setModelBuffer(glbBuffer, 'glb')
+        const fileId = crypto.randomUUID()
+        useModelStore.getState().addLoadedFile({
+          id: fileId,
+          fileName: file.name,
+          filePath,
+          mtimeMs: file.lastModified,
+          buffer: glbBuffer,
+          format: 'glb',
+          sceneTree: [],
+          glbPartInfos: [],
+          modelCenteringOffset: null,
+          sourceUnit: 'meter',
+          fileGroup: FORMAT_MAP.glb.group,
+          loadingPhase: 'loading',
+        })
       } catch (e) {
         console.error('[WorkspacePage] STEP conversion failed:', e)
         toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
@@ -381,11 +395,23 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       })
       return
     } else {
-      useModelStore.getState().setModelBuffer(rawBuffer, format)
-      const filePath = window.electronAPI?.getFilePath(file) ?? null
-      useModelStore.getState().setModelFilePath(filePath)
+      const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+      const fileId = crypto.randomUUID()
+      useModelStore.getState().addLoadedFile({
+        id: fileId,
+        fileName: file.name,
+        filePath,
+        mtimeMs: file.lastModified,
+        buffer: rawBuffer,
+        format,
+        sceneTree: [],
+        glbPartInfos: [],
+        modelCenteringOffset: null,
+        sourceUnit: FORMAT_MAP[format].defaultUnit,
+        fileGroup: FORMAT_MAP[format].group,
+        loadingPhase: 'loading',
+      })
     }
-    useModelStore.getState().setGLBUrl(file.name)
   }, [])
 
   function handleDrop(e: React.DragEvent) {

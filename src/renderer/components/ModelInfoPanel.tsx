@@ -170,12 +170,13 @@ export default function ModelInfoPanel() {
   const { t } = useTranslation()
   const modelGroup = useEngineStore((s) => s.modelGroup)
   const modelFormat = useModelStore((s) => s.modelFormat)
-  const sourceUnit = useModelStore((s) => s.sourceUnit)
   const fileGroup = useModelStore((s) => s.fileGroup)
   const loadedFiles = useModelStore((s) => s.loadedFiles)
   const activeFileId = useModelStore((s) => s.activeFileId)
   const sceneTree = useModelStore((s) => s.sceneTree)
   const activeFile = loadedFiles.find(f => f.id === activeFileId)
+  // Source unit is always per-file (each file in loadedFiles carries its own).
+  const sourceUnit = activeFile?.sourceUnit ?? 'millimeter'
   const fileMeta = activeFile?.fileMeta
 
   const selectedReferenceIds = useSelectionStore((s) => s.selectedReferenceIds)
