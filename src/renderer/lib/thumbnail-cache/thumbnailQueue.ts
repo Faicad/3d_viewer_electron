@@ -1,4 +1,4 @@
-import { detectFormat } from '@/config/file-formats'
+import { detectFormat, isStepFile } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
 import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
@@ -25,7 +25,7 @@ const CACHE_BATCH_SIZE = 20
  *  STEP needs OCCT WASM conversion; other 3D formats fall in between. */
 function timeoutForFormat(format: string | null): number {
   if (format === 'svg' || format === 'dxf') return 3_000
-  if (format === 'step') return 60_000
+  if (isStepFile(format)) return 60_000
   return 15_000 // stl, glb, 3mf, stp, unknown, …
 }
 
@@ -153,7 +153,7 @@ async function processNext(): Promise<void> {
           onReady?.(file.path, '')
           return 'done'
         }
-        if (format === 'step') {
+        if (isStepFile(file.name)) {
           const stepCached = await getStepCached(key)
           if (stepCached) {
             const blob = await generateThumbnail(stepCached, 'glb')

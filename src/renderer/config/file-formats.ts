@@ -734,3 +734,11 @@ export function detectFormat(filename: string): FormatId | null {
   }
   return null
 }
+
+/** Check if a filename (or format id) refers to the STEP format
+ *  (covers both '.step' and '.stp' extensions). */
+export function isStepFile(filenameOrFormat: string | null | undefined): boolean {
+  if (!filenameOrFormat) return false
+  const f = filenameOrFormat.toLowerCase()
+  return f.endsWith('.step') || f.endsWith('.stp') || f === 'step' || f === 'stp'
+}

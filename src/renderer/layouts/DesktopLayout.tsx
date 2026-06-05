@@ -9,7 +9,7 @@ import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { hasViewData, type ViewMode } from '@/lib/bambu-3mf/viewTransforms'
 import { stepToGlbCached } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -578,8 +578,7 @@ export default function DesktopLayout() {
           window.electronAPI.readFile(file.path).then(async (fileResult) => {
             if (fileResult.success && fileResult.data) {
               let buffer = fileResult.data
-              const ext = file.name.split('.').pop()?.toLowerCase()
-              const isStep = ext === 'step' || ext === 'stp'
+              const isStep = isStepFile(file.name)
               let format = detectFormat(file.name)
               if (isStep) {
                 try {
@@ -791,7 +790,7 @@ export default function DesktopLayout() {
         }
         let buffer = fileResult.data
         let format = detectFormat(fileName)
-        const isStep = format === 'step'
+        const isStep = isStepFile(fileName)
 
         if (isStep) {
           store.showProgress('Converting STEP geometry...')

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS, isStepFile } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -161,13 +161,15 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
       }
 
       // ── 3D: STEP / STL / GLB / 3MF / etc. ─────────────────────
+      const isStep = isStepFile(entry.fileName)
+
       let fileMeta: FileMeta | undefined
-      if (format === 'step') {
+      if (isStep) {
         const stepHeader = parseStepHeader(buffer)
         if (stepHeader) fileMeta = { step: stepHeader }
       }
 
-      if (format === 'step') {
+      if (isStep) {
         store.setIsConverting(true)
         try {
           const { buffer: glbBuffer } = await stepToGlbCached(buffer,

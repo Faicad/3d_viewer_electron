@@ -80,7 +80,7 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
 
     // STEP memory cache
     memCache.forEach((buffer, key) => {
-      items.push({ key, size: buffer.byteLength, type: 'memory', kind: 'step' })
+      items.push({ key, size: buffer.byteLength, type: 'memory', kind: 'STEP' })
     })
 
     // Thumbnail memory cache
@@ -99,11 +99,11 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
         request.onsuccess = () => {
           const cursor = request.result
           if (cursor) {
-            if (!items.find(e => e.key === cursor.key && e.kind === 'step')) {
+            if (!items.find(e => e.key === cursor.key && e.kind === 'STEP')) {
               const size = cursor.value instanceof ArrayBuffer
                 ? cursor.value.byteLength
                 : cursor.value?.byteLength || 0
-              items.push({ key: cursor.key as string, size, type: 'indexeddb', kind: 'step' })
+              items.push({ key: cursor.key as string, size, type: 'indexeddb', kind: 'STEP' })
             }
             cursor.continue()
           } else {
@@ -190,7 +190,7 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
     for (const id of selectedKeys) {
       const [kind, ...keyParts] = id.split(':')
       const key = keyParts.join(':')
-      if (kind === 'step') stepKeys.push(key)
+      if (kind === 'STEP') stepKeys.push(key)
       else thumbKeys.push(key)
     }
 
@@ -249,8 +249,8 @@ export function CacheManager({ children, ...props }: CacheManagerProps & Record<
   }
 
   // Group entries
-  const stepMemory = entries.filter(e => e.kind === 'step' && e.type === 'memory')
-  const stepDisk = entries.filter(e => e.kind === 'step' && e.type === 'indexeddb')
+  const stepMemory = entries.filter(e => e.kind === 'STEP' && e.type === 'memory')
+  const stepDisk = entries.filter(e => e.kind === 'STEP' && e.type === 'indexeddb')
   const thumbMemory = entries.filter(e => e.kind === 'thumbnail' && e.type === 'memory')
   const thumbDisk = entries.filter(e => e.kind === 'thumbnail' && e.type === 'indexeddb')
 

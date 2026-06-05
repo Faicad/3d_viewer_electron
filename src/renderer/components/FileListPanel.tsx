@@ -7,7 +7,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -746,13 +746,15 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     const originalFormat = format
 
     // Parse STEP header from original buffer before conversion
+    const isStep = isStepFile(file.name)
+
     let fileMeta: FileMeta | undefined
-    if (format === 'step') {
+    if (isStep) {
       const stepHeader = parseStepHeader(buffer)
       if (stepHeader) fileMeta = { step: stepHeader }
     }
 
-    if (format === 'step') {
+    if (isStep) {
       store.showProgress('Converting STEP geometry...')
       try {
         const { buffer: glbBuffer } = await stepToGlbCached(buffer,
@@ -774,7 +776,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     }
 
     // Show progress for formats that weren't STEP-converted (STEP already has progress from above)
-    if (originalFormat !== 'step') store.showProgress(`Loading ${file.name}...`)
+    if (!isStep) store.showProgress(`Loading ${file.name}...`)
 
     // Parse once
     const loadResult = await loadFormat(buffer, format, file.path)

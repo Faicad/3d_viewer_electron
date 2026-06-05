@@ -1,0 +1,498 @@
+[ci] ========================================================
+[ci]   1/6 Type check (tsc --noEmit)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+[ci]   OK (1.0s)
+[ci] ========================================================
+[ci]   2/6 Lint (eslint --max-warnings 0)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+[ci]   OK (12.0s)
+[ci] ========================================================
+[ci]   3/6 Unit tests (vitest, node env)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+ RUN  v4.1.8 C:/my/Ficad/3d_viewer_electron
+
+
+ Test Files  38 passed (38)
+      Tests  743 passed | 4 skipped (747)
+   Start at  16:29:47
+   Duration  39.98s (transform 1.53s, setup 1.56s, import 5.50s, tests 25.70s, environment 4ms)
+
+[ci]   OK (41.4s)
+[ci] ========================================================
+[ci]   4/6 Component tests (vitest, jsdom env)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+ RUN  v4.1.8 C:/my/Ficad/3d_viewer_electron
+
+
+ Test Files  11 passed (11)
+      Tests  109 passed | 1 skipped (110)
+   Start at  16:30:28
+   Duration  10.70s (transform 3.49s, setup 2.17s, import 17.14s, tests 10.79s, environment 38.71s)
+
+[ci]   OK (12.1s)
+[ci] ========================================================
+[ci]   5/6 Build (build:unpacked)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+> 3d_viewer_electron@1.3.0 build:unpacked C:\my\Ficad\3d_viewer_electron
+> electron-vite build && electron-builder --win --dir
+
+[36mvite v6.4.3 [32mbuilding SSR bundle for production...[36m[39m
+transforming...
+[32m✓[39m 2 modules transformed.
+rendering chunks...
+[2mout/main/[22m[36mindex.js  [39m[1m[2m19.49 kB[22m[1m[22m
+[32m✓ built in 127ms[39m
+[36mvite v6.4.3 [32mbuilding SSR bundle for production...[36m[39m
+transforming...
+[32m✓[39m 1 modules transformed.
+rendering chunks...
+[2mout/preload/[22m[36mindex.js  [39m[1m[2m1.60 kB[22m[1m[22m
+[32m✓ built in 19ms[39m
+[36mvite v6.4.3 [32mbuilding for production...[36m[39m
+transforming...
+[33m[plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "C:/my/Ficad/3d_viewer_electron/src/renderer/lib/step-converter/stepToGlb.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[32m✓[39m 2849 modules transformed.
+rendering chunks...
+[33m[plugin vite:reporter] 
+(!) C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/libs/fflate.module.js is dynamically imported by C:/my/Ficad/3d_viewer_electron/src/renderer/lib/thumbnail-cache/thumbnailGenerator.ts but also statically imported by C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/3MFLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/AMFLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/EXRLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/FBXLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/KMZLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/NRRDLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/USDLoader.js, C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/VTKLoader.js, C:/my/Ficad/3d_viewer_electron/src/renderer/lib/bambu-3mf/bambu-3mf.ts, dynamic import will not move module into another chunk.
+[39m
+[33m[plugin vite:reporter] 
+(!) C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/EXRLoader.js is dynamically imported by C:/my/Ficad/3d_viewer_electron/src/renderer/engine/environment/EnvironmentManager.ts but also statically imported by C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/3DMLoader.js, dynamic import will not move module into another chunk.
+[39m
+[33m[plugin vite:reporter] 
+(!) C:/my/Ficad/3d_viewer_electron/src/renderer/lib/dxf-to-svg.ts is dynamically imported by C:/my/Ficad/3d_viewer_electron/src/renderer/main.tsx but also statically imported by C:/my/Ficad/3d_viewer_electron/src/renderer/components/FileListPanel.tsx, C:/my/Ficad/3d_viewer_electron/src/renderer/components/HistoryPanel.tsx, C:/my/Ficad/3d_viewer_electron/src/renderer/hooks/useFileUpload.ts, C:/my/Ficad/3d_viewer_electron/src/renderer/layouts/DesktopLayout.tsx, C:/my/Ficad/3d_viewer_electron/src/renderer/lib/thumbnail-cache/thumbnailQueue.ts, C:/my/Ficad/3d_viewer_electron/src/renderer/pages/WorkspacePage.tsx, dynamic import will not move module into another chunk.
+[39m
+[33m[plugin vite:reporter] 
+(!) C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/HDRLoader.js is dynamically imported by C:/my/Ficad/3d_viewer_electron/src/renderer/engine/environment/EnvironmentManager.ts but also statically imported by C:/my/Ficad/3d_viewer_electron/node_modules/.pnpm/three@0.184.0/node_modules/three/examples/jsm/loaders/RGBELoader.js, dynamic import will not move module into another chunk.
+[39m
+[2m../../out/renderer/[22m[32mindex.html                 [39m[1m[2m    0.46 kB[22m[1m[22m
+[2m../../out/renderer/[22m[35massets/index-DpF_3fhw.css  [39m[1m[2m   60.26 kB[22m[1m[22m
+[2m../../out/renderer/[22m[36massets/index-CuZ0EXKT.js   [39m[1m[2m  259.43 kB[22m[1m[22m
+[2m../../out/renderer/[22m[36massets/index-DV1ixf3z.js   [39m[1m[33m5,631.01 kB[39m[22m
+[32m✓ built in 11.94s[39m
+  [34m•[39m electron-builder  [34mversion[39m=26.8.1 [34mos[39m=10.0.26200
+  [34m•[39m loaded configuration  [34mfile[39m=package.json ("build" field)
+  [34m•[39m executing @electron/rebuild  [34melectronVersion[39m=39.8.5 [34march[39m=x64 [34mbuildFromSource[39m=false [34mworkspaceRoot[39m=C:\my\Ficad\3d_viewer_electron [34mprojectDir[39m=./ [34mappDir[39m=./
+  [34m•[39m installing native dependencies  [34march[39m=x64
+  [34m•[39m completed installing native dependencies
+  [34m•[39m packaging       [34mplatform[39m=win32 [34march[39m=x64 [34melectron[39m=39.8.5 [34mappOutDir[39m=dist\win-unpacked
+  [34m•[39m searching for node modules  [34mpm[39m=pnpm [34msearchDir[39m=C:\my\Ficad\3d_viewer_electron
+  [34m•[39m updating asar integrity executable resource  [34mexecutablePath[39m=dist\win-unpacked\3D_Viewer.exe
+  [34m•[39m signing with signtool.exe  [34mpath[39m=dist\win-unpacked\3D_Viewer.exe
+[ci]   OK (39.4s)
+[ci] ========================================================
+[ci]   6/6 E2E tests (playwright)
+[ci] ========================================================
+[43m[33m[[39m[49m[43m[30mWARN[39m[49m[43m[33m][39m[49m The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+[2mRunning [22m69[2m tests using [22m2[2m workers[22m
+
+[test] canvas count: [33m2[39m
+  [32m✓[39m  [2m 1 [22msrc\test\app.spec.ts:55:3 › 3D Viewer Electron › app starts and renders canvas[2m (1.6s)[22m
+  [32m✓[39m  [2m 3 [22msrc\test\app.spec.ts:67:3 › 3D Viewer Electron › loads GLB file and model renders[2m (1.9s)[22m
+  [32m✓[39m  [2m 2 [22msrc\test\animation-player.spec.ts:67:3 › Animation Player › shows Play Animation toolbar button when animated file is loaded[2m (64ms)[22m
+  [32m✓[39m  [2m 5 [22msrc\test\animation-player.spec.ts:83:3 › Animation Player › clicking Play Animation button opens dialog and plays animation[2m (3.2s)[22m
+  [32m-[39m  [2m 6 [22m[36msrc\test\animation-player.spec.ts:124:8 › Animation Player › restarts from beginning after non-repeat clip finishes[39m
+  [32m✓[39m  [2m 7 [22msrc\test\animation-player.spec.ts:165:3 › Animation Player › scene tree right-click menu shows Play Animation for animated file[2m (747ms)[22m
+  [32m✓[39m  [2m 8 [22msrc\test\dxf-load-zoom.spec.ts:99:3 › DXF Loading & Zoom E2E › 1. load DXF file → appears in SVG workspace with canvas rendered[2m (2.7s)[22m
+STATE: {
+  "hasEnv": true,
+  "envUuid": "635507cc-b136-474d-b966-29bd542614da",
+  "envIntensity": 1,
+  "bgIsColor": false,
+  "bgIsTex": true,
+  "bgUuid": "635507cc-b136-474d-b966-29bd542614da",
+  "toneMapping": 4,
+  "shadowMapEnabled": true,
+  "storeSelectedEnv": "studio",
+  "storeEnvBackground": "environment",
+  "envMatch": "635507cc-b136-474d-b966-29bd542614da"
+}
+RELEVANT LOGS (6):
+  [warning] THREE.WebGLProgram: Program Info Log: (213,81-129): warning X4122: sum of 0.996094 and -2.98545e-017 cannot be represented accurately in double precision
+(212,37-61): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision
+(213,82-106): warning X4122: sum of 1 
+  [warning] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+  [warning] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+  [warning] THREE.WebGLProgram: Program Info Log: (213,81-129): warning X4122: sum of 0.996094 and -2.98545e-017 cannot be represented accurately in double precision
+(212,37-61): warning X4122: sum of 1 and -1.49272e-017 cannot be represented accurately in double precision
+(213,82-106): warning X4122: sum of 1 
+  [warning] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+  [warning] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+  [32m✓[39m  [2m 9 [22msrc\test\dxf-load-zoom.spec.ts:137:3 › DXF Loading & Zoom E2E › 2. zoom in → zoom increases[2m (248ms)[22m
+  [32m✓[39m  [2m10 [22msrc\test\dxf-load-zoom.spec.ts:168:3 › DXF Loading & Zoom E2E › 3. zoom out → zoom decreases (respects floor)[2m (245ms)[22m
+  [32m✓[39m  [2m 4 [22msrc\test\diag.spec.ts:11:1 › full IBL diagnostic[2m (13.1s)[22m
+  [32m✓[39m  [2m11 [22msrc\test\dxf-load-zoom.spec.ts:199:3 › DXF Loading & Zoom E2E › 4. zoom respects 20× hard cap[2m (237ms)[22m
+[test] canvas count: [33m2[39m
+  [32m✓[39m  [2m12 [22msrc\test\file-list.spec.ts:47:3 › 3D Viewer Electron - File List Panel › app starts and renders canvas[2m (1.1s)[22m
+[test] readDirectory result files: [
+  [32m'Al2O3.pdb'[39m,
+  [32m'AnimatedMorphSphere.gltf'[39m,
+  [32m'AnisotropyBarnLamp.glb'[39m,
+  [32m'bath_day.glb'[39m,
+  [32m'benchy.gcode'[39m,
+  [32m'Box.kmz'[39m,
+  [32m'box_boss.glb'[39m,
+  [32m'box_boss.step'[39m,
+  [32m'box_fillet.glb'[39m,
+  [32m'box_fillet_buggy.glb'[39m,
+  [32m'bunny.drc'[39m,
+  [32m'bunny.vtk'[39m,
+  [32m'camera.wrl'[39m,
+  [32m'Cerberus.obj'[39m,
+  [32m'Demo.lwo'[39m,
+  [32m'dolphins_be.ply'[39m,
+  [32m'elf.dae'[39m,
+  [32m'Enclosure+A1+Mini.3mf'[39m,
+  [32m'helix_201.xyz'[39m,
+  [32m'I.nrrd'[39m,
+  [32m'keycap_v6.step'[39m,
+  [32m'khr-animation-pointer.glb'[39m,
+  [32m'menger.vox'[39m,
+  [32m'Mini注塑模具 - 副本.stp'[39m,
+  [32m'Mini注塑模具.stp'[39m,
+  [32m'mixamo.fbx'[39m,
+  [32m'ogro.md2'[39m,
+  [32m'pirouette.bvh'[39m,
+  [32m'portalgun.3ds'[39m,
+  [32m'Rhino_Logo.3dm'[39m,
+  [32m'RobotExpressive.glb'[39m,
+  [32m'rook.amf'[39m,
+  [32m'saeukkang.usdz'[39m,
+  [32m'sample.svg'[39m,
+  [32m'simple.pcd'[39m,
+  [32m'test-box.glb'[39m,
+  [32m'test-model.step'[39m,
+  [32m'test-rect-box.glb'[39m,
+  [32m'vise.3mf'[39m
+]
+  [32m✓[39m  [2m14 [22msrc\test\file-list.spec.ts:57:3 › 3D Viewer Electron - File List Panel › electronAPI readDirectory returns fixture files[2m (49ms)[22m
+[test] readFileAsBase64 success: [33mtrue[39m data length: [33m12912[39m
+  [32m✓[39m  [2m15 [22msrc\test\file-list.spec.ts:73:3 › 3D Viewer Electron - File List Panel › electronAPI readFileAsBase64 loads test-box.glb[2m (17ms)[22m
+[test] empty state visible: [33mtrue[39m
+  [32m✓[39m  [2m16 [22msrc\test\file-list.spec.ts:87:3 › 3D Viewer Electron - File List Panel › file list panel shows empty state initially[2m (13ms)[22m
+  [32m✓[39m  [2m17 [22msrc\test\file-list.spec.ts:97:3 › 3D Viewer Electron - File List Panel › loads GLB file and model renders[2m (1.8s)[22m
+  [32m✓[39m  [2m18 [22msrc\test\file-list.spec.ts:118:3 › 3D Viewer Electron - File List Panel › can manually trigger file list panel to show files[2m (106ms)[22m
+  [32m✓[39m  [2m19 [22msrc\test\file-list.spec.ts:133:3 › 3D Viewer Electron - File List Panel › click file in list toggles load/unload[2m (2.4s)[22m
+  [32m✓[39m  [2m13 [22msrc\test\format-loading.spec.ts:75:3 › 3D Viewer - Key Format E2E › app starts and renders canvas[2m (2.0s)[22m
+  [32m✓[39m  [2m21 [22msrc\test\format-loading.spec.ts:84:3 › 3D Viewer - Key Format E2E › loads GLB file and renders mesh[2m (3.0s)[22m
+  [32m✓[39m  [2m22 [22msrc\test\format-loading.spec.ts:117:3 › 3D Viewer - Key Format E2E › loads 3MF file and renders mesh[2m (4.8s)[22m
+[test] STEP topology built: true
+  [32m✓[39m  [2m23 [22msrc\test\format-loading.spec.ts:153:3 › 3D Viewer - Key Format E2E › loads STEP file and converts to GLB[2m (2.1s)[22m
+[test] MASK raw diag: {"primary":"922d8e3f-45d0-4840-8151-e0a4a78bf6c5:Object_15","origAlphaMode":"MASK","origAlphaCutoff":0.5}
+  [32m✓[39m  [2m24 [22msrc\test\format-loading.spec.ts:197:3 › 3D Viewer - Key Format E2E › loads GLB with edge topology and validates selection/display modes[2m (1.8s)[22m
+  [32m✓[39m  [2m20 [22msrc\test\glb-material-alpha.spec.ts:25:3 › alphaMode › BLEND then MASK[2m (13.5s)[22m
+  [32m✓[39m  [2m25 [22msrc\test\format-loading.spec.ts:234:3 › 3D Viewer - Key Format E2E › loads STEP model (no edges) and validates edge-dependent UI hidden[2m (1.3s)[22m
+[test] glTF morph target mesh count: 2
+  [32m✓[39m  [2m27 [22msrc\test\format-loading.spec.ts:284:3 › 3D Viewer - Key Format E2E › loads glTF with morph targets and renders without errors[2m (1.5s)[22m
+  [32m✓[39m  [2m26 [22msrc\test\highlight-artifacts.spec.ts:53:3 › Selection Highlight Artifacts › highlight does not use depthTest, preventing z-fighting with the model[2m (6.1s)[22m
+  [32m✓[39m  [2m28 [22msrc\test\khr-animation-pointer.spec.ts:54:3 › KHR_animation_pointer › loads KHR_animation_pointer model and extracts material-target animations[2m (6.4s)[22m
+[test] viewport width: 1280, main content children: 5
+[test] child 0: width=190.4px, x=0.0px
+[test] child 1: width=4.0px, x=190.4px
+[test] child 2: width=880.5px, x=194.4px
+[test] child 3: width=4.0px, x=1074.9px
+[test] child 4: width=190.4px, x=1078.9px
+  [32m✓[39m  [2m29 [22msrc\test\layout-widths.spec.ts:28:3 › DesktopLayout panel widths › panels use 15:70:15 percentage widths when both open[2m (8.6s)[22m
+  [32m✓[39m  [2m30 [22msrc\test\khr-animation-pointer.spec.ts:100:3 › KHR_animation_pointer › KHR_animation_pointer clips load into store with material property tracks[2m (3.8s)[22m
+  [32m✓[39m  [2m31 [22msrc\test\material-editor-alpha.spec.ts:43:3 › MaterialEditor alpha mode colour preservation › GLB material: OPAQUE → BLEND → OPAQUE preserves colour[2m (696ms)[22m
+Y-up diag: {"activeUpAxis":"y","sceneUp":[0,0,1],"envRotX":0,"bgRotX":0,"lightUp":[0,1,0],"floorRotX":-1.5707963267948966}
+[panel part1 rect] {"left":100.00000762939453,"right":356.00000762939453,"top":100.00000762939453,"width":256}
+[part1] {"found":true,"buttons":[{"text":"不透明","left":211,"right":253,"withinPanel":true},{"text":"遮罩","left":255,"right":287,"withinPanel":true},{"text":"混合","left":289,"right":321,"withinPanel":true}]}
+[panel part2 rect] {"left":100.00000762939453,"right":356.00000762939453,"top":100.00000762939453,"width":256}
+[part2 diag] {"panel":{"width":"256px","minWidth":"0px","overflow":"hidden"},"gridTemplateRows":"28.5333px 497.575px 33.0333px","scrollDiv":{"width":"254.933px","minWidth":"0px"},"titleBarWidth":255,"footerWidth":255,"scrollDivOffsetWidth":255}
+[part2] {"found":true,"buttons":[{"text":"不透明","left":211,"right":253,"withinPanel":true},{"text":"遮罩","left":255,"right":287,"withinPanel":true},{"text":"混合","left":289,"right":321,"withinPanel":true}]}
+Panel: 256px, viewport: 240px
+  [32m✓[39m  [2m32 [22msrc\test\material-editor-part-switch.spec.ts:80:3 › MaterialEditor part switch layout › alpha mode buttons remain visible after switching parts via scene tree[2m (9.7s)[22m
+  [32m✓[39m  [2m33 [22msrc\test\material-editor-scroll.spec.ts:45:3 › MaterialEditor scroll › scroll area viewport gets constrained height from CSS grid[2m (9.3s)[22m
+  [32m✓[39m  [2m34 [22msrc\test\model-info-panel.spec.ts:61:3 › Model Info Panel › toolbar button is disabled when no model is loaded[2m (809ms)[22m
+  [32m✓[39m  [2m36 [22msrc\test\model-info-panel.spec.ts:68:3 › Model Info Panel › clicking toolbar button opens floating model info panel[2m (2.5s)[22m
+  [32m✓[39m  [2m37 [22msrc\test\model-info-panel.spec.ts:105:3 › Model Info Panel › file list panel remains visible alongside floating model info[2m (115ms)[22m
+  [32m✓[39m  [2m38 [22msrc\test\model-info-panel.spec.ts:134:3 › Model Info Panel › clicking X button closes the model info panel[2m (277ms)[22m
+  [32m✓[39m  [2m39 [22msrc\test\model-info-panel.spec.ts:153:3 › Model Info Panel › clicking toolbar button again reopens model info panel[2m (267ms)[22m
+  [32m✓[39m  [2m35 [22msrc\test\object-selection.spec.ts:135:3 › Object Selection E2E › 1. model loads without errors[2m (62ms)[22m
+  [32m✓[39m  [2m40 [22msrc\test\scene-tree-context-menu.spec.ts:64:3 › Scene Tree Context Menu › right-click on scene tree part node does not throw Palette error[2m (4.7s)[22m
+  [32m✓[39m  [2m41 [22msrc\test\object-selection.spec.ts:141:3 › Object Selection E2E › 2. click model → white low-opacity selection highlight[2m (887ms)[22m
+  [32m✓[39m  [2m43 [22msrc\test\object-selection.spec.ts:154:3 › Object Selection E2E › 3. selected object → bounding box corner lines appear[2m (871ms)[22m
+  [32m✓[39m  [2m44 [22msrc\test\object-selection.spec.ts:162:3 › Object Selection E2E › 4. re-click selected object does not crash[2m (1.7s)[22m
+  [32m✓[39m  [2m42 [22msrc\test\scene-tree.spec.ts:69:3 › Multi-level scene tree › left panel hides on narrow viewport (compact layout)[2m (3.2s)[22m
+  [32m✓[39m  [2m46 [22msrc\test\scene-tree.spec.ts:90:3 › Multi-level scene tree › scene tree panel title is visible[2m (101ms)[22m
+  [32m✓[39m  [2m45 [22msrc\test\object-selection.spec.ts:172:3 › Object Selection E2E › 5. drag on selected object does not crash[2m (2.2s)[22m
+[test] tree nodes: 84, chevron buttons: 84
+  [32m✓[39m  [2m47 [22msrc\test\scene-tree.spec.ts:103:3 › Multi-level scene tree › loads a hierarchical GLB and renders tree nodes with expand/collapse[2m (2.4s)[22m
+[test] initial=84, collapsed=1, expanded=84
+  [32m✓[39m  [2m49 [22msrc\test\scene-tree.spec.ts:190:3 › Multi-level scene tree › expand/collapse toggles children visibility[2m (521ms)[22m
+[test] eye icon visibility toggle works
+  [32m✓[39m  [2m50 [22msrc\test\scene-tree.spec.ts:232:3 › Multi-level scene tree › eye icon toggles visibility on hover[2m (411ms)[22m
+[test] mesh visibility cascade: hide → 0/19 visible
+  [32m✓[39m  [2m51 [22msrc\test\scene-tree.spec.ts:253:3 › Multi-level scene tree › file-level hide cascades to 3D mesh visibility, then show restores[2m (756ms)[22m
+[test] RobotExpressive tree: 1 children, first="RobotExpressive"
+[test] RobotExpressive hidden: 1 children all invisible
+  [32m✓[39m  [2m48 [22msrc\test\sequential-load-via-dialog.spec.ts:68:3 › Sequential load via Open File dialog › app starts and renders canvas[2m (194ms)[22m
+  [32m✓[39m  [2m52 [22msrc\test\scene-tree.spec.ts:341:3 › Multi-level scene tree › non-active file gets its scene tree populated (file-list load scenario)[2m (2.2s)[22m
+[test] box_boss.glb mesh count: [33m4[39m
+  [32m✓[39m  [2m53 [22msrc\test\sequential-load-via-dialog.spec.ts:76:3 › Sequential load via Open File dialog › 1) load box_boss.glb and confirm rendering[2m (4.6s)[22m
+[test] after dialog load: {"count":1,"names":["vise.3mf"]}
+[test] vise.3mf mesh count: [33m26[39m
+  [32m✓[39m  [2m55 [22msrc\test\sequential-load-via-dialog.spec.ts:113:3 › Sequential load via Open File dialog › 2) load vise.3mf (simulates "Open File" dialog reset + load)[2m (4.3s)[22m
+SHADOW DIAG: {
+  "shadowMapEnabled": true,
+  "shadowMapType": 1,
+  "directionalLights": [
+    {
+      "uuid": "b23b8338-8893-4d85-83b3-4bbd45aa931b",
+      "position": [
+        3,
+        -3,
+        8
+      ],
+      "intensity": 0.8,
+      "castShadow": true,
+      "up": [
+        0,
+        0,
+        1
+      ],
+      "shadow": {
+        "mapSize": [
+          4096,
+          4096
+        ],
+        "cameraNear": 3.7156544275277508,
+        "cameraFar": 14.315654451369609,
+        "cameraLeft": -3,
+        "cameraRight": 3,
+        "cameraTop": 3,
+        "cameraBottom": -3,
+        "bias": -0.001
+      }
+    }
+  ],
+  "shadowFloors": [
+    {
+      "type": "Group",
+      "name": "shadowFloor",
+      "visible": true,
+      "receiveShadow": false,
+      "castShadow": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "type": "Mesh",
+      "name": "",
+      "visible": true,
+      "isMesh": true,
+      "receiveShadow": true,
+      "castShadow": false,
+      "position": [
+        0,
+        0,
+        -0.015
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "materialType": "ShadowMaterial",
+      "materialOpacity": 0.9,
+      "materialDepthWrite": false,
+      "materialTransparent": true,
+      "geometryType": "PlaneGeometry"
+    }
+  ],
+  "modelBbox": [
+    -0.07500000298023224,
+    -0.05999999865889549,
+    0,
+    0.07500000298023224,
+    0.05999999865889549,
+    0.09000000357627869
+  ],
+  "shadowFloorEnabled": true,
+  "shadowOpacity": 0.9,
+  "envRotation": 0,
+  "selectedEnv": "studio",
+  "envBackground": "grey",
+  "sceneUp": [
+    0,
+    0,
+    1
+  ],
+  "hasEnv": true,
+  "sceneEnvIntensity": 1,
+  "sceneEnvRotation": [
+    1.5707963267948966,
+    0,
+    0
+  ],
+  "sceneBgRotation": [
+    1.5707963267948966,
+    0,
+    0
+  ],
+  "totalCastShadow": 1,
+  "totalReceiveShadow": 2,
+  "sampleShadowMeshes": [
+    {
+      "name": "",
+      "castShadow": false,
+      "receiveShadow": true,
+      "position": [
+        0,
+        0,
+        -0.015
+      ]
+    },
+    {
+      "name": "",
+      "castShadow": false,
+      "receiveShadow": false,
+      "position": [
+        0,
+        0,
+        -0.001
+      ]
+    },
+    {
+      "name": "",
+      "castShadow": false,
+      "receiveShadow": false,
+      "position": [
+        0.07684375,
+        -0.091,
+        0
+      ]
+    }
+  ]
+}
+PIXEL CHECK: {
+  "bgBrightness": 125,
+  "darkCount": 23385,
+  "sampleCount": 128340,
+  "minBrightness": 1,
+  "brightnessHistogram": [
+    21198,
+    2617,
+    84835,
+    12,
+    19678
+  ],
+  "hasDarkPixels": true
+}
+env rotation X (Z-up): [33m1.5707963267948966[39m
+bg rotation X (Z-up): [33m1.5707963267948966[39m
+
+Background brightness: 125
+Dark pixels: 23385/128340
+Min brightness: 1
+Brightness histogram: [21198,2617,84835,12,19678]
+  [32m✓[39m  [2m54 [22msrc\test\shadow-diag.spec.ts:11:1 › shadow visibility diagnostic[2m (14.2s)[22m
+SHADOW FRUSTUM: {"modelBbox":[-0.07500000298023224,-0.05999999865889549,0,0.07500000298023224,0.05999999865889549,0.09000000357627869],"shadowFrustum":{"left":-3,"right":3,"top":3,"bottom":-3,"near":3.7156544275277508,"far":14.315654451369609}}
+Fit: 1988/128340 dark, hist=[133,3296,73263,4,51644]
+  [32m✓[39m  [2m56 [22msrc\test\shadow-fit-diag.spec.ts:34:1 › shadow visible on small model after camera auto-fit[2m (6.8s)[22m
+BOX FILLET SHADOW DIAG: {
+  "modelBbox": [
+    -0.10000000149011612,
+    -0.05999999865889549,
+    0,
+    0.10000000149011612,
+    0.05999999865889549,
+    0.07999999821186066
+  ],
+  "shadowMapSize": [
+    4096,
+    4096
+  ],
+  "shadowFrustum": {
+    "left": -3,
+    "right": 3,
+    "top": 3,
+    "bottom": -3,
+    "near": 3.620066513430265,
+    "far": 14.420066525351194
+  }
+}
+Shadow map: 4096px, frustum width: 6.0, texels/unit: 682.7
+[gpu-check] hardware: __isSoftwareGpu = false
+  [32m✓[39m  [2m57 [22msrc\test\shadow-jaggies.spec.ts:12:1 › shadow should not have severe aliasing on box_fillet.glb[2m (6.5s)[22m
+  [32m✓[39m  [2m58 [22msrc\test\software-gpu.spec.ts:22:1 › hardware GPU → __isSoftwareGpu is false[2m (4.7s)[22m
+[test] canvas count: [33m2[39m
+  [32m✓[39m  [2m59 [22msrc\test\step-loading.spec.ts:55:3 › 3D Viewer Electron - STEP Loading › app starts and renders canvas[2m (653ms)[22m
+[test] console messages (relevant): [
+  [32m'[log] [ModelGroup] faceIds built: [mesh0:null, mesh1:null]'[39m,
+  [32m'[log] [ModelGroup] faceIds built: [mesh0:12triangles,12mapped, mesh1:null]'[39m
+]
+[test] scene has meshes: [33mtrue[39m
+[test] topology info: { faces: [33m9[39m, occurrences: [33m2[39m, edges: [33m0[39m }
+  [32m✓[39m  [2m61 [22msrc\test\step-loading.spec.ts:67:3 › 3D Viewer Electron - STEP Loading › loads STEP file, converts to GLB, renders mesh with topology[2m (2.8s)[22m
+  [32m✓[39m  [2m62 [22msrc\test\step-loading.spec.ts:131:3 › 3D Viewer Electron - STEP Loading › clicks STEP file in file list panel and renders model[2m (1.5s)[22m
+[test] first load (keycap_v6) cache miss: [33mtrue[39m idb hit: [33mfalse[39m
+[test] cache logs on re-click keycap_v6: [
+  [32m'[log] [stepToGlbCached] key built: {"rawPath":"C:\\\\my\\\\Ficad\\\\3d_viewer_electron\\\\src\\\\test\\\\fixtures\\\\keycap_v6.step","rawMtimeMs":1772808363923.944,"rawMtimeType":"number","normalizedPath":"C:/my/Ficad/3d_viewer_electron/src/test/fixtures/keycap_v6.step","normalizedTime":1772808363923}'[39m,
+  [32m'[log] [stepToGlbCached] memory hit: C:/my/Ficad/3d_viewer_electron/src/test/fixtures/keycap_v6.step|1772808363923 (2 entries in cache)'[39m
+]
+[test] second load cache hit: [33mtrue[39m
+  [32m✓[39m  [2m63 [22msrc\test\step-loading.spec.ts:196:3 › 3D Viewer Electron - STEP Loading › caches converted GLB on first load, hits cache on second load[2m (3.0s)[22m
+[test] heatbed: {"showHeatbed":true,"bedSize":0.2,"heatbedGroup":{"visible":true,"childCount":3,"children":[{"type":"Mesh","visible":true,"vertexCount":4},{"type":"LineSegments","visible":true,"vertexCount":92},{"type":"Mesh","visible":true,"vertexCount":4}]},"modelMeshCount":1,"modelMeshVisible":1,"camDist":0.4289013841019114,"modelBbox":[-0.008999999612569809,-0.008999999612569809,0,0.008999999612569809,0.008999999612569809,0.010006518103182316]}
+  [32m✓[39m  [2m64 [22msrc\test\step-loading.spec.ts:278:3 › 3D Viewer Electron - STEP Loading › STEP file defaults showHeatbed=true and Heatbed renders in scene[2m (3.1s)[22m
+[test] GLB state: {"showHeatbed":false,"modelFormat":"glb","modelBufferLen":463988}
+  [32m✓[39m  [2m65 [22msrc\test\step-loading.spec.ts:412:3 › 3D Viewer Electron - STEP Loading › native GLB file defaults showHeatbed=false[2m (2.2s)[22m
+[test] overlay visible after showProgress()
+[test] overlay unmounted after hideProgress()
+STATE rotation=0: {"hasEnv":true,"envMapping":306,"bgIsTex":true,"bgMapping":306,"bgIsCubeTex":false,"bgImageCount":1}
+  [32m✓[39m  [2m66 [22msrc\test\step-loading.spec.ts:450:3 › 3D Viewer Electron - STEP Loading › shows loading overlay during STEP conversion and hides after[2m (164ms)[22m
+Pixel diff ratio: 20 / 20
+BRIGHT CHECK: {"samples":[[190,190,190],[216,216,216],[158,158,158],[216,216,216],[163,163,163]],"maxVal":216,"minVal":158,"hasVariation":true,"hasBright":true}
+  [32m✓[39m  [2m60 [22msrc\test\studio-env.spec.ts:24:1 › procedural studio shows room box with lights when rotated[2m (16.9s)[22m
+  [32m✓[39m  [2m67 [22msrc\test\svg-workspace.spec.ts:54:3 › SVG Workspace E2E › 1. load 9 SVG files → left tree + grid canvas + no errors[2m (1.3s)[22m
+  [32m✓[39m  [2m68 [22msrc\test\svg-workspace.spec.ts:105:3 › SVG Workspace E2E › 2. right panel shows SVG thumbnails after loading[2m (586ms)[22m
+  [32m✓[39m  [2m69 [22msrc\test\svg-workspace.spec.ts:178:3 › SVG Workspace E2E › 3. file visibility toggle via eye icon[2m (538ms)[22m
+
+[33m  1 skipped[39m
+[32m  68 passed[39m[2m (2.4m)[22m
+[ci]   OK (145.5s)
+[ci] 
+[ci] ========================================================
+[ci]   Scanning log for missed errors
+[ci] ========================================================
+[ci]   No error patterns found
+[ci] 
+[ci] ========================================================
+[ci]   CI PASSED (251.5s)
+[ci]   Log: C:\my\Ficad\3d_viewer_electron\ci-logs\ci-output-2026-06-05T08-29-33.txt
+[ci] ========================================================
+
+1/6 Type check (tsc --noEmit): 1.0s exit=0
+2/6 Lint (eslint --max-warnings 0): 12.0s exit=0
+3/6 Unit tests (vitest, node env): 41.4s exit=0
+4/6 Component tests (vitest, jsdom env): 12.1s exit=0
+5/6 Build (build:unpacked): 39.4s exit=0
+6/6 E2E tests (playwright): 145.5s exit=0

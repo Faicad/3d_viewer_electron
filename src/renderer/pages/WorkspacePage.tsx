@@ -11,7 +11,7 @@ import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { stepToGlbCached } from '@/lib/step-converter'
-import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult, getCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -70,7 +70,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       }
       let buffer = fileResult.data
 
-      if (format === 'step') {
+      if (isStepFile(name)) {
         try {
           useModelStore.getState().showProgress('Converting STEP geometry...')
           const { buffer: glbBuffer } = await stepToGlbCached(buffer,
@@ -312,7 +312,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
     const rawBuffer = await file.arrayBuffer()
 
-    if (format === 'step') {
+    if (isStepFile(file.name)) {
       try {
         useModelStore.getState().showProgress('Converting STEP geometry...')
         const filePath = window.electronAPI?.getFilePath(file) ?? file.name

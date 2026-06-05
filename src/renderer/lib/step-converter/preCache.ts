@@ -1,6 +1,7 @@
 import { buildGlbFromResult, type StepToGlbOptions } from './stepToGlb'
 import { convertInWorker } from './stepWorkerPool'
 import { getCached, putCached } from './stepCache'
+import { isStepFile } from '@/config/file-formats'
 
 const memCache = new Map<string, ArrayBuffer>()
 
@@ -33,10 +34,7 @@ export async function startPreCache(
   preCacheRunning = true
   preCacheAbort = false
 
-  const stepFiles = files.filter(f => {
-    const ext = f.name.split('.').pop()?.toLowerCase()
-    return ext === 'step' || ext === 'stp'
-  })
+  const stepFiles = files.filter(f => isStepFile(f.name))
 
   console.log('[preCache] scanning', stepFiles.length, 'STEP file(s) for pre-caching')
 

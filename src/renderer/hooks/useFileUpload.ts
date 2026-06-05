@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -99,13 +99,13 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
         // Parse STEP header metadata from raw buffer before conversion
         let fileMeta: FileMeta | undefined
-        const isStep = format === 'step'
+        const isStep = isStepFile(file.name)
         if (isStep) {
           const stepHeader = parseStepHeader(rawBuffer)
           if (stepHeader) fileMeta = { step: stepHeader }
         }
 
-        if (format === 'step') {
+        if (isStep) {
           const { showProgress, updateProgress } = useModelStore.getState()
           showProgress('Reading STEP file...', 0)
           resetYieldTimer()
