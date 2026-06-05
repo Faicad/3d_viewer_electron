@@ -343,6 +343,15 @@ export default function DesktopLayout() {
       }
     }
     items.push({
+      label: '打开所在文件夹',
+      icon: FolderOpen,
+      action: () => {
+        if (file?.filePath) {
+          window.electronAPI.showItemInFolder(file.filePath)
+        }
+      },
+    })
+    items.push({
       label: 'Copy File Path',
       icon: Copy,
       action: () => {
@@ -355,7 +364,6 @@ export default function DesktopLayout() {
     items.push({
       label: '从场景树中移除',
       icon: Trash2,
-      danger: true,
       action: () => {
         useModelStore.getState().removeLoadedFile(fileId)
       },
@@ -382,7 +390,6 @@ export default function DesktopLayout() {
         {
           label: '从场景树中移除',
           icon: Trash2,
-          danger: true,
           action: () => {
             useModelStore.getState().toggleNodeVisible(nodeId)
           },

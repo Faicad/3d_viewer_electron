@@ -42,6 +42,7 @@ declare global {
       onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => () => void
       getPendingFilePath: () => Promise<string | null>
       onOpenExternalFile: (callback: (filePath: string) => void) => () => void
+      showItemInFolder: (filePath: string) => Promise<void>
     }
     env: {
       DEV: boolean

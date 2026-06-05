@@ -213,6 +213,7 @@ ipcMain.handle('window:toggleFullscreen', () => {
 
 ipcMain.handle('electron:getAppVersion', () => app.getVersion())
 ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExternal(url))
+ipcMain.handle('shell:showItemInFolder', (_event, filePath: string) => shell.showItemInFolder(filePath))
 
 // File system IPC handlers
 const SUPPORTED_EXTENSIONS = new Set(ALL_MODEL_EXTENSIONS)
