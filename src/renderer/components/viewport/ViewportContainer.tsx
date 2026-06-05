@@ -631,13 +631,15 @@ export default function ViewportContainer() {
       : null
     const bedSourceUnit: UnitSystem = dominantFile?.sourceUnit ?? 'millimeter'
 
-    // Auto-select bed size from model (single-bed path only)
+    // Auto-select bed size from model (single-bed path only).
+    // Always update bedSize / bedRawToMM even when showHeatbed is false,
+    // so the bed is correctly sized when the user later toggles it on.
     let bedSize = store2.bedSize
-    if (store2.showHeatbed && largestBoxRef.current && !hasMultiPlate) {
+    if (largestBoxRef.current && !hasMultiPlate) {
       const rawToMM = UNIT_TO_MM[bedSourceUnit]
       const autoSize = autoSelectBedSize(largestBoxRef.current, rawToMM)
       bedSize = autoSize
-      if (Math.abs(autoSize - store2.bedSize) > 0.001) {
+      if (Math.abs(autoSize - store2.bedSize) > 0.001 || Math.abs(rawToMM - store2.bedRawToMM) > 0.001) {
         useEngineStore.setState({ bedSize: autoSize, bedRawToMM: rawToMM })
       }
     }

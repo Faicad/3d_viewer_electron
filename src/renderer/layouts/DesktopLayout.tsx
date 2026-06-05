@@ -1004,7 +1004,6 @@ export default function DesktopLayout() {
             <Button
               variant={showHeatbed ? 'secondary' : 'ghost'}
               size="icon"
-              disabled={!activeTool}
               onClick={() => setShowHeatbed(!showHeatbed)}
               aria-label={t('toolbar.heatbed')}
               data-testid="toolbar-heatbed"
@@ -1012,7 +1011,7 @@ export default function DesktopLayout() {
               <Grid3x3 className="toolbar-icon h-4 w-4 text-orange-500" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.heatbed')}</TooltipContent>
+          <TooltipContent>{t('toolbar.heatbed')}</TooltipContent>
         </Tooltip>
         </>)}
 
