@@ -626,10 +626,17 @@ const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
 
 /** Determines the coordinate-system up-axis native to a given file format.
  *  Most formats default to Y-up; only 3D-printing / CAD formats use Z-up.
- *  For GLB, the presence of a STEP_T extension signals Z-up (CAD data);
- *  otherwise GLB defaults to Y-up (standard glTF convention). */
-export function getDefaultUpAxis(format: FormatId, buffer?: ArrayBuffer): UpAxis {
+ *  For GLB, if the file came from STEP conversion (fileName or STEP_T extension),
+ *  return Z-up; otherwise GLB defaults to Y-up (standard glTF convention). */
+export function getDefaultUpAxis(
+  format: FormatId,
+  buffer?: ArrayBuffer,
+  fileName?: string,
+): UpAxis {
   if (format === 'glb') {
+    // STEP→GLB: if we know the source was STEP, always Z-up — no need to scan buffer
+    if (fileName && isStepFile(fileName)) return 'z'
+    // Fallback: detect CAD origin from STEP_T extension in GLB binary
     if (buffer && isCadSkillGlb(buffer)) return 'z'
     return 'y'
   }

@@ -743,7 +743,6 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       return
     }
     let buffer = result.data
-    const originalFormat = format
 
     // Parse STEP header from original buffer before conversion
     const isStep = isStepFile(file.name)
@@ -792,7 +791,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
         if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)
       })
     } else {
-      const upAxis = getDefaultUpAxis(format, buffer)
+      const upAxis = getDefaultUpAxis(format, buffer, file.name)
       generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
         .then(blob => {
           if (blob) putThumbnail(`${file.path}|${file.mtimeMs}`, blob)

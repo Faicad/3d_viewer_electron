@@ -602,7 +602,7 @@ export default function DesktopLayout() {
                 const loadResult = await loadFormat(buffer, format, file.path)
                 const fileId = crypto.randomUUID()
                 setCachedResult(fileId, loadResult)
-                const upAxis = getDefaultUpAxis(format, buffer)
+                const upAxis = getDefaultUpAxis(format, buffer, file.name)
                 generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
                   .then(blob => {
                     if (blob) putThumbnail(cacheKey(file.path, file.mtimeMs), blob)
@@ -822,7 +822,7 @@ export default function DesktopLayout() {
 
         // Thumbnail as byproduct (fire-and-forget)
         const loadTime = Date.now()
-        const upAxis = getDefaultUpAxis(format, buffer)
+        const upAxis = getDefaultUpAxis(format, buffer, fileName)
         generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
           .then(blob => {
             if (blob) putThumbnail(cacheKey(filePath, loadTime), blob)

@@ -147,7 +147,7 @@ function getRenderer(): THREE.WebGLRenderer {
   renderer.setClearColor(0x000000, 0)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.5
+  renderer.toneMappingExposure = 1.2
 
   return renderer
 }

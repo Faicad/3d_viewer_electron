@@ -442,7 +442,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   // Multi-file actions
   addLoadedFile: (file) => {
     useHistoryStore.getState().addEntry(file.filePath, file.fileName, file.mtimeMs)
-    const upAxis = getDefaultUpAxis(file.format, file.buffer)
+    const upAxis = getDefaultUpAxis(file.format, file.buffer, file.fileName)
     const fileWithAxis = { ...file, upAxis }
     return set((state) => {
       const newFiles = [...state.loadedFiles, fileWithAxis]
@@ -490,7 +490,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
     set((state) => {
       const file = state.loadedFiles.find((f) => f.id === id)
       if (!file) return {}
-      return { activeUpAxis: file.upAxis ?? getDefaultUpAxis(file.format, file.buffer), ...syncActiveFileFields(file, state.loadedFiles, state.sceneTree) }
+      return { activeUpAxis: file.upAxis ?? getDefaultUpAxis(file.format, file.buffer, file.fileName), ...syncActiveFileFields(file, state.loadedFiles, state.sceneTree) }
     }),
 
   updateFileSceneTree: (fileId, tree) =>

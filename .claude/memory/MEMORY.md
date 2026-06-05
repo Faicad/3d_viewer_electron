@@ -5,3 +5,4 @@
 - [CI debug workflow](ci-debug-workflow.md) — isolate failing step first, fix, verify, THEN run CI — never blind retry
 - [MD docs and code consent](md-docs-and-code-consent.md) — MD documents go in docs/ directory; never write code without explicit consent
 - [Fix then CI](fix-then-ci.md) — Fix individual failing tests one by one; only run full CI when all are fixed
+- [No pre-existing failures](no-pre-existing-failures.md) — Every CI failure is real; never dismiss as "pre-existing"; run flaky tests in isolation to confirm

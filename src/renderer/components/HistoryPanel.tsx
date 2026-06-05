@@ -189,7 +189,7 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
 
       if (!fileMeta) fileMeta = loadResult.fileMeta
 
-      const upAxis = getDefaultUpAxis(format, buffer)
+      const upAxis = getDefaultUpAxis(format, buffer, entry.fileName)
       generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
         .then((blob) => {
           if (blob) putThumbnail(cacheKey(entry.filePath, entry.mtimeMs ?? Date.now()), blob)

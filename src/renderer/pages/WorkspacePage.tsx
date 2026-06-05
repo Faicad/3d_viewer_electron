@@ -253,7 +253,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
           } else {
             const loadResult = getCachedResult(file.id)
             if (loadResult) {
-              const upAxis = getDefaultUpAxis(file.format, file.buffer)
+              const upAxis = getDefaultUpAxis(file.format, file.buffer, file.fileName)
               generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
                 .then(blob => {
                   if (blob) putThumbnail(`${file.filePath}|${Date.now()}`, blob)

@@ -146,7 +146,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
             if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
           })
         } else {
-          const upAxis = getDefaultUpAxis(format, buffer)
+          const upAxis = getDefaultUpAxis(format, buffer, file.name)
           generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
             .then(blob => {
               if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
