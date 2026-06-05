@@ -3,3 +3,5 @@
 - [report-test-failures-clearly](report-test-failures-clearly.md) — When reporting a test failure as unrelated, always name the test and give the rerun command
 - [Pre-commit test rule](feedback_precommit.md) — run `node scripts/local-ci.mjs` locally before committing
 - [CI debug workflow](ci-debug-workflow.md) — isolate failing step first, fix, verify, THEN run CI — never blind retry
+- [MD docs and code consent](md-docs-and-code-consent.md) — MD documents go in docs/ directory; never write code without explicit consent
+- [Fix then CI](fix-then-ci.md) — Fix individual failing tests one by one; only run full CI when all are fixed

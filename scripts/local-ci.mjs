@@ -29,13 +29,25 @@ function run(cmd, args, label) {
     log(`${header}`)
 
     const t1 = performance.now()
-    // stdio 'inherit' — child output goes directly to terminal,
-    // visible in Claude Code in real-time (no pipe buffering).
+    // Pipe stdout+stderr so we can tee them to both terminal and log file.
+    // stdin is inherited so interactive prompts (rare) still work.
     const child = spawn(cmd, args, {
       cwd: root,
-      stdio: 'inherit',
+      stdio: ['inherit', 'pipe', 'pipe'],
       shell: true,
       env: { ...process.env, FORCE_COLOR: '1' },
+    })
+
+    // Tee stdout: write to terminal AND log file in real-time
+    child.stdout.on('data', (chunk) => {
+      process.stdout.write(chunk)
+      appendFileSync(logPath, chunk)
+    })
+
+    // Tee stderr: write to terminal AND log file in real-time
+    child.stderr.on('data', (chunk) => {
+      process.stderr.write(chunk)
+      appendFileSync(logPath, chunk)
     })
 
     child.on('close', (code) => {
@@ -61,10 +73,9 @@ function run(cmd, args, label) {
 }
 
 function scanErrors() {
-  // With stdio:'inherit', detailed tool output goes to terminal (visible in
-  // Claude Code), not to the log file. Error detection relies on step exit
-  // codes. This scan is a safety net for any error patterns that leak into
-  // the [ci] log lines themselves.
+  // stdout+stderr are now teed to both terminal and log file via pipe.
+  // Error detection primarily relies on step exit codes. This scan is a
+  // safety net that catches error patterns in the full captured output.
   log('')
   log('='.repeat(56))
   log('  Scanning log for missed errors')
@@ -110,7 +121,7 @@ async function main() {
   const steps = [
     { cmd: 'pnpm', args: ['exec', 'tsc', '--noEmit'], label: '1/6 Type check (tsc --noEmit)' },
     { cmd: 'pnpm', args: ['exec', 'eslint', '.', '--max-warnings', '0'], label: '2/6 Lint (eslint --max-warnings 0)' },
-    { cmd: 'pnpm', args: ['exec', 'vitest', 'run'], label: '3/6 Unit tests (vitest, node env)' },
+    { cmd: 'pnpm', args: ['exec', 'vitest', 'run', '--fileParallelism=false'], label: '3/6 Unit tests (vitest, node env)' },
     { cmd: 'pnpm', args: ['exec', 'vitest', 'run', '--config', 'vitest.jsdom.config.ts'], label: '4/6 Component tests (vitest, jsdom env)' },
     { cmd: 'pnpm', args: ['run', 'build:unpacked'], label: '5/6 Build (build:unpacked)' },
     { cmd: 'pnpm', args: ['exec', 'playwright', 'test', '--workers=2', '--max-failures=1'], label: '6/6 E2E tests (playwright)' },
