@@ -61,6 +61,7 @@ export default function FileListPanel() {
     setPriorityPaths(loadedFilePaths)
   }, [loadedFilePaths])
   const listRef = useRef<HTMLDivElement>(null)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [thumbState, setThumbState] = useState<ThumbState>({ urls: new Map(), failed: new Set() })
   const observerRef = useRef<IntersectionObserver | null>(null)
@@ -359,7 +360,22 @@ export default function FileListPanel() {
                     isProcessing && !isSelected && !isCurrent && 'ring-2 ring-primary/30 animate-pulse',
                     !isSelected && !isCurrent && !isProcessing && 'hover:ring-1 hover:ring-primary/40',
                   )}
-                  onClick={() => handleFileClick(file, i)}
+                  onClick={() => {
+                    if (clickTimerRef.current) {
+                      clearTimeout(clickTimerRef.current)
+                    }
+                    clickTimerRef.current = setTimeout(() => {
+                      clickTimerRef.current = null
+                      handleFileClick(file, i)
+                    }, 250)
+                  }}
+                  onDoubleClick={() => {
+                    if (clickTimerRef.current) {
+                      clearTimeout(clickTimerRef.current)
+                      clickTimerRef.current = null
+                    }
+                    handleFileDoubleClick(file, i)
+                  }}
                   onMouseEnter={() => {
                     if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
                   }}
@@ -410,7 +426,22 @@ export default function FileListPanel() {
                     isSelected ? 'bg-accent ring-1 ring-primary' : 'hover:bg-accent/50',
                     isCurrent && !isSelected && 'bg-primary/10 border border-primary/30',
                   )}
-                  onClick={() => handleFileClick(file, i)}
+                  onClick={() => {
+                    if (clickTimerRef.current) {
+                      clearTimeout(clickTimerRef.current)
+                    }
+                    clickTimerRef.current = setTimeout(() => {
+                      clickTimerRef.current = null
+                      handleFileClick(file, i)
+                    }, 250)
+                  }}
+                  onDoubleClick={() => {
+                    if (clickTimerRef.current) {
+                      clearTimeout(clickTimerRef.current)
+                      clickTimerRef.current = null
+                    }
+                    handleFileDoubleClick(file, i)
+                  }}
                   onMouseEnter={() => {
                     if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
                   }}
@@ -441,6 +472,7 @@ export default function FileListPanel() {
           loadedFilePaths={loadedFilePaths}
           onClose={() => setFullscreen(false)}
           onFileClick={(file, i) => { handleFileClick(file, i); setFullscreen(false) }}
+          onFileDoubleClick={(file, i) => { handleFileDoubleClick(file, i); setFullscreen(false) }}
           selectedFileIndex={selectedFileIndex}
           setSelectedFileIndex={setSelectedFileIndex}
           folderPath={currentFolderPath}
@@ -502,6 +534,7 @@ function FullscreenGrid({
   loadedFilePaths,
   onClose,
   onFileClick,
+  onFileDoubleClick,
   selectedFileIndex,
   setSelectedFileIndex,
   folderPath,
@@ -516,6 +549,7 @@ function FullscreenGrid({
   loadedFilePaths: Set<string>
   onClose: () => void
   onFileClick: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
+  onFileDoubleClick: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
   selectedFileIndex: number
   setSelectedFileIndex: (i: number) => void
   folderPath: string | null
@@ -526,6 +560,7 @@ function FullscreenGrid({
 }) {
   const { t } = useTranslation()
   const gridRef = useRef<HTMLDivElement>(null)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const done = thumbState.urls.size + thumbState.failed.size
 
   return (
@@ -600,7 +635,22 @@ function FullscreenGrid({
                   isCurrent && !isSelected && 'ring-2 ring-primary/60',
                   !isSelected && !isCurrent && 'hover:ring-1 hover:ring-primary/40',
                 )}
-                onClick={() => onFileClick(file, i)}
+                onClick={() => {
+                  if (clickTimerRef.current) {
+                    clearTimeout(clickTimerRef.current)
+                  }
+                  clickTimerRef.current = setTimeout(() => {
+                    clickTimerRef.current = null
+                    onFileClick(file, i)
+                  }, 250)
+                }}
+                onDoubleClick={() => {
+                  if (clickTimerRef.current) {
+                    clearTimeout(clickTimerRef.current)
+                    clickTimerRef.current = null
+                  }
+                  onFileDoubleClick(file, i)
+                }}
                 onMouseEnter={() => {
                   if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
                 }}
@@ -821,4 +871,17 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     useModelStore.getState().hideProgress()
     toast.error('Load failed: ' + String(e))
   }
+}
+
+/** Double-click a file thumbnail: replace the entire scene with this file. */
+async function handleFileDoubleClick(file: { name: string; path: string; mtimeMs: number }, index: number) {
+  const store = useModelStore.getState()
+  store.setSelectedFileIndex(index)
+
+  // Clear all existing 3D state and SVG workspace
+  store.reset()
+  useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
+
+  // Now load and add the file — handleFileClick will find no existing file and add it fresh
+  await handleFileClick(file, index)
 }
