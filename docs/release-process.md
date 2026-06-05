@@ -6,6 +6,10 @@
 - `pnpm run ci` 全部通过（tsc + lint + vitest + playwright + build）
 - 有 GitHub 仓库的 push 权限（用于推送 tag 和 release）
 
+## 发布原理
+
+推送 `v*` tag 到 GitHub 后，`.github/workflows/release.yml` 会自动触发，在 **GitHub Actions** 上同时构建三个平台（Ubuntu / Windows / macOS）并将产物上传到 GitHub Releases。
+
 ## 版本号规则
 
 本项目使用 [Conventional Commits](https://www.conventionalcommits.org/) + `standard-version` 自动管理版本号。
@@ -80,14 +84,32 @@ pnpm exec standard-version --prerelease beta  # 生成 1.2.0-beta.0
 git push --follow-tags origin main
 ```
 
-`--follow-tags` 确保 tag 和提交一起被推送。
+`--follow-tags` 确保 tag 和提交一起被推送。此推送会触发 GitHub Actions 工作流。
 
-### 5. 打包
+### 5. 等待 GitHub Actions 自动构建
 
-打包前，确认 `package.json` 中的 `version` 已经是新的版本号。
+推送 tag 后，GitHub Actions 会自动执行 `release.yml` 工作流：
+
+1. **同时构建** Linux / Windows / macOS 三个平台的安装包
+2. 使用 `secrets.GITHUB_TOKEN`（自动提供）上传产物到 GitHub Releases
+3. **自动发布 draft**（不再需要手动点发布）
+
+可以在 [Actions 页面](https://github.com/faicad/3d_viewer_electron/actions) 查看构建进度。
+
+构建完成后，访问 [Releases 页面](https://github.com/faicad/3d_viewer_electron/releases) 即可看到各平台的下载链接：
+
+| 平台 | 产物 |
+|------|------|
+| Linux | `3D Model Viewer-{version}.AppImage` + `.deb` |
+| Windows | `3D Model Viewer Setup {version}.exe` |
+| macOS | `3D Model Viewer-{version}.dmg` |
+
+### 6. 本地打包（仅调试用）
+
+无需本地构建，但如果需要在本地调试打包：
 
 ```bash
-# Windows — NSIS 安装包 + 免安装目录
+# Windows — NSIS 安装包
 pnpm run build:win
 
 # Windows — 仅免安装目录（调试用）
@@ -100,34 +122,7 @@ pnpm run build:unpacked:linux
 pnpm run build:unpacked:mac
 ```
 
-产物输出到 `dist/` 目录：
-
-| 平台 | 产物 |
-|------|------|
-| Windows | `dist/3D Model Viewer Setup 1.2.0.exe` |
-| Windows | `dist/win-unpacked/` |
-| Linux | `dist/3D Model Viewer-1.2.0.AppImage` |
-| Linux | `dist/3d-model-viewer_1.2.0_amd64.deb` |
-| macOS | `dist/3D Model Viewer-1.2.0.dmg` |
-
-### 6. 发布到 GitHub Releases（可选）
-
-当前 `package.json` 中 `build.publish` 配置为 `"github"`。
-
-设置 `GH_TOKEN` 环境变量（需要一个有 repo 权限的 GitHub Personal Access Token）：
-
-```bash
-export GH_TOKEN=ghp_xxxxxxxxxxxx
-```
-
-然后在打包时 electron-builder 会自动上传到 GitHub Releases：
-
-```bash
-# Windows 打包 + 自动发布到 GitHub Releases
-pnpm run build:win
-```
-
-`standard-version` 创建的 tag（如 `v1.2.0`）会被 electron-builder 用作 release 名称。
+产物输出到本地 `dist/` 目录。**不会**自动上传到 GitHub Releases，除非设置了 `GH_TOKEN` 环境变量。
 
 ## 版本历史
 
@@ -146,9 +141,9 @@ git log v1.1.0...v1.1.1 --oneline
 ## 快速参考
 
 ```bash
-# 完整发布一个 patch 版本（Windows）
+# 完整发布一个版本（全平台）
+git checkout main && git pull origin main  # 0. 拉取最新 main
 pnpm run ci                    # 1. 全量检查
 pnpm run release               # 2. bump version + changelog + tag
-git push --follow-tags origin main  # 3. 推送
-pnpm run build:win             # 4. 打包（如需发布到 GitHub Releases 则先设置 GH_TOKEN）
+git push --follow-tags origin main  # 3. 推送 → GitHub Actions 自动构建并发布
 ```
