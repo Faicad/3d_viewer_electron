@@ -13,11 +13,12 @@ vi.mock('react-i18next', () => ({
 }))
 
 // Mock stores with default state
-const { mockSetIsConverting, mockSetModelBuffer, mockSetGLBUrl, mockSetFolderFiles } = vi.hoisted(() => ({
+const { mockSetIsConverting, mockSetModelBuffer, mockSetGLBUrl, mockSetFolderFiles, mockLoadFilesFromDialog } = vi.hoisted(() => ({
   mockSetIsConverting: vi.fn(),
   mockSetModelBuffer: vi.fn(),
   mockSetGLBUrl: vi.fn(),
   mockSetFolderFiles: vi.fn(),
+  mockLoadFilesFromDialog: vi.fn(),
 }))
 
 vi.mock('@/stores/model-store', () => {
@@ -78,6 +79,13 @@ vi.mock('@/stores/model-store', () => {
   return { useModelStore }
 })
 
+vi.mock('@/hooks/useFileLoader', () => ({
+  useFileLoader: () => ({
+    loadFilePath: vi.fn(),
+    loadFilesFromDialog: mockLoadFilesFromDialog,
+  }),
+}))
+
 vi.mock('@/stores/ui-store', () => {
   const state = {
     leftPanelOpen: false,
@@ -87,6 +95,7 @@ vi.mock('@/stores/ui-store', () => {
     isFullscreen: false,
     headerVisible: true,
     bottomVisible: true,
+    enablePreview: true,
     toggleLeftPanel: vi.fn(),
     toggleRightPanel: vi.fn(),
     toggleModelInfo: vi.fn(),
@@ -192,7 +201,7 @@ describe('DesktopLayout toolbar', () => {
     const buttons = screen.getAllByRole('button', { name: 'toolbar.openFile' })
     await user.click(buttons[0])
 
-    expect(window.electronAPI.openFileDialog).toHaveBeenCalledOnce()
+    expect(mockLoadFilesFromDialog).toHaveBeenCalledOnce()
   })
 
   it('renders fullscreen button in the toolbar', () => {

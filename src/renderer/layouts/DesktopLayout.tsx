@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useFileLoader } from '@/hooks/useFileLoader'
 import { useUIStore } from '@/stores/ui-store'
 import { useModelStore, type SceneTreeNode } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
@@ -12,10 +13,9 @@ import { stepToGlbCached } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey } from '@/lib/thumbnail-cache/thumbnailCache'
-import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
+import { useSvgWorkspaceStore } from '@/stores/svg-workspace-store'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -699,187 +699,11 @@ export default function DesktopLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSvgMode])
 
+  const { loadFilesFromDialog } = useFileLoader()
+
   const handleOpenFile = useCallback(async () => {
-    const result = await window.electronAPI.openFileDialog()
-    if (!result.success || !result.filePaths?.length) return
-
-    // Classify selected files by type
-    const paths = result.filePaths
-    const svgPaths: string[] = []
-    const d3Paths: string[] = []
-    for (const p of paths) {
-      const name = p.split(/[/\\]/).pop() || p
-      const fmt = detectFormat(name)
-      if (fmt === 'svg' || fmt === 'dxf') {
-        svgPaths.push(p)
-      } else {
-        d3Paths.push(p)
-      }
-    }
-
-    // Mixed selection: 3D wins, SVG skipped
-    if (svgPaths.length > 0 && d3Paths.length > 0) {
-      console.log(
-        '[handleOpenFile] Mixed SVG + 3D selection detected. Loading only 3D files. Skipped SVG files:',
-        svgPaths.map((p) => p.split(/[/\\]/).pop()),
-      )
-      // Only process 3D files below
-    }
-
-    // SVG/DXF-only selection: process vector files, skip 3D loop
-    if (svgPaths.length > 0 && d3Paths.length === 0) {
-      useModelStore.getState().reset()
-      const store = useModelStore.getState()
-      const svgBatch: { fileId: string; fileName: string; svgText: string; layers: ReturnType<typeof parseSvgLayers>; naturalWidth: number; naturalHeight: number }[] = []
-
-      for (const filePath of svgPaths) {
-        const fileName = filePath.split(/[/\\]/).pop() || filePath
-        const fileFormat = detectFormat(fileName)
-        try {
-          const fileResult = await window.electronAPI.readFile(filePath)
-          if (!fileResult.success || !fileResult.data) continue
-          const text = new TextDecoder().decode(fileResult.data)
-
-          let svgText: string
-          let layers: ReturnType<typeof parseSvgLayers>
-          let naturalWidth: number
-          let naturalHeight: number
-
-          if (fileFormat === 'dxf') {
-            const result = await convertDxfToSvg(text)
-            svgText = result.svgText
-            layers = result.layers
-            naturalWidth = result.naturalWidth
-            naturalHeight = result.naturalHeight
-          } else {
-            svgText = text
-            layers = parseSvgLayers(text)
-            const vb = parseSvgViewBox(text)
-            naturalWidth = vb.naturalWidth
-            naturalHeight = vb.naturalHeight
-          }
-
-          const fileId = crypto.randomUUID()
-
-          store.addLoadedFile({
-            id: fileId, fileName, filePath, mtimeMs: Date.now(),
-            buffer: fileResult.data, format: fileFormat ?? 'svg',
-            sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
-            sourceUnit: 'millimeter', fileGroup: 'vector', loadingPhase: 'done',
-            svgLayers: layers, svgText: svgText,
-          })
-
-          svgBatch.push({ fileId, fileName, svgText, layers, naturalWidth, naturalHeight })
-
-          generateSvgThumbnail(svgText).then(blob => {
-            if (blob) putThumbnail(cacheKey(filePath, Date.now()), blob)
-          })
-        } catch {
-          // skip
-        }
-      }
-
-      if (svgBatch.length > 0) {
-        useSvgWorkspaceStore.getState().addFilesBatch(svgBatch)
-      }
-      return
-    }
-
-    // 3D-only (or mixed filtered to 3D): existing logic
-    // Clear all currently loaded content + SVG workspace before loading
-    useModelStore.getState().reset()
-    useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
-
-    const store = useModelStore.getState()
-    let firstDirPath: string | null = null
-
-    for (const filePath of d3Paths.length > 0 ? d3Paths : paths) {
-      const fileName = filePath.split(/[/\\]/).pop() || filePath
-      const dirPath = filePath.slice(0, Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')))
-      firstDirPath ??= dirPath
-
-      try {
-        const fileResult = await window.electronAPI.readFile(filePath)
-        if (!fileResult.success || !fileResult.data) {
-          toast.error(`Failed to read: ${fileName}`)
-          continue
-        }
-        let buffer = fileResult.data
-        let format = detectFormat(fileName)
-        const isStep = isStepFile(fileName)
-
-        if (isStep) {
-          store.showProgress('Converting STEP geometry...')
-          try {
-            const { buffer: glbBuffer } = await stepToGlbCached(buffer,
-              { filePath, mtimeMs: Date.now() },
-              { wasmPath: '/wasm/occt-import-js.wasm' },
-            )
-            buffer = glbBuffer
-            format = 'glb'
-          } catch (e) {
-            store.hideProgress()
-            throw e
-          }
-        }
-
-        if (!format) {
-          toast.error('Unsupported file format: ' + fileName)
-          continue
-        }
-
-        // Show progress for non-STEP formats (STEP already has progress from above)
-        if (!isStep) store.showProgress(`Loading ${fileName}...`)
-
-        // Parse once — result feeds both canvas and thumbnail
-        const loadResult = await loadFormat(buffer, format, filePath)
-        const fileId = crypto.randomUUID()
-        setCachedResult(fileId, loadResult)
-
-        // Thumbnail as byproduct (fire-and-forget)
-        const loadTime = Date.now()
-        const upAxis = getDefaultUpAxis(format, buffer, fileName)
-        generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-          .then(blob => {
-            if (blob) putThumbnail(cacheKey(filePath, loadTime), blob)
-          })
-
-        // Add to store
-        const currentStore = useModelStore.getState()
-        currentStore.addLoadedFile({
-          id: fileId,
-          fileName,
-          filePath,
-          mtimeMs: loadTime,
-          buffer,
-          format,
-          sceneTree: [],
-          glbPartInfos: [],
-          modelCenteringOffset: null,
-          sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
-          fileGroup: FORMAT_MAP[format].group,
-          loadingPhase: 'loading',
-        })
-        currentStore.hideProgress()
-      } catch (e) {
-        useModelStore.getState().hideProgress()
-        if (e instanceof ModelEmptyError) {
-          toast.error(t('error.modelEmpty', { fileName: e.fileName }))
-        } else {
-          const msg = e instanceof Error ? e.message : String(e)
-          toast.error(msg || `Load failed: ${fileName}`)
-        }
-      }
-    }
-
-    // Populate file list from the first file's directory
-    if (firstDirPath) {
-      const dirResult = await window.electronAPI.readDirectory(firstDirPath)
-      if (dirResult.success && dirResult.files) {
-        useModelStore.getState().setFolderFiles(firstDirPath, dirResult.files)
-      }
-    }
-  }, [])
+    await loadFilesFromDialog()
+  }, [loadFilesFromDialog])
 
   return (
     <div className="h-screen flex flex-col bg-background">
