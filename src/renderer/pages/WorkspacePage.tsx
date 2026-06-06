@@ -16,7 +16,6 @@ import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile } from '@/config/file-
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 
 interface WorkspacePageProps {
   projectId?: string
@@ -126,6 +125,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       let naturalHeight: number
 
       if (format === 'dxf') {
+        const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
         const result = await convertDxfToSvg(text)
         svgText = result.svgText
         layers = result.layers

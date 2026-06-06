@@ -2,29 +2,8 @@ import * as THREE from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
-import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js'
-import { TDSLoader } from 'three/examples/jsm/loaders/TDSLoader.js'
-import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
-import { GLTFAnimationPointerExtension } from '@needle-tools/three-animation-pointer'
-import { BVHLoader } from 'three/examples/jsm/loaders/BVHLoader.js'
-import { VTKLoader } from 'three/examples/jsm/loaders/VTKLoader.js'
-import { XYZLoader } from 'three/examples/jsm/loaders/XYZLoader.js'
-import { PDBLoader } from 'three/examples/jsm/loaders/PDBLoader.js'
-import { NRRDLoader } from 'three/examples/jsm/loaders/NRRDLoader.js'
-import { GCodeLoader } from 'three/examples/jsm/loaders/GCodeLoader.js'
-import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader.js'
-import { VOXLoader } from 'three/examples/jsm/loaders/VOXLoader.js'
-import { KMZLoader } from 'three/examples/jsm/loaders/KMZLoader.js'
-import { AMFLoader } from 'three/examples/jsm/loaders/AMFLoader.js'
-import { LWOLoader } from 'three/examples/jsm/loaders/LWOLoader.js'
-import { MD2Loader } from 'three/examples/jsm/loaders/MD2Loader.js'
-import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
-import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js'
 import type { FormatId, UnitSystem } from '@/config/file-formats'
 import { buildGlbExtensionData, type GlbExtensionData } from './gltfExtensions'
 import { parseBambu3mf, type Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
@@ -363,7 +342,7 @@ export function generateThumbnail(texture: THREE.Texture, maxSize: number): stri
 
 let _sharedGltfLoader: GLTFLoader | null = null
 
-function getGltfLoader(): GLTFLoader {
+async function getGltfLoader(): Promise<GLTFLoader> {
   if (_sharedGltfLoader) return _sharedGltfLoader
 
   const loader = new GLTFLoader()
@@ -376,6 +355,7 @@ function getGltfLoader(): GLTFLoader {
   ktx2Loader.setTranscoderPath('/wasm/basis/')
   loader.setKTX2Loader(ktx2Loader)
 
+  const { GLTFAnimationPointerExtension } = await import('@needle-tools/three-animation-pointer')
   loader.register((parser) => new GLTFAnimationPointerExtension(parser))
 
   _sharedGltfLoader = loader
@@ -404,7 +384,7 @@ export async function loadFormat(
       resetYieldTimer()
 
       updateProgress('Parsing GLB data...', 10)
-      const gltf = await getGltfLoader().parseAsync(buffer, '')
+      const gltf = await (await getGltfLoader()).parseAsync(buffer, '')
 
       updateProgress('Processing meshes...', 70)
       await yieldToUI(true)
@@ -440,7 +420,7 @@ export async function loadFormat(
       // No file path — try parsing directly (works if glTF has only data URIs or
       // if pre-resolved by test helpers)
       const gltfText = bufferToText(buffer)
-      const gltf = await getGltfLoader().parseAsync(gltfText, '')
+      const gltf = await (await getGltfLoader()).parseAsync(gltfText, '')
       const meshes = extractMeshes(gltf.scene)
       const json = JSON.parse(gltfText)
       const { resolutionMap, thumbnailMap, previewMap } = buildTextureExtras(gltf)
@@ -529,18 +509,21 @@ export async function loadFormat(
 
     // ---- mesh formats: text-based ----
     case 'obj': {
+      const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js')
       const text = bufferToText(buffer)
       const group = new OBJLoader().parse(text)
       const meshes = extractMeshes(group)
       return { meshes, objects: extractAllObjects(group) }
     }
     case 'dae': {
+      const { ColladaLoader } = await import('three/examples/jsm/loaders/ColladaLoader.js')
       const text = bufferToText(buffer)
       const scene = new ColladaLoader().parse(text, '')
       const meshes = extractMeshes(scene.scene)
       return { meshes, objects: extractAllObjects(scene.scene) }
     }
     case 'wrl': {
+      const { VRMLLoader } = await import('three/examples/jsm/loaders/VRMLLoader.js')
       const text = bufferToText(buffer)
       const scene = new VRMLLoader().parse(text)
       const meshes = extractMeshes(scene)
@@ -549,6 +532,7 @@ export async function loadFormat(
 
     // ---- mesh formats: binary ----
     case 'ply': {
+      const { PLYLoader } = await import('three/examples/jsm/loaders/PLYLoader.js')
       // PLYLoader detects ascii vs binary from header
       // give it the raw ArrayBuffer for both cases
       const geo = new PLYLoader().parse(buffer)
@@ -557,21 +541,25 @@ export async function loadFormat(
       return { meshes: [mesh], objects: [] }
     }
     case 'fbx': {
+      const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader.js')
       const group = new FBXLoader().parse(buffer, '')
       const meshes = extractMeshes(group)
       return { meshes, objects: extractAllObjects(group) }
     }
     case '3ds': {
+      const { TDSLoader } = await import('three/examples/jsm/loaders/TDSLoader.js')
       const group = new TDSLoader().parse(buffer)
       const meshes = extractMeshes(group)
       return { meshes, objects: extractAllObjects(group) }
     }
     case 'usdz': {
+      const { USDZLoader } = await import('three/examples/jsm/loaders/USDZLoader.js')
       const group = new USDZLoader().parse(buffer)
       const meshes = extractMeshes(group)
       return { meshes, objects: extractAllObjects(group) }
     }
     case 'vox': {
+      const { VOXLoader } = await import('three/examples/jsm/loaders/VOXLoader.js')
       const result = new VOXLoader().parse(buffer)
       const scene = result?.scene
       if (scene) {
@@ -584,6 +572,7 @@ export async function loadFormat(
       return { meshes: [], objects: [] }
     }
     case 'kmz': {
+      const { KMZLoader } = await import('three/examples/jsm/loaders/KMZLoader.js')
       const result = new KMZLoader().parse(buffer)
       const scene = result?.scene
       if (scene) {
@@ -593,17 +582,20 @@ export async function loadFormat(
       return { meshes: [], objects: [] }
     }
     case 'amf': {
+      const { AMFLoader } = await import('three/examples/jsm/loaders/AMFLoader.js')
       // AMFLoader detects ZIP vs XML from raw buffer — pass binary, not text
       const group = new AMFLoader().parse(buffer)
       const meshes = extractMeshes(group)
       return { meshes, objects: extractAllObjects(group) }
     }
     case 'lwo': {
+      const { LWOLoader } = await import('three/examples/jsm/loaders/LWOLoader.js')
       // LWOLoader.parse() returns {meshes: Mesh[], materials: Material[]}, not a Group
       const result = new LWOLoader().parse(buffer, '', 'model')
       return { meshes: result?.meshes || [], objects: [] }
     }
     case 'md2': {
+      const { MD2Loader } = await import('three/examples/jsm/loaders/MD2Loader.js')
       // MD2Loader.parse() returns a BufferGeometry directly, not a Group
       const geo = new MD2Loader().parse(buffer)
       if (!geo) return { meshes: [], objects: [] }
@@ -612,6 +604,7 @@ export async function loadFormat(
       return { meshes: [mesh], objects: [] }
     }
     case '3dm': {
+      const { Rhino3dmLoader } = await import('three/examples/jsm/loaders/3DMLoader.js')
       const loader = new Rhino3dmLoader()
       loader.setLibraryPath('/wasm/rhino3dm/')
       const group = await new Promise<THREE.Group>((resolve, reject) => {
@@ -624,12 +617,14 @@ export async function loadFormat(
     // ---- volume / pointcloud / special ----
     case 'vtk':
     case 'vtp': {
+      const { VTKLoader } = await import('three/examples/jsm/loaders/VTKLoader.js')
       const geo = new VTKLoader().parse(buffer)
       geo.computeVertexNormals()
       const mesh = new THREE.Mesh(geo)
       return { meshes: [mesh], objects: [] }
     }
     case 'xyz': {
+      const { XYZLoader } = await import('three/examples/jsm/loaders/XYZLoader.js')
       const text = bufferToText(buffer)
       const geo = new XYZLoader().parse(text)
       // XYZ is atom positions — render as point cloud
@@ -637,6 +632,7 @@ export async function loadFormat(
       return { meshes: [], objects: [points] }
     }
     case 'pdb': {
+      const { PDBLoader } = await import('three/examples/jsm/loaders/PDBLoader.js')
       const text = bufferToText(buffer)
       // PDBLoader.parse() returns {geometryAtoms, geometryBonds, json}, not a BufferGeometry
       const result = new PDBLoader().parse(text)
@@ -654,6 +650,7 @@ export async function loadFormat(
       return { meshes: [], objects, sourceUnit: 'angstrom' }
     }
     case 'nrrd': {
+      const { NRRDLoader } = await import('three/examples/jsm/loaders/NRRDLoader.js')
       // NRRD produces volume data (3D texture) — create a unit box with wireframe
       // so the user can see something; real volume rendering needs custom shaders
       const _volume = new NRRDLoader().parse(buffer)
@@ -663,6 +660,7 @@ export async function loadFormat(
       return { meshes: [mesh], objects: [], sourceUnit: 'micron' }
     }
     case 'pcd': {
+      const { PCDLoader } = await import('three/examples/jsm/loaders/PCDLoader.js')
       const points = new PCDLoader().parse(buffer)
       // PCDLoader returns THREE.Points — render directly as point cloud
       if (points instanceof THREE.Points) {
@@ -673,6 +671,7 @@ export async function loadFormat(
 
     // ---- animation ----
     case 'bvh': {
+      const { BVHLoader } = await import('three/examples/jsm/loaders/BVHLoader.js')
       const text = bufferToText(buffer)
       const result = new BVHLoader().parse(text)
       const skeleton = result.skeleton
@@ -694,6 +693,7 @@ export async function loadFormat(
 
     // ---- GCode ----
     case 'gcode': {
+      const { GCodeLoader } = await import('three/examples/jsm/loaders/GCodeLoader.js')
       const text = bufferToText(buffer)
       const group = new GCodeLoader().parse(text)
       const objects = extractAllObjects(group)

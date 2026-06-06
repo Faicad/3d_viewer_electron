@@ -14,7 +14,6 @@ import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { Button } from '@/components/ui/button'
 import { List, ArrowUpAZ, ArrowDownZA, AlertCircle, Eye, EyeOff, Loader2, Maximize2, Minimize2, Folder } from 'lucide-react'
 import {
@@ -744,6 +743,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       let naturalHeight: number
 
       if (format === 'dxf') {
+        const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
         const converted = await convertDxfToSvg(text)
         svgText = converted.svgText
         layers = converted.layers

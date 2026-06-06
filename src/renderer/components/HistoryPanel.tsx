@@ -14,7 +14,6 @@ import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey, getThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { X, Clock, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
 
 const PAGE_SIZE = 20
@@ -116,6 +115,7 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         let naturalHeight: number
 
         if (format === 'dxf') {
+          const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
           const dxfResult = await convertDxfToSvg(text)
           svgText = dxfResult.svgText
           layers = dxfResult.layers

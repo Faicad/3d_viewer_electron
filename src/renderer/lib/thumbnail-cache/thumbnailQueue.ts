@@ -2,7 +2,6 @@ import { detectFormat, isStepFile } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
 import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 
 export interface QueueFile {
   name: string
@@ -141,7 +140,7 @@ async function processNext(): Promise<void> {
           const result = await window.electronAPI.readFile(file.path)
           if (result.success && result.data) {
             const text = new TextDecoder().decode(result.data)
-            const svgText = format === 'dxf' ? (await convertDxfToSvg(text)).svgText : text
+            const svgText = format === 'dxf' ? (await (await import('@/lib/dxf-to-svg')).convertDxfToSvg(text)).svgText : text
             const blob = await generateSvgThumbnail(svgText)
             if (blob && onReady) {
               await putThumbnail(key, blob)

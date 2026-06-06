@@ -9,7 +9,6 @@ import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 import type { FileMeta } from '@/lib/file-meta'
 
@@ -48,6 +47,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           let naturalHeight: number
 
           if (format === 'dxf') {
+            const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
             const result = await convertDxfToSvg(text)
             svgText = result.svgText
             layers = result.layers

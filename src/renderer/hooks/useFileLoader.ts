@@ -15,7 +15,6 @@ import {
 } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail, cacheKey } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
-import { convertDxfToSvg } from '@/lib/dxf-to-svg'
 import type { FileMeta } from '@/lib/file-meta'
 
 interface LoadFilePathOptions {
@@ -121,6 +120,7 @@ export function useFileLoader() {
         let naturalHeight: number
 
         if (format === 'dxf') {
+          const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
           const result = await convertDxfToSvg(text)
           svgText = result.svgText
           layers = result.layers

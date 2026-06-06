@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 import { CleanRoomEnvironment } from './CleanRoomEnvironment'
 import { HDR_PRESETS, getPresetUrl } from './hdrPresets'
 
@@ -41,7 +40,7 @@ export class EnvironmentManager {
   /** Original equirectangular texture kept for background display. */
   private _currentBgTex: THREE.Texture | null = null
   private _backgroundMode: BackgroundMode = 'grey'
-  private _rgbeLoader: RGBELoader | null = null
+  private _rgbeLoader: any | null = null
   private _pmremSize: number
 
   constructor(renderer: THREE.WebGLRenderer) {
@@ -374,8 +373,9 @@ export class EnvironmentManager {
     return rt.texture
   }
 
-  private _loadEquirect(url: string): Promise<THREE.Texture> {
+  private async _loadEquirect(url: string): Promise<THREE.Texture> {
     if (!this._rgbeLoader) {
+      const { RGBELoader } = await import('three/examples/jsm/loaders/RGBELoader.js')
       this._rgbeLoader = new RGBELoader()
       this._rgbeLoader.setDataType(THREE.HalfFloatType)
     }
