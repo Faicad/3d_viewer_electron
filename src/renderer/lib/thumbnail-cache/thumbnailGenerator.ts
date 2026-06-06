@@ -7,6 +7,7 @@ import { useMaterialStore } from '@/stores/material-store'
 import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
 import { CleanRoomEnvironment } from '@/engine/environment/CleanRoomEnvironment'
 import { createDefaultMaterial } from '@/engine/components/cloneMaterial'
+import { unzipSync } from 'three/examples/jsm/libs/fflate.module.js'
 
 const WIDTH = 200
 const HEIGHT = 150
@@ -100,9 +101,6 @@ export async function extractAndProcess3mfThumbnail(
   buffer: ArrayBuffer,
 ): Promise<Blob | null> {
   try {
-    const { unzipSync } = await import(
-      'three/examples/jsm/libs/fflate.module.js'
-    )
     const data = new Uint8Array(buffer)
     const unzipped: Record<string, Uint8Array> = unzipSync(data)
     const rawBlob = extractThumbnailBlob(unzipped)
