@@ -12,7 +12,7 @@ import { useSelectionStore } from '@/stores/selection-store'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
-import { clearStepCache } from '@/lib/step-converter'
+import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
 import { initLogger } from '@/lib/logger'
 import App from './App'
 import './i18n'
@@ -43,6 +43,10 @@ window.__svgHelpers = {
 }
 window.__errors = []
 window.__clearStepCache = clearStepCache
+window.__stepMemCacheHas = (filePath: string, mtimeMs: number) => {
+  const key = `${filePath.replace(/\\/g, '/')}|${Math.trunc(mtimeMs)}`
+  return memCache.has(key)
+}
 
 // Global error handlers — surface errors to both console and window.__errors
 window.addEventListener('error', (event) => {

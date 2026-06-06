@@ -790,6 +790,9 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         )
         meshFaceIds.push(faceIds)
       }
+      console.log('[ModelGroup] faceIds built:', meshFaceIds.map(
+        (f, i) => `mesh${i}:${f ? f.length + 'triangles,' + f.filter((v: number) => v !== 0xffffffff).length + 'mapped' : 'null'}`
+      ))
     }
 
     const isMeshOnly = displayMode === 'mesh' || displayMode === 'debug'

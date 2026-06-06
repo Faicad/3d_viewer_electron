@@ -17,6 +17,7 @@ declare global {
     __svgFixtures: Record<string, string>
     __svgHelpers: { parseSvgViewBox: typeof ParseSvgViewBox; parseSvgLayers: typeof ParseSvgLayers }
     __clearStepCache: () => Promise<void>
+    __stepMemCacheHas: (filePath: string, mtimeMs: number) => boolean
     __errors: Array<{ message: string; stack: string; timestamp: number }>
     /** Pre-computed at init time. E2E tests read this instead of probing WebGL. */
     __isSoftwareGpu?: boolean

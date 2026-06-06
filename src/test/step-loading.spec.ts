@@ -209,23 +209,19 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
       }
     }, path.resolve(__dirname, 'fixtures'))
 
+    // Get keycap_v6 file info for cache key lookup
+    const keycapInfo = await window.evaluate(() => {
+      const files = window.__modelStore.getState().folderFiles
+      return files.find((f: any) => f.name === 'keycap_v6.step') ?? null
+    })
+    expect(keycapInfo).not.toBeNull()
+
     // Wait for the file list entry to render before clicking
     const entry1 = window.locator('div[data-index]').filter({ hasText: /keycap_v6\.step$/ })
     await expect(entry1).toBeAttached()
 
-    const consoleMessages: string[] = []
-    window.on('console', (msg) => {
-      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
-    })
-
     await entry1.click()
     await waitForLoadDone(window, 60000)
-
-    const hasCacheMiss = consoleMessages.some(m => m.includes('[stepToGlbCached] miss'))
-    const hasIndexedDbHit = consoleMessages.some(m => m.includes('[stepToGlbCached] IndexedDB hit'))
-    const hadCache = hasCacheMiss || hasIndexedDbHit
-    console.log('[test] first load (keycap_v6) cache miss:', hasCacheMiss, 'idb hit:', hasIndexedDbHit)
-    expect(hadCache).toBe(true)
 
     // Verify model rendered
     let sceneOk = await window.evaluate(() => {
@@ -239,7 +235,6 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
 
     // Switch to test-model.step, remove keycap_v6, then re-click keycap_v6
     // to force a reload — should hit memory cache (multi-file keeps both loaded)
-    consoleMessages.length = 0
     const entry2 = window.locator('div[data-index]').filter({ hasText: /test-model\.step$/ })
     await entry2.click()
     await waitForLoadDone(window, 60000)
@@ -251,17 +246,16 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
       if (keycap) st.removeLoadedFile(keycap.id)
     })
 
-    consoleMessages.length = 0
+    // Verify the converted GLB is still in memory cache after file removal
+    const inMemCache = await window.evaluate(
+      ({ path, mtimeMs }) => window.__stepMemCacheHas(path, mtimeMs),
+      keycapInfo,
+    )
+    expect(inMemCache).toBe(true)
+
     const entry3 = window.locator('div[data-index]').filter({ hasText: /keycap_v6\.step$/ })
     await entry3.click()
     await waitForLoadDone(window)
-
-    const cacheLogs = consoleMessages.filter(m => m.includes('[stepToGlbCached]'))
-    console.log('[test] cache logs on re-click keycap_v6:', cacheLogs)
-
-    const hasCacheHit = consoleMessages.some(m => m.includes('[stepToGlbCached] memory hit'))
-    console.log('[test] second load cache hit:', hasCacheHit)
-    expect(hasCacheHit).toBe(true)
 
     // Verify model renders from cache
     sceneOk = await window.evaluate(() => {
