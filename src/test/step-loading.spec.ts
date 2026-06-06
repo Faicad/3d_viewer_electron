@@ -97,7 +97,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     console.log('[test] console messages (relevant):', relevant)
 
     // Verify STEP→GLB conversion succeeded (faceIds built = topology mapped)
-    const hasFaceIds = consoleMessages.some(m => m.includes('[ModelGroup] faceIds built:'))
+    const hasFaceIds = await window.evaluate(() => window.__sceneHasFaceIds())
     expect(hasFaceIds).toBe(true)
 
     // Verify 3D meshes exist in the THREE.js scene
@@ -153,20 +153,14 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     const stepEntry = window.locator('div[data-index]').filter({ hasText: /test-model\.step$/ })
     await expect(stepEntry).toBeAttached()
 
-    // Collect console messages
-    const consoleMessages: string[] = []
-    window.on('console', (msg) => {
-      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
-    })
-
     await stepEntry.click()
 
     await waitForLoadDone(window, 50000)
 
     // After loadingPhase becomes 'done', ModelGroup's glbMeshes state update
-    // and the subsequent React re-render (which logs faceIds built and attaches
-    // meshes to the scene) may not have completed yet. Wait for actual meshes
-    // in the THREE.js scene to ensure all render-cycle side effects are done.
+    // and the subsequent React re-render (which attaches faceIds and meshes to
+    // the scene) may not have completed yet. Wait for actual meshes in the
+    // THREE.js scene to ensure all render-cycle side effects are done.
     await window.waitForFunction(() => {
       const dev = window.__r3f_dev
       if (!dev?.scene) return false
@@ -176,7 +170,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     })
 
     // Verify faceIds built (proof of successful conversion)
-    const hasFaceIds = consoleMessages.some(m => m.includes('[ModelGroup] faceIds built:'))
+    const hasFaceIds = await window.evaluate(() => window.__sceneHasFaceIds())
     expect(hasFaceIds).toBe(true)
 
     // Verify topology

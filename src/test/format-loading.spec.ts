@@ -162,11 +162,6 @@ test.describe('3D Viewer - Key Format E2E', () => {
       window.__modelStore?.getState().reset()
     })
 
-    const consoleMessages: string[] = []
-    window.on('console', (msg) => {
-      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
-    })
-
     await window.locator('input[type="file"]').setInputFiles({
       name: fixture.file,
       mimeType: 'application/octet-stream',
@@ -176,9 +171,7 @@ test.describe('3D Viewer - Key Format E2E', () => {
     await waitForLoadDone(window, 50000)
     await assertNoErrors()
 
-    const topologyBuilt = consoleMessages.some((m) =>
-      m.includes('[ModelGroup] faceIds built:'),
-    )
+    const topologyBuilt = await window.evaluate(() => window.__sceneHasFaceIds())
     console.log(`[test] STEP topology built: ${topologyBuilt}`)
     expect(topologyBuilt).toBe(true)
 
@@ -242,10 +235,6 @@ test.describe('3D Viewer - Key Format E2E', () => {
     })
 
     const fileBuffer = readFileSync(path.join(FIXTURES_DIR, 'test-model.step'))
-    const consoleMessages: string[] = []
-    window.on('console', (msg) => {
-      consoleMessages.push(`[${msg.type()}] ${msg.text()}`)
-    })
 
     await window.locator('input[type="file"]').setInputFiles({
       name: 'test-model.step',

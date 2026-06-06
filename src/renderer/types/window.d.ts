@@ -18,6 +18,8 @@ declare global {
     __svgHelpers: { parseSvgViewBox: typeof ParseSvgViewBox; parseSvgLayers: typeof ParseSvgLayers }
     __clearStepCache: () => Promise<void>
     __stepMemCacheHas: (filePath: string, mtimeMs: number) => boolean
+    /** Returns true if any mesh in the scene has per-triangle faceIds mapped. */
+    __sceneHasFaceIds: () => boolean
     __errors: Array<{ message: string; stack: string; timestamp: number }>
     /** Pre-computed at init time. E2E tests read this instead of probing WebGL. */
     __isSoftwareGpu?: boolean

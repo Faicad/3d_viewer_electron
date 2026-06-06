@@ -47,6 +47,15 @@ window.__stepMemCacheHas = (filePath: string, mtimeMs: number) => {
   const key = `${filePath.replace(/\\/g, '/')}|${Math.trunc(mtimeMs)}`
   return memCache.has(key)
 }
+window.__sceneHasFaceIds = () => {
+  const dev = window.__r3f_dev
+  if (!dev?.scene) return false
+  let found = false
+  dev.scene.traverse((obj: any) => {
+    if (obj?.isMesh && obj?.userData?.faceIds) found = true
+  })
+  return found
+}
 
 // Global error handlers — surface errors to both console and window.__errors
 window.addEventListener('error', (event) => {
