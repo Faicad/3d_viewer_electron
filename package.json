@@ -84,7 +84,7 @@
     "@vitejs/plugin-react": "^4.5.2",
     "@vitest/ui": "^4.1.6",
     "electron": "^39.8.5",
-    "electron-builder": "^26.0.0",
+    "electron-builder": "^26.15.0",
     "electron-vite": "^3.0.0",
     "esbuild": "0.25.12",
     "eslint": "^10.4.0",
