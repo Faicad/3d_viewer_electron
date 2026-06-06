@@ -195,7 +195,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     if (skipUpload) {
       processFileLocally(file)
     } else {
-      uploadFile(file)
+      uploadFile(file, { isDragDrop: true })
     }
   }
 

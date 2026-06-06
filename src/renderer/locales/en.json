@@ -110,6 +110,7 @@
   "fileList.files": "files",
   "fileList.toClose": "to close",
   "fileList.switchFolder": "Switch to another folder",
+  "fileList.confirmSwitchFolder": "Currently browsing \"{{currentFolder}}\"\nSwitch file panel to \"{{newFolder}}\"?",
 
   "openFile.title": "Open File",
   "openFile.description": "Select a 3D model file to open",

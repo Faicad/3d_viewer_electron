@@ -110,6 +110,7 @@
   "fileList.files": "个文件",
   "fileList.toClose": "关闭",
   "fileList.switchFolder": "切换到其它文件夹",
+  "fileList.confirmSwitchFolder": "当前正在浏览 \"{{currentFolder}}\"\n是否将文件面板切换到 \"{{newFolder}}\"？",
 
   "openFile.title": "打开文件",
   "openFile.description": "选择一个3D模型文件打开",

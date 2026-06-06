@@ -22,7 +22,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
   const [isUploading, setIsUploading] = useState(false)
 
   const uploadFile = useCallback(
-    async (file: File) => {
+    async (file: File, opts?: { isDragDrop?: boolean }) => {
       let format = detectFormat(file.name)
       if (!format) {
         toast.error(`Unsupported file format: ${file.name}`)
@@ -188,10 +188,32 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
               if (folderPath) {
                 const result = await window.electronAPI.readDirectory(folderPath)
                 if (result.success && result.files) {
-                  useModelStore.getState().setFolderFiles(folderPath, result.files)
+                  const store = useModelStore.getState()
+                  const currentFolder = store.currentFolderPath
+                  const currentFiles = store.folderFiles
+
+                  // Drag-and-drop from a different folder while browsing another:
+                  // ask the user before switching the file panel.
+                  if (
+                    opts?.isDragDrop &&
+                    currentFolder &&
+                    currentFiles.length > 0 &&
+                    currentFolder !== folderPath
+                  ) {
+                    const shouldSwitch = window.confirm(
+                      t('fileList.confirmSwitchFolder', { currentFolder, newFolder: folderPath }),
+                    )
+                    if (!shouldSwitch) {
+                      // User chose to keep browsing the current folder.
+                      // Model is already loaded — just skip the folder panel update.
+                      return
+                    }
+                  }
+
+                  store.setFolderFiles(folderPath, result.files)
                   const idx = result.files.findIndex(f => f.name === file.name)
                   if (idx !== -1) {
-                    useModelStore.getState().setSelectedFileIndex(idx)
+                    store.setSelectedFileIndex(idx)
                   }
                   // Schedule background pre-caching for uncached STEP files
                   setTimeout(() => {
