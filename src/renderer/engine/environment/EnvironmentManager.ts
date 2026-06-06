@@ -17,6 +17,7 @@ export type BackgroundMode =
 
 const LOAD_TIMEOUT_MS = 30_000
 const CLEANROOM_KEY = '__cleanroom__'
+const INIT_PMREM_SIZE = 64
 
 /**
  * Three-tier environment manager for PBR image-based lighting.
@@ -340,7 +341,7 @@ export class EnvironmentManager {
   private _getOrCreateCleanRoom(): THREE.Texture {
     if (!this._cleanRoomTex) {
       const room = new CleanRoomEnvironment()
-      const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: this._pmremSize })
+      const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: INIT_PMREM_SIZE })
       this._cleanRoomTex = rt.texture
       this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
       room.dispose()
