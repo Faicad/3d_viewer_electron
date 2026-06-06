@@ -40,13 +40,8 @@ export async function stepToGlb(
 
 export async function sha256(data: ArrayBuffer | Uint8Array): Promise<string> {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
-    const hash = await crypto.subtle.digest('SHA-256', bytes);
-    return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
-  }
-  // Node.js fallback
-  const { createHash } = await import('crypto');
-  return createHash('sha256').update(bytes).digest('hex');
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function buildGlbFromResult(
