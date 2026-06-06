@@ -41,10 +41,12 @@ export class EnvironmentManager {
   private _currentBgTex: THREE.Texture | null = null
   private _backgroundMode: BackgroundMode = 'grey'
   private _rgbeLoader: RGBELoader | null = null
+  private _pmremSize: number
 
   constructor(renderer: THREE.WebGLRenderer) {
     this._renderer = renderer
     this._pmrem = new THREE.PMREMGenerator(renderer)
+    this._pmremSize = (typeof window !== 'undefined' && (window as any).__isSoftwareGpu) ? 128 : 2048
   }
 
   /** The currently active PMREM environment texture. */
@@ -110,7 +112,7 @@ export class EnvironmentManager {
 
     const room = new CleanRoomEnvironment()
     room.position.y = positionY
-    const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: 2048 })
+    const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: this._pmremSize })
     this._cleanRoomTex = rt.texture
     this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
     this._currentTex = this._cleanRoomTex
@@ -338,7 +340,7 @@ export class EnvironmentManager {
   private _getOrCreateCleanRoom(): THREE.Texture {
     if (!this._cleanRoomTex) {
       const room = new CleanRoomEnvironment()
-      const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: 2048 })
+      const rt = this._pmrem.fromScene(room, 0, 0.01, 100, { size: this._pmremSize })
       this._cleanRoomTex = rt.texture
       this._cache.set(CLEANROOM_KEY, this._cleanRoomTex)
       room.dispose()

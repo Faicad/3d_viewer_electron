@@ -138,20 +138,8 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         // Parse once — feeds both canvas and thumbnail
         const loadResult = await loadFormat(buffer, format, filePath)
         const fileId = crypto.randomUUID()
-        setCachedResult(fileId, loadResult)
 
-        // Thumbnail: prefer Bambu 3MF embedded thumbnail, else render-based
-        if (format === '3mf' && loadResult.bambuMetadata?.thumbnailBlob) {
-          processEmbeddedThumbnail(loadResult.bambuMetadata.thumbnailBlob).then(blob => {
-            if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
-          })
-        } else {
-          const upAxis = getDefaultUpAxis(format, buffer, file.name)
-          generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
-            .then(blob => {
-              if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
-            })
-        }
+        setCachedResult(fileId, loadResult)
 
         // Merge fileMeta from loadResult (GLB/3MF) with pre-parsed (STEP)
         if (!fileMeta) fileMeta = loadResult.fileMeta
@@ -176,6 +164,22 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
         // Done loading — hide progress overlay
         useModelStore.getState().hideProgress()
+
+        // Thumbnail — defer to next macrotask so WebGL renderer creation (28s in
+        // software GPU) doesn't block React's processing of the loadingPhase update.
+        setTimeout(() => {
+          if (format === '3mf' && loadResult.bambuMetadata?.thumbnailBlob) {
+            processEmbeddedThumbnail(loadResult.bambuMetadata.thumbnailBlob).then(blob => {
+              if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
+            })
+          } else {
+            const upAxis = getDefaultUpAxis(format, buffer, file.name)
+            generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+              .then(blob => {
+                if (blob) putThumbnail(`${filePath}|${file.lastModified}`, blob)
+              })
+          }
+        }, 0)
 
         // Scan folder for other model files if in Electron environment
         if (window.electronAPI) {
