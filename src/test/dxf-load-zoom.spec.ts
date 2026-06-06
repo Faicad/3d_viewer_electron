@@ -70,7 +70,10 @@ async function loadDxfIntoWorkspace(window: Page, dxfText: string, fileName: str
     }])
   }, { dxf: dxfText, name: fileName })
 
-  await window.waitForTimeout(500)
+  await window.waitForFunction(() => {
+    const s = (window as any).__svgWorkspaceStore?.getState()
+    return s?.files?.length > 0
+  }, { timeout: 5000 })
 }
 
 // ---------------------------------------------------------------------------
@@ -151,8 +154,6 @@ test.describe('DXF Loading & Zoom E2E', () => {
       (window as any).__svgWorkspaceStore.getState().zoomFile(fid, 1.5)
     }, fileId)
 
-    await window.waitForTimeout(200)
-
     const zoomAfter = await window.evaluate(() => {
       return (window as any).__svgWorkspaceStore.getState().files[0]?.zoom
     })
@@ -179,8 +180,6 @@ test.describe('DXF Loading & Zoom E2E', () => {
     await window.evaluate((fid: string) => {
       (window as any).__svgWorkspaceStore.getState().zoomFile(fid, 0.7)
     }, fileId)
-
-    await window.waitForTimeout(200)
 
     const zoomAfter = await window.evaluate(() => {
       return (window as any).__svgWorkspaceStore.getState().files[0]?.zoom
@@ -219,8 +218,6 @@ test.describe('DXF Loading & Zoom E2E', () => {
       // Push past the cap
       store.getState().zoomFile(fid, 2.0)
     }, fileId)
-
-    await window.waitForTimeout(200)
 
     const zoom = await window.evaluate(() => {
       return (window as any).__svgWorkspaceStore.getState().files[0]?.zoom

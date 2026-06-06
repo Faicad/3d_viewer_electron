@@ -78,7 +78,10 @@ test.describe.serial('Object Selection E2E', () => {
     await page.evaluate(() => {
       (window as any).__toolStore?.getState().setSelectionMode('object')
     })
-    await page.waitForTimeout(200)
+    await page.waitForFunction(() => {
+      const s = (window as any).__toolStore?.getState()
+      return s?.selectionMode === 'object'
+    }, { timeout: 5000 })
   })
 
   test.afterAll(async () => {
@@ -129,7 +132,19 @@ test.describe.serial('Object Selection E2E', () => {
     const b = await c.boundingBox()
     expect(b).not.toBeNull()
     await c.click({ position: { x: b!.width * cx, y: b!.height * cy }, force: true })
-    await page.waitForTimeout(400)
+    await page.waitForFunction(() => {
+      const dev = (window as any).__r3f_dev
+      if (!dev?.scene) return false
+      let found = false
+      dev.scene.traverse((obj: any) => {
+        if (!obj.isMesh) return
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+        for (const m of mats) {
+          if (m?.type === 'MeshBasicMaterial' && m.transparent && m.opacity > 0 && m.opacity < 1) found = true
+        }
+      })
+      return found
+    }, { timeout: 5000 }).catch(() => {})
   }
 
   test('1. model loads without errors', async () => {
@@ -184,7 +199,7 @@ test.describe.serial('Object Selection E2E', () => {
     await page.mouse.down()
     await page.mouse.move(cx + 60, cy, { steps: 5 })
     await page.mouse.up()
-    await page.waitForTimeout(300)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 
     await g.assertNoErrors()
   })

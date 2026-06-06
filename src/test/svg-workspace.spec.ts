@@ -29,7 +29,7 @@ async function loadSvgBatch(window: Page, fixtures: Record<string, string>) {
     }
     store.getState().addFilesBatch(batch)
   }, fixtures)
-  await window.waitForTimeout(500)
+  await window.locator('text=SVG Layers').waitFor({ state: 'visible', timeout: 5000 })
 }
 
 test.describe('SVG Workspace E2E', () => {
@@ -161,8 +161,6 @@ test.describe('SVG Workspace E2E', () => {
         }
       }, { name, text: svgText })
     }
-
-    await window.waitForTimeout(500)
 
     // Verify files are in model-store
     const loadedCount = await window.evaluate(() => {

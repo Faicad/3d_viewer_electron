@@ -101,7 +101,11 @@ test.describe('Animation Player', () => {
     const t0 = await page.evaluate(() => {
       return (window as any).__animationStore?.getState().currentTime ?? 0
     })
-    await page.waitForTimeout(2000)
+    await page.waitForFunction(
+      (start: number) => (window as any).__animationStore?.getState().currentTime > start,
+      t0,
+      { timeout: 10000 },
+    )
     const t1 = await page.evaluate(() => {
       return (window as any).__animationStore?.getState().currentTime ?? 0
     })
@@ -113,7 +117,9 @@ test.describe('Animation Player', () => {
     await xBtn.click()
 
     // After close, clips should be empty
-    await page.waitForTimeout(500)
+    await page.waitForFunction(() => {
+      return (window as any).__animationStore?.getState().clips?.length === 0
+    }, { timeout: 5000 })
     const clipsAfterClose = await page.evaluate(() => {
       return (window as any).__animationStore?.getState().clips?.length ?? -1
     })
@@ -134,8 +140,10 @@ test.describe('Animation Player', () => {
     const repeatBtn = page.locator('[role="dialog"] button', { hasText: '⟳' })
     await repeatBtn.click()
 
-    // Wait for clip to finish (Walking is 1.0s, wait 3s to be safe)
-    await page.waitForTimeout(3000)
+    // Wait for clip to finish (Walking is 1.0s)
+    await page.waitForFunction(() => {
+      return (window as any).__animationStore?.getState().isPlaying === false
+    }, { timeout: 5000 })
 
     // Verify stopped
     const stopped = await page.evaluate(() =>
@@ -146,7 +154,9 @@ test.describe('Animation Player', () => {
     // Click play/pause to restart
     const playPauseBtn = page.locator('[role="dialog"] button').filter({ has: page.locator('.lucide-play, .lucide-pause') })
     await playPauseBtn.click()
-    await page.waitForTimeout(1500)
+    await page.waitForFunction(() => {
+      return (window as any).__animationStore?.getState().currentTime > 0
+    }, { timeout: 5000 })
 
     // Time must advance
     const t1 = await page.evaluate(() =>
@@ -159,7 +169,9 @@ test.describe('Animation Player', () => {
     expect(t1, 'Time should advance after restart').toBeGreaterThan(0)
 
     await page.locator('[role="dialog"]').locator('svg.lucide-x').first().click()
-    await page.waitForTimeout(500)
+    await page.waitForFunction(() => {
+      return (window as any).__animationStore?.getState().clips?.length === 0
+    }, { timeout: 5000 })
   })
 
   test('scene tree right-click menu shows Play Animation for animated file', async () => {
@@ -170,7 +182,6 @@ test.describe('Animation Player', () => {
     const fileNode = page.locator('[data-testid="scene-tree-file"]').first()
     await expect(fileNode, 'Scene tree file node should exist').toBeVisible({ timeout: 5000 })
     await fileNode.click({ button: 'right' })
-    await page.waitForTimeout(500)
 
     // Context menu should appear with "播放动画" option
     const ctxMenu = page.locator('.fixed.z-\\[100\\]')

@@ -50,13 +50,12 @@ test.describe('alphaMode', () => {
     await waitForLoadDone(page)
     // Right-click file → 材质管理
     await page.locator('[data-testid="scene-tree-file"]').first().click({ button: 'right' })
-    await page.waitForTimeout(300)
-    await page.locator('.fixed.z-\\[100\\] button').filter({ hasText: '材质管理' }).click()
-    await page.waitForTimeout(500)
+    const materialMgmtBtn = page.locator('.fixed.z-\\[100\\] button').filter({ hasText: '材质管理' })
+    await materialMgmtBtn.waitFor({ state: 'visible', timeout: 5000 })
+    await materialMgmtBtn.click()
 
     // ── BLEND ──
     await page.getByRole('cell', { name: '07_-_Default' }).click()
-    await page.waitForTimeout(500)
 
     const r1 = await page.evaluate(() => {
       const labels = ['不透明','遮罩','混合']
@@ -68,11 +67,14 @@ test.describe('alphaMode', () => {
 
     // Close MaterialEditor via store
     await page.evaluate(() => { (window as any).__materialStore?.getState()?.closeMaterialEditor() })
-    await page.waitForTimeout(300)
+    // Wait for material editor panel to fully close
+    await page.waitForFunction(() => {
+      const s = (window as any).__materialStore?.getState()
+      return s?.materialEditorVisible === false
+    }, { timeout: 5000 })
 
     // ── MASK ──
     await page.getByRole('cell', { name: '03_-_Default' }).click({ force: true })
-    await page.waitForTimeout(500)
 
     // Diagnostic: check original material properties
     const rawMatDiag = await page.evaluate(() => {

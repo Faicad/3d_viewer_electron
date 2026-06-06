@@ -84,7 +84,19 @@ test.describe('Selection Highlight Artifacts', () => {
     await canvas.click({ position: { x: box!.width / 2, y: box!.height / 2 } })
 
     // Wait for the highlight mesh to appear in the scene
-    await page.waitForTimeout(500)
+    await page.waitForFunction(() => {
+      const dev = (window as any).__r3f_dev
+      if (!dev?.scene) return false
+      let found = false
+      dev.scene.traverse((obj: any) => {
+        if (!obj.isMesh) return
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+        for (const m of mats) {
+          if (m?.type === 'MeshBasicMaterial' && m.transparent && m.opacity > 0 && m.opacity < 1) found = true
+        }
+      })
+      return found
+    }, { timeout: 5000 })
 
     // Verify highlight material properties
     const materialInfo = await page.evaluate(() => {
@@ -168,7 +180,7 @@ test.describe('Selection Highlight Artifacts', () => {
     })
 
     // Let multiple frames render after camera change
-    await page.waitForTimeout(500)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)))))
 
     // Rotate back
     await page.evaluate(() => {
@@ -187,7 +199,7 @@ test.describe('Selection Highlight Artifacts', () => {
       cam.lookAt(0, 0, 0)
     })
 
-    await page.waitForTimeout(500)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)))))
 
     // No rendering errors should have occurred
     expect(renderErrors).toEqual([])

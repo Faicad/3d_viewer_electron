@@ -41,12 +41,13 @@ async function waitForLoadDone(page: Page, timeout = 30000) {
 async function openEditorForPart(page: Page, partIndex: number) {
   const partNodes = page.locator('[data-testid="scene-tree-part"]')
   await partNodes.nth(partIndex).click({ button: 'right' })
-  await page.waitForTimeout(300)
+
+  // Wait for context menu to appear
+  const editBtn = page.locator('.fixed.z-\\[100\\] button').filter({ hasText: /Edit Material|编辑材质/ })
+  await editBtn.waitFor({ state: 'visible', timeout: 5000 })
 
   // Click "Edit Material" in the context menu
-  const editBtn = page.locator('.fixed.z-\\[100\\] button').filter({ hasText: /Edit Material|编辑材质/ })
   await editBtn.click()
-  await page.waitForTimeout(300)
 
   // Wait for material editor to appear
   await page.waitForSelector('[class*="overflow-y-auto"]', { timeout: 5000 })
@@ -151,7 +152,7 @@ test.describe('MaterialEditor part switch layout', () => {
     // Ensure left panel is visible
     const leftPanel = page.locator('aside[data-testid="left-panel"]').first()
     await leftPanel.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
-    await page.waitForTimeout(500)
+    await page.locator('[data-testid="scene-tree-part"]').first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
 
     // Get part count from store
     const partCount = await page.evaluate(() => {

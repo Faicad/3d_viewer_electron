@@ -156,7 +156,10 @@ test.describe.serial('Multi-file Selection Isolation', () => {
     await page.evaluate(() => {
       ;(window as any).__toolStore?.getState().setSelectionMode('object')
     })
-    await page.waitForTimeout(200)
+    await page.waitForFunction(() => {
+      const s = (window as any).__toolStore?.getState()
+      return s?.selectionMode === 'object'
+    }, { timeout: 5000 })
 
     const c = page.locator('canvas').first()
     const b = await c.boundingBox()
@@ -164,7 +167,10 @@ test.describe.serial('Multi-file Selection Isolation', () => {
 
     // Click center of canvas — should hit one of the loaded models
     await c.click({ position: { x: b!.width * 0.5, y: b!.height * 0.5 }, force: true })
-    await page.waitForTimeout(400)
+    await page.waitForFunction(() => {
+      const sel = (window as any).__selectionStore
+      return sel?.getState().selectedReferenceIds?.length > 0
+    }, { timeout: 5000 })
 
     const selectedIds: string[] = await page.evaluate(() => {
       const sel = (window as any).__selectionStore
@@ -185,7 +191,16 @@ test.describe.serial('Multi-file Selection Isolation', () => {
 
     // Click center to select one mesh
     await c.click({ position: { x: b!.width * 0.5, y: b!.height * 0.5 }, force: true })
-    await page.waitForTimeout(400)
+    await page.waitForFunction(() => {
+      const sel = (window as any).__selectionStore
+      return sel?.getState().selectedReferenceIds?.length > 0
+    }, { timeout: 5000 })
+
+    const selectedIds: string[] = await page.evaluate(() => {
+      const sel = (window as any).__selectionStore
+      return sel?.getState().selectedReferenceIds?.slice() ?? []
+    })
+    console.log('[test] selectedIds:', JSON.stringify(selectedIds))
 
     // Record positions of all render meshes BEFORE drag
     const beforePositions = await page.evaluate(() => {
@@ -210,7 +225,7 @@ test.describe.serial('Multi-file Selection Isolation', () => {
     await page.mouse.down()
     await page.mouse.move(cx + 50, cy, { steps: 3 })
     await page.mouse.up()
-    await page.waitForTimeout(300)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 
     // Record positions AFTER drag
     const afterPositions = await page.evaluate(() => {
@@ -228,7 +243,7 @@ test.describe.serial('Multi-file Selection Isolation', () => {
 
     console.log('[test] after positions:', JSON.stringify(afterPositions))
 
-    const selectedIds: string[] = await page.evaluate(() => {
+    const selAfterDrag: string[] = await page.evaluate(() => {
       const sel = (window as any).__selectionStore
       return sel?.getState().selectedReferenceIds?.slice() ?? []
     })
@@ -242,7 +257,7 @@ test.describe.serial('Multi-file Selection Isolation', () => {
       const after = afterPositions[i]
       if (before.x !== after.x || before.y !== after.y) {
         movedCount++
-        if (selectedIds.includes(before.partId)) {
+        if (selAfterDrag.includes(before.partId)) {
           selectedMoved = true
         } else {
           nonSelectedMoved = true

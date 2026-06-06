@@ -86,10 +86,10 @@ test.describe('Scene Tree Context Menu', () => {
     // If Palette is not imported, handlePartContextMenu throws
     // "Palette is not defined" — caught by guard.assertNoErrors() in afterEach.
     await partNodes.first().click({ button: 'right' })
-    await page.waitForTimeout(500)
 
-    // Context menu should render after a successful right-click
+    // Context menu should appear after a successful right-click
     const menuItems = page.locator('.fixed.z-\\[100\\] button')
+    await menuItems.first().waitFor({ state: 'visible', timeout: 5000 })
     expect(
       await menuItems.count(),
       'Context menu should render after right-clicking a part node',
