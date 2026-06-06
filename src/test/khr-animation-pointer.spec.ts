@@ -104,13 +104,11 @@ test.describe('KHR_animation_pointer', () => {
     // Model already loaded in beforeAll test
     await page.locator('[data-testid="toolbar-animation-player"]').click()
     await page.locator('[role="dialog"]').waitFor({ state: 'visible', timeout: 5000 })
-    await page.waitForTimeout(500)
-
     // Verify clips loaded into animation store
-    const clipCount = await page.evaluate(() => {
-      return (window as any).__animationStore?.getState().clips?.length ?? 0
-    })
-    expect(clipCount, 'Animation store should have KHR pointer clips').toBeGreaterThan(0)
+    await page.waitForFunction(
+      () => (window as any).__animationStore?.getState().clips?.length > 0,
+      { timeout: 5000 },
+    )
 
     // Verify track names include material property paths (not T/R/S)
     const trackNames = await page.evaluate(() => {
@@ -129,24 +127,33 @@ test.describe('KHR_animation_pointer', () => {
     const clipOption = page.locator('[role="dialog"] option').filter({ hasText: 'DragonMaterialAnim' })
     expect(await clipOption.count(), 'KHR clip should be in the dropdown').toBeGreaterThan(0)
 
-    // After track filtering, animation should play (time advances)
+    // After track filtering, animation should play (time advances).
+    // Poll until the animation clock actually starts — the R3F Canvas
+    // reconciler mounts AnimationPlayerInternal asynchronously, so a
+    // fixed waitForTimeout would be flaky.
+    await page.waitForFunction(
+      () => (window as any).__animationStore?.getState().currentTime > 0,
+      { timeout: 5000 },
+    )
+
+    // Once animation is running, poll until time has visibly advanced
     const t0 = await page.evaluate(() => {
       return (window as any).__animationStore?.getState().currentTime ?? 0
     })
-    await page.waitForTimeout(2000)
-    const t1 = await page.evaluate(() => {
-      return (window as any).__animationStore?.getState().currentTime ?? 0
-    })
-    expect(t1, 'KHR animation time should advance after filtering bad tracks').toBeGreaterThan(t0)
+    await page.waitForFunction(
+      (tStart: number) =>
+        (window as any).__animationStore?.getState().currentTime > tStart,
+      t0,
+      { timeout: 3000 },
+    )
 
     // Close dialog — use keyboard Escape
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(500)
 
     // Verify store is reset after close
-    const clipsAfter = await page.evaluate(() => {
-      return (window as any).__animationStore?.getState().clips?.length ?? -1
-    })
-    expect(clipsAfter).toBe(0)
+    await page.waitForFunction(
+      () => (window as any).__animationStore?.getState().clips?.length === 0,
+      { timeout: 5000 },
+    )
   })
 })
