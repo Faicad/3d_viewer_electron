@@ -377,6 +377,97 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     await assertNoErrors()
   })
 
+  test('heatbed toggle: non-3MF file toggles heatbed on/off via toolbar button', async () => {
+    test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
+    const window = await electronApp.firstWindow()
+    const { assertNoErrors } = trackErrors(window)
+    await window.waitForLoadState('domcontentloaded')
+
+    // Fully reset state so initShowHeatbed can apply format defaults
+    await window.evaluate(() => {
+      window.__modelStore?.getState().reset()
+      const es = (window as any).__engineStore
+      if (es) {
+        es.setState({ showHeatbed: false, _heatbedExplicitlySet: false })
+      }
+    })
+
+    // Load a native GLB file (non-3MF — should default to heatbed off)
+    const glbBuf = readFileSync(path.join(__dirname, 'fixtures', 'RobotExpressive.glb'))
+    await window.locator('input[type="file"]').setInputFiles({
+      name: 'test-box.glb',
+      mimeType: 'model/gltf-binary',
+      buffer: glbBuf,
+    })
+    await waitForLoadDone(window)
+
+    // 1. Verify initial state: showHeatbed=false, no heatbed group in scene
+    const initial = await window.evaluate(() => {
+      const es = window.__engineStore
+      const dev = (window as any).__r3f_dev
+      let heatbedGroup: any = null
+      if (dev?.scene) {
+        dev.scene.traverse((obj: any) => {
+          if (obj.name === 'Heatbed') heatbedGroup = { visible: obj.visible }
+        })
+      }
+      return {
+        showHeatbed: es?.getState().showHeatbed,
+        heatbedGroup,
+      }
+    })
+    console.log('[test] initial:', JSON.stringify(initial))
+    expect(initial.showHeatbed, 'GLB must default showHeatbed=false').toBe(false)
+    expect(initial.heatbedGroup, 'Heatbed must not be in scene initially').toBeNull()
+
+    // Helper: poll scene until heatbed reaches expected state
+    async function waitForHeatbedState(expected: 'present' | 'absent'): Promise<{ showHeatbed: boolean; heatbedGroup: any }> {
+      const handle = await window.waitForFunction((exp) => {
+        const es = (window as any).__engineStore
+        const dev = (window as any).__r3f_dev
+        let heatbedGroup: any = null
+        if (dev?.scene) {
+          dev.scene.traverse((obj: any) => {
+            if (obj.name === 'Heatbed') heatbedGroup = { visible: obj.visible }
+          })
+        }
+        const showHeatbed = es?.getState().showHeatbed
+        if (exp === 'present') {
+          if (heatbedGroup != null && heatbedGroup.visible === true && showHeatbed === true) return { showHeatbed, heatbedGroup }
+        } else {
+          if (heatbedGroup == null && showHeatbed === false) return { showHeatbed, heatbedGroup: null }
+        }
+        return false
+      }, expected, { timeout: 5000 })
+      return (await handle.jsonValue()) as any
+    }
+
+    // 2. Toggle heatbed ON via toolbar button
+    await window.locator('[data-testid="toolbar-heatbed"]').click()
+    const toggledOn = await waitForHeatbedState('present')
+    console.log('[test] toggledOn:', JSON.stringify(toggledOn))
+    expect(toggledOn.showHeatbed, 'showHeatbed must be true after toggle on').toBe(true)
+    expect(toggledOn.heatbedGroup, 'Heatbed group must exist in scene after toggle on').not.toBeNull()
+    expect(toggledOn.heatbedGroup!.visible, 'Heatbed must be visible after toggle on').toBe(true)
+
+    // 3. Toggle heatbed OFF
+    await window.locator('[data-testid="toolbar-heatbed"]').click()
+    const toggledOff = await waitForHeatbedState('absent')
+    console.log('[test] toggledOff:', JSON.stringify(toggledOff))
+    expect(toggledOff.showHeatbed, 'showHeatbed must be false after toggle off').toBe(false)
+    expect(toggledOff.heatbedGroup, 'Heatbed must not be in scene after toggle off').toBeNull()
+
+    // 4. Toggle heatbed ON again (round-trip)
+    await window.locator('[data-testid="toolbar-heatbed"]').click()
+    const toggledOnAgain = await waitForHeatbedState('present')
+    console.log('[test] toggledOnAgain:', JSON.stringify(toggledOnAgain))
+    expect(toggledOnAgain.showHeatbed, 'showHeatbed must be true after second toggle on').toBe(true)
+    expect(toggledOnAgain.heatbedGroup, 'Heatbed group must exist in scene after second toggle on').not.toBeNull()
+    expect(toggledOnAgain.heatbedGroup!.visible, 'Heatbed must be visible after second toggle on').toBe(true)
+
+    await assertNoErrors()
+  })
+
   test('shows loading overlay during STEP conversion and hides after', async () => {
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
