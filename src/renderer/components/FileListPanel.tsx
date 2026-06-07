@@ -380,7 +380,7 @@ export default function FileListPanel() {
                     }
                     clickTimerRef.current = setTimeout(() => {
                       clickTimerRef.current = null
-                      handleFileClick(file, i)
+                      replaceSceneWithFile(file, i)
                     }, 250)
                   }}
                   onDoubleClick={() => {
@@ -388,7 +388,7 @@ export default function FileListPanel() {
                       clearTimeout(clickTimerRef.current)
                       clickTimerRef.current = null
                     }
-                    handleFileDoubleClick(file, i)
+                    toggleFileInScene(file, i)
                   }}
                   onMouseEnter={() => {
                     if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
@@ -446,7 +446,7 @@ export default function FileListPanel() {
                     }
                     clickTimerRef.current = setTimeout(() => {
                       clickTimerRef.current = null
-                      handleFileClick(file, i)
+                      replaceSceneWithFile(file, i)
                     }, 250)
                   }}
                   onDoubleClick={() => {
@@ -454,7 +454,7 @@ export default function FileListPanel() {
                       clearTimeout(clickTimerRef.current)
                       clickTimerRef.current = null
                     }
-                    handleFileDoubleClick(file, i)
+                    toggleFileInScene(file, i)
                   }}
                   onMouseEnter={() => {
                     if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
@@ -485,8 +485,8 @@ export default function FileListPanel() {
           processingPath={processingPath}
           loadedFilePaths={loadedFilePaths}
           onClose={() => setFullscreen(false)}
-          onFileClick={(file, i) => { handleFileClick(file, i); setFullscreen(false) }}
-          onFileDoubleClick={(file, i) => { handleFileDoubleClick(file, i); setFullscreen(false) }}
+          onReplaceScene={(file, i) => { replaceSceneWithFile(file, i); setFullscreen(false) }}
+          onToggleFile={(file, i) => { toggleFileInScene(file, i); setFullscreen(false) }}
           selectedFileIndex={selectedFileIndex}
           setSelectedFileIndex={setSelectedFileIndex}
           folderPath={currentFolderPath}
@@ -547,8 +547,8 @@ function FullscreenGrid({
   processingPath,
   loadedFilePaths,
   onClose,
-  onFileClick,
-  onFileDoubleClick,
+  onReplaceScene,
+  onToggleFile,
   selectedFileIndex,
   setSelectedFileIndex,
   folderPath,
@@ -562,8 +562,8 @@ function FullscreenGrid({
   processingPath: string | null
   loadedFilePaths: Set<string>
   onClose: () => void
-  onFileClick: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
-  onFileDoubleClick: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
+  onReplaceScene: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
+  onToggleFile: (file: { name: string; path: string; mtimeMs: number }, index: number) => void
   selectedFileIndex: number
   setSelectedFileIndex: (i: number) => void
   folderPath: string | null
@@ -655,7 +655,7 @@ function FullscreenGrid({
                   }
                   clickTimerRef.current = setTimeout(() => {
                     clickTimerRef.current = null
-                    onFileClick(file, i)
+                    onReplaceScene(file, i)
                   }, 250)
                 }}
                 onDoubleClick={() => {
@@ -663,7 +663,7 @@ function FullscreenGrid({
                     clearTimeout(clickTimerRef.current)
                     clickTimerRef.current = null
                   }
-                  onFileDoubleClick(file, i)
+                  onToggleFile(file, i)
                 }}
                 onMouseEnter={() => {
                   if (selectedFileIndex === -1 && !isCurrent) setSelectedFileIndex(i)
@@ -701,7 +701,8 @@ function FullscreenGrid({
   )
 }
 
-async function handleFileClick(file: { name: string; path: string; mtimeMs: number }, index: number) {
+/** Double-click (toggle): add this file to scene, or remove it if already loaded. */
+async function toggleFileInScene(file: { name: string; path: string; mtimeMs: number }, index: number) {
   const store = useModelStore.getState()
   store.setSelectedFileIndex(index)
 
@@ -784,7 +785,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
       // Toggle on
       useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, svgText, layers, naturalWidth, naturalHeight)
     } catch (e) {
-      console.error('[handleFileClick] SVG/DXF load exception:', e)
+      console.error('[toggleFileInScene] SVG/DXF load exception:', e)
       toast.error('Load failed: ' + String(e))
     }
     return
@@ -803,7 +804,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
   try {
     const result = await window.electronAPI.readFile(file.path)
     if (!result.success || !result.data) {
-      console.error('[handleFileClick] readFile failed:', result.error || 'unknown error')
+      console.error('[toggleFileInScene] readFile failed:', result.error || 'unknown error')
       toast.error('Load failed: ' + (result.error || 'unknown error'))
       return
     }
@@ -834,7 +835,7 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     }
 
     if (!format) {
-      console.error('[handleFileClick] unsupported format:', file.name)
+      console.error('[toggleFileInScene] unsupported format:', file.name)
       toast.error('Unsupported file format: ' + file.name)
       return
     }
@@ -882,14 +883,14 @@ async function handleFileClick(file: { name: string; path: string; mtimeMs: numb
     store.hideProgress()
   } catch (e) {
     store.hideProgress()
-    console.error('[handleFileClick] exception:', e)
+    console.error('[toggleFileInScene] exception:', e)
     useModelStore.getState().hideProgress()
     toast.error('Load failed: ' + String(e))
   }
 }
 
-/** Double-click a file thumbnail: replace the entire scene with this file. */
-async function handleFileDoubleClick(file: { name: string; path: string; mtimeMs: number }, index: number) {
+/** Single-click (replace): clear all loaded files and load this file as the sole model. */
+async function replaceSceneWithFile(file: { name: string; path: string; mtimeMs: number }, index: number) {
   const store = useModelStore.getState()
   store.setSelectedFileIndex(index)
 
@@ -897,6 +898,6 @@ async function handleFileDoubleClick(file: { name: string; path: string; mtimeMs
   store.reset()
   useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
 
-  // Now load and add the file — handleFileClick will find no existing file and add it fresh
-  await handleFileClick(file, index)
+  // Now load and add the file — toggleFileInScene will find no existing file and add it fresh
+  await toggleFileInScene(file, index)
 }
