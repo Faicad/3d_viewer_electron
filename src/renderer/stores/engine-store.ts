@@ -3,7 +3,6 @@ import * as THREE from 'three'
 import { HEATBED_DEFAULT_FORMATS } from '@/engine/heatbed'
 import type { PlateBedConfig } from '@/engine/heatbed'
 import type { FormatId } from '@/config/file-formats'
-import { isCadSkillGlb } from '@/config/file-formats'
 import type { ViewMode } from '@/lib/bambu-3mf/viewTransforms'
 
 const CUSTOM_ENV_KEY = 'faicad-custom-env'
@@ -100,7 +99,7 @@ interface EngineStore {
   setShowHeatbed: (v: boolean) => void
   /** Initialize showHeatbed default based on file format (and buffer for STEP→GLB detection).
    *  Respects explicit user/test toggles — does NOT override if _heatbedExplicitlySet is true. */
-  initShowHeatbed: (format: FormatId | null, buffer?: ArrayBuffer | null) => void
+  initShowHeatbed: (format: FormatId | null, _buffer?: ArrayBuffer | null) => void
   bedSize: number
   setBedSize: (v: number) => void
   /** rawToMM factor matching current model's sourceUnit (for grid step calc) */
@@ -210,15 +209,11 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   showHeatbed: false,
   _heatbedExplicitlySet: false,
   setShowHeatbed: (v) => set({ showHeatbed: v, _heatbedExplicitlySet: true }),
-  initShowHeatbed: (format, buffer) => {
+  initShowHeatbed: (format, _buffer) => {
     // Respect explicit user/test toggles — don't override
     if (get()._heatbedExplicitlySet) return
-    // Only STL / 3MF / AMF / STEP default to true.
-    // STEP→GLB: buffer format is 'glb' but the file was originally STEP —
-    // detect via STEP_T extension in the GLB binary.
     const defaultsToTrue = format
-      ? (HEATBED_DEFAULT_FORMATS.has(format) ||
-         (format === 'glb' && buffer != null && isCadSkillGlb(buffer)))
+      ? HEATBED_DEFAULT_FORMATS.has(format)
       : false
     set({ showHeatbed: defaultsToTrue })
   },

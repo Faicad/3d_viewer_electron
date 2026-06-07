@@ -133,6 +133,8 @@ export default function FileListPanel() {
     const dirResult = await window.electronAPI.readDirectory(result.filePath)
     if (dirResult.success && dirResult.files) {
       useModelStore.getState().setFolderFiles(result.filePath, dirResult.files)
+    } else if (dirResult.error) {
+      toast.error(t('fileList.folderReadError', { error: dirResult.error }))
     }
   }, [])
 

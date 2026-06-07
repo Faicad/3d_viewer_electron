@@ -173,5 +173,5 @@ export function autoSelectBedSize(modelBBox: THREE.Box3, rawToMM: number): numbe
 
 /** Format IDs that default to showHeatbed=true */
 export const HEATBED_DEFAULT_FORMATS: ReadonlySet<string> = new Set([
-  'stl', '3mf', 'amf', 'step',
+  '3mf',
 ])

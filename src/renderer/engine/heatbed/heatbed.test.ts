@@ -23,14 +23,14 @@ import { calcZoomToBoundingBoxFactor } from './cameraFit'
 // ---------------------------------------------------------------------------
 
 describe('HEATBED_DEFAULT_FORMATS', () => {
-  it('only includes stl, 3mf, amf, step — NOT glb/gltf', () => {
-    expect(HEATBED_DEFAULT_FORMATS.has('stl')).toBe(true)
+  it('only includes 3mf — NOT stl/amf/step/glb/gltf', () => {
     expect(HEATBED_DEFAULT_FORMATS.has('3mf')).toBe(true)
-    expect(HEATBED_DEFAULT_FORMATS.has('amf')).toBe(true)
-    expect(HEATBED_DEFAULT_FORMATS.has('step')).toBe(true)
+    expect(HEATBED_DEFAULT_FORMATS.has('stl')).toBe(false)
+    expect(HEATBED_DEFAULT_FORMATS.has('amf')).toBe(false)
+    expect(HEATBED_DEFAULT_FORMATS.has('step')).toBe(false)
     expect(HEATBED_DEFAULT_FORMATS.has('glb')).toBe(false)
     expect(HEATBED_DEFAULT_FORMATS.has('gltf')).toBe(false)
-    expect(HEATBED_DEFAULT_FORMATS.size).toBe(4)
+    expect(HEATBED_DEFAULT_FORMATS.size).toBe(1)
   })
 })
 

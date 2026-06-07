@@ -263,7 +263,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
     await assertNoErrors()
   })
 
-  test('STEP file defaults showHeatbed=true and Heatbed renders in scene', async () => {
+  test('STEP file defaults showHeatbed=false (only 3MF defaults to true)', async () => {
     test.skip(isLinuxCI(), 'Unstable on Linux CI / SwiftShader')
     const window = await electronApp.firstWindow()
     const { assertNoErrors } = trackErrors(window)
@@ -275,7 +275,6 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
       window.__modelStore?.getState().reset()
       const es = (window as any).__engineStore
       if (es) {
-        // Use setState to clear the flag (avoids triggering setShowHeatbed side effects)
         es.setState({ showHeatbed: false, _heatbedExplicitlySet: false })
       }
     })
@@ -289,7 +288,7 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
 
     await waitForLoadDone(window, 60000)
 
-    // Wait for model mesh (not just heatbed plane). Exclude heatbed/shadowFloor meshes.
+    // Wait for model mesh to finish loading
     await window.waitForFunction(() => {
       const dev = (window as any).__r3f_dev
       if (!dev?.scene) return false
@@ -303,96 +302,39 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
       return modelMeshCount > 0
     }, { timeout: 10000 })
 
-    // Wait for camera auto-fit animation to start then finish
-    await window.waitForFunction(() => {
-      const es = (window as any).__engineStore
-      return es?.getState().__animActive === true
-    }, { timeout: 10000 }).catch(() => {})
-    await window.waitForFunction(() => {
-      const es = (window as any).__engineStore
-      return es?.getState().__animActive === false
-    }, { timeout: 15000 }).catch(() => {})
-
-    const heatbedState = await window.evaluate(() => {
+    const state = await window.evaluate(() => {
       const es = window.__engineStore
       const dev = window.__r3f_dev as any
-
       let heatbedGroup: any = null
       let modelMeshCount = 0
-      let modelMeshVisible = 0
       dev.scene.traverse((obj: any) => {
         if (obj.name === 'Heatbed') {
-          heatbedGroup = {
-            visible: obj.visible,
-            childCount: obj.children.length,
-            children: obj.children.map((c: any) => ({
-              type: c.isMesh ? 'Mesh' : c.isLineSegments ? 'LineSegments' : c.type,
-              visible: c.visible,
-              vertexCount: c.geometry?.attributes?.position?.count ?? 0,
-            })),
-          }
+          heatbedGroup = { visible: obj.visible }
         }
         if (obj.isMesh) {
           const pn = obj.parent?.name || ''
           if (!['Heatbed', 'shadowFloor', 'topology-pick-overlay', 'point-pick-points'].includes(pn)) {
             modelMeshCount++
-            if (obj.visible) modelMeshVisible++
           }
         }
       })
-
-      const camPos = dev.camera ? [dev.camera.position.x, dev.camera.position.y, dev.camera.position.z] : null
-      const camDist = camPos ? Math.sqrt(camPos[0]**2 + camPos[1]**2 + camPos[2]**2) : null
-      const modelBbox = es?.getState().modelBbox || null
-
       return {
         showHeatbed: es?.getState().showHeatbed,
-        bedSize: es?.getState().bedSize,
         heatbedGroup,
         modelMeshCount,
-        modelMeshVisible,
-        camDist,
-        modelBbox,
       }
     })
 
-    console.log('[test] heatbed:', JSON.stringify(heatbedState))
+    console.log('[test] heatbed:', JSON.stringify(state))
 
-    // STEP files must default showHeatbed to true
-    expect(heatbedState.showHeatbed, 'showHeatbed must be true for STEP files').toBe(true)
+    // STEP files must default showHeatbed to false (only 3MF defaults to true)
+    expect(state.showHeatbed, 'showHeatbed must be false for STEP files').toBe(false)
 
-    // Heatbed group must exist in the scene
-    expect(heatbedState.heatbedGroup, 'Heatbed group must exist in scene').not.toBeNull()
-    expect(heatbedState.heatbedGroup.visible, 'Heatbed group must be visible').toBe(true)
-    expect(heatbedState.heatbedGroup.childCount, 'Heatbed must have 3 children (plane + grid + label)').toBe(3)
+    // Heatbed group should NOT be in the scene when showHeatbed=false
+    expect(state.heatbedGroup, 'Heatbed group must not be in scene').toBeNull()
 
-    // Verify plane mesh
-    const plane = heatbedState.heatbedGroup.children[0]
-    expect(plane.type, 'First child must be plane Mesh').toBe('Mesh')
-    expect(plane.visible, 'Plane must be visible').toBe(true)
-    expect(plane.vertexCount, 'Plane must have 4 vertices').toBe(4)
-
-    // Verify grid lines
-    const grid = heatbedState.heatbedGroup.children[1]
-    expect(grid.type, 'Second child must be grid LineSegments').toBe('LineSegments')
-    expect(grid.visible, 'Grid lines must be visible').toBe(true)
-    expect(grid.vertexCount, 'Grid lines must have vertices (>0)').toBeGreaterThan(0)
-
-    // Verify label sprite
-    const label = heatbedState.heatbedGroup.children[2]
-    expect(label.type, 'Third child must be label Mesh').toBe('Mesh')
-    expect(label.visible, 'Label must be visible').toBe(true)
-
-    // BUG CHECK: model meshes must exist AND be visible when heatbed is shown
-    expect(heatbedState.modelMeshCount, 'Model meshes must exist when showHeatbed=true').toBeGreaterThan(0)
-    expect(heatbedState.modelMeshVisible, 'Model meshes must be visible when showHeatbed=true').toBeGreaterThan(0)
-
-    // bedSize is in scene units. Camera distance should be > bed/2 and < bed*5.
-    const bs = heatbedState.bedSize
-    expect(heatbedState.camDist, `Camera too far: ${heatbedState.camDist} for bed ${bs}`)
-      .toBeLessThan(bs * 5)
-    expect(heatbedState.camDist, `Camera inside bed: ${heatbedState.camDist} for bed ${bs}`)
-      .toBeGreaterThan(bs * 0.5)
+    // Model meshes must still load successfully
+    expect(state.modelMeshCount, 'Model meshes must exist').toBeGreaterThan(0)
 
     await assertNoErrors()
   })
