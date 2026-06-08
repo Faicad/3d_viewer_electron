@@ -7,6 +7,9 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.ts'],
     exclude: ['src/test/**', 'src/**/__tests__/**'],
     setupFiles: ['fake-indexeddb/auto'],
+    onConsoleLog(_log, _type) {
+      return false
+    },
     teardownTimeout: 15000,
     pool: 'forks',
     maxForks: 1,

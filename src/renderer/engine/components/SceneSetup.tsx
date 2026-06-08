@@ -308,13 +308,11 @@ export default function SceneSetup() {
     heatbed.setVisible(store.showHeatbed)
     heatbed.setSelected(true)
     heatbed.setLabel(`${sizeMM} × ${sizeMM} mm`)
-    if (store.showHeatbed) {
-      scene.add(heatbed.group)
-    }
+    scene.add(heatbed.group)
     singleHeatbedRef.current = heatbed
 
     return () => {
-      if (heatbed.group.parent) scene.remove(heatbed.group)
+      scene.remove(heatbed.group)
       heatbed.dispose()
       singleHeatbedRef.current = null
     }
@@ -338,17 +336,10 @@ export default function SceneSetup() {
       for (const hb of heatbedsRef.current.values()) {
         hb.setVisible(state.showHeatbed)
       }
-      const hb = singleHeatbedRef.current
-      if (!hb) return
-      if (state.showHeatbed) {
-        scene.add(hb.group)
-      } else {
-        scene.remove(hb.group)
-      }
-      hb.setVisible(state.showHeatbed)
+      singleHeatbedRef.current?.setVisible(state.showHeatbed)
     })
     return unsub
-  }, [scene])
+  }, [])
 
   // Single-bed: react to bedSize / bedRawToMM changes
   useEffect(() => {
