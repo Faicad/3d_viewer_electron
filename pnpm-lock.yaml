@@ -12,8 +12,8 @@ importers:
         specifier: ^7.4.5
         version: 7.4.5
       '@needle-tools/three-animation-pointer':
-        specifier: ^1.0.7
-        version: 1.0.7(three@0.184.0)
+        specifier: ^1.1.0
+        version: 1.1.0(three@0.184.0)
       '@radix-ui/react-avatar':
         specifier: ^1.1.11
         version: 1.1.11(@types/react@18.3.30)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -668,8 +668,8 @@ packages:
     peerDependencies:
       three: '>= 0.159.0'
 
-  '@needle-tools/three-animation-pointer@1.0.7':
-    resolution: {integrity: sha512-lvNeW8+Dy3iqndaIdsswskQl35p4zL7jUOIhmQVsSSrj3CXZMpMvtLlXClf+Qnrf5v09Fyvf8Oe4Qgtp+yRSLQ==}
+  '@needle-tools/three-animation-pointer@1.1.0':
+    resolution: {integrity: sha512-/fhAMcObqbBPjYrDIhr24vhNMcqXJXMf0yGQlr6T5InPFsdEh+0439orKzDS1nbkN8tUZqL52Pw2iajETyjFNA==}
     peerDependencies:
       three: '>=0.165.0'
 
@@ -4858,7 +4858,7 @@ snapshots:
       promise-worker-transferable: 1.0.4
       three: 0.184.0
 
-  '@needle-tools/three-animation-pointer@1.0.7(three@0.184.0)':
+  '@needle-tools/three-animation-pointer@1.1.0(three@0.184.0)':
     dependencies:
       three: 0.184.0
 
