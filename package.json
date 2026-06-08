@@ -80,7 +80,7 @@
     "@vitest/ui": "^4.1.6",
     "electron": "^42.3.3",
     "electron-builder": "^26.0.0",
-    "electron-vite": "^3.0.0",
+    "electron-vite": "^5.0.0",
     "esbuild": "0.25.12",
     "eslint": "^10.4.0",
     "eslint-plugin-react-hooks": "^7.1.1",
