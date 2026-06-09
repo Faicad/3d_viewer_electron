@@ -3,6 +3,8 @@ import * as THREE from 'three'
 
 export interface AnimationState {
   clips: THREE.AnimationClip[]
+  /** The root object for AnimationMixer (original GLTF sceneRoot, not cloned meshes) */
+  sceneRoot: THREE.Object3D | null
   currentIndex: number
   currentTime: number
   isPlaying: boolean
@@ -13,7 +15,7 @@ export interface AnimationState {
   /** Ping-pong — when true, plays forward then backward */
   pingpong: boolean
 
-  setClips: (clips: THREE.AnimationClip[]) => void
+  setClips: (clips: THREE.AnimationClip[], sceneRoot?: THREE.Object3D | null) => void
   selectAnimation: (index: number) => void
   togglePlay: () => void
   setPlaying: (playing: boolean) => void
@@ -27,6 +29,7 @@ export interface AnimationState {
 
 export const useAnimationStore = create<AnimationState>((set, get) => ({
   clips: [],
+  sceneRoot: null,
   currentIndex: -1,
   currentTime: 0,
   isPlaying: false,
@@ -35,10 +38,11 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   repeat: true,
   pingpong: false,
 
-  setClips: (clips) => {
+  setClips: (clips, sceneRoot = null) => {
     const idx = clips.length > 0 ? 0 : -1
     set({
       clips,
+      sceneRoot,
       currentIndex: idx,
       currentTime: 0,
       duration: idx >= 0 ? clips[idx].duration : 0,
@@ -65,7 +69,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   toggleRepeat: () => set((s) => ({ repeat: !s.repeat })),
   togglePingpong: () => set((s) => ({ pingpong: !s.pingpong })),
   reset: () => set({
-    clips: [], currentIndex: -1, currentTime: 0,
+    clips: [], sceneRoot: null, currentIndex: -1, currentTime: 0,
     isPlaying: false, speed: 1, duration: 0,
     repeat: true, pingpong: false,
   }),

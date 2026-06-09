@@ -33,13 +33,12 @@ function computeCameraFit(root: THREE.Object3D): { position: [number, number, nu
 
 export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips, fileName }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const reset = useAnimationStore((s) => s.reset)
 
   useEffect(() => {
     if (open && clips.length > 0) {
-      useAnimationStore.getState().setClips(clips)
+      useAnimationStore.getState().setClips(clips, sceneRoot)
     }
-  }, [open, clips])
+  }, [open, clips, sceneRoot])
 
   // Esc to exit fullscreen
   useEffect(() => {
@@ -53,9 +52,11 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
 
   const handleClose = useCallback(() => {
     setIsFullscreen(false)
-    reset()
+    // Keep clips in store so the animation state persists after the dialog
+    // is closed.  Just pause playback.
+    useAnimationStore.getState().setPlaying(false)
     onClose()
-  }, [reset, onClose])
+  }, [onClose])
 
   const handleOpenChange = useCallback((isOpen: boolean) => {
     if (!isOpen) handleClose()
