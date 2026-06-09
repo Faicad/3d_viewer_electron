@@ -248,7 +248,7 @@ function annotateMaterialIndices(
   const gltfMeshes: Record<string, unknown>[] = Array.isArray(json.meshes) ? (json.meshes as Record<string, unknown>[]) : []
 
   for (const [obj, mapping] of associations) {
-    if (mapping.meshes === undefined || !(obj instanceof THREE.Mesh)) continue
+    if (mapping?.meshes === undefined || !(obj instanceof THREE.Mesh)) continue
     const meshIdx = mapping.meshes
     if (meshIdx >= gltfMeshes.length) continue
     const primitives: Record<string, unknown>[] = Array.isArray(gltfMeshes[meshIdx].primitives) ? (gltfMeshes[meshIdx].primitives as Record<string, unknown>[]) : []
@@ -276,7 +276,7 @@ export function buildTextureExtras(
   const associations = gltf.parser.associations
   if (associations) {
     for (const [tex, mapping] of associations) {
-      if (mapping.textures === undefined) continue
+      if (mapping?.textures === undefined) continue
       indexToTex.set(mapping.textures, tex)
     }
   }
