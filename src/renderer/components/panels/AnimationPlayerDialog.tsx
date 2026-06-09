@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { Maximize2, Minimize2, X } from 'lucide-react'
 import {
@@ -79,6 +80,7 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
       onCreated={({ camera }) => camera.lookAt(...cameraFit.target)}
     >
       <color attach="background" args={['#D9D9D9']} />
+      <OrbitControls makeDefault enableDamping />
       <ambientLight intensity={0.4} />
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
       <directionalLight position={[-3, 2, -3]} intensity={0.3} />
