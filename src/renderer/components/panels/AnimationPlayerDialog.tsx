@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Maximize2, Minimize2, X } from 'lucide-react'
@@ -32,7 +32,8 @@ function computeCameraFit(root: THREE.Object3D): { position: [number, number, nu
 }
 
 export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips, fileName }: Props) {
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const isMaximized = useAnimationStore((s) => s.isMaximized)
+  const setMaximized = useAnimationStore((s) => s.setMaximized)
 
   useEffect(() => {
     if (open && clips.length > 0) {
@@ -40,18 +41,17 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
     }
   }, [open, clips, sceneRoot])
 
-  // Esc to exit fullscreen
+  // Esc to exit maximized mode
   useEffect(() => {
-    if (!isFullscreen) return
+    if (!isMaximized) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFullscreen(false)
+      if (e.key === 'Escape') setMaximized(false)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [isFullscreen])
+  }, [isMaximized, setMaximized])
 
   const handleClose = useCallback(() => {
-    setIsFullscreen(false)
     // Keep clips in store so the animation state persists after the dialog
     // is closed.  Just pause playback.
     useAnimationStore.getState().setPlaying(false)
@@ -90,7 +90,7 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
 
   return (
     <>
-      <Dialog open={open && !isFullscreen} onOpenChange={handleOpenChange}>
+      <Dialog open={open && !isMaximized} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogTitle className="sr-only">
             {fileName ? `Animation: ${fileName}` : 'Animation Player'}
@@ -99,8 +99,8 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
           <div className="absolute right-12 top-4 z-10">
             <button
               className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
-              onClick={() => setIsFullscreen(true)}
-              title="全屏"
+              onClick={() => setMaximized(true)}
+              title="最大化"
             >
               <Maximize2 className="h-4 w-4" />
             </button>
@@ -115,14 +115,14 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
         </DialogContent>
       </Dialog>
 
-      {/* CSS fullscreen overlay — completely independent of Dialog, no style conflicts */}
-      {isFullscreen && (
+      {/* Maximized overlay — completely independent of Dialog, no style conflicts */}
+      {isMaximized && (
         <div className="fixed inset-0 z-[200] flex flex-col bg-[#D9D9D9]">
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
             <button
               className="rounded-sm p-1 bg-black/30 text-white opacity-70 hover:opacity-100"
-              onClick={() => setIsFullscreen(false)}
-              title="退出全屏 (Esc)"
+              onClick={() => setMaximized(false)}
+              title="退出最大化 (Esc)"
             >
               <Minimize2 className="h-4 w-4" />
             </button>

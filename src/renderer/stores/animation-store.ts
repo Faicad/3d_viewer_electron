@@ -14,6 +14,8 @@ export interface AnimationState {
   repeat: boolean
   /** Ping-pong — when true, plays forward then backward */
   pingpong: boolean
+  /** Maximized overlay mode (vs dialog window) */
+  isMaximized: boolean
 
   setClips: (clips: THREE.AnimationClip[], sceneRoot?: THREE.Object3D | null) => void
   selectAnimation: (index: number) => void
@@ -22,6 +24,7 @@ export interface AnimationState {
   setSpeed: (speed: number) => void
   seek: (time: number) => void
   setCurrentTime: (time: number) => void
+  setMaximized: (maximized: boolean) => void
   toggleRepeat: () => void
   togglePingpong: () => void
   reset: () => void
@@ -37,6 +40,7 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   duration: 0,
   repeat: true,
   pingpong: false,
+  isMaximized: true,
 
   setClips: (clips, sceneRoot = null) => {
     const idx = clips.length > 0 ? 0 : -1
@@ -66,11 +70,12 @@ export const useAnimationStore = create<AnimationState>((set, get) => ({
   setSpeed: (speed) => set({ speed }),
   seek: (time) => set({ currentTime: time, isPlaying: false }),
   setCurrentTime: (time) => set({ currentTime: time }),
+  setMaximized: (maximized) => set({ isMaximized: maximized }),
   toggleRepeat: () => set((s) => ({ repeat: !s.repeat })),
   togglePingpong: () => set((s) => ({ pingpong: !s.pingpong })),
   reset: () => set({
     clips: [], sceneRoot: null, currentIndex: -1, currentTime: 0,
     isPlaying: false, speed: 1, duration: 0,
-    repeat: true, pingpong: false,
+    repeat: true, pingpong: false, isMaximized: true,
   }),
 }))
