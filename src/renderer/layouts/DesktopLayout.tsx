@@ -57,6 +57,36 @@ function findFirstPartInTree(node: SceneTreeNode): { partId: string; partName: s
   return null
 }
 
+/** Collect all scoped part IDs under a scene tree node. */
+function collectPartKeys(node: SceneTreeNode): string[] {
+  if (node.meshIndex !== undefined) return [node.id]
+  if (!node.children) return []
+  return node.children.flatMap(collectPartKeys)
+}
+
+/** Find a node by id in the scene tree (recursive). */
+function findNodeInTree(nodes: SceneTreeNode[], id: string): SceneTreeNode | null {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    if (n.children) {
+      const found = findNodeInTree(n.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+/** Build a human-readable title for the material editor. */
+function materialEditorTitle(node: SceneTreeNode, sceneTree: SceneTreeNode[], loadedFiles: { id: string; fileName: string }[]): string {
+  const isFileNode = node.id.startsWith('file:')
+  if (isFileNode) return node.name
+
+  const fileId = findFileIdForNode(sceneTree, node.id)
+  const file = fileId ? loadedFiles.find(f => f.id === fileId) : null
+  const fileName = file?.fileName ?? fileId ?? ''
+  return `${node.name} / ${fileName}`
+}
+
 function SceneTreeItem({ node, depth, parentFileId, treePath, onPartContextMenu, onFileContextMenu, onNodeContextMenu }: {
   node: SceneTreeNode
   depth: number
@@ -228,10 +258,10 @@ export default function DesktopLayout() {
     // the override key via makeOverrideKey(fileId, rawPartId).
     const rawPartId = partId.startsWith(fileId + ':') ? partId.slice(fileId.length + 1) : partId
     const app = materialStore.getEffectiveAppearance(fileId, rawPartId)
-    const file = modelStore.loadedFiles.find(f => f.id === fileId)
-    const fileName = file?.fileName ?? fileId
-    const partName = partId
-    const title = `${partName} / ${fileName}`
+    const partNode = findNodeInTree(modelStore.sceneTree, partId)
+    const title = partNode
+      ? materialEditorTitle(partNode, modelStore.sceneTree, modelStore.loadedFiles)
+      : `${partId} / ${fileId}`
     e.preventDefault()
     e.stopPropagation()
     setCtxMenu({
@@ -242,9 +272,6 @@ export default function DesktopLayout() {
           label: 'Edit Material',
           icon: Palette,
           action: () => {
-            // The override key is already stored as "fileId:rawPartId" in the
-            // material store (set by ModelGroup when fileId is provided).
-            // Since partId is scoped in multi-file mode, use it directly.
             const key = partId
             materialStore.openMaterialEditor([key], title)
           },
@@ -297,6 +324,21 @@ export default function DesktopLayout() {
     e.preventDefault()
     e.stopPropagation()
     const items: ContextMenuItemDef[] = []
+    // File-level material editor — collects all part keys under this file
+    const fileNode = modelStore.sceneTree.find(n => n.id === `file:${fileId}`)
+    const allPartKeys = fileNode ? collectPartKeys(fileNode) : []
+    const title = fileNode
+      ? materialEditorTitle(fileNode, modelStore.sceneTree, modelStore.loadedFiles)
+      : (file?.fileName ?? fileId)
+    items.push({
+      label: '编辑材质',
+      icon: Palette,
+      action: () => {
+        useMaterialStore.getState().openMaterialEditor(allPartKeys, title)
+      },
+      disabled: allPartKeys.length === 0,
+    })
+    items.push({ type: 'separator' })
     if (isGlb) {
       items.push({
         label: t('glbExtension.menuTitle'),
@@ -375,10 +417,25 @@ export default function DesktopLayout() {
   const handleNodeContextMenu = useCallback((e: React.MouseEvent, nodeId: string, _fileId: string | undefined, nodePathStr: string) => {
     e.preventDefault()
     e.stopPropagation()
+    const modelStore = useModelStore.getState()
+    const groupNode = findNodeInTree(modelStore.sceneTree, nodeId)
+    const allPartKeys = groupNode ? collectPartKeys(groupNode) : []
+    const title = groupNode
+      ? materialEditorTitle(groupNode, modelStore.sceneTree, modelStore.loadedFiles)
+      : nodePathStr
     setCtxMenu({
       x: e.clientX,
       y: e.clientY,
       items: [
+        {
+          label: '编辑材质',
+          icon: Palette,
+          action: () => {
+            useMaterialStore.getState().openMaterialEditor(allPartKeys, title)
+          },
+          disabled: allPartKeys.length === 0,
+        },
+        { type: 'separator' },
         {
           label: 'Copy Node Path',
           icon: Copy,
@@ -410,24 +467,24 @@ export default function DesktopLayout() {
       return
     }
 
-    // Check if a part is currently selected
+    // Check if something is currently selected
     const selectedId = selectionStore.selectedReferenceIds[0]
     if (selectedId) {
-      const fileId = findFileIdForNode(modelStore.sceneTree, selectedId)
-      if (fileId) {
-        const file = modelStore.loadedFiles.find(f => f.id === fileId)
-        const fileName = file?.fileName ?? fileId
-        const title = `${selectedId} / ${fileName}`
-        // selectedId is already scoped (e.g. "uuid:o1") — use directly
-        materialStore.openMaterialEditor([selectedId], title)
-        return
+      // Try to find the selected node in the scene tree
+      const selectedNode = findNodeInTree(modelStore.sceneTree, selectedId)
+      if (selectedNode) {
+        const keys = collectPartKeys(selectedNode)
+        if (keys.length > 0) {
+          const title = materialEditorTitle(selectedNode, modelStore.sceneTree, modelStore.loadedFiles)
+          materialStore.openMaterialEditor(keys, title)
+          return
+        }
       }
     }
 
     // No valid selection — find first part of first file
     if (modelStore.loadedFiles.length > 0) {
       const firstFile = modelStore.loadedFiles[0]
-      // Find the file node in the combined tree
       const fileNode = modelStore.sceneTree.find(n => n.id === `file:${firstFile.id}`)
       if (fileNode) {
         const firstPart = findFirstPartInTree(fileNode)
@@ -461,32 +518,19 @@ export default function DesktopLayout() {
     if (!selectedId) return
 
     const modelStore = useModelStore.getState()
-    const fileId = findFileIdForNode(modelStore.sceneTree, selectedId)
-    if (!fileId) return
+    const selectedNode = findNodeInTree(modelStore.sceneTree, selectedId)
+    if (!selectedNode) return
 
-    // Find part name from the tree
-    let partName = selectedId
-    const findName = (nodes: SceneTreeNode[]): string | null => {
-      for (const n of nodes) {
-        if (n.id === selectedId) return n.name
-        if (n.children) {
-          const r = findName(n.children)
-          if (r) return r
-        }
-      }
-      return null
-    }
-    const found = findName(modelStore.sceneTree)
-    if (found) partName = found
+    const keys = collectPartKeys(selectedNode)
+    if (keys.length === 0) return
 
-    const file = modelStore.loadedFiles.find(f => f.id === fileId)
-    const fileName = file?.fileName ?? fileId
-    const title = `${partName} / ${fileName}`
-    // selectedId is already scoped (e.g. "uuid:o1") — use directly
-    const key = selectedId
-    const currentKeys = materialStore.editingOverrideKeys
-    if (currentKeys.length === 1 && currentKeys[0] === key) return // already editing this part
-    materialStore.openMaterialEditor([key], title)
+    // Build a stable key fingerprint by sorting the collected keys
+    const keyFingerprint = keys.slice().sort().join(',')
+    const currentFingerprint = materialStore.editingOverrideKeys.slice().sort().join(',')
+    if (currentFingerprint === keyFingerprint) return // already editing this set
+
+    const title = materialEditorTitle(selectedNode, modelStore.sceneTree, modelStore.loadedFiles)
+    materialStore.openMaterialEditor(keys, title)
   }, [selectedIds, materialEditorVisible])
 
   useEffect(() => {
