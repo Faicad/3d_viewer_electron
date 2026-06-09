@@ -767,7 +767,18 @@ export default function DesktopLayout() {
           flexShrink: isFullscreen && !headerVisible ? 1 : 0,
         }}
       >
-        <span className="font-semibold text-sm px-2 shrink-0">{t('app.name')}</span>
+        <a
+          href="https://www.faicad.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-0.1 shrink-0 px-2 hover:opacity-80 transition-opacity"
+        >
+          <img src="/logo.svg" alt="Faicad" className="h-8 w-8 object-contain" />
+          <span className="inline-flex items-baseline gap-0.5">
+            <span className="font-semibold text-base">Fai</span>
+            <span className="font-semibold text-sm">CAD</span>
+          </span>
+        </a>
         <Separator orientation="vertical" className="h-5 shrink-0" />
 
         {/* Open File */}
