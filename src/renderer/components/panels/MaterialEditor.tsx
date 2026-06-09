@@ -233,6 +233,9 @@ function MaterialEditorInner({
 
   // Apply changes to the store
   const apply = useCallback((updates: Partial<MaterialAppearance>) => {
+    // User modified material → exit A/B compare mode, reset restore button text
+    useMaterialStore.setState({ viewingOriginal: false })
+
     setDraft((prev) => {
       const next = { ...prev, ...updates }
 
@@ -265,6 +268,9 @@ function MaterialEditorInner({
 
     const preset = MATERIAL_PRESETS[presetId]
     if (!preset) return
+
+    // User selected a preset → exit A/B compare mode, reset restore button text
+    useMaterialStore.setState({ viewingOriginal: false })
 
     setDraft(preset)
 
