@@ -117,7 +117,7 @@ export default function AnimationPlayerDialog({ open, onClose, sceneRoot, clips,
 
       {/* Maximized overlay — completely independent of Dialog, no style conflicts */}
       {isMaximized && (
-        <div className="fixed inset-0 z-[200] flex flex-col bg-[#D9D9D9]">
+        <div role="dialog" className="fixed inset-0 z-[200] flex flex-col bg-[#D9D9D9]">
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
             <button
               className="rounded-sm p-1 bg-black/30 text-white opacity-70 hover:opacity-100"

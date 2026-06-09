@@ -3,7 +3,6 @@ import type { FormatId, FileGroup, UnitSystem, UpAxis } from '@/config/file-form
 import { getDefaultUpAxis } from '@/config/file-formats'
 import { clearAllResults, releaseResult, clearLoaded } from '@/engine/loaderResultCache'
 import { useHistoryStore } from '@/stores/history-store'
-import { useAnimationStore } from '@/stores/animation-store'
 import type { Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 import type { FileMeta } from '@/lib/file-meta'
 import * as THREE from 'three'
@@ -319,7 +318,7 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   openAnimDialog: (fileId) => set({ animDialogFileId: fileId }),
   closeAnimDialog: () => {
     set({ animDialogFileId: null })
-    useAnimationStore.getState().reset()
+    // Don't reset animation store — keep clips for API access after close
   },
 
   setIsConverting: (v) => set({ isConverting: v }),

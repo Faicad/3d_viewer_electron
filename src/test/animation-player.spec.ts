@@ -5,7 +5,7 @@
  * 1. Loading RobotExpressive.glb — animations extracted, button appears
  * 2. Clicking "播放动画" opens dialog with playing animation
  * 3. Scene tree context menu shows "播放动画" for animated files
- * 4. Closing dialog resets animation store
+ * 4. Closing dialog pauses but preserves clips in store
  */
 import { test, expect, _electron, ElectronApplication, Page } from '@playwright/test'
 import { readFileSync } from 'fs'
@@ -111,19 +111,21 @@ test.describe('Animation Player', () => {
     })
     expect(t1, 'Animation time should advance').toBeGreaterThan(t0)
 
-    // Close dialog
-    const dialog = page.locator('[role="dialog"]')
-    const xBtn = dialog.locator('button svg.lucide-x').first()
+    // Close dialog — click X button in maximized overlay
+    const overlay = page.locator('[role="dialog"].fixed.inset-0')
+    const xBtn = overlay.locator('button svg.lucide-x').first()
     await xBtn.click()
 
-    // After close, clips should be empty
-    await page.waitForFunction(() => {
-      return (window as any).__animationStore?.getState().clips?.length === 0
-    }, { timeout: 5000 })
+    // After close, clips persist in store (not reset — by design for API access)
+    const isPlayingAfterClose = await page.evaluate(() => {
+      return (window as any).__animationStore?.getState().isPlaying
+    })
+    expect(isPlayingAfterClose, 'Animation should be paused after close').toBe(false)
+
     const clipsAfterClose = await page.evaluate(() => {
       return (window as any).__animationStore?.getState().clips?.length ?? -1
     })
-    expect(clipsAfterClose, 'Animation store should be reset after close').toBe(0)
+    expect(clipsAfterClose, 'Clips should persist in store after close').toBeGreaterThan(0)
   })
 
   // FIXME: restart after LoopOnce completion needs investigation
@@ -168,9 +170,9 @@ test.describe('Animation Player', () => {
     expect(stillPlaying, 'Should be playing after restart').toBe(true)
     expect(t1, 'Time should advance after restart').toBeGreaterThan(0)
 
-    await page.locator('[role="dialog"]').locator('svg.lucide-x').first().click()
+    await page.locator('[role="dialog"].fixed.inset-0').locator('svg.lucide-x').first().click()
     await page.waitForFunction(() => {
-      return (window as any).__animationStore?.getState().clips?.length === 0
+      return (window as any).__animationStore?.getState().isPlaying === false
     }, { timeout: 5000 })
   })
 

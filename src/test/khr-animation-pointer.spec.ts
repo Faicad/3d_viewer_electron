@@ -147,13 +147,17 @@ test.describe('KHR_animation_pointer', () => {
       { timeout: 3000 },
     )
 
-    // Close dialog — use keyboard Escape
+    // Close dialog — Escape first un-maximizes to window mode, then click X
     await page.keyboard.press('Escape')
+    // Dialog is now in window mode (not maximized)
+    await page.locator('[role="dialog"]').waitFor({ state: 'visible', timeout: 5000 })
+    // Click X to close
+    await page.locator('[role="dialog"] button svg.lucide-x').first().click()
 
-    // Verify store is reset after close
-    await page.waitForFunction(
-      () => (window as any).__animationStore?.getState().clips?.length === 0,
-      { timeout: 5000 },
-    )
+    // Clips persist in store after close (not reset — by design for API access)
+    const clipsAfterClose = await page.evaluate(() => {
+      return (window as any).__animationStore?.getState().clips?.length ?? 0
+    })
+    expect(clipsAfterClose, 'Clips should persist in store after close').toBeGreaterThan(0)
   })
 })
