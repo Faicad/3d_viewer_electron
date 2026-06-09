@@ -279,6 +279,10 @@ test.describe('3D Viewer Electron - STEP Loading', () => {
       }
     })
 
+    // Reload page to ensure clean React tree with the drop overlay visible
+    await window.evaluate(() => { window.location.reload() })
+    await window.waitForLoadState('domcontentloaded')
+
     // Load STEP file via file input
     await window.locator('input[type="file"]').setInputFiles({
       name: 'keycap_v6.step',

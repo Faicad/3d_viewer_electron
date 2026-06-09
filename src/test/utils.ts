@@ -86,11 +86,12 @@ export function getElectronLaunchArgs(): string[] {
   if (process.platform === 'linux') {
     args.push('--ozone-platform-hint=x11')
   }
-  if (process.env.E2E_NO_GPU === '1') {
+  if (process.env.E2E_NO_GPU === '1' || (process.env.CI && process.platform === 'linux')) {
     // --use-angle=swiftshader forces software WebGL via ANGLE + Vulkan SwiftShader.
     // We use this instead of --disable-gpu because --disable-gpu kills the entire
     // GPU process, preventing WebGL context creation entirely.
     args.push('--use-angle=swiftshader')
+    args.push('--enable-unsafe-swiftshader')
   }
   return args
 }
