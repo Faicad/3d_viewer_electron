@@ -32,7 +32,7 @@
     "test:e2e": "playwright test",
     "test:e2e:docs": "pnpm run build:docs && pnpm --prefix pages test:e2e",
     "test:fast": "vitest run && vitest run --config vitest.jsdom.config.ts",
-    "ci": "bash scripts/ci.sh"
+    "ci": "node scripts/local-ci.mjs"
   },
   "dependencies": {
     "@linkiez/dxf-renew": "^7.4.5",
