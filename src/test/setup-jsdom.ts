@@ -22,7 +22,7 @@ if (typeof window !== 'undefined') {
     readFile: async () => ({ success: true, data: new ArrayBuffer(0) }),
     readFileAsBase64: async () => '',
     getFilePath: (file: File) => (file as unknown as { path?: string }).path ?? '',
-    getAppVersion: async () => '1.0.0',
+    getAppVersion: async () => '1.0.0 (test)',
     openExternal: async () => {},
     openFileDialog: async () => ({ success: true, filePaths: [] }),
     toggleFullscreen: async () => true,
