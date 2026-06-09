@@ -2,6 +2,135 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.3.0...v1.4.0) (2026-06-09)
+
+
+### Features
+
+* add .model file format support for standalone 3MF model files ([0b53ce4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0b53ce4dae9866d6ff72b18f25503a8b76efe6d6))
+* add '从场景树中移除' context menu item to all scene tree nodes ([4d14002](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4d14002d8d973b358b9a1c493a33dd14e128ac83))
+* add 'open containing folder' to scene tree context menu, remove danger red from 'remove' items ([01722c2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/01722c2e62e6d8eff8c404118025e2dcd88fedb2))
+* add Bambu Lab 3MF metadata integration ([f65acb8](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f65acb8326b8b522ee00d7345ca547355ee3176e))
+* add default colors to toolbar icons ([11a923e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/11a923e158e4535bf9dbb78c904083533f3b5e8d))
+* add file loading progress bar and CI improvements ([d2c486c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d2c486c2afee21ce9d47187557f4855cbcb186df))
+* add folder-switch confirmation for drag-and-drop loading ([b3a2fb5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b3a2fb5a9dd4bf5a3c36071ce0357cb4b7263062))
+* add orbit controls to animation window (rotate/zoom/pan) ([6ff4fdf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6ff4fdfe7e710bb037e9ef010343e372a64657af))
+* add Print/Assembly/Import view switching for Bambu 3MF ([df4e7cd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/df4e7cd1d32b18fc62e505fac3aff60bf1893013))
+* add programmatic heatbed with OrcaSlicer-compatible camera ([d1ef0e9](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d1ef0e91812bcb036dd4c5841ae8779d25f172b1))
+* add SECURITY.md, custom CodeQL workflow, and Dependabot config ([60e5f8c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/60e5f8c7ee483c844993b6d022fd6653e2bfcec9))
+* add source unit detection for all file formats ([294c73b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/294c73b9546ab01cf8019c23a63c151dd9907e39))
+* add startup-time benchmark suite ([b90fdad](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b90fdadbef578548aa6300648ba3406f847c4f79))
+* auto-switch 2D/3D view when loading history files of opposite type ([5d42dc6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/5d42dc61101b5f99c5b21f0c30b42a8468dd0b96))
+* clickable folder path with icon to switch directories in file list panel ([7e89ec2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7e89ec2f6bb56f664afd87d74405f087e4b42fd0))
+* convert ModelInfoPanel to floating draggable popup ([4abe7ae](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4abe7aea6512cc972152f4850bf816daf66ee728))
+* default non-printing models to Y-up, fix thumbnail colors ([fb12d68](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fb12d68dfcb798f4cd011242f23de237a3329c88)), closes [#4A90D9](https://github.com/Faicad/3d_viewer_electron/issues/4A90D9)
+* double-click thumbnail replaces scene instead of adding ([aa5ab94](https://github.com/YOUR_ORG/3d_viewer_electron/commits/aa5ab9466fc09037782eb050d55078fcb394c105))
+* enable parallel Playwright test execution with --workers=4 ([095e737](https://github.com/YOUR_ORG/3d_viewer_electron/commits/095e737c9be5b6579bbaef9233b34b78285c09f3))
+* enhance thumbnail loading indicator — pulsing ring + filename in card ([2d77b93](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2d77b933d8b0b7e67c3a5d0fd800fa5e2a64ceb4))
+* full-screen thumbnail grid — maximize button + ESC/Enter to exit ([df86277](https://github.com/YOUR_ORG/3d_viewer_electron/commits/df862774b5738db80fea2b9f4de6a8de82ea339c))
+* make webSecurity conditional — disabled in dev, enabled in production ([767d2a8](https://github.com/YOUR_ORG/3d_viewer_electron/commits/767d2a8e44dc8f6029632d5b32e49de91bb3dd1a))
+* multi-plate heatbed support for Bambu 3MF files ([932ef60](https://github.com/YOUR_ORG/3d_viewer_electron/commits/932ef600f50f9b12e7002591eb525558cc06106a))
+* only 3MF format defaults to showing heatbed ([9fdcfe6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9fdcfe6227acec68637ea79e322a5637a8de1ad1))
+* parse Bambu 3MF plate dimensions from project_settings.config ([3f3f3f0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3f3f3f00dba9114830b8813221700ddc93162059))
+* per-file timeout in thumbnail queue (30s, 3 retries) ([9ea097d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9ea097dba764ee94b15947e0acaa291cf870b27d))
+* preserve multi-object hierarchy in .model format scene tree ([add8f09](https://github.com/YOUR_ORG/3d_viewer_electron/commits/add8f0992c7033d3b9145c87e723aeb16d77662c))
+* redesign ModelInfoPanel into three sections (selected part, file info, format metadata) ([b2fe03c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b2fe03cae650cd631088d9c4f898ea9ce75a2733))
+* register hdr/exr as OS file associations for environment maps ([87b6fc5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/87b6fc534d09c314dc69d044cd865196a92fd121))
+* reorganize toolbar, add colors to right icons, add close button to drop overlay ([1668699](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1668699c9acff4040cd529d2160b60d182f30c02))
+* show sort buttons + progress in fullscreen thumbnail grid header ([55e4f88](https://github.com/YOUR_ORG/3d_viewer_electron/commits/55e4f88f9b9890419dbe7fb4467a5a5c8a0785b0))
+* show thumbnail queue progress and current file in file list header ([e8a212b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e8a212b346c6b0a058c830be3a05e157f3bf593b))
+* skip STEP background pre-cache when preview is disabled ([95ada78](https://github.com/YOUR_ORG/3d_viewer_electron/commits/95ada78cda5d06d128046d9587587844f3451756))
+* support Ctrl/Cmd+click for multi-select (like Shift+click) ([f925082](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f92508288a07974968cea5fcc42d6cef301ca4ff))
+
+
+### Bug Fixes
+
+* .model files render white instead of default light blue ([2228fd7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2228fd71c8c5d5b0994bd9ce16ab9f7fb62eb153)), closes [#4A90D9](https://github.com/Faicad/3d_viewer_electron/issues/4A90D9)
+* 左右两侧面板的 border-r 和 border-l 类上 — 它们渲染了一条 1px 的灰色线条,难看 ([db05989](https://github.com/YOUR_ORG/3d_viewer_electron/commits/db059896a0d59683ac249af6488f999673e9361c))
+* add collectPartKeys and findNodeInTree helpers for multi-part selection ([d803ba4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d803ba4462abf8682e7b9753baa85fb65f57a019))
+* add explicit permissions block to CI workflow ([ab6d173](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ab6d17303f0b655a4c6e3abb327b954caa67dc51))
+* allow ModelGroup to re-process meshes on viewMode change ([c4e95fe](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c4e95fe850378677f11c869a514684a26a86790b))
+* apply default material to STL/model files and meshes without material ([f32ecf3](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f32ecf3ba3c9903fa4ba92dc2c1d93769bbfd66f)), closes [#9BA6](https://github.com/Faicad/3d_viewer_electron/issues/9BA6)
+* apply visibilityMap to merged-geometry render path so scene-tree hide/show works for STL/PLY/OBJ/etc. ([ddb0122](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ddb01222466dd214eeafd8d0c3073c08b04d8533))
+* auto-publish GitHub Releases draft after CI build ([ab23ba8](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ab23ba8aad2b6d24d0f0460c3882618e6fbdc10b))
+* camera bottom-up view for Y-up GLB and X-axis not horizontal ([06f8df0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/06f8df0ca9b49f545b47d9379007e6909bd88bc7))
+* centralize Electron launch args and fix all CI test failures ([fe658d3](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fe658d39b7cf9b6549083848ee712ea3308e002b))
+* clean up animation dead code and fix store issues ([82f2163](https://github.com/YOUR_ORG/3d_viewer_electron/commits/82f2163f7f1d280708ada00f0ef9512ae0a677ba))
+* close context menu on canvas click via capture-phase pointerdown ([03650bc](https://github.com/YOUR_ORG/3d_viewer_electron/commits/03650bc0ab07b5c2f2f7e6473e12c92cebcc84de))
+* closeAnimDialog no longer resets animation store, fix Playwright tests ([5cce6e7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/5cce6e79d77615695efc433847a3e2d40cd491de))
+* consolidate default material constants and apply to thumbnails ([b9d6862](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b9d686220a0f58688d2e4cb125ab09220aab3ac5)), closes [#9BA6](https://github.com/Faicad/3d_viewer_electron/issues/9BA6) [#4A90D9](https://github.com/Faicad/3d_viewer_electron/issues/4A90D9)
+* decode double-encoded nbsp in model description as space ([58bd321](https://github.com/YOUR_ORG/3d_viewer_electron/commits/58bd3216b21088f4a8931fff93b96569503ff64d))
+* disabled toolbar icons show gray tooltip with no hover background ([55b6582](https://github.com/YOUR_ORG/3d_viewer_electron/commits/55b658216922f7b37bc350042a46b677e05d3687))
+* eliminate thumbnail flashing with 3-layer dedup defence ([1cd5f65](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1cd5f65366d9defa32e620fc633750c014b24587))
+* enable heatbed toggle without model, always auto-size bed on load ([ee12aa6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ee12aa6f24cc870bf55dca18c3be87107c1563bb))
+* enable SwiftShader on Linux CI, fix flaky E2E test ([4c27d16](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4c27d16fad06c3ac1a9f72b7e70cd45c01bf84bb))
+* GLTF thumbnails fail with external references, VersionError, silent errors ([fec1dcf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fec1dcf638d3ae791fe1cfb64dbaef5dc3cc953a))
+* guard against undefined mapping in GLTFLoader associations iteration ([d0d94fe](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d0d94fe3259f4b5a80990edfe8f9ede1c27cd682))
+* increase thumbnail lighting brightness ([4556f2f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4556f2f673ea4d2601e8dd35fdcd988af81c5871))
+* inject viewBox BEFORE first load, not just on error retry ([ad1170d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ad1170dcb72084a7cc890a0463d4dec7672a77bc))
+* install pages dependencies before building docs in CI ([0d5c66a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0d5c66af6dba3a25e747d1c1981609db236dffd3))
+* isCadSkillGlb read JSON chunk length from GLB header instead of 2048-byte limit ([a55495b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a55495bb0d5e0b7543363c7e79ddd4d68981dd40))
+* move maximize button to left of preview toggle ([bc53acc](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bc53acc5d30da21cd2393507c6f3ec9a53664ad0))
+* move pnpm config to pnpm-workspace.yaml to eliminate v10 warning ([7cb38e6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7cb38e6dda15ec7b8409b93e72eb19cb61cea499))
+* move studio-env skip to before file input; skip SwiftShader test on macOS CI ([38b5513](https://github.com/YOUR_ORG/3d_viewer_electron/commits/38b55139a780836bb8514096c2c0bb9ecbd79980))
+* normalize STL geometry to mm via heuristic, scope partId with fileId ([086fa5c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/086fa5c69765868a21e6bec5827833c86d7fc329))
+* per-file sourceUnit for STL heuristic, remove global sourceUnit ([0551317](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0551317b7e266f8a0993830631cc04ba68fcfd6d))
+* per-plate centering only for print view, not assembly/import ([394b30d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/394b30d2a953aa7c8e17273729defe0bda34c65f))
+* prevent CI OOM by limiting vitest forks and heap size; fix Windows Playwright spawn ([d66fb6d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d66fb6d258c7f6e8b11af6122e09f17a813ddfdc))
+* properly decode multi-level HTML entities in model description ([fa30631](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fa306311d9a536d73c8f6b38769d8815792e2b62))
+* reduce PMREM render size on software GPU to avoid 28s startup stall ([55b9daa](https://github.com/YOUR_ORG/3d_viewer_electron/commits/55b9daab1ed0fd01c850b20a1f1f8c6463b6e666))
+* reject empty .model files with toast error instead of adding to scene tree ([a07a243](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a07a2432e6025e024d9bc53197eff12f9bf30897))
+* relax shadow darkness assertion for macOS Metal tone-mapping ([f5e73b0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f5e73b0c577fd89d7fe7f18a6c63b78caf47a00d))
+* remove MM_TO_RAW from Heatbed, fix sourceUnit for GLB STEP_T ([99bab9c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/99bab9cab938fe77b206c3e1ab8fc97fd5357b21))
+* remove Node.js crypto module fallback in renderer sha256 ([9633843](https://github.com/YOUR_ORG/3d_viewer_electron/commits/963384381fab65000a0c58d7a27fcb3b69ced2bc))
+* remove redundant codeql workflow, default setup already enabled ([9bb013c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9bb013cf1da41aa16f2fcea406e36e82a61b5226))
+* remove warehouse hdr ([f782b5b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f782b5b3b0ab542583d2d2ffa4ecf9af75fb3f6a))
+* rename fullscreen to maximized, move to animation store ([a270cdf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a270cdf5e04cc958545c3a3ca9a4fb4dd2e20aa1))
+* replace text X with lucide X icon for fullscreen close button ([1e51f97](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1e51f97dc0c980bb9ce7c140407d3625542da6fb))
+* reset viewingOriginal when user modifies material after restore ([0aa408a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0aa408a0865b72e985bca0601793ecacb2e4eef7))
+* resolve Electron binary install and tailwindcss resolution errors ([ed1f30d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ed1f30d12dd097312d3247c6a5249424f9493aa9))
+* resolve ModelInfoPanel empty state and Bambu 3MF thumbnail integration ([962de23](https://github.com/YOUR_ORG/3d_viewer_electron/commits/962de234b7cd45952bd330396f9b19ce1f820ff0))
+* restore missing keyboard event listener registration in DesktopLayout ([961e448](https://github.com/YOUR_ORG/3d_viewer_electron/commits/961e448296c46a2bde49034927aadd892ddc9c5a))
+* restore ModelGroup faceIds debug log and fix cache test via window.__stepMemCacheHas ([12d5c2f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/12d5c2f435df998e372b8142f37107ab3daa8683))
+* run vitest in single fork to avoid RPC teardown race on macOS CI ([a0a905f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a0a905fde4d8a4fe833865e4b0d224b7a5333dfb))
+* scope partId with fileId to prevent cross-file selection collision ([21fe7da](https://github.com/YOUR_ORG/3d_viewer_electron/commits/21fe7daf330c91e18a52bfbb34da10d3326b4fb1))
+* show live Playwright progress with --reporter=list + JSON file ([865b0f1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/865b0f11c27e2cb6b8623adcd6ad7dbe2e26236f))
+* simplify getDefaultUpAxis — use fileName for STEP→GLB Z-up detection instead of buffer scan ([fd355e8](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fd355e8ee91e8165f97b77f5abfb76724dde1099))
+* software-gpu.spec.ts reads __isSoftwareGpu from page context instead of static env ([ffd48bc](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ffd48bc5b5fc260c2f0363d60c45e041067d461f))
+* STL single-merged-mesh not selectable by mouse click ([e05f8fd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e05f8fd69c0b44f4e4906ea1b935989a4790a415))
+* STL unit heuristic display — heatbed label and atomic bed state ([078758c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/078758cf7a4021269d672e1b5ef49e4182c72e92))
+* suppress vitest EnvironmentTeardownError in CI by checking JSON report for actual failures ([c8587ee](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c8587eeb6a4619551911c5b858064aaa0720091c))
+* SVG thumbnails render at 4:3 instead of square, with full SVG format compatibility ([a9f28e1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a9f28e1206e4180c21107e538b77526f45f3b8e6))
+* sync environment map, shadow floor, and lights with up-axis toggle ([11f869c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/11f869c962e2b0c5cceb23e103e0db43824cb1ea))
+* unify STEP format check with isStepFile(), cover both .step and .stp ([13a61d2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/13a61d23675bf329ddf4c26813cbac9e0c1c711a))
+* use 3MF embedded thumbnail with crop/scale to 200×150 ([fb6189d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fb6189d93dbf6b65a086ba16bbc67db47db0addf))
+* use i18n for empty model error toast with filename ([1909ef5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1909ef51a0380b65784ab20955f539c0ff1f2a02))
+* use Minimize2 icon (counterpart to Maximize2) for fullscreen close button ([5b21f55](https://github.com/YOUR_ORG/3d_viewer_electron/commits/5b21f550dc31b99350233f25b8bde051c6247fcc))
+* use vitest threads pool instead of forks to avoid RPC teardown race on macOS ([c4cdc7e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c4cdc7ef3607aea41faf079c76c6117e3e46b6e2))
+
+
+### Performance Improvements
+
+* lazy load non-core 3D format loaders via dynamic imports ([fae4607](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fae4607101f888d7464ffb07ca9ce45082b7c912))
+* make fflate import static to eliminate Vite warning ([8a37a2b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/8a37a2babf6485e27da0be6fb08625f0d5b37fb6))
+* per-format gap (50ms 2D / 200ms 3D) and timeout (3s SVG / 60s STEP / 15s other) ([9b55695](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9b556958094b8b13203a1e60ae08bce225edf5a1))
+
+
+### Documentation
+
+* add Toolbar (工具栏) documentation section with screenshots ([b7b5ede](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b7b5ede240d302ce4e6bcb7f3b5852a93e6750e3))
+* fix toolbar history description and add 18 language translations ([7098206](https://github.com/YOUR_ORG/3d_viewer_electron/commits/709820625ecaf94e19a31f63b0ac5f5bb69f8aef))
+* improve docs navigation, add missing translations, and add e2e tests ([c368e07](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c368e076af07c16ed7276a54d2e07f1fe4060243))
+
+
+### Code Refactoring
+
+* extract DEFAULT_CAM_POS constant to eliminate duplicate default camera position ([7d5c4b0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7d5c4b0c68cb3d2b4647da2f8777598c70b5a6b5))
+* rename thumbnail click handlers for clarity ([bfe5816](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bfe5816e237bc8029641d20667d1b617c72c2b5a))
+* replace faceIds console log dependency with window.__sceneHasFaceIds API ([c64ba5f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c64ba5f6f46071de4d860585fac478c21485b3bf))
+* separate vitepress docs into independent pages project ([d42d24f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d42d24fdd8c02d9f21e2a0e6330b7eeb26cc30ac))
+* unify two 'open file dialog' implementations into useFileLoader hook ([23ba3bd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/23ba3bd446d00fb879cc546e3805d97d1efbcf9d))
+
 ## [1.3.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.2.0...v1.3.0) (2026-06-01)
 
 
