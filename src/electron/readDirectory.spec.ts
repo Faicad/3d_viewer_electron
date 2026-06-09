@@ -124,8 +124,7 @@ describe('readDirectory with special character paths', () => {
     const result = readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
-    // join on Windows preserves backslashes
-    expect(result.files![0].path).toBe(`${subDir}\\part.stl`)
+    expect(result.files![0].path).toBe(join(subDir, 'part.stl'))
   })
 
   it('store comparison handles special character paths correctly', () => {
