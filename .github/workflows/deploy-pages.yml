@@ -36,7 +36,11 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install && pnpm --prefix pages install
+        run: pnpm install
+
+      - name: Install pages dependencies
+        working-directory: pages
+        run: pnpm install
 
       - name: Build documentation
         run: pnpm run build:docs
