@@ -56,6 +56,7 @@ export type FormatId =
   | 'dxf'
   | 'hdr'
   | 'exr'
+  | 'scad'
 
 export interface FileFormatEntry {
   id: FormatId
@@ -556,6 +557,20 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     defaultUnit: 'millimeter',
     excludeFromAll: true,
     color: 'text-purple-400',
+  },
+  {
+    id: 'scad',
+    label: 'OpenSCAD',
+    extensions: ['.scad'],
+    loaderModule: '', // special: converted via openscad-wasm
+    group: 'cad',
+    sampleFile: '',
+    textBased: true,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'mesh',
+    defaultUnit: 'millimeter',
+    color: 'text-yellow-500',
   },
 ]
 

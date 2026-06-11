@@ -16,8 +16,8 @@ import {
 } from './file-formats'
 
 describe('file-formats config', () => {
-  it('all 33 formats defined', () => {
-    expect(FILE_FORMATS.length).toBe(33)
+  it('all 34 formats defined', () => {
+    expect(FILE_FORMATS.length).toBe(34)
   })
 
   it('no duplicate format ids', () => {

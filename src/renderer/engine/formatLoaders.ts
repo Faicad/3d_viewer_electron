@@ -10,6 +10,7 @@ import { parseBambu3mf, type Bambu3mfMetadata } from '@/lib/bambu-3mf/bambu-3mf'
 import type { FileMeta } from '@/lib/file-meta'
 import { useModelStore } from '@/stores/model-store'
 import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
+import { scadToStl } from '@/lib/scad-converter'
 
 /** Parse ISO 10303-21 HEADER section from a STEP file buffer. */
 export function parseStepHeader(buffer: ArrayBuffer): FileMeta['step'] | undefined {
@@ -715,6 +716,13 @@ export async function loadFormat(
     case 'ifc': {
       console.warn('[formatLoaders] IFC requires web-ifc-three package — not yet installed')
       return { meshes: [], objects: [] }
+    }
+
+    // ---- OpenSCAD (CDN/local WASM) ----
+    case 'scad': {
+      const code = bufferToText(buffer)
+      const { stlBuffer } = await scadToStl(code)
+      return loadFormat(stlBuffer, 'stl')
     }
 
     default:
