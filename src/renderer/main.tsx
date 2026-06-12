@@ -6,6 +6,8 @@ import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useModelStore } from '@/stores/model-store'
 import { useAnimationStore } from '@/stores/animation-store'
+import { useEngineStore } from '@/stores/engine-store'
+import { collectSceneMeshes, meshesToStl } from '@/engine/exporters'
 import { useMaterialStore } from '@/stores/material-store'
 import { useToolStore } from '@/stores/tool-store'
 import { useSelectionStore } from '@/stores/selection-store'
@@ -20,6 +22,19 @@ import './index.css'
 
 // Suppress console.log/warn/debug/info in production
 initLogger()
+
+// Expose export helper for E2E round-trip tests
+window.__exportSceneToStlBase64 = async (): Promise<{ data: string; byteLength: number }> => {
+  const scene = useEngineStore.getState().scene
+  if (!scene) throw new Error('No scene available')
+  const meshes = collectSceneMeshes(scene)
+  if (meshes.length === 0) throw new Error('No exportable geometry')
+  const buffer = await meshesToStl(meshes)
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+  return { data: btoa(binary), byteLength: buffer.byteLength }
+}
 
 // Expose state for E2E test access
 window.__modelStore = useModelStore

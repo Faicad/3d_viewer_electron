@@ -25,6 +25,8 @@
   "toolbar.animationPlayer": "Play Animation",
   "toolbar.leftPanel": "Toggle Left Panel",
   "toolbar.rightPanel": "Toggle Right Panel",
+  "toolbar.export": "Export",
+  "toolbar.exportDisabled": "No exportable model",
   "cache.title": "Cache Manager",
   "cache.memory": "Memory Cache",
   "cache.disk": "Disk Cache",

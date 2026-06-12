@@ -25,6 +25,8 @@ declare global {
     __isSoftwareGpu?: boolean
     /** GPU detection cache (see src/test/gpu-utils.ts). */
     __gpuInfo?: { detected: boolean; isSoftware: boolean; vendor?: string; renderer?: string; reason?: string }
+    /** E2E export helper: exports all scene meshes as binary STL, returns base64. */
+    __exportSceneToStlBase64: () => Promise<{ data: string; byteLength: number }>
   }
 }
 

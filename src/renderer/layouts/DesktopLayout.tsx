@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -39,6 +39,8 @@ import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { useMaterialStore } from '@/stores/material-store'
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
+
+import { hasExportableModel, isPureScad, exportSceneToGlb, exportFileToStl, exportFileToGlb, isFormatExportable } from '@/engine/exporters'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
 import { findFileIdForNode, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
@@ -234,6 +236,7 @@ export default function DesktopLayout() {
   const sceneTree = useModelStore((s) => s.sceneTree)
   const hasModel = useModelStore((s) => s.modelBuffer !== null || s.loadedFiles.length > 0)
   const hasAnimations = useModelStore((s) => s.loadedFiles.some((f) => f.animations?.length))
+  const hasExportable = useModelStore((s) => hasExportableModel(s.loadedFiles))
   const folderFilesLen = useModelStore((s) => s.folderFiles.length)
   const selectedFileIndex = useModelStore((s) => s.selectedFileIndex)
   const setActiveUpAxis = useModelStore((s) => s.setActiveUpAxis)
@@ -312,6 +315,47 @@ export default function DesktopLayout() {
     })
   }, [])
 
+  // ---- Export handlers ----
+
+  const handleToolbarExport = useCallback(async () => {
+    const files = useModelStore.getState().loadedFiles
+    const scene = useEngineStore.getState().scene
+    if (!scene) return
+
+    try {
+      if (isPureScad(files)) {
+        const scadFile = files.find(f => f.format === 'scad')!
+        await exportFileToStl(scene, scadFile)
+      } else {
+        await exportSceneToGlb(scene)
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Export failed')
+    }
+  }, [])
+
+  const handleFileExportStl = useCallback(async (fileId: string) => {
+    const file = useModelStore.getState().loadedFiles.find(f => f.id === fileId)
+    const scene = useEngineStore.getState().scene
+    if (!file || !scene) return
+    try {
+      await exportFileToStl(scene, file)
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Export STL failed')
+    }
+  }, [])
+
+  const handleFileExportGlb = useCallback(async (fileId: string) => {
+    const file = useModelStore.getState().loadedFiles.find(f => f.id === fileId)
+    const scene = useEngineStore.getState().scene
+    if (!file || !scene) return
+    try {
+      await exportFileToGlb(scene, file)
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Export GLB failed')
+    }
+  }, [])
+
   // File-level context menu — show format-specific items
   const handleFileContextMenu = useCallback((e: React.MouseEvent, fileId: string) => {
     const modelStore = useModelStore.getState()
@@ -383,6 +427,20 @@ export default function DesktopLayout() {
           })
         }
       }
+    }
+    // Export — only for exportable formats
+    if (file && isFormatExportable(file.format)) {
+      items.push({ type: 'separator' })
+      items.push({
+        label: '导出 STL',
+        icon: Download,
+        action: () => { handleFileExportStl(fileId) },
+      })
+      items.push({
+        label: '导出 GLB',
+        icon: Download,
+        action: () => { handleFileExportGlb(fileId) },
+      })
     }
     items.push({
       label: '打开所在文件夹',
@@ -957,6 +1015,25 @@ export default function DesktopLayout() {
           <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
         </Tooltip>
         </>)}
+
+        <Separator orientation="vertical" className="h-5 shrink-0" />
+
+        {/* Export */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!hasExportable}
+              onClick={handleToolbarExport}
+              aria-label={t('toolbar.export')}
+              data-testid="toolbar-export"
+            >
+              <Download className="toolbar-icon h-4 w-4 text-green-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className={cn(!hasExportable && "bg-muted text-muted-foreground")}>{hasExportable ? t('toolbar.export') : t('toolbar.exportDisabled')}</TooltipContent>
+        </Tooltip>
 
         <div className="flex-1" />
 
