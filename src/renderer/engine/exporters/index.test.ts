@@ -107,31 +107,30 @@ describe('collectSceneMeshes', () => {
     expect(collectSceneMeshes(scene)).toHaveLength(0)
   })
 
-  it('excludes meshes made invisible by parent group (heatbed regression)', () => {
-    // THE BUG: Heatbed.setVisible(false) only set group.visible=false,
-    // leaving child mesh.visible=true. Object3D.traverse() visits all
-    // descendants regardless of ancestor visibility, so collectSceneMeshes
-    // picked up heatbed plane meshes and included them in exports.
-    //
-    // THE FIX: Heatbed.setVisible() now propagates visible=false to all
-    // descendants via group.traverse(). This test simulates the fixed
-    // behavior — child meshes carry visible=false.
+  it('excludes heatbed meshes via userData.isHeatbed flag', () => {
     const scene = new THREE.Scene()
-
-    // Model mesh — what we actually want to export
     const modelMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
     modelMesh.userData.partId = 'generated-model:part1'
     scene.add(modelMesh)
 
-    // Simulate fixed Heatbed: group + children all have visible=false
-    const heatbedGroup = new THREE.Group()
-    heatbedGroup.name = 'Heatbed'
     const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(300, 300))
-    heatbedGroup.add(planeMesh)
-    // Propagate visibility to all descendants (what fixed setVisible does)
-    heatbedGroup.visible = false
-    heatbedGroup.traverse((child) => { child.visible = false })
-    scene.add(heatbedGroup)
+    planeMesh.userData.isHeatbed = true
+    scene.add(planeMesh)
+
+    const collected = collectSceneMeshes(scene)
+    expect(collected).toHaveLength(1)
+    expect(collected[0]).toBe(modelMesh)
+  })
+
+  it('excludes shadow floor meshes via userData.isShadowFloor flag', () => {
+    const scene = new THREE.Scene()
+    const modelMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
+    modelMesh.userData.partId = 'file-1:part1'
+    scene.add(modelMesh)
+
+    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(60, 60))
+    shadowPlane.userData.isShadowFloor = true
+    scene.add(shadowPlane)
 
     const collected = collectSceneMeshes(scene)
     expect(collected).toHaveLength(1)

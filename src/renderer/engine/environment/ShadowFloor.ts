@@ -64,6 +64,7 @@ export class ShadowFloor {
 
     const geo = new THREE.PlaneGeometry(size, size)
     const plane = new THREE.Mesh(geo, this._material)
+    plane.userData.isShadowFloor = true
     plane.receiveShadow = true
 
     if (upAxis === 'z') {
@@ -90,6 +91,7 @@ export class ShadowFloor {
   /** Show or hide the shadow floor. */
   setEnabled(enabled: boolean): void {
     this._group.visible = enabled
+    if (this._plane) this._plane.visible = enabled
   }
 
   /** Adjust shadow opacity (0 = invisible, 1 = fully opaque dark). */

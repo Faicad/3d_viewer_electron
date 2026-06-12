@@ -80,7 +80,9 @@ export function downloadArrayBuffer(buffer: ArrayBuffer, filename: string): void
 export function collectSceneMeshes(scene: THREE.Scene): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = []
   scene.traverse((obj) => {
-    if (obj instanceof THREE.Mesh && obj.visible) meshes.push(obj)
+    if (obj instanceof THREE.Mesh && obj.visible && !obj.userData.isHeatbed && !obj.userData.isShadowFloor) {
+      meshes.push(obj)
+    }
   })
   return meshes
 }
@@ -93,7 +95,7 @@ export function collectFileMeshes(scene: THREE.Scene, fileId: string): THREE.Mes
   const prefix = fileId + ':'
   const meshes: THREE.Mesh[] = []
   scene.traverse((obj) => {
-    if (obj instanceof THREE.Mesh && obj.visible) {
+    if (obj instanceof THREE.Mesh && obj.visible && !obj.userData.isHeatbed && !obj.userData.isShadowFloor) {
       const partId = obj.userData?.partId as string | undefined
       if (partId && partId.startsWith(prefix)) {
         meshes.push(obj)

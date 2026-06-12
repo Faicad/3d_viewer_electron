@@ -250,24 +250,19 @@ describe('Heatbed', () => {
     expect(heatbed.group.visible).toBe(false)
   })
 
-  it('setVisible(false) propagates visible=false to all child meshes', () => {
-    // THE BUG: setVisible(false) only set group.visible=false,
-    // leaving child mesh.visible=true. Object3D.traverse() skips
-    // nothing, so collectSceneMeshes picked up the heatbed plane.
-    //
-    // THE FIX: propagate visible to all descendants via traverse.
+  it('setVisible(false) propagates visible=false to plane and grid lines', () => {
     heatbed.setVisible(false)
-    heatbed.group.traverse((child) => {
+    for (const child of heatbed.group.children) {
       expect(child.visible).toBe(false)
-    })
+    }
   })
 
   it('setVisible(false→true) propagates visible=true back to all children', () => {
     heatbed.setVisible(false)
     heatbed.setVisible(true)
-    heatbed.group.traverse((child) => {
+    for (const child of heatbed.group.children) {
       expect(child.visible).toBe(true)
-    })
+    }
   })
 
   it('setVisible(true) shows group', () => {
@@ -448,6 +443,15 @@ describe('Heatbed', () => {
   // -------------------------------------------------------------------------
 
   const itDOM = typeof document !== 'undefined' ? it : it.skip
+
+  itDOM('new label mesh created after setVisible(false) gets visible=false', () => {
+    // THE BUG: setLabel was called after setVisible(false), so the new
+    // label mesh had default visible=true and leaked into exports.
+    heatbed.setVisible(false)
+    heatbed.setLabel('200 × 200 mm')
+    const label = heatbed.group.children[2] as THREE.Mesh
+    expect(label.visible).toBe(false)
+  })
 
   itDOM('setLabel creates a flat label mesh at bottom-right', () => {
     heatbed.setLabel('200 × 200 mm')

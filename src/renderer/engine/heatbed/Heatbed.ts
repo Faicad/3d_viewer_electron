@@ -182,6 +182,7 @@ export class Heatbed {
       transparent: true,
     })
     this.planeMesh = new THREE.Mesh(geometry, this.planeMaterial)
+    this.planeMesh.userData.isHeatbed = true
     this.planeMesh.position.z = GROUND_Z
     this.planeMesh.renderOrder = -1
     this.group.add(this.planeMesh)
@@ -235,11 +236,9 @@ export class Heatbed {
   setVisible(v: boolean): void {
     this._visible = v
     this.group.visible = v
-    // Propagate to all descendants so that scene traversal checks
-    // (e.g. collectSceneMeshes) correctly skip children when hidden.
-    this.group.traverse((child) => {
-      child.visible = v
-    })
+    this.planeMesh.visible = v
+    this.gridLines.visible = v
+    if (this.labelMesh) this.labelMesh.visible = v
   }
 
   get selected(): boolean {
@@ -310,6 +309,8 @@ export class Heatbed {
     // (the quad lies flat on the plate surface)
 
     this.group.add(mesh)
+    mesh.userData.isHeatbed = true
+    mesh.visible = this._visible
     this.labelMesh = mesh
   }
 
