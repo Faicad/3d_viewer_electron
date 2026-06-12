@@ -74,13 +74,13 @@ export function downloadArrayBuffer(buffer: ArrayBuffer, filename: string): void
 // ---- mesh collection from R3F scene ----
 
 /**
- * Collect all exportable meshes from the current R3F scene.
- * Skips helper/lines/points — only Mesh objects are exportable geometry.
+ * Collect all visible meshes from the current R3F scene.
+ * Skips invisible, helper/lines/points — only visible Mesh objects are exportable geometry.
  */
 export function collectSceneMeshes(scene: THREE.Scene): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = []
   scene.traverse((obj) => {
-    if (obj instanceof THREE.Mesh) meshes.push(obj)
+    if (obj instanceof THREE.Mesh && obj.visible) meshes.push(obj)
   })
   return meshes
 }
@@ -93,7 +93,7 @@ export function collectFileMeshes(scene: THREE.Scene, fileId: string): THREE.Mes
   const prefix = fileId + ':'
   const meshes: THREE.Mesh[] = []
   scene.traverse((obj) => {
-    if (obj instanceof THREE.Mesh) {
+    if (obj instanceof THREE.Mesh && obj.visible) {
       const partId = obj.userData?.partId as string | undefined
       if (partId && partId.startsWith(prefix)) {
         meshes.push(obj)

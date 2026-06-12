@@ -235,6 +235,11 @@ export class Heatbed {
   setVisible(v: boolean): void {
     this._visible = v
     this.group.visible = v
+    // Propagate to all descendants so that scene traversal checks
+    // (e.g. collectSceneMeshes) correctly skip children when hidden.
+    this.group.traverse((child) => {
+      child.visible = v
+    })
   }
 
   get selected(): boolean {

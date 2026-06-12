@@ -250,6 +250,26 @@ describe('Heatbed', () => {
     expect(heatbed.group.visible).toBe(false)
   })
 
+  it('setVisible(false) propagates visible=false to all child meshes', () => {
+    // THE BUG: setVisible(false) only set group.visible=false,
+    // leaving child mesh.visible=true. Object3D.traverse() skips
+    // nothing, so collectSceneMeshes picked up the heatbed plane.
+    //
+    // THE FIX: propagate visible to all descendants via traverse.
+    heatbed.setVisible(false)
+    heatbed.group.traverse((child) => {
+      expect(child.visible).toBe(false)
+    })
+  })
+
+  it('setVisible(false→true) propagates visible=true back to all children', () => {
+    heatbed.setVisible(false)
+    heatbed.setVisible(true)
+    heatbed.group.traverse((child) => {
+      expect(child.visible).toBe(true)
+    })
+  })
+
   it('setVisible(true) shows group', () => {
     heatbed.setVisible(false)
     heatbed.setVisible(true)

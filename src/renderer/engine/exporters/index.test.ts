@@ -106,6 +106,37 @@ describe('collectSceneMeshes', () => {
     scene.add(new THREE.Line(new THREE.BufferGeometry()))
     expect(collectSceneMeshes(scene)).toHaveLength(0)
   })
+
+  it('excludes meshes made invisible by parent group (heatbed regression)', () => {
+    // THE BUG: Heatbed.setVisible(false) only set group.visible=false,
+    // leaving child mesh.visible=true. Object3D.traverse() visits all
+    // descendants regardless of ancestor visibility, so collectSceneMeshes
+    // picked up heatbed plane meshes and included them in exports.
+    //
+    // THE FIX: Heatbed.setVisible() now propagates visible=false to all
+    // descendants via group.traverse(). This test simulates the fixed
+    // behavior — child meshes carry visible=false.
+    const scene = new THREE.Scene()
+
+    // Model mesh — what we actually want to export
+    const modelMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1))
+    modelMesh.userData.partId = 'generated-model:part1'
+    scene.add(modelMesh)
+
+    // Simulate fixed Heatbed: group + children all have visible=false
+    const heatbedGroup = new THREE.Group()
+    heatbedGroup.name = 'Heatbed'
+    const planeMesh = new THREE.Mesh(new THREE.PlaneGeometry(300, 300))
+    heatbedGroup.add(planeMesh)
+    // Propagate visibility to all descendants (what fixed setVisible does)
+    heatbedGroup.visible = false
+    heatbedGroup.traverse((child) => { child.visible = false })
+    scene.add(heatbedGroup)
+
+    const collected = collectSceneMeshes(scene)
+    expect(collected).toHaveLength(1)
+    expect(collected[0]).toBe(modelMesh)
+  })
 })
 
 // ---- collectFileMeshes ----
