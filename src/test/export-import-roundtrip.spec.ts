@@ -18,7 +18,7 @@
  */
 
 import { test, expect, _electron, ElectronApplication, Page } from '@playwright/test'
-import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, unlinkSync } from 'fs'
 import path from 'path'
 import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'

@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('fullscreen-changed', listener)
   },
   getPendingFilePath: () => ipcRenderer.invoke('get-pending-file-path'),
+  saveFile: (data: string, defaultName: string) => ipcRenderer.invoke('dialog:saveFile', { data, defaultName }),
   showItemInFolder: (filePath: string) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
   onOpenExternalFile: (callback: (filePath: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, filePath: string) => callback(filePath)

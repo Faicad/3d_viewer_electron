@@ -224,6 +224,29 @@ ipcMain.handle('electron:getAppVersion', () => `${app.getVersion()} (${getGitCom
 ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExternal(url))
 ipcMain.handle('shell:showItemInFolder', (_event, filePath: string) => shell.showItemInFolder(filePath))
 
+ipcMain.handle('dialog:saveFile', async (_event, { data, defaultName }: { data: string; defaultName: string }) => {
+  if (!mainWindow) return { success: false, error: 'No window' }
+  const ext = extname(defaultName).toLowerCase()
+  const filters = ext === '.stl'
+    ? [{ name: 'STL Files', extensions: ['stl'] }]
+    : ext === '.glb'
+      ? [{ name: 'GLB Files', extensions: ['glb'] }]
+      : [{ name: 'All Files', extensions: ['*'] }]
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export Model',
+    defaultPath: defaultName,
+    filters,
+  })
+  if (result.canceled || !result.filePath) return { success: false, canceled: true }
+  try {
+    const buffer = Buffer.from(data, 'base64')
+    await fs.promises.writeFile(result.filePath, buffer)
+    return { success: true, filePath: result.filePath }
+  } catch (e) {
+    return { success: false, error: (e as Error).message }
+  }
+})
+
 // File system IPC handlers
 const SUPPORTED_EXTENSIONS = new Set(ALL_MODEL_EXTENSIONS)
 

@@ -26,6 +26,7 @@ if (typeof window !== 'undefined') {
     openExternal: async () => {},
     openFileDialog: async () => ({ success: true, filePaths: [] }),
     toggleFullscreen: async () => true,
+    saveFile: async () => {},
     onFullscreenChanged: () => () => {},
   }
 

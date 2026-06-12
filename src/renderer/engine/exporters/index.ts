@@ -43,7 +43,25 @@ function getDownloadLink(): HTMLAnchorElement {
   return downloadLink
 }
 
+/**
+ * Trigger a file download. In Electron, uses the native save-file dialog
+ * (dialog.showSaveDialog + fs.writeFile) to avoid the Windows Zone.Identifier
+ * NTFS alternate data stream that Chromium attaches to browser downloads.
+ */
 export function downloadArrayBuffer(buffer: ArrayBuffer, filename: string): void {
+  const electronAPI =
+    typeof window !== 'undefined' ? (window as any).electronAPI : undefined
+
+  if (electronAPI?.saveFile) {
+    // Electron native save — no Zone.Identifier ADS
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+    electronAPI.saveFile(btoa(binary), filename)
+    return
+  }
+
+  // Web fallback: browser download via Blob URL
   const link = getDownloadLink()
   if (link.href) URL.revokeObjectURL(link.href)
   link.href = URL.createObjectURL(
