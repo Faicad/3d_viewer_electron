@@ -181,8 +181,18 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
 
   clearClipboard: () => set({ materialClipboard: null }),
 
-  openMaterialEditor: (keys, title) =>
-    set({ materialEditorVisible: true, editingOverrideKeys: keys, materialEditorTitle: title, isEditingDefault: false }),
+  openMaterialEditor: (keys, title) => {
+    // Trigger lazy material appearance generation before the editor renders,
+    // so the first render already has the correct alphaMode/texture data.
+    const primaryKey = keys[0]
+    if (primaryKey) {
+      const idx = primaryKey.indexOf(':')
+      if (idx > 0) {
+        get().ensureAppearance(primaryKey.slice(0, idx), primaryKey.slice(idx + 1))
+      }
+    }
+    set({ materialEditorVisible: true, editingOverrideKeys: keys, materialEditorTitle: title, isEditingDefault: false })
+  },
 
   openDefaultMaterialEditor: () =>
     set({ materialEditorVisible: true, editingOverrideKeys: [], materialEditorTitle: '', isEditingDefault: true }),
