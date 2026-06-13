@@ -20,6 +20,9 @@
           <span class="footer-text">Copyright © {{ year }} Faicad</span>
         </div>
       </footer>
+      <div style="text-align:center;padding:0 32px 16px;font-size:12px;color:var(--vp-c-text-2);background:var(--vp-c-bg)">
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:var(--vp-c-text-2);text-decoration:none">浙ICP备2026042810号</a>
+      </div>
     </template>
   </Layout>
 </template>
