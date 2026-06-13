@@ -182,8 +182,9 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   clearClipboard: () => set({ materialClipboard: null }),
 
   openMaterialEditor: (keys, title) => {
-    // Trigger lazy material appearance generation before the editor renders,
-    // so the first render already has the correct alphaMode/texture data.
+    // Ensure material appearance data is available before the editor mounts.
+    // MaterialEditor uses useState(appearance) which only consumes the initial
+    // value on mount — data must be in the store before set() triggers render.
     const primaryKey = keys[0]
     if (primaryKey) {
       const idx = primaryKey.indexOf(':')

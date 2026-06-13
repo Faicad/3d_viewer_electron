@@ -320,18 +320,6 @@ export default function ViewportContainer() {
       setDisplayMode('solid')
     }
   }, [materialEditorVisible, displayMode])
-  // Trigger lazy material appearance generation when texture preview opens
-  useEffect(() => {
-    if (!texturePreviewSlot) return
-    const primaryKey = editingOverrideKeys[0]
-    if (!primaryKey) return
-    const idx = primaryKey.indexOf(':')
-    if (idx <= 0) return
-    const fileId = primaryKey.slice(0, idx)
-    const partId = primaryKey.slice(idx + 1)
-    useMaterialStore.getState().ensureAppearance(fileId, partId)
-  }, [texturePreviewSlot, editingOverrideKeys])
-
   const [checkerEnabled, setCheckerEnabled] = useState(false)
   const [swappedDataUri, setSwappedDataUri] = useState<string | null>(null)
 
@@ -374,15 +362,16 @@ export default function ViewportContainer() {
     store.setMaterialOverride(fileId, partId, updated)
   }, [editingOverrideKeys])
 
-  // Compute the effective texture source for the preview dialog
+  // Compute the effective texture source for the preview dialog.
+  // Material appearance data is guaranteed to exist because openMaterialEditor
+  // calls ensureAppearance before the editor mounts; texture preview is only
+  // accessible from within the open editor.
   const effectiveTextureSrc = useMemo(() => {
     if (!texturePreviewSlot) return ''
     if (checkerEnabled) return getCheckerDataUri()
     if (swappedDataUri) return swappedDataUri
-    // Get original full texture data-URI from the appearance
     const primaryKey = editingOverrideKeys[0]
     if (!primaryKey) {
-      // Fall back to thumbnail
       const thumbs = primaryKey ? textureThumbnails[primaryKey] : undefined
       return thumbs?.[texturePreviewSlot] ?? ''
     }
