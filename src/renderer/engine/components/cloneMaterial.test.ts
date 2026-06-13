@@ -438,17 +438,15 @@ describe('materialToAppearance from AnisotropyBarnLamp-style materials', () => {
     expect(appearance!.sheenRoughness).toBe(0.3)
   })
 
-  it('does NOT extract anisotropy into appearance (not in MaterialAppearance type)', () => {
+  it('extracts anisotropy into appearance', () => {
     const mat = new THREE.MeshPhysicalMaterial()
     mat.anisotropy = 0.75
     mat.anisotropyRotation = Math.PI / 3
 
     const { appearance } = materialToAppearance(mat, 'aniso')
 
-    // Anisotropy is NOT in the MaterialAppearance type — it's a rendering-only
-    // property that GLTFLoader sets directly on the material.
-    expect(appearance!.anisotropy).toBeUndefined()
-    expect((appearance as Record<string, unknown>).anisotropyRotation).toBeUndefined()
+    expect(appearance!.anisotropy).toBe(0.75)
+    expect(appearance!.anisotropyRotation).toBe(Math.PI / 3)
   })
 
   it('all three AnisotropyBarnLamp materials survive full pipeline roundtrip', () => {

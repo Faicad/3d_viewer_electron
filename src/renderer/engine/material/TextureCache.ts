@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { TEXTURE_PROPS, type TextureSlot } from './property-map'
 
 const SRGB = THREE.SRGBColorSpace
 const LINEAR = THREE.LinearSRGBColorSpace
@@ -10,6 +11,10 @@ const SRGB_MAP_KEYS = new Set([
   'sheenColorTexture',
   'specularColorTexture',
 ])
+
+// Re-export for backward compatibility — TEXTURE_PROPS is now the single
+// source of truth for all texture map keys.
+export { TEXTURE_PROPS, type TextureSlot }
 
 /**
  * Lazy-loading texture cache with in-flight deduplication.
@@ -110,16 +115,10 @@ export function getMapColorSpace(mapKey: string): 'sRGB' | 'linear' {
   return SRGB_MAP_KEYS.has(mapKey) ? 'sRGB' : 'linear'
 }
 
-/** Map keys that reference textures on `MaterialAppearance`. */
-export const TEXTURE_MAP_KEYS = [
-  'map',
-  'metalnessMap',
-  'roughnessMap',
-  'normalMap',
-  'aoMap',
-  'emissiveMap',
-  'transmissionMap',
-  'thicknessMap',
-  'clearcoatMap',
-  'clearcoatNormalMap',
-] as const
+/**
+ * Map keys that reference textures on `MaterialAppearance`.
+ *
+ * @deprecated Use `TEXTURE_PROPS` from `./property-map` instead.
+ *   This alias exists for backward compatibility during migration.
+ */
+export const TEXTURE_MAP_KEYS = TEXTURE_PROPS

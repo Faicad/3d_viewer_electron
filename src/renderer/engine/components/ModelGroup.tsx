@@ -20,6 +20,7 @@ import { useMaterialStore } from '@/stores/material-store'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
 import { getMapColorSpace } from '@/engine/material/TextureCache'
+import { TEXTURE_PROPS } from '@/engine/material/property-map'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
 import { computePlateLayout } from '@/engine/heatbed'
 import type { PlateLayoutEntry } from '@/engine/heatbed'
@@ -573,9 +574,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             const textureCache = getSharedTextureCache()
             const textureUrls = new Set<string>()
             for (const app of Object.values(originals)) {
-              for (const key of ['map', 'metalnessMap', 'roughnessMap', 'normalMap', 'aoMap',
-                  'emissiveMap', 'transmissionMap', 'thicknessMap', 'clearcoatMap',
-                  'clearcoatNormalMap', 'alphaMap'] as const) {
+              for (const key of TEXTURE_PROPS) {
                 const url = (app as Record<string, unknown>)[key]
                 if (typeof url === 'string' && url.length > 0 && !textureUrls.has(url)) {
                   textureUrls.add(url)

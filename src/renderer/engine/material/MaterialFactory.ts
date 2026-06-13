@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { MaterialAppearance, AlphaMode } from './types'
 import { TextureCache, getMapColorSpace, TEXTURE_MAP_KEYS } from './TextureCache'
+import { applyAllScalars } from './property-map'
 
 const SRGB = THREE.SRGBColorSpace
 
@@ -112,6 +113,11 @@ export class MaterialFactory {
   // ---------------------------------------------------------------------------
 
   private _buildMaterial(a: MaterialAppearance): THREE.MeshPhysicalMaterial {
+    // ── Unlit branch ──
+    if (a.unlit) {
+      return this._buildBasicMaterial(a)
+    }
+
     const mat = new THREE.MeshPhysicalMaterial()
 
     // Colour — always sRGB
@@ -120,66 +126,14 @@ export class MaterialFactory {
       mat.color.setRGB(r, g, b, SRGB)
     }
 
-    // Base PBR
-    if (a.metalness !== undefined) mat.metalness = a.metalness
-    if (a.roughness !== undefined) mat.roughness = a.roughness
-
-    // Transmission (glass / acrylic)
+    // Transmission (glass / acrylic) — special: forces opacity to 1.0
     if (a.transmission !== undefined && a.transmission > 0) {
       mat.transmission = a.transmission
       mat.opacity = 1.0
       mat.transparent = a.alphaMode !== 'OPAQUE' || a.transmission > 0
     }
 
-    if (a.thickness !== undefined) mat.thickness = a.thickness
-    if (a.ior !== undefined) mat.ior = a.ior
-
-    if (a.attenuationColor) {
-      const [r, g, b] = a.attenuationColor
-      mat.attenuationColor = new THREE.Color(r, g, b)
-    }
-    if (a.attenuationDistance !== undefined) {
-      mat.attenuationDistance = a.attenuationDistance
-    }
-
-    // Clearcoat (car paint)
-    if (a.clearcoat !== undefined && a.clearcoat > 0) {
-      mat.clearcoat = a.clearcoat
-    }
-    if (a.clearcoatRoughness !== undefined && a.clearcoatRoughness > 0) {
-      mat.clearcoatRoughness = a.clearcoatRoughness
-    }
-
-    // Sheen (fabric / velvet)
-    if (a.sheen !== undefined && a.sheen > 0) {
-      mat.sheen = a.sheen
-    }
-    if (a.sheenColor) {
-      const [r, g, b] = a.sheenColor
-      mat.sheenColor = new THREE.Color(r, g, b)
-    }
-    if (a.sheenRoughness !== undefined && a.sheenRoughness > 0) {
-      mat.sheenRoughness = a.sheenRoughness
-    }
-
-    // Anisotropy (brushed metal)
-    if (a.anisotropy !== undefined && a.anisotropy > 0) {
-      mat.anisotropy = a.anisotropy
-    }
-    if (a.anisotropyRotation !== undefined && a.anisotropyRotation !== 0) {
-      mat.anisotropyRotation = a.anisotropyRotation
-    }
-
-    // Specular workflow
-    if (a.specularIntensity !== undefined && a.specularIntensity > 0) {
-      mat.specularIntensity = a.specularIntensity
-    }
-    if (a.specularColor) {
-      const [r, g, b] = a.specularColor
-      mat.specularColor = new THREE.Color(r, g, b)
-    }
-
-    // Emissive
+    // Emissive — special: skips when black
     if (a.emissive) {
       const [r, g, b] = a.emissive
       mat.emissive = new THREE.Color(r, g, b)
@@ -188,17 +142,12 @@ export class MaterialFactory {
       }
     }
 
-    // Normal scale
-    if (a.normalScale !== undefined) {
-      mat.normalScale = new THREE.Vector2(a.normalScale, a.normalScale)
-    }
+    // All mapped scalar properties — single call replaces the manual
+    // per-property blocks for: roughness, metalness, clearcoat, sheen,
+    // anisotropy, specular, attenuation, normalScale, aoMapIntensity, etc.
+    applyAllScalars(mat, a)
 
-    // AO
-    if (a.aoMapIntensity !== undefined) {
-      mat.aoMapIntensity = a.aoMapIntensity
-    }
-
-    // Alpha
+    // Alpha — multi-field logic
     this._applyAlpha(mat, a)
 
     // Sidedness
@@ -211,6 +160,62 @@ export class MaterialFactory {
 
     // Synchronously apply any already-cached textures
     this._applyCachedTextures(mat, a)
+
+    mat.needsUpdate = true
+    return mat
+  }
+
+  /**
+   * Build a MeshBasicMaterial for unlit materials.
+   * Only applies properties relevant to Basic materials (color, map, alpha).
+   */
+  private _buildBasicMaterial(a: MaterialAppearance): THREE.MeshBasicMaterial {
+    const mat = new THREE.MeshBasicMaterial()
+
+    if (a.color) {
+      const [r, g, b] = a.color
+      mat.color.setRGB(r, g, b, SRGB)
+    }
+
+    mat.side = a.doubleSided ? THREE.DoubleSide : THREE.FrontSide
+
+    // Alpha
+    const alpha = a.color?.[3]
+    const mode: AlphaMode = a.alphaMode ?? 'OPAQUE'
+    switch (mode) {
+      case 'BLEND':
+        mat.transparent = true
+        mat.opacity = alpha ?? 1.0
+        mat.depthWrite = true
+        break
+      case 'MASK':
+        mat.transparent = false
+        mat.alphaTest = a.alphaCutoff ?? 0.5
+        mat.opacity = alpha ?? 1.0
+        break
+      case 'OPAQUE':
+      default:
+        mat.transparent = false
+        if (alpha !== undefined && alpha < 1.0) {
+          mat.transparent = true
+          mat.opacity = alpha
+        }
+        break
+    }
+
+    // Apply cached textures that are relevant for Basic materials
+    const tc = this._textureCache
+    if (tc) {
+      for (const slot of ['map', 'alphaMap'] as const) {
+        const url = (a as Record<string, unknown>)[slot]
+        if (typeof url === 'string' && url.length > 0) {
+          const tex = tc.get(url)
+          if (tex) {
+            ;(mat as Record<string, unknown>)[slot] = tex
+          }
+        }
+      }
+    }
 
     mat.needsUpdate = true
     return mat

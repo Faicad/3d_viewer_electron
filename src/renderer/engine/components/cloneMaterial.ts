@@ -1,16 +1,13 @@
 import * as THREE from 'three'
 import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
+import { TEXTURE_PROPS, extractAllScalars } from '@/engine/material/property-map'
 
 // ---------------------------------------------------------------------------
 // Texture serialisation
 // ---------------------------------------------------------------------------
 
-/** Texture slots tracked on every material. */
-const TEXTURE_SLOTS = [
-  'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap',
-  'emissiveMap', 'transmissionMap', 'thicknessMap', 'clearcoatMap',
-  'clearcoatNormalMap', 'alphaMap',
-] as const
+/** @deprecated Use `TEXTURE_PROPS` from property-map instead. */
+const TEXTURE_SLOTS: readonly string[] = TEXTURE_PROPS
 
 /** Lightweight info extracted from a THREE.Texture. */
 export interface TextureSlotInfo {
@@ -206,45 +203,32 @@ export function materialToAppearance(
 
   const a: MaterialAppearance = { name }
 
+  // Color (sRGB→linear conversion happens inside Three.js; we store the
+  // components as-is.  NOTE: this matches pre-existing behavior — see the
+  // "KNOWN BUG" test in cloneMaterial.test.ts.)
   if ('color' in target && target.color instanceof THREE.Color) {
     a.color = [target.color.r, target.color.g, target.color.b, target.opacity]
   }
 
-  if (
-    target instanceof THREE.MeshPhysicalMaterial ||
-    target instanceof THREE.MeshStandardMaterial
-  ) {
-    a.roughness = target.roughness
-    a.metalness = target.metalness
-  }
+  // All mapped scalar properties — replaces the previous manual per-property
+  // extraction.  New properties added to SCALAR_PROPS are automatically
+  // covered.
+  Object.assign(a, extractAllScalars(target))
 
-  if (target instanceof THREE.MeshPhysicalMaterial) {
-    a.clearcoat = target.clearcoat
-    a.clearcoatRoughness = target.clearcoatRoughness
-    a.sheen = target.sheen
-    if (target.sheenColor) {
-      a.sheenColor = [target.sheenColor.r, target.sheenColor.g, target.sheenColor.b]
-    }
-    a.sheenRoughness = target.sheenRoughness
-    a.transmission = target.transmission
-    a.thickness = target.thickness
-    a.ior = target.ior
-  }
-
+  // Emissive (special: skip when black)
   if ('emissive' in target && target.emissive instanceof THREE.Color) {
     const e = target.emissive
     if (e.r !== 0 || e.g !== 0 || e.b !== 0) {
       a.emissive = [e.r, e.g, e.b]
     }
   }
-  if ('emissiveIntensity' in target && typeof target.emissiveIntensity === 'number') {
-    a.emissiveIntensity = target.emissiveIntensity
-  }
 
+  // Double-sided (special: only record when true)
   if (target instanceof THREE.MeshStandardMaterial && target.side === THREE.DoubleSide) {
     a.doubleSided = true
   }
 
+  // Alpha mode (multi-field logic)
   const alphaTest = (target as THREE.MeshStandardMaterial).alphaTest ?? 0
   if (target.transparent) {
     if (alphaTest > 0) {
@@ -261,18 +245,20 @@ export function materialToAppearance(
     a.alphaMode = 'OPAQUE' as AlphaMode
   }
 
-  // Populate texture data-URIs from extracted textures (for override support)
-  if (textures.map) a.map = textures.map.dataUri
-  if (textures.normalMap) a.normalMap = textures.normalMap.dataUri
-  if (textures.roughnessMap) a.roughnessMap = textures.roughnessMap.dataUri
-  if (textures.metalnessMap) a.metalnessMap = textures.metalnessMap.dataUri
-  if (textures.aoMap) a.aoMap = textures.aoMap.dataUri
-  if (textures.emissiveMap) a.emissiveMap = textures.emissiveMap.dataUri
-  if (textures.transmissionMap) a.transmissionMap = textures.transmissionMap.dataUri
-  if (textures.thicknessMap) a.thicknessMap = textures.thicknessMap.dataUri
-  if (textures.clearcoatMap) a.clearcoatMap = textures.clearcoatMap.dataUri
-  if (textures.clearcoatNormalMap) a.clearcoatNormalMap = textures.clearcoatNormalMap.dataUri
-  if (textures.alphaMap) a.alphaMap = textures.alphaMap.dataUri
+  // Unlit — detect from source material type
+  if (target instanceof THREE.MeshBasicMaterial) {
+    a.unlit = true
+  } else if (target.userData?._unlit) {
+    a.unlit = true
+  }
+
+  // Populate texture data-URIs from extracted textures
+  for (const slot of TEXTURE_PROPS) {
+    const info = (textures as Record<string, TextureSlotInfo>)[slot]
+    if (info?.dataUri) {
+      ;(a as Record<string, unknown>)[slot] = info.dataUri
+    }
+  }
 
   return { appearance: a, textures }
 }
@@ -456,6 +442,11 @@ function basicToStandard(
 
   dst.roughness = 1.0
   dst.metalness = 0.0
+
+  // Preserve unlit origin so materialToAppearance() can detect it later.
+  // Without this, KHR_materials_unlit models are converted to
+  // MeshPhysicalMaterial and the "unlit" flag is permanently lost.
+  dst.userData._unlit = true
 
   dst.needsUpdate = true
   return dst
