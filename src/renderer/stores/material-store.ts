@@ -1,6 +1,11 @@
 import { create } from 'zustand'
+import * as THREE from 'three'
 import type { MaterialAppearance } from '@/engine/material/types'
 import { clearThumbnailCache } from '@/lib/thumbnail-cache/thumbnailCache'
+import { materialToAppearance } from '@/engine/components/cloneMaterial'
+import { TEXTURE_PROPS } from '@/engine/material/property-map'
+import { getSharedTextureCache } from '@/engine/material/MaterialFactory'
+import { getMapColorSpace } from '@/engine/material/TextureCache'
 
 export function makeOverrideKey(fileId: string, partId: string): string {
   return `${fileId}:${partId}`
@@ -10,6 +15,14 @@ export function parseOverrideKey(key: string): { fileId: string; partId: string 
   const idx = key.indexOf(':')
   return { fileId: key.slice(0, idx), partId: key.slice(idx + 1) }
 }
+
+// ---- 材质外观按需生成 ----
+interface MeshLookupEntry {
+  mesh: THREE.Mesh
+  originalMaterial: THREE.Material | THREE.Material[] | null | undefined
+  name: string
+}
+type MeshLookupFn = (partId: string) => MeshLookupEntry | undefined
 
 interface MaterialStore {
   // ---- 材质覆盖数据 ----
@@ -38,6 +51,10 @@ interface MaterialStore {
 
   // ---- 纹理缩略图（per-part, per-slot 20×20 thumbnails） ----
   textureThumbnails: Record<string, Record<string, string>>
+
+  // ---- 按需生成材质外观 ----
+  meshLookups: Record<string, MeshLookupFn>
+  inflightAppearances: Set<string>
 
   // ---- 默认材质 ----
   defaultMaterial: MaterialAppearance | null
@@ -70,6 +87,10 @@ interface MaterialStore {
   setMaterialEditorPosition: (pos: { x: number; y: number }) => void
   setDefaultMaterial: (appearance: MaterialAppearance | null) => void
 
+  registerMeshLookup: (fileId: string, fn: MeshLookupFn) => void
+  unregisterMeshLookup: (fileId: string) => void
+  ensureAppearance: (fileId: string, partId: string) => MaterialAppearance | undefined
+
   setMaterialOriginalsForFile: (fileId: string, originals: Record<string, MaterialAppearance>) => void
   clearMaterialOriginalsForFile: (fileId: string) => void
   setTextureThumbnailsForFile: (fileId: string, thumbs: Record<string, Record<string, string>>) => void
@@ -100,6 +121,9 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   materialOriginals: {},
 
   textureThumbnails: {},
+
+  meshLookups: {},
+  inflightAppearances: new Set(),
 
   viewingOriginal: false,
 
@@ -173,6 +197,107 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   },
 
   setMaterialEditorPosition: (pos) => set({ materialEditorPosition: pos }),
+
+  registerMeshLookup: (fileId, fn) => {
+    set((s) => ({
+      meshLookups: { ...s.meshLookups, [fileId]: fn },
+    }))
+  },
+
+  unregisterMeshLookup: (fileId) => {
+    set((s) => {
+      const next = { ...s.meshLookups }
+      delete next[fileId]
+      return { meshLookups: next }
+    })
+  },
+
+  ensureAppearance: (fileId, partId) => {
+    const state = get()
+    const primaryKey = partId.startsWith(fileId + ':') ? partId : `${fileId}:${partId}`
+
+    // 1. 已缓存 → 直接返回
+    if (state.materialOriginals[primaryKey]) {
+      return state.materialOriginals[primaryKey]
+    }
+
+    // 2. 正在生成中 → 避免并发重复生成
+    if (state.inflightAppearances.has(primaryKey)) {
+      return undefined
+    }
+
+    // 3. 查找 mesh
+    const lookup = state.meshLookups[fileId]
+    if (!lookup) return undefined
+
+    const entry = lookup(primaryKey)
+    if (!entry?.originalMaterial) return undefined
+
+    // 4. 标记 inflight
+    const nextInflight = new Set(state.inflightAppearances)
+    nextInflight.add(primaryKey)
+    set({ inflightAppearances: nextInflight })
+
+    const cleanupInflight = () => {
+      set((s) => {
+        const cleaned = new Set(s.inflightAppearances)
+        cleaned.delete(primaryKey)
+        return { inflightAppearances: cleaned }
+      })
+    }
+
+    try {
+      const thumbCache = new WeakMap<object, string>()
+      const { appearance: app, textures } = materialToAppearance(
+        entry.originalMaterial,
+        entry.name,
+        thumbCache,
+      )
+      if (!app) {
+        cleanupInflight()
+        return undefined
+      }
+
+      // 5. 增量写入 store
+      const originalsPatch: Record<string, MaterialAppearance> = { [primaryKey]: app }
+      const thumbsPatch: Record<string, Record<string, string>> = {}
+      const slotThumbs: Record<string, string> = {}
+      for (const [slot, info] of Object.entries(textures)) {
+        if (info.thumbnail) slotThumbs[slot] = info.thumbnail
+      }
+      if (Object.keys(slotThumbs).length > 0) {
+        thumbsPatch[primaryKey] = slotThumbs
+      }
+
+      set((s) => ({
+        materialOriginals: { ...s.materialOriginals, ...originalsPatch },
+        textureThumbnails: { ...s.textureThumbnails, ...thumbsPatch },
+        inflightAppearances: (() => {
+          const cleaned = new Set(s.inflightAppearances)
+          cleaned.delete(primaryKey)
+          return cleaned
+        })(),
+      }))
+
+      // 6. 预加载纹理到共享 TextureCache
+      const textureCache = getSharedTextureCache()
+      for (const key of TEXTURE_PROPS) {
+        const url = (app as Record<string, unknown>)[key]
+        if (typeof url === 'string' && url.length > 0) {
+          const cs = getMapColorSpace(key)
+          textureCache.load(url, cs === 'sRGB' ? 'sRGB' : 'linear').catch((err) => {
+            console.warn('[ensureAppearance] texture pre-cache failed for', key, err)
+          })
+        }
+      }
+
+      return app
+    } catch (e) {
+      cleanupInflight()
+      console.warn('[ensureAppearance] failed for', primaryKey, e)
+      return undefined
+    }
+  },
 
   setMaterialOriginalsForFile: (fileId, originals) => {
     set((s) => {

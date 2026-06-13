@@ -320,6 +320,18 @@ export default function ViewportContainer() {
       setDisplayMode('solid')
     }
   }, [materialEditorVisible, displayMode])
+  // Trigger lazy material appearance generation when texture preview opens
+  useEffect(() => {
+    if (!texturePreviewSlot) return
+    const primaryKey = editingOverrideKeys[0]
+    if (!primaryKey) return
+    const idx = primaryKey.indexOf(':')
+    if (idx <= 0) return
+    const fileId = primaryKey.slice(0, idx)
+    const partId = primaryKey.slice(idx + 1)
+    useMaterialStore.getState().ensureAppearance(fileId, partId)
+  }, [texturePreviewSlot, editingOverrideKeys])
+
   const [checkerEnabled, setCheckerEnabled] = useState(false)
   const [swappedDataUri, setSwappedDataUri] = useState<string | null>(null)
 

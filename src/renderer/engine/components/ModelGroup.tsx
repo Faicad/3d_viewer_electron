@@ -15,12 +15,10 @@ import { parse3mfUnit, parseAmfUnit, guessStlUnit, UNIT_TO_MM } from '@/config/f
 import { getCachedResult, setCachedResult, markLoaded, clearLoaded } from '@/engine/loaderResultCache'
 import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
 import { cloneMeshGeometry, initMorphTargets } from './cloneMeshGeometry'
-import { cloneAndConvertMaterial, createDefaultMaterial, disposeMaterial, getMaterialColor, materialToAppearance } from './cloneMaterial'
+import { cloneAndConvertMaterial, createDefaultMaterial, disposeMaterial, getMaterialColor } from './cloneMaterial'
 import { useMaterialStore } from '@/stores/material-store'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
-import { getSharedMaterialFactory, getSharedTextureCache } from '@/engine/material/MaterialFactory'
-import { getMapColorSpace } from '@/engine/material/TextureCache'
-import { TEXTURE_PROPS } from '@/engine/material/property-map'
+import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
 import { createCheckerTexture } from '@/engine/material/checkerTexture'
 import { computePlateLayout } from '@/engine/heatbed'
 import type { PlateLayoutEntry } from '@/engine/heatbed'
@@ -539,52 +537,25 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           materialsRef.current = materials
           onPartInfosChangeRef.current(partInfos)
 
-          // Store original material appearances for the material editor
+          // Register mesh lookuper for lazy material appearance generation.
+          // MaterialToAppearance is deferred until MaterialEditor/ViewportContainer
+          // requests it for the currently selected mesh.
           if (fileId) {
-            const originals: Record<string, MaterialAppearance> = {}
-            const textureThumbs: Record<string, Record<string, string>> = {}
-            const thumbCache = new WeakMap<object, string>()
-            for (const info of partInfos) {
-              const origMesh = processed[info.meshIndex]
-              const origMat = origMesh.userData._originalMaterial as
-                | THREE.Material
-                | THREE.Material[]
-                | null
-              const { appearance: app, textures } = materialToAppearance(origMat, info.name, thumbCache)
-              if (app) {
-                originals[info.partId] = app
-                // Collect per-slot thumbnails
-                const slotThumbs: Record<string, string> = {}
-                for (const [slot, info] of Object.entries(textures)) {
-                  if (info.thumbnail) slotThumbs[slot] = info.thumbnail
-                }
-                if (Object.keys(slotThumbs).length > 0) {
-                  textureThumbs[info.partId] = slotThumbs
-                }
+            useMaterialStore.getState().registerMeshLookup(fileId, (partId: string) => {
+              const info = partInfos.find(p => p.partId === partId)
+              if (!info) return undefined
+              const mesh = processed[info.meshIndex]
+              if (!mesh) return undefined
+              return {
+                mesh,
+                originalMaterial: mesh.userData._originalMaterial as
+                  | THREE.Material
+                  | THREE.Material[]
+                  | null
+                  | undefined,
+                name: info.name,
               }
-            }
-            useMaterialStore.getState().setMaterialOriginalsForFile(fileId, originals)
-            useMaterialStore.getState().setTextureThumbnailsForFile(fileId, textureThumbs)
-
-            // Pre-load all extracted textures into the shared cache so future
-            // MaterialFactory.createMaterial() calls (e.g. when user changes
-            // alphaMode) can synchronously apply textures via _applyCachedTextures.
-            // Without this, switching alphaMode strips all textures — the object
-            // renders with just its base colour (white for default baseColorFactor).
-            const textureCache = getSharedTextureCache()
-            const textureUrls = new Set<string>()
-            for (const app of Object.values(originals)) {
-              for (const key of TEXTURE_PROPS) {
-                const url = (app as Record<string, unknown>)[key]
-                if (typeof url === 'string' && url.length > 0 && !textureUrls.has(url)) {
-                  textureUrls.add(url)
-                  const cs = getMapColorSpace(key)
-                  textureCache.load(url, cs === 'sRGB' ? 'sRGB' : 'linear').catch((err) => {
-                    console.warn('[ModelGroup] texture pre-cache failed for', key, err)
-                  })
-                }
-              }
-            }
+            })
           }
 
           // Ensure scene-tree node IDs match mesh partIds by setting
@@ -705,7 +676,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     load()
     return () => {
       cancelled = true
-      if (fileId) clearLoaded(fileId)
+      if (fileId) {
+        clearLoaded(fileId)
+        useMaterialStore.getState().unregisterMeshLookup(fileId)
+      }
       for (const mat of materialsRef.current) {
         disposeMaterial(mat)
       }

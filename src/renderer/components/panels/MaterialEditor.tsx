@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMaterialStore } from '@/stores/material-store'
 import type { MaterialAppearance } from '@/engine/material/types'
@@ -595,10 +595,21 @@ export default function MaterialEditor() {
   const closeEditor = useMaterialStore((s) => s.closeMaterialEditor)
   const setPosition = useMaterialStore((s) => s.setMaterialEditorPosition)
 
-  if (!visible) return null
-
   // Resolve effective appearance from the first editing key (or default material)
   const primaryKey = editingKeys[0] ?? ''
+
+  // Trigger lazy material appearance generation when editor opens for a mesh
+  useEffect(() => {
+    if (!primaryKey) return
+    const idx = primaryKey.indexOf(':')
+    if (idx <= 0) return
+    const fileId = primaryKey.slice(0, idx)
+    const partId = primaryKey.slice(idx + 1)
+    useMaterialStore.getState().ensureAppearance(fileId, partId)
+  }, [primaryKey])
+
+  if (!visible) return null
+
   const appearance: MaterialAppearance | undefined = isEditingDefault
     ? (defaultMaterial ?? undefined)
     : primaryKey ? (overrides[primaryKey] ?? materialOriginals[primaryKey]) : undefined
