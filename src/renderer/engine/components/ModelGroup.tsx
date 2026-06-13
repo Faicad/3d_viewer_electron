@@ -102,6 +102,11 @@ function setSkinningFlag(
 // ---- multi-mesh rendering constants ----
 const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'model', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm', 'wrl']
 
+/** Maximum number of meshes that cast shadows in multi-mesh mode.
+ *  Only the largest K parts (by bounding-box volume) cast shadows to
+ *  keep the shadow-pass draw-call count bounded for complex models. */
+const MAX_SHADOW_CASTERS = 16
+
 /** If the tree has a single root node, rename it to the file name (without extension). */
 function applySinglePartName(nodes: SceneTreeNode[], fileName?: string): SceneTreeNode[] {
   if (nodes.length === 1 && fileName) {
@@ -181,6 +186,26 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
       if (count === 0) return undefined
       return new Array(count).fill(0)
     })
+  }, [glbMeshes])
+
+  // Only the largest K meshes (by bounding-box volume) cast shadows.
+  // Small / internal parts contribute negligibly to the shadow but each
+  // triggers an extra draw call in the shadow pass.
+  const shadowCasterIndices = useMemo(() => {
+    if (glbMeshes.length === 0) return new Set<number>()
+    if (glbMeshes.length <= MAX_SHADOW_CASTERS) {
+      return new Set(glbMeshes.map((_, i) => i))
+    }
+    const volumes = glbMeshes.map((mesh, i) => {
+      const box = mesh.geometry.boundingBox
+      if (!box) return { i, volume: 0 }
+      const sx = box.max.x - box.min.x
+      const sy = box.max.y - box.min.y
+      const sz = box.max.z - box.min.z
+      return { i, volume: sx * sy * sz }
+    })
+    volumes.sort((a, b) => b.volume - a.volume)
+    return new Set(volumes.slice(0, MAX_SHADOW_CASTERS).map(v => v.i))
   }, [glbMeshes])
 
   const onLoadedRef = useRef(onLoaded)
@@ -827,7 +852,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 position={mesh.position}
                 material={meshMaterials[i] ?? undefined}
                 morphTargetInfluences={morphInfluenceArrays[i]}
-                castShadow
+                castShadow={shadowCasterIndices.has(i)}
                 userData={{
                   partId,
                   meshIndex: i,
@@ -868,7 +893,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               position={mesh.position}
               material={mat ?? defaultMaterial ?? undefined}
               morphTargetInfluences={morphInfluenceArrays[i]}
-              castShadow
+              castShadow={shadowCasterIndices.has(i)}
               userData={{
                 partId,
                 meshIndex: i,
