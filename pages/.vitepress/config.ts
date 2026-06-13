@@ -2,6 +2,9 @@ import { defineConfig } from 'vitepress'
 import { FORMATS } from '../../scripts/format-data.mjs'
 import { NAV, SIDEBAR } from '../../scripts/translations.mjs'
 
+const DOCKER = !!process.env.DOCKER_BUILD
+const ROOT_LOCALE = DOCKER ? 'zh' : 'en'
+
 const LANG_LABELS = {
   zh: { label: '中文', lang: 'zh-CN' },
   en: { label: 'English', lang: 'en' },
@@ -32,8 +35,8 @@ const UI_LABELS = {
   ja: { docFooter: { prev: '前のページ', next: '次のページ' }, outline: 'このページの内容', lastUpdated: '最終更新', darkModeSwitch: '表示モード', sidebarMenu: 'メニュー', returnToTop: 'トップに戻る', langMenu: '言語', lightModeSwitchTitle: 'ライトモードに切り替え', darkModeSwitchTitle: 'ダークモードに切り替え' },
   ko: { docFooter: { prev: '이전 페이지', next: '다음 페이지' }, outline: '이 페이지의 내용', lastUpdated: '마지막 업데이트', darkModeSwitch: '테마', sidebarMenu: '메뉴', returnToTop: '맨 위로', langMenu: '언어', lightModeSwitchTitle: '라이트 모드로 전환', darkModeSwitchTitle: '다크 모드로 전환' },
   fr: { docFooter: { prev: 'Page précédente', next: 'Page suivante' }, outline: 'Sur cette page', lastUpdated: 'Dernière mise à jour', darkModeSwitch: 'Apparence', sidebarMenu: 'Menu', returnToTop: 'Retour en haut', langMenu: 'Langue', lightModeSwitchTitle: 'Passer en mode clair', darkModeSwitchTitle: 'Passer en mode sombre' },
-  de: { docFooter: { prev: 'Vorherige Seite', next: 'Nächste Seite' }, outline: 'Auf dieser Seite', lastUpdated: 'Zuletzt aktualisiert', darkModeSwitch: 'Darstellung', sidebarMenu: 'Menü', returnToTop: 'Zurück zum Anfang', langMenu: 'Sprache', lightModeSwitchTitle: 'Zum hellen Modus wechseln', darkModeSwitchTitle: 'Zum dunklen Modus wechseln' },
-  pt: { docFooter: { prev: 'Página anterior', next: 'Próxima página' }, outline: 'Nesta página', lastUpdated: 'Última atualização', darkModeSwitch: 'Aparência', sidebarMenu: 'Menu', returnToTop: 'Voltar ao topo', langMenu: 'Idioma', lightModeSwitchTitle: 'Mudar para modo claro', darkModeSwitchTitle: 'Mudar para modo escuro' },
+  de: { docFooter: { prev: 'Vorherige Seite', next: 'Nächste Seite' }, outline: 'Auf dieser Seite', lastUpdated: 'Zuletzt aktualisiert', darkModeSwitch: 'Darstellung', sidebarMenu: 'Menü', returnToTop: 'Zum Anfang', langMenu: 'Sprache', lightModeSwitchTitle: 'Zum hellen Modus wechseln', darkModeSwitchTitle: 'Zum dunklen Modus wechseln' },
+  pt: { docFooter: { prev: 'Página anterior', next: 'Página siguiente' }, outline: 'Nesta página', lastUpdated: 'Última atualização', darkModeSwitch: 'Aparência', sidebarMenu: 'Menu', returnToTop: 'Voltar ao topo', langMenu: 'Idioma', lightModeSwitchTitle: 'Mudar para modo claro', darkModeSwitchTitle: 'Mudar para modo escuro' },
   ru: { docFooter: { prev: 'Предыдущая страница', next: 'Следующая страница' }, outline: 'На этой странице', lastUpdated: 'Последнее обновление', darkModeSwitch: 'Оформление', sidebarMenu: 'Меню', returnToTop: 'Вернуться наверх', langMenu: 'Язык', lightModeSwitchTitle: 'Переключить на светлый режим', darkModeSwitchTitle: 'Переключить на тёмный режим' },
   ar: { docFooter: { prev: 'الصفحة السابقة', next: 'الصفحة التالية' }, outline: 'في هذه الصفحة', lastUpdated: 'آخر تحديث', darkModeSwitch: 'المظهر', sidebarMenu: 'القائمة', returnToTop: 'العودة إلى الأعلى', langMenu: 'اللغة', lightModeSwitchTitle: 'التبديل إلى الوضع الفاتح', darkModeSwitchTitle: 'التبديل إلى الوضع الداكن' },
   hi: { docFooter: { prev: 'पिछला पृष्ठ', next: 'अगला पृष्ठ' }, outline: 'इस पृष्ठ पर', lastUpdated: 'अंतिम अपडेट', darkModeSwitch: 'दृश्य', sidebarMenu: 'मेनू', returnToTop: 'ऊपर जाएँ', langMenu: 'भाषा', lightModeSwitchTitle: 'लाइट मोड पर स्विच करें', darkModeSwitchTitle: 'डार्क मोड पर स्विच करें' },
@@ -51,7 +54,7 @@ const UI_LABELS = {
 function localesConfig() {
   const locales = {}
   for (const [code] of Object.entries(LANG_LABELS)) {
-    const isRoot = code === 'en'
+    const isRoot = code === ROOT_LOCALE
     const localeKey = isRoot ? 'root' : code
     const ui = UI_LABELS[code] || UI_LABELS.en
     locales[localeKey] = {
@@ -82,7 +85,7 @@ function localesConfig() {
 }
 
 function nav(lang) {
-  const p = lang === 'en' ? '' : `/${lang}`
+  const p = lang === ROOT_LOCALE ? '' : `/${lang}`
   const t = NAV[lang] || NAV.en
   return [
     { text: t.home, link: p + '/' },
@@ -94,7 +97,7 @@ function nav(lang) {
 }
 
 function sidebar(lang) {
-  const prefix = lang === 'en' ? '' : `/${lang}`
+  const prefix = lang === ROOT_LOCALE ? '' : `/${lang}`
   const t = SIDEBAR[lang] || SIDEBAR.en
   const navT = NAV[lang] || NAV.en
 
@@ -156,22 +159,26 @@ function sidebar(lang) {
   }
 }
 
-export default defineConfig({
-  base: '/3d_viewer_electron/',
-  title: 'Faicad 3D Viewer',
-  description: 'Cross-platform 3D model file viewer — supports 27+ 3D file formats including STL, GLB, STEP and more',
+const defaultUI = UI_LABELS[ROOT_LOCALE] || UI_LABELS.en
 
-  lang: 'en',
+export default defineConfig({
+  base: DOCKER ? '/' : '/3d_viewer_electron/',
+  title: 'Faicad 3D Viewer',
+  description: DOCKER
+    ? '跨平台 3D 模型文件查看器 — 支持 STL/GLB/STEP 等 27+ 种 3D 文件格式'
+    : 'Cross-platform 3D model file viewer — supports 27+ 3D file formats including STL, GLB, STEP and more',
+
+  lang: LANG_LABELS[ROOT_LOCALE].lang,
   locales: localesConfig(),
 
   head: [
     ['meta', { name: 'keywords', content: '3D viewer, STL viewer, STEP viewer, GLB viewer, 3D model viewer, CAD viewer, Three.js, Electron, faicad' }],
     ['meta', { property: 'og:title', content: 'Faicad 3D Viewer' }],
-    ['meta', { property: 'og:description', content: 'Cross-platform 3D model file viewer supporting 27+ formats including STL, GLB, STEP, OBJ, FBX' }],
+    ['meta', { property: 'og:description', content: DOCKER ? '跨平台 3D 模型文件查看器，支持 STL/GLB/STEP 等 27+ 种 3D 文件格式' : 'Cross-platform 3D model file viewer supporting 27+ formats including STL, GLB, STEP, OBJ, FBX' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:url', content: 'https://faicad.github.io/3d_viewer_electron/' }],
+    ['meta', { property: 'og:url', content: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/' }],
     ['meta', { name: 'robots', content: 'index, follow' }],
-    ['link', { rel: 'canonical', href: 'https://faicad.github.io/3d_viewer_electron/' }],
+    ['link', { rel: 'canonical', href: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/' }],
     ['style', {}, '.VPNavBarTranslations,.VPNavScreenTranslations{display:none!important}'],
   ],
 
@@ -179,7 +186,7 @@ export default defineConfig({
   cleanUrls: true,
 
   sitemap: {
-    hostname: 'https://faicad.github.io/3d_viewer_electron/',
+    hostname: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/',
   },
 
   themeConfig: {
@@ -188,16 +195,16 @@ export default defineConfig({
 
     search: { provider: 'local' },
 
-    nav: nav('en'),
-    sidebar: sidebar('en'),
-    docFooter: { prev: 'Previous page', next: 'Next page' },
-    outline: { label: 'On this page' },
-    lastUpdated: { text: 'Last updated' },
-    darkModeSwitchLabel: 'Appearance',
-    sidebarMenuLabel: 'Menu',
-    returnToTopLabel: 'Return to top',
-    langMenuLabel: 'Language',
-    lightModeSwitchTitle: 'Switch to light mode',
-    darkModeSwitchTitle: 'Switch to dark mode',
+    nav: nav(ROOT_LOCALE),
+    sidebar: sidebar(ROOT_LOCALE),
+    docFooter: defaultUI.docFooter,
+    outline: { label: defaultUI.outline },
+    lastUpdated: { text: defaultUI.lastUpdated },
+    darkModeSwitchLabel: defaultUI.darkModeSwitch,
+    sidebarMenuLabel: defaultUI.sidebarMenu,
+    returnToTopLabel: defaultUI.returnToTop,
+    langMenuLabel: defaultUI.langMenu,
+    lightModeSwitchTitle: defaultUI.lightModeSwitchTitle,
+    darkModeSwitchTitle: defaultUI.darkModeSwitchTitle,
   },
 })
