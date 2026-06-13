@@ -22,3 +22,8 @@ export function isSoftwareGpu(): boolean {
 export function isLinuxCI(): boolean {
   return process.env.CI === 'true' && process.platform === 'linux'
 }
+
+/** Returns true when running on GitHub Actions macOS CI. */
+export function isMacOSCI(): boolean {
+  return process.env.CI === 'true' && process.platform === 'darwin'
+}
