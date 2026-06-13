@@ -54,8 +54,8 @@ test.describe('lazy material appearance', () => {
     await materialMgmtBtn.waitFor({ state: 'visible', timeout: 5000 })
     await materialMgmtBtn.click()
 
-    // ── Filament (灯丝): emissiveIntensity should be 25 ──
-    await page.getByRole('cell', { name: '灯丝' }).click()
+    // ── Filament: emissiveIntensity should be 25 ──
+    await page.getByRole('cell', { name: 'lamp filament' }).click()
 
     const filamentData = await page.evaluate(() => {
       const ms = (window as any).__materialStore?.getState()
@@ -73,8 +73,8 @@ test.describe('lazy material appearance', () => {
       return s?.materialEditorVisible === false
     }, { timeout: 5000 })
 
-    // ── Bulb (灯泡): transmission should be 1 ──
-    await page.getByRole('cell', { name: '灯泡' }).click()
+    // ── Glass: transmission should be 1 ──
+    await page.getByRole('cell', { name: 'lamp glass' }).click()
 
     const bulbData = await page.evaluate(() => {
       const ms = (window as any).__materialStore?.getState()
