@@ -24,6 +24,7 @@ import { createCheckerTexture } from '@/engine/material/checkerTexture'
 import { computePlateLayout } from '@/engine/heatbed'
 import type { PlateLayoutEntry } from '@/engine/heatbed'
 import { computeViewDelta } from '@/lib/bambu-3mf/viewTransforms'
+import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 
 // ---- types ----
 
@@ -319,7 +320,9 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           const partInfos: GlbPartInfo[] = []
           const bambuMeta = result.bambuMetadata
           const currentViewMode = viewMode
+          const _matCache = new Map<THREE.Material, THREE.Material | THREE.Material[] | null>()
 
+          resetYieldTimer()
           for (let i = 0; i < meshes.length; i++) {
             const src = meshes[i]
             const geo = cloneMeshGeometry(src)
@@ -348,8 +351,14 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             // MeshStandardMaterial compiles the correct shader variant.
             const hasSkinning = geo.getAttribute('skinIndex') !== undefined
 
-            geo.computeVertexNormals()
+            if (!geo.getAttribute('normal')) {
+              geo.computeVertexNormals()
+            }
             geo.computeBoundingBox()
+
+            if (i > 0 && i % 30 === 0) {
+              await yieldToUI(true)
+            }
 
             if (geo.boundingBox) {
               overallBox.expandByObject(new THREE.Mesh(geo))
@@ -359,9 +368,17 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             // If the source has only the Three.js default (no file-defined
             // material), treat it as null so the renderer applies its own
             // default material (light blue) instead of the white fallback.
-            const mat = isThreeJsDefaultMaterial(src.material)
+            const mat: THREE.Material | THREE.Material[] | null = isThreeJsDefaultMaterial(src.material)
               ? null
-              : cloneAndConvertMaterial(src.material)
+              : bambuMeta
+                ? cloneAndConvertMaterial(src.material)
+                : (() => {
+                    const cached = _matCache.get(src.material)
+                    if (cached) return cached
+                    const cloned = cloneAndConvertMaterial(src.material)
+                    _matCache.set(src.material, cloned)
+                    return cloned
+                  })()
 
             // Bambu 3MF: apply filament color from metadata
             const partMeta = bambuMeta?.parts[i]
@@ -603,9 +620,11 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
           const finalBox = new THREE.Box3()
           for (const mesh of processed) {
-            const clone = mesh.geometry.clone()
-            clone.translate(mesh.position.x, mesh.position.y, mesh.position.z)
-            finalBox.expandByObject(new THREE.Mesh(clone))
+            const box = mesh.geometry.boundingBox
+            if (box) {
+              finalBox.expandByPoint(box.min.clone().add(mesh.position))
+              finalBox.expandByPoint(box.max.clone().add(mesh.position))
+            }
           }
           onLoadedRef.current?.(finalBox)
           onLoadingPhaseChangeRef.current('done')
@@ -809,7 +828,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
                 material={meshMaterials[i] ?? undefined}
                 morphTargetInfluences={morphInfluenceArrays[i]}
                 castShadow
-                receiveShadow
                 userData={{
                   partId,
                   meshIndex: i,
@@ -851,7 +869,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               material={mat ?? defaultMaterial ?? undefined}
               morphTargetInfluences={morphInfluenceArrays[i]}
               castShadow
-              receiveShadow
               userData={{
                 partId,
                 meshIndex: i,
@@ -896,7 +913,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           visible={mergedVis}
           geometry={mergedGeometry}
           castShadow
-          receiveShadow
           userData={{ partId: mergedPartId }}
         >
           <meshBasicMaterial
@@ -917,7 +933,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         visible={mergedVis}
         geometry={mergedGeometry}
         castShadow
-        receiveShadow
         userData={{ partId: mergedPartId }}
         material={isMeshOnly ? defaultMaterialWireframe : defaultMaterial}
       />

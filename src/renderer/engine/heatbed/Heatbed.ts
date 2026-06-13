@@ -183,6 +183,7 @@ export class Heatbed {
     })
     this.planeMesh = new THREE.Mesh(geometry, this.planeMaterial)
     this.planeMesh.userData.isHeatbed = true
+    this.planeMesh.receiveShadow = true
     this.planeMesh.position.z = GROUND_Z
     this.planeMesh.renderOrder = -1
     this.group.add(this.planeMesh)

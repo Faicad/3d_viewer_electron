@@ -21,8 +21,8 @@ describe('computeShadowFrustum', () => {
       -5, -5, -5, 5, 5, 5,
     ]
     const f = computeShadowFrustum(bbox, lightPos)
-    expect(f.left).toBe(-30)
-    expect(f.right).toBe(30)
+    expect(f.left).toBe(-35)
+    expect(f.right).toBe(35)
   })
 
   it('tightens near/far around the model depth for small models', () => {
@@ -52,8 +52,8 @@ describe('computeShadowFrustum', () => {
       -10, -1, -10, 10, 1, 10,
     ]
     const f = computeShadowFrustum(bbox, lightPos)
-    expect(f.left).toBe(-60)
-    expect(f.right).toBe(60)
+    expect(f.left).toBe(-70)
+    expect(f.right).toBe(70)
     expect(f.far / f.near).toBeLessThan(50)
   })
 
@@ -107,7 +107,7 @@ describe('computeShadowFrustum', () => {
     }
   })
 
-  it('frustum half tracks extent with multiplier ≤ 3 (tight fit)', () => {
+  it('frustum half tracks extent with multiplier ≤ 3.5 (tight fit with margin)', () => {
     const testCases: number[] = [1, 2, 5, 10, 20, 50, 100]
 
     for (const extent of testCases) {
@@ -117,7 +117,7 @@ describe('computeShadowFrustum', () => {
       ]
       const f = computeShadowFrustum(bbox, lightPos)
       const half = f.right
-      // half should be at most 3× extent for the non-minimum case
+      // half is 3.5× extent for non-minimum models, safely within ≤ 4
       const ratio = half / extent
       expect(ratio, `extent=${extent}: half/extent ratio ${ratio.toFixed(2)} > 4`).toBeLessThanOrEqual(4)
     }

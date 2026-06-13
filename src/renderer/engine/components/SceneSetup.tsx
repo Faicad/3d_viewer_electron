@@ -139,7 +139,8 @@ export default function SceneSetup() {
     // is captured, so we read current values directly.
     const s = useEngineStore.getState()
     if (s.modelBbox) floor.configure(s.modelBbox, activeUpAxis)
-    floor.setEnabled(s.shadowFloorEnabled)
+    // Shadow floor is only visible when enabled AND heatbed is not shown
+    floor.setEnabled(s.shadowFloorEnabled && !s.showHeatbed)
     floor.setOpacity(s.shadowOpacity)
 
     return () => { scene.remove(floor.group); floor.dispose(); shadowFloorRef.current = null }
@@ -170,8 +171,12 @@ export default function SceneSetup() {
   }, [])
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state, prevState) => {
-      if (state.shadowFloorEnabled === prevState.shadowFloorEnabled) return
-      shadowFloorRef.current?.setEnabled(state.shadowFloorEnabled)
+      if (state.shadowFloorEnabled === prevState.shadowFloorEnabled &&
+          state.showHeatbed === prevState.showHeatbed) return
+      // Shadow floor is only visible when enabled AND heatbed is NOT shown.
+      // When heatbed is visible, shadows fall on the heatbed surface instead.
+      const effective = state.shadowFloorEnabled && !state.showHeatbed
+      shadowFloorRef.current?.setEnabled(effective)
     })
     return unsub
   }, [])
@@ -337,6 +342,12 @@ export default function SceneSetup() {
         hb.setVisible(state.showHeatbed)
       }
       singleHeatbedRef.current?.setVisible(state.showHeatbed)
+      // Heatbed and shadow floor are mutually exclusive:
+      // when heatbed is visible, shadows fall on the heatbed surface;
+      // when hidden, the shadow floor takes over (if enabled).
+      shadowFloorRef.current?.setEnabled(
+        useEngineStore.getState().shadowFloorEnabled && !state.showHeatbed,
+      )
     })
     return unsub
   }, [])
@@ -391,10 +402,47 @@ export default function SceneSetup() {
       light.shadow.camera.bottom = f.bottom
       light.shadow.camera.near = f.near
       light.shadow.camera.far = f.far
+      // R3F's `up` prop on <directionalLight> sets Object3D.up, NOT
+      // shadow.camera.up. Without this, the shadow camera always uses
+      // the Three.js default (0,1,0), which produces wrong shadow
+      // orientation in Z-up scenes.
+      light.shadow.camera.up.set(
+        0,
+        useModelStore.getState().activeUpAxis === 'y' ? 1 : 0,
+        useModelStore.getState().activeUpAxis === 'z' ? 1 : 0,
+      )
+      // Dynamic shadow bias: scale with frustum texel size so bias works
+      // consistently across tiny (0.1 m GLB) and large (100 mm STL) models.
+      const mapSize = light.shadow.mapSize.width
+      const texelSize = (2 * f.right) / mapSize // f.right === half
+      light.shadow.bias = -(Math.max(texelSize * 1.5, 0.0005))
       light.shadow.camera.updateProjectionMatrix()
     })
     return unsub
   }, [])
+
+  // Recompute shadow frustum when up-axis changes (light position changes with it)
+  useEffect(() => {
+    const light = dirLightRef.current
+    const bbox = useEngineStore.getState().modelBbox
+    if (!bbox || !light) return
+    const f = computeShadowFrustum(bbox, light.position)
+    light.shadow.camera.left = f.left
+    light.shadow.camera.right = f.right
+    light.shadow.camera.top = f.top
+    light.shadow.camera.bottom = f.bottom
+    light.shadow.camera.near = f.near
+    light.shadow.camera.far = f.far
+    light.shadow.camera.up.set(
+      0,
+      activeUpAxis === 'y' ? 1 : 0,
+      activeUpAxis === 'z' ? 1 : 0,
+    )
+    const mapSize = light.shadow.mapSize.width
+    const texelSize = (2 * f.right) / mapSize
+    light.shadow.bias = -(Math.max(texelSize * 1.5, 0.0005))
+    light.shadow.camera.updateProjectionMatrix()
+  }, [activeUpAxis])
 
   // Shadow softness: maps UI 0–100% to light.shadow.radius (0–5)
   useEffect(() => {
@@ -426,7 +474,10 @@ export default function SceneSetup() {
     <>
       <directionalLight
         ref={dirLightRef}
-        color="#FFFFFF" intensity={0.8} position={[3, -3, 8]} up={activeUpAxis === 'y' ? [0, 1, 0] : [0, 0, 1]}
+        color="#FFFFFF"
+        intensity={0.8}
+        position={activeUpAxis === 'y' ? [3, 8, -3] as const : [3, -3, 8] as const}
+        up={activeUpAxis === 'y' ? [0, 1, 0] : [0, 0, 1]}
         castShadow
         shadow-mapSize-width={4096} shadow-mapSize-height={4096}
         shadow-camera-near={0.5} shadow-camera-far={500}
