@@ -32,10 +32,49 @@ function findFreePort(startPort: number, maxAttempts = 100): Promise<number> {
   })
 }
 
-export async function startServer(preferredPort: number, getWindow: () => BrowserWindow | null): Promise<{ server: http.Server; port: number }> {
-  const port = await findFreePort(preferredPort)
+function tryListen(server: http.Server, port: number, maxAttempts: number): Promise<{ server: http.Server; port: number }> {
+  return new Promise((resolve, reject) => {
+    const attempt = (p: number, remaining: number) => {
+      server.removeAllListeners('error')
+      server.once('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE' && remaining > 0) {
+          server.close(() => attempt(p + 1, remaining - 1))
+        } else {
+          reject(err)
+        }
+      })
+      server.listen(p, () => {
+        resolve({ server, port: p })
+      })
+    }
+    attempt(port, maxAttempts)
+  })
+}
 
-  const server = http.createServer((req, res) => {
+export async function startServer(preferredPort: number, getWindow: () => BrowserWindow | null): Promise<{ server: http.Server; port: number }> {
+  const handler = createRequestHandler(getWindow)
+
+  async function tryStart(port: number, retriesLeft: number): Promise<{ server: http.Server; port: number }> {
+    const server = http.createServer(handler)
+    try {
+      const result = await tryListen(server, port, retriesLeft)
+      console.log(`[Server] AI API server running at http://localhost:${result.port}`)
+      console.log(`[Server] POST http://localhost:${result.port}/api/command`)
+      return result
+    } catch (err) {
+      const nodeErr = err as NodeJS.ErrnoException
+      if (nodeErr.code === 'EADDRINUSE' && retriesLeft > 0) {
+        return tryStart(port + 1, retriesLeft - 1)
+      }
+      throw err
+    }
+  }
+
+  return tryStart(preferredPort, 100)
+}
+
+function createRequestHandler(getWindow: () => BrowserWindow | null) {
+  return (req: http.IncomingMessage, res: http.ServerResponse) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -128,15 +167,7 @@ export async function startServer(preferredPort: number, getWindow: () => Browse
 
     res.writeHead(404)
     res.end('Not found')
-  })
-
-  return new Promise((resolve) => {
-    server.listen(port, () => {
-      console.log(`[Server] AI API server running at http://localhost:${port}`)
-      console.log(`[Server] POST http://localhost:${port}/api/command`)
-      resolve({ server, port })
-    })
-  })
+  }
 }
 
 export function resolveRequest(id: string, data: unknown, error?: string): void {
