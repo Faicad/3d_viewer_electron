@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
+import gsap from 'gsap'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useModelStore } from '@/stores/model-store'
 import type { UnitSystem, FileGroup } from '@/config/file-formats'
@@ -44,29 +45,21 @@ import { toast } from 'sonner'
  *  Camera is positioned in the YZ plane (front-top) looking at origin. */
 const DEFAULT_CAM_POS: [number, number, number] = [0, -6, 4]
 
-/** Triggers CameraAnimator when the user toggles up-axis. The animation rotates
+/** Triggers camera animation when the user toggles up-axis. The animation rotates
  *  the camera around the world X axis so the model appears stationary while the
  *  "up" direction smoothly transitions. Does NOT touch the model at all. */
 function UpAxisAnimator({
   upAxis,
-  animActive,
-  setAnimTarget,
-  setAnimTargetUp,
-  setAnimActive,
+  animateCamera,
 }: {
   upAxis: 'y' | 'z'
-  animActive: boolean
-  setAnimTarget: (pos: THREE.Vector3 | null) => void
-  setAnimTargetUp: (up: THREE.Vector3 | null) => void
-  setAnimActive: (active: boolean) => void
+  animateCamera: (targetPos: THREE.Vector3, targetUp: THREE.Vector3) => void
 }) {
   const { camera } = useThree()
   const prevUpAxis = useRef(upAxis)
 
   useEffect(() => {
     if (prevUpAxis.current === upAxis) return
-    // Wait for any in-progress animation to finish before starting a new one
-    if (animActive) return
 
     const targetUp = upAxis === 'y'
       ? new THREE.Vector3(0, 1, 0)
@@ -88,10 +81,8 @@ function UpAxisAnimator({
       new THREE.Vector3(1, 0, 0), angle,
     )
 
-    setAnimTarget(targetPos)
-    setAnimTargetUp(targetUp)
-    setAnimActive(true)
-  }, [upAxis, animActive, camera, setAnimTarget, setAnimTargetUp, setAnimActive])
+    animateCamera(targetPos, targetUp)
+  }, [upAxis, camera, animateCamera])
 
   return null
 }
@@ -108,54 +99,6 @@ function ModelTransformTracker({ modelGroupMapRef }: { modelGroupMapRef: React.R
       setModelTransform(firstGroup.matrixWorld.clone())
     } else {
       setModelTransform(null)
-    }
-  })
-
-  return null
-}
-
-function CameraAnimator({
-  targetPos,
-  targetUp,
-  controlsRef,
-  active,
-  onDone,
-}: {
-  targetPos: THREE.Vector3 | null
-  targetUp: THREE.Vector3 | null
-  controlsRef: React.RefObject<OrbitControlsImpl | null>
-  active: boolean
-  onDone: () => void
-}) {
-  const { camera } = useThree()
-  const startPos = useRef(new THREE.Vector3())
-  const startUp = useRef(new THREE.Vector3())
-  const elapsed = useRef(0)
-  const duration = 1.0
-
-  useFrame((_, delta) => {
-    if (!active || !targetPos || !targetUp) return
-
-    const controls = controlsRef.current
-    if (!controls) return
-
-    if (elapsed.current === 0) {
-      startPos.current.copy(camera.position)
-      startUp.current.copy(camera.up)
-    }
-
-    elapsed.current += delta
-    let t = Math.min(elapsed.current / duration, 1.0)
-    t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-
-    camera.position.lerpVectors(startPos.current, targetPos, t)
-    camera.up.copy(startUp.current).lerp(targetUp, t).normalize()
-    controls.target.set(0, 0, 0)
-    controls.update()
-
-    if (elapsed.current >= duration) {
-      elapsed.current = 0
-      onDone()
     }
   })
 
@@ -242,14 +185,109 @@ export default function ViewportContainer() {
     return isDark ? '#1a1a2e' : '#EEF3F5'
   }, [theme])
 
-  const [animTarget, setAnimTarget] = useState<THREE.Vector3 | null>(null)
-  const [animTargetUp, setAnimTargetUp] = useState<THREE.Vector3 | null>(null)
-  const [animActive, setAnimActiveState] = useState(false)
+  // ---- camProxy: single proxy for all GSAP camera animations ----
+  const camProxyRef = useRef({ x: 0, y: 0, z: 0, upX: 0, upY: 0, upZ: 0 })
+  const tweenRef = useRef<gsap.core.Tween | null>(null)
+  const [rotating, setRotating] = useState(false)
+  const [isCameraAnimating, setIsCameraAnimating] = useState(false)
+  const [cameraAnimDoneTick, setCameraAnimDoneTick] = useState(0)
+  const modelLoadCompletedRef = useRef(false)
 
-  const setAnimActive = useCallback((active: boolean) => {
-    setAnimActiveState(active)
-    useEngineStore.getState().set__animActive(active)
+  // camProxy initial sync
+  useEffect(() => {
+    const cam = controlsRef.current?.object
+    if (!cam) return
+    const p = camProxyRef.current
+    p.x = cam.position.x; p.y = cam.position.y; p.z = cam.position.z
+    p.upX = cam.up.x; p.upY = cam.up.y; p.upZ = cam.up.z
   }, [])
+
+  // ---- Rotation ----
+  const startRotation = useCallback(() => {
+    gsap.killTweensOf(camProxyRef.current)
+    if (tweenRef.current?.isActive()) return
+    const controls = controlsRef.current
+    if (!controls) return
+    const camera = controls.object
+    const center = controls.target.clone()
+    const radius = camera.position.distanceTo(center)
+    const upAxis = useModelStore.getState().activeUpAxis
+    const dx = camera.position.x - center.x
+    const dy = upAxis === 'z' ? camera.position.y - center.y : camera.position.z - center.z
+    const initialAngle = Math.atan2(dy, dx)
+
+    const proxy = { angle: initialAngle }
+    tweenRef.current = gsap.to(proxy, {
+      angle: initialAngle + Math.PI * 2,
+      duration: 30, repeat: -1, ease: 'none',
+      onUpdate: () => {
+        const { angle } = proxy
+        const p = camProxyRef.current
+        if (upAxis === 'z') {
+          p.x = center.x + radius * Math.cos(angle)
+          p.y = center.y + radius * Math.sin(angle)
+        } else {
+          p.x = center.x + radius * Math.cos(angle)
+          p.z = center.z + radius * Math.sin(angle)
+        }
+        camera.position.set(p.x, p.y, p.z)
+        controls.update()
+      },
+    })
+    setRotating(true)
+  }, [])
+
+  const stopRotation = useCallback(() => {
+    tweenRef.current?.kill()
+    tweenRef.current = null
+    setRotating(false)
+  }, [])
+
+  // ---- Camera fit / upAxis transition (replaces CameraAnimator) ----
+  const animateCamera = useCallback((targetPos: THREE.Vector3, targetUp: THREE.Vector3, onDone?: () => void) => {
+    gsap.killTweensOf(camProxyRef.current)
+    setRotating(false)
+    setIsCameraAnimating(true)
+    useEngineStore.getState().set__animActive(true)
+
+    const p = camProxyRef.current
+    gsap.to(p, {
+      x: targetPos.x, y: targetPos.y, z: targetPos.z,
+      upX: targetUp.x, upY: targetUp.y, upZ: targetUp.z,
+      duration: 1.0, ease: 'power2.inOut',
+      onUpdate: () => {
+        const cam = controlsRef.current!.object
+        cam.position.set(p.x, p.y, p.z)
+        cam.up.set(p.upX, p.upY, p.upZ).normalize()
+        controlsRef.current!.target.set(0, 0, 0)
+        controlsRef.current!.update()
+      },
+      onComplete: () => {
+        setIsCameraAnimating(false)
+        useEngineStore.getState().set__animActive(false)
+        setCameraAnimDoneTick((v) => v + 1)
+        onDone?.()
+      },
+    })
+  }, [])
+
+  // Expose rotation query for getRotate API
+  useEffect(() => {
+    (window as any).__viewerRotating = () => tweenRef.current?.isActive() ?? false
+    return () => { delete (window as any).__viewerRotating }
+  }, [])
+
+  // Listen for startRotate / stopRotate CustomEvent
+  useEffect(() => {
+    window.addEventListener('startRotate', startRotation)
+    window.addEventListener('stopRotate', stopRotation)
+    return () => {
+      window.removeEventListener('startRotate', startRotation)
+      window.removeEventListener('stopRotate', stopRotation)
+      stopRotation()
+    }
+  }, [startRotation, stopRotation])
+
   const pendingBoxRef = useRef<THREE.Box3 | null>(null)
   // Track largest bounding box across all loaded models for multi-file camera fit
   const largestBoxRef = useRef<THREE.Box3 | null>(null)
@@ -475,12 +513,6 @@ export default function ViewportContainer() {
     return selectorRuntime.referenceMap.get(id) ?? null
   }, [selectedReferenceIds, selectorRuntime])
 
-  const handleAnimDone = useCallback(() => {
-    setAnimActive(false)
-    setAnimTarget(null)
-    setAnimTargetUp(null)
-  }, [])
-
   const handleModelError = useCallback((msg: string) => {
     console.error('[ViewportContainer] model load error:', msg)
     toast.error(msg)
@@ -507,6 +539,9 @@ export default function ViewportContainer() {
     if (maxDim === 0) return
 
     const camera = controls.object
+    const targetUp = activeUpAxis === 'y'
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(0, 0, 1)
 
     // Use OrcaSlicer algorithm for perspective camera fit
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -515,12 +550,9 @@ export default function ViewportContainer() {
 
       const result = computeCameraFitTarget(camera, box, viewport, focusTarget, activeUpAxis)
       if (result) {
-        // Don't mutate camera directly — let CameraAnimator lerp to the target
-        setAnimTarget(result.position)
-        setAnimTargetUp(activeUpAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1))
-        setAnimActive(true)
         controls.target.copy(result.target)
         controls.update()
+        animateCamera(result.position, targetUp)
         return
       }
       // Fall through to fallback on compute failure
@@ -543,12 +575,10 @@ export default function ViewportContainer() {
         : new THREE.Vector3(0, -dist * 0.7, dist * 0.6),
     )
 
-    setAnimTarget(pos)
-    setAnimTargetUp(activeUpAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1))
-    setAnimActive(true)
     controls.target.copy(center)
     controls.update()
-  }, [activeUpAxis])
+    animateCamera(pos, targetUp)
+  }, [activeUpAxis, animateCamera])
 
   /** Compute union bounding box of all plates for multi-plate camera fit. */
   function computeMultiPlateBoundingBox(configs: import('@/engine/heatbed').PlateBedConfig[]): THREE.Box3 {
@@ -664,7 +694,53 @@ export default function ViewportContainer() {
     } else {
       applyCameraFit(largestBoxRef.current, controls, 'model')
     }
+    modelLoadCompletedRef.current = true
   }, [applyCameraFit])
+
+  // Auto-rotation after model load: triggered by cameraAnimDoneTick
+  // (animateCamera bumps this on complete, so rotation only starts after fit finishes)
+  useEffect(() => {
+    if (modelLoadCompletedRef.current) {
+      modelLoadCompletedRef.current = false
+      if (useEngineStore.getState().AutoRotate) {
+        const timer = setTimeout(startRotation, 800)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [cameraAnimDoneTick, startRotation])
+
+  // Stop auto-rotation when all files are removed (resetViewer).
+  useEffect(() => {
+    const unsub = useModelStore.subscribe((state, prevState) => {
+      if (state.loadedFiles.length === 0 && prevState.loadedFiles.length > 0) {
+        stopRotation()
+      }
+    })
+    return unsub
+  }, [stopRotation])
+
+  // Input detection: stop auto-rotation on any user interaction
+  useEffect(() => {
+    if (!rotating) return
+
+    const stop = () => {
+      stopRotation()
+      window.dispatchEvent(new CustomEvent('rotateStopped'))
+    }
+
+    const canvas = controlsRef.current?.domElement
+    if (!canvas) return
+
+    canvas.addEventListener('pointerdown', stop)
+    canvas.addEventListener('wheel', stop)
+    window.addEventListener('keydown', stop)
+
+    return () => {
+      canvas.removeEventListener('pointerdown', stop)
+      canvas.removeEventListener('wheel', stop)
+      window.removeEventListener('keydown', stop)
+    }
+  }, [rotating, stopRotation])
 
   // Initialize showHeatbed default when model format changes
   useEffect(() => {
@@ -756,11 +832,9 @@ export default function ViewportContainer() {
     const defaultUp = activeUpAxis === 'y'
       ? new THREE.Vector3(0, 1, 0)
       : new THREE.Vector3(0, 0, 1)
-    setAnimTarget(defaultPos)
-    setAnimTargetUp(defaultUp)
-    setAnimActive(true)
     controls.target.set(0, 0, 0)
     controls.update()
+    animateCamera(defaultPos, defaultUp)
   }, [applyCameraFit])
 
   return (
@@ -797,15 +871,8 @@ export default function ViewportContainer() {
           }
         }}
       >
-        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !animActive && !isObjectDragging} />
-        <UpAxisAnimator upAxis={activeUpAxis} animActive={animActive} setAnimTarget={setAnimTarget} setAnimTargetUp={setAnimTargetUp} setAnimActive={setAnimActive} />
-        <CameraAnimator
-          targetPos={animTarget}
-          targetUp={animTargetUp}
-          controlsRef={controlsRef}
-          active={animActive}
-          onDone={handleAnimDone}
-        />
+        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !isCameraAnimating && !isObjectDragging && !rotating} />
+        <UpAxisAnimator upAxis={activeUpAxis} animateCamera={animateCamera} />
         <CameraModeSwitcher />
         <SceneSetup />
         <PostProcessing />

@@ -450,7 +450,8 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
         return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success' }
       }
       case 'loadModel': {
-        const { url, data } = params as { url?: string; data?: string }
+        const { url, data, AutoRotate } = params as { url?: string; data?: string; AutoRotate?: boolean }
+        if (AutoRotate !== undefined) useEngineStore.getState().setAutoRotate(AutoRotate)
         if (!url && !data) throw new Error('Must provide url or data')
         const doLoad = async (): Promise<ApiResponse> => {
           try {
@@ -516,6 +517,18 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
           }
         }
         return doLoad()
+      }
+      case 'startRotate': {
+        window.dispatchEvent(new CustomEvent('startRotate'))
+        return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success', data: { enabled: true } }
+      }
+      case 'stopRotate': {
+        window.dispatchEvent(new CustomEvent('stopRotate'))
+        return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success', data: { enabled: false } }
+      }
+      case 'getRotate': {
+        const enabled = !!(window as any).__viewerRotating?.()
+        return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success', data: { enabled } }
       }
       case 'resetViewer': {
         useModelStore.getState().reset()

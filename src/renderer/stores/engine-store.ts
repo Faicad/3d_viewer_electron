@@ -91,6 +91,12 @@ interface EngineStore {
   setModelBbox: (b: [number, number, number, number, number, number] | null) => void
 
   // ---------------------------------------------------------------------------
+  // Auto-rotation
+  // ---------------------------------------------------------------------------
+  AutoRotate: boolean
+  setAutoRotate: (v: boolean) => void
+
+  // ---------------------------------------------------------------------------
   // Heatbed
   // ---------------------------------------------------------------------------
   showHeatbed: boolean
@@ -229,6 +235,9 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
 
   viewMode: 'print',
   setViewMode: (v) => set({ viewMode: v }),
+
+  AutoRotate: true,
+  setAutoRotate: (v) => set({ AutoRotate: v }),
 
   __animActive: false,
   set__animActive: (v) => set({ __animActive: v }),
