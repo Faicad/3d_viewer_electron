@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Bomb,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -988,6 +988,25 @@ export default function DesktopLayout() {
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
+        </Tooltip>
+        </>)}
+        {!isSvgMode && (<>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!activeTool}
+              onClick={() => {
+                window.__demoGSAPExplode?.()
+              }}
+              aria-label={t('toolbar.explosion')}
+              data-testid="toolbar-explosion"
+            >
+              <Bomb className="toolbar-icon h-4 w-4 text-red-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.explosion')}</TooltipContent>
         </Tooltip>
         </>)}
 

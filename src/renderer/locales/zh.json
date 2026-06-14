@@ -23,6 +23,7 @@
   "toolbar.cache": "缓存",
   "toolbar.materialEditor": "材质管理",
   "toolbar.animationPlayer": "播放动画",
+  "toolbar.explosion": "爆炸动画",
   "toolbar.leftPanel": "切换左侧面板",
   "toolbar.rightPanel": "切换右侧面板",
   "toolbar.export": "导出",

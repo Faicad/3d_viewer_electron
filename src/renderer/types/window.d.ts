@@ -4,6 +4,7 @@ import type { useModelStore } from '@/stores/model-store'
 import type { useAnimationStore } from '@/stores/animation-store'
 import type { useMaterialStore } from '@/stores/material-store'
 import type { useSvgWorkspaceStore, parseSvgViewBox as ParseSvgViewBox, parseSvgLayers as ParseSvgLayers } from '@/stores/svg-workspace-store'
+import type { ViewerAPI, AIInjection } from '@/ai-injection/types'
 
 declare global {
   interface Window {
@@ -27,6 +28,16 @@ declare global {
     __gpuInfo?: { detected: boolean; isSoftware: boolean; vendor?: string; renderer?: string; reason?: string }
     /** E2E export helper: exports all scene meshes as binary STL, returns base64. */
     __exportSceneToStlBase64: () => Promise<{ data: string; byteLength: number }>
+    /** AI code injection — 3D scene bridge for AI-generated code */
+    __viewerAPI?: ViewerAPI
+    __aiInjection?: AIInjection
+    viewerAPI?: ViewerAPI
+    /** GSAP library exposed for AI-injected code */
+    __gsap?: unknown
+    /** THREE.js exposed for AI-injected code (math utilities: Vector3, Quaternion, etc.) */
+    __THREE?: unknown
+    /** Dev convenience: trigger GSAP rotate demo via executeCode */
+    __demoGSAPRotate?: () => void
   }
 }
 

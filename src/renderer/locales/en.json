@@ -23,6 +23,7 @@
   "toolbar.cache": "Cache",
   "toolbar.materialEditor": "Material",
   "toolbar.animationPlayer": "Play Animation",
+  "toolbar.explosion": "Explosion",
   "toolbar.leftPanel": "Toggle Left Panel",
   "toolbar.rightPanel": "Toggle Right Panel",
   "toolbar.export": "Export",

@@ -43,6 +43,8 @@ declare global {
       getPendingFilePath: () => Promise<string | null>
       onOpenExternalFile: (callback: (filePath: string) => void) => () => void
       showItemInFolder: (filePath: string) => Promise<void>
+      onAIAction: (callback: (command: any) => void) => () => void
+      postAIResult: (payload: { id: string; data?: unknown; error?: string }) => void
     }
     env: {
       DEV: boolean

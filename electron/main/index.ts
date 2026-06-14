@@ -1,8 +1,11 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog, Menu } from 'electron'
 import { join, extname } from 'path'
 import * as fs from 'fs'
+import http from 'http'
 import { execSync } from 'child_process'
 import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
+import { startServer } from './server'
+import { registerAIHandlers } from './ipc-handlers'
 
 function getGitCommit(): string {
   try {
@@ -47,6 +50,8 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 let mainWindow: BrowserWindow | null = null
+let aiServer: http.Server | null = null
+const AI_SERVER_PORT = parseInt(process.env.AI_PORT || '4274', 10)
 
 function setupProtocol(): void {
   protocol.handle('faicad-viewer', (request) => {
@@ -307,13 +312,21 @@ app.on('open-file', (_event, filePath) => {
 // Store file path passed on startup for later delivery once window is ready
 let pendingFilePath: string | null = null
 
-app.whenReady().then(() => {
+function getMainWindow(): BrowserWindow | null {
+  return mainWindow
+}
+
+app.whenReady().then(async () => {
   console.log('[Main] app ready')
   Menu.setApplicationMenu(null)
   setupProtocol()
   createWindow()
 
-  // Check for file path from command line (Windows: double-click in Explorer)
+  registerAIHandlers()
+  const { server, port } = await startServer(AI_SERVER_PORT, getMainWindow)
+  aiServer = server
+  console.log(`[Main] AI server started on port ${port}`)
+
   const cliPath = extractFilePath(process.argv)
   if (cliPath) {
     pendingFilePath = cliPath
@@ -325,6 +338,14 @@ ipcMain.handle('get-pending-file-path', () => {
   const path = pendingFilePath
   pendingFilePath = null
   return path
+})
+
+app.on('will-quit', () => {
+  if (aiServer) {
+    aiServer.close()
+    aiServer = null
+    console.log('[Server] AI API server stopped')
+  }
 })
 
 app.on('window-all-closed', () => {

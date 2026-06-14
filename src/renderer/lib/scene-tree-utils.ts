@@ -43,6 +43,25 @@ export function findFileIdForNode(tree: SceneTreeNode[], nodeId: string): string
   return null
 }
 
+/** Find a node by id in the scene tree (recursive). */
+export function findNodeInTree(nodes: SceneTreeNode[], id: string): SceneTreeNode | null {
+  for (const n of nodes) {
+    if (n.id === id) return n
+    if (n.children) {
+      const found = findNodeInTree(n.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+/** Collect all scoped part IDs under a scene tree node. */
+export function collectPartKeys(node: SceneTreeNode): string[] {
+  if (node.meshIndex !== undefined) return [node.id]
+  if (!node.children) return []
+  return node.children.flatMap(collectPartKeys)
+}
+
 /** Given selected node IDs from the scene tree, return the set of unique file IDs
  *  they belong to. Skips IDs that don't resolve to a file ancestor. */
 export function collectFileIdsFromSelection(

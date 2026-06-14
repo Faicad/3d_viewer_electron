@@ -25,6 +25,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('open-external-file', listener)
     return () => ipcRenderer.removeListener('open-external-file', listener)
   },
+  onAIAction: (callback: (command: any) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, command: any) => callback(command)
+    ipcRenderer.on('ai:command', listener)
+    return () => ipcRenderer.removeListener('ai:command', listener)
+  },
+  postAIResult: (payload: { id: string; data?: unknown; error?: string }) => {
+    ipcRenderer.send('ai:commandResult', payload)
+  },
 })
 
 // Expose build info to renderer
