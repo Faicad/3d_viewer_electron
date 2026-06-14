@@ -1,5 +1,4 @@
 import http from 'http'
-import net from 'net'
 import { BrowserWindow } from 'electron'
 
 const REQUEST_TIMEOUT = 30_000
@@ -11,26 +10,6 @@ interface PendingRequest {
 }
 
 const pendingRequests = new Map<string, PendingRequest>()
-
-function findFreePort(startPort: number, maxAttempts = 100): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer()
-    const tryPort = (port: number, attemptsLeft: number) => {
-      server.on('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'EADDRINUSE' && attemptsLeft > 0) {
-          server.close(() => tryPort(port + 1, attemptsLeft - 1))
-        } else {
-          reject(err)
-        }
-      })
-      server.listen(port, () => {
-        const freePort = (server.address() as net.AddressInfo).port
-        server.close(() => resolve(freePort))
-      })
-    }
-    tryPort(startPort, maxAttempts)
-  })
-}
 
 function tryListen(server: http.Server, port: number, maxAttempts: number): Promise<{ server: http.Server; port: number }> {
   return new Promise((resolve, reject) => {
