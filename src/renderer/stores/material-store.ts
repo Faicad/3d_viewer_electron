@@ -28,8 +28,10 @@ interface MaterialStore {
   // ---- 材质覆盖数据 ----
   materialOverrides: Record<string, MaterialAppearance>
 
-  // ---- 编辑上下文 ----
-  editingOverrideKeys: string[]
+  // ---- 编辑上下文（三种模式互斥） ----
+  editingOverrideKey: string           // 单一编辑目标 key
+  editingFanoutKeys: string[]          // apply 时需要写入的 key 列表
+  isEditingMaterialDefinition: boolean  // true = 编辑 GLB 预定义材质
 
   // ---- 全局开关 ----
   overrideMaterial: boolean
@@ -74,14 +76,14 @@ interface MaterialStore {
   removeMaterialOverride: (fileId: string, partId: string) => void
   clearAllOverrides: () => void
 
-  setEditingOverrideKeys: (keys: string[]) => void
+  setEditingOverrideKey: (key: string) => void
   setOverrideMaterial: (enabled: boolean) => void
 
   copyMaterialToClipboard: (appearance: MaterialAppearance) => void
   pasteMaterialFromClipboard: (fileId: string, partId: string) => void
   clearClipboard: () => void
 
-  openMaterialEditor: (keys: string[], title: string) => void
+  openMaterialEditor: (primaryKey: string, fanoutKeys: string[], title: string, isMaterialDef: boolean) => void
   openDefaultMaterialEditor: () => void
   closeMaterialEditor: () => void
   setMaterialEditorPosition: (pos: { x: number; y: number }) => void
@@ -103,7 +105,9 @@ interface MaterialStore {
 export const useMaterialStore = create<MaterialStore>((set, get) => ({
   materialOverrides: {},
 
-  editingOverrideKeys: [],
+  editingOverrideKey: '',
+  editingFanoutKeys: [],
+  isEditingMaterialDefinition: false,
 
   overrideMaterial: true,
 
@@ -163,7 +167,7 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
   clearAllOverrides: () =>
     set({ materialOverrides: {}, overridePresetRefs: {} }),
 
-  setEditingOverrideKeys: (keys) => set({ editingOverrideKeys: keys }),
+  setEditingOverrideKey: (key) => set({ editingOverrideKey: key }),
 
   setOverrideMaterial: (enabled) => set({ overrideMaterial: enabled }),
 
@@ -181,24 +185,42 @@ export const useMaterialStore = create<MaterialStore>((set, get) => ({
 
   clearClipboard: () => set({ materialClipboard: null }),
 
-  openMaterialEditor: (keys, title) => {
+  openMaterialEditor: (primaryKey, fanoutKeys, title, isMaterialDef) => {
     // Ensure material appearance data is available before the editor mounts.
     // MaterialEditor uses useState(appearance) which only consumes the initial
     // value on mount — data must be in the store before set() triggers render.
-    const primaryKey = keys[0]
     if (primaryKey) {
       const idx = primaryKey.indexOf(':')
       if (idx > 0) {
         get().ensureAppearance(primaryKey.slice(0, idx), primaryKey.slice(idx + 1))
       }
     }
-    set({ materialEditorVisible: true, editingOverrideKeys: keys, materialEditorTitle: title, isEditingDefault: false })
+    set({
+      materialEditorVisible: true,
+      editingOverrideKey: primaryKey,
+      editingFanoutKeys: fanoutKeys,
+      materialEditorTitle: title,
+      isEditingMaterialDefinition: isMaterialDef,
+      isEditingDefault: false,
+    })
   },
 
   openDefaultMaterialEditor: () =>
-    set({ materialEditorVisible: true, editingOverrideKeys: [], materialEditorTitle: '', isEditingDefault: true }),
+    set({
+      materialEditorVisible: true,
+      editingOverrideKey: '',
+      editingFanoutKeys: [],
+      materialEditorTitle: '',
+      isEditingMaterialDefinition: false,
+      isEditingDefault: true,
+    }),
 
-  closeMaterialEditor: () => set({ materialEditorVisible: false, isEditingDefault: false }),
+  closeMaterialEditor: () =>
+    set({
+      materialEditorVisible: false,
+      isEditingDefault: false,
+      isEditingMaterialDefinition: false,
+    }),
 
   setDefaultMaterial: (appearance) => {
     set({ defaultMaterial: appearance })

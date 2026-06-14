@@ -59,7 +59,7 @@ test.describe('lazy material appearance', () => {
 
     const filamentData = await page.evaluate(() => {
       const ms = (window as any).__materialStore?.getState()
-      const primary = ms?.editingOverrideKeys?.[0] ?? ''
+      const primary = ms?.editingOverrideKey ?? ''
       const orig = ms?.materialOriginals?.[primary]
       return { primary, emissiveIntensity: orig?.emissiveIntensity }
     })
@@ -78,7 +78,7 @@ test.describe('lazy material appearance', () => {
 
     const bulbData = await page.evaluate(() => {
       const ms = (window as any).__materialStore?.getState()
-      const primary = ms?.editingOverrideKeys?.[0] ?? ''
+      const primary = ms?.editingOverrideKey ?? ''
       const orig = ms?.materialOriginals?.[primary]
       return { primary, transmission: orig?.transmission }
     })

@@ -105,12 +105,14 @@ function GlbExtensionPanelInner({ data, position, onClose, onPositionChange }: {
     const modelStore = useModelStore.getState()
     const partIds = modelStore.getPartIdsByMaterial(fileId, matIndex)
     if (partIds.length === 0) return
+
+    // Editing a GLB material definition — not a specific mesh.
+    // primaryKey = first mesh key (for appearance lookup only)
+    // fanoutKeys = all meshes using this material (apply writes to all)
     const file = modelStore.loadedFiles.find((f) => f.id === fileId)
     const fileName = file?.fileName?.replace(/\.[^.]+$/, '') || fileId
-    // partIds from getPartIdsByMaterial are already scoped (e.g. "uuid:o1")
-    const keys = partIds
     const title = `${matName} / ${fileName}`
-    useMaterialStore.getState().openMaterialEditor(keys, title)
+    useMaterialStore.getState().openMaterialEditor(partIds[0], partIds, title, true)
   }, [])
 
   const downloadTexture = useCallback((texIndex: number, name: string, mimeType: string, previewUrl: string) => {

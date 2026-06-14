@@ -308,7 +308,7 @@ export default function ViewportContainer() {
   const textureThumbnails = useMaterialStore((s) => s.textureThumbnails)
   const materialOverrides = useMaterialStore((s) => s.materialOverrides)
   const materialOriginals = useMaterialStore((s) => s.materialOriginals)
-  const editingOverrideKeys = useMaterialStore((s) => s.editingOverrideKeys)
+  const editingOverrideKey = useMaterialStore((s) => s.editingOverrideKey)
 
   // Auto-switch to solid mode when MaterialEditor opens
   const materialEditorVisible = useMaterialStore((s) => s.materialEditorVisible)
@@ -337,7 +337,7 @@ export default function ViewportContainer() {
     setCheckerEnabled(false)
     setSwappedDataUri(dataUri)
 
-    const primaryKey = editingOverrideKeys[0]
+    const primaryKey = editingOverrideKey
     if (!primaryKey) return
     const { fileId, partId } = (() => {
       const idx = primaryKey.indexOf(':')
@@ -360,7 +360,7 @@ export default function ViewportContainer() {
     const updated = { ...base }
     ;(updated as Record<string, unknown>)[slot] = dataUri
     store.setMaterialOverride(fileId, partId, updated)
-  }, [editingOverrideKeys])
+  }, [editingOverrideKey])
 
   // Compute the effective texture source for the preview dialog.
   // Material appearance data is guaranteed to exist because openMaterialEditor
@@ -370,7 +370,7 @@ export default function ViewportContainer() {
     if (!texturePreviewSlot) return ''
     if (checkerEnabled) return getCheckerDataUri()
     if (swappedDataUri) return swappedDataUri
-    const primaryKey = editingOverrideKeys[0]
+    const primaryKey = editingOverrideKey
     if (!primaryKey) {
       const thumbs = primaryKey ? textureThumbnails[primaryKey] : undefined
       return thumbs?.[texturePreviewSlot] ?? ''
@@ -385,7 +385,7 @@ export default function ViewportContainer() {
     // Fall back to thumbnail
     const thumbs = textureThumbnails[primaryKey]
     return thumbs?.[texturePreviewSlot] ?? ''
-  }, [texturePreviewSlot, checkerEnabled, swappedDataUri, editingOverrideKeys, materialOverrides, materialOriginals, textureThumbnails])
+  }, [texturePreviewSlot, checkerEnabled, swappedDataUri, editingOverrideKey, materialOverrides, materialOriginals, textureThumbnails])
 
   const handleDisplayModeChange = useCallback((mode: DisplayMode) => {
     const isWireframeOrMesh = mode === 'wireframe' || mode === 'mesh'

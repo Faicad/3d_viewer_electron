@@ -8,7 +8,9 @@ import { MaterialFactory } from '@/engine/material/MaterialFactory'
 function reset() {
   useMaterialStore.setState({
     materialOverrides: {},
-    editingOverrideKeys: [],
+    editingOverrideKey: '',
+    editingFanoutKeys: [],
+    isEditingMaterialDefinition: false,
     overrideMaterial: true,
     overridePresetRefs: {},
     materialClipboard: null,
@@ -145,9 +147,10 @@ describe('material-store', () => {
   describe('editor state', () => {
     it('opens and closes', () => {
       reset()
-      useMaterialStore.getState().openMaterialEditor(['f1:p1'], 'Test / p1')
+      useMaterialStore.getState().openMaterialEditor('f1:p1', ['f1:p1'], 'Test / p1', false)
       expect(useMaterialStore.getState().materialEditorVisible).toBe(true)
-      expect(useMaterialStore.getState().editingOverrideKeys).toEqual(['f1:p1'])
+      expect(useMaterialStore.getState().editingOverrideKey).toBe('f1:p1')
+      expect(useMaterialStore.getState().editingFanoutKeys).toEqual(['f1:p1'])
 
       useMaterialStore.getState().closeMaterialEditor()
       expect(useMaterialStore.getState().materialEditorVisible).toBe(false)
@@ -157,6 +160,65 @@ describe('material-store', () => {
       reset()
       useMaterialStore.getState().setMaterialEditorPosition({ x: 200, y: 300 })
       expect(useMaterialStore.getState().materialEditorPosition).toEqual({ x: 200, y: 300 })
+    })
+  })
+
+  describe('three-mode mutual exclusion', () => {
+    it('openMaterialEditor with isMaterialDef=true sets flags', () => {
+      reset()
+      useMaterialStore.getState().openMaterialEditor('f1:p1', ['f1:p1', 'f1:p2'], 'mat / f1', true)
+      const s = useMaterialStore.getState()
+      expect(s.materialEditorVisible).toBe(true)
+      expect(s.editingOverrideKey).toBe('f1:p1')
+      expect(s.editingFanoutKeys).toEqual(['f1:p1', 'f1:p2'])
+      expect(s.isEditingMaterialDefinition).toBe(true)
+      expect(s.isEditingDefault).toBe(false)
+    })
+
+    it('openDefaultMaterialEditor resets all mesh/GLB fields', () => {
+      // Start from mesh editing state
+      reset()
+      useMaterialStore.getState().openMaterialEditor('f1:p1', ['f1:p1'], 'Test', false)
+      // Now open default editor — must replace
+      useMaterialStore.getState().openDefaultMaterialEditor()
+      const s = useMaterialStore.getState()
+      expect(s.materialEditorVisible).toBe(true)
+      expect(s.isEditingDefault).toBe(true)
+      expect(s.isEditingMaterialDefinition).toBe(false)
+      expect(s.editingOverrideKey).toBe('')
+      expect(s.editingFanoutKeys).toEqual([])
+    })
+
+    it('openMaterialEditor replaces default material editor', () => {
+      reset()
+      useMaterialStore.getState().openDefaultMaterialEditor()
+      // Now open mesh editor — must replace default
+      useMaterialStore.getState().openMaterialEditor('f1:p1', ['f1:p1'], 'Test', false)
+      const s = useMaterialStore.getState()
+      expect(s.isEditingDefault).toBe(false)
+      expect(s.editingOverrideKey).toBe('f1:p1')
+      expect(s.materialEditorVisible).toBe(true)
+    })
+
+    it('closeMaterialEditor clears isEditingMaterialDefinition', () => {
+      reset()
+      useMaterialStore.getState().openMaterialEditor('f1:p1', ['f1:p1'], 'Test', true)
+      useMaterialStore.getState().closeMaterialEditor()
+      const s = useMaterialStore.getState()
+      expect(s.materialEditorVisible).toBe(false)
+      expect(s.isEditingDefault).toBe(false)
+      expect(s.isEditingMaterialDefinition).toBe(false)
+    })
+
+    it('openMaterialEditor calls ensureAppearance before setting state', () => {
+      // ensureAppearance is called synchronously inside openMaterialEditor.
+      // If primaryKey is empty or has no ':', ensureAppearance is skipped.
+      reset()
+      // Key without fileId prefix — ensureAppearance should be skipped gracefully
+      useMaterialStore.getState().openMaterialEditor('noprefix', ['noprefix'], 'Test', false)
+      const s = useMaterialStore.getState()
+      expect(s.editingOverrideKey).toBe('noprefix')
+      expect(s.materialEditorVisible).toBe(true)
     })
   })
 
@@ -582,7 +644,8 @@ describe('material-store', () => {
       const s = useMaterialStore.getState()
       expect(s.isEditingDefault).toBe(true)
       expect(s.materialEditorVisible).toBe(true)
-      expect(s.editingOverrideKeys).toEqual([])
+      expect(s.editingOverrideKey).toBe('')
+      expect(s.editingFanoutKeys).toEqual([])
     })
 
     it('closeMaterialEditor clears isEditingDefault', () => {

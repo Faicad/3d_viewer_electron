@@ -175,10 +175,10 @@ interface MaterialEditorInnerProps {
   appearance: MaterialAppearance | undefined
   activePresetId: string | null
   primaryKey: string
-  editingKeys: string[]
+  editingFanoutKeys: string[]
   isEditingDefault: boolean
+  isEditingMaterialDefinition: boolean
   disabled: boolean
-  multiEdit: boolean
   title: string
   position: { x: number; y: number }
   onClose: () => void
@@ -189,10 +189,10 @@ function MaterialEditorInner({
   appearance,
   activePresetId,
   primaryKey,
-  editingKeys,
+  editingFanoutKeys,
   isEditingDefault,
+  isEditingMaterialDefinition,
   disabled,
-  multiEdit,
   title,
   position,
   onClose,
@@ -217,7 +217,6 @@ function MaterialEditorInner({
     useMaterialStore.getState().openTexturePreview(slot, t(labelKey))
   }, [t])
 
-  const setOverride = useMaterialStore((s) => s.setMaterialOverride)
   const setOverrideBatch = useMaterialStore((s) => s.setMaterialOverrideBatch)
   const setDefaultMaterial = useMaterialStore((s) => s.setDefaultMaterial)
   const viewingOriginal = useMaterialStore((s) => s.viewingOriginal)
@@ -249,17 +248,12 @@ function MaterialEditorInner({
 
       if (isEditingDefault) {
         setDefaultMaterial(next)
-      } else if (editingKeys.length > 0) {
-        for (const key of editingKeys) {
-          const idx = key.indexOf(':')
-          const fileId = key.slice(0, idx)
-          const partId = key.slice(idx + 1)
-          setOverride(fileId, partId, next)
-        }
+      } else {
+        setOverrideBatch(editingFanoutKeys, next)
       }
       return next
     })
-  }, [primaryKey, editingKeys, setOverride, isEditingDefault, setDefaultMaterial])
+  }, [primaryKey, editingFanoutKeys, setOverrideBatch, isEditingDefault, setDefaultMaterial])
 
   // Preset selection
   const handlePresetChange = useCallback((presetId: string) => {
@@ -276,17 +270,17 @@ function MaterialEditorInner({
 
     if (isEditingDefault) {
       setDefaultMaterial(preset)
-    } else if (editingKeys.length > 0) {
-      setOverrideBatch(editingKeys, preset)
+    } else {
+      setOverrideBatch(editingFanoutKeys, preset)
       useMaterialStore.setState((s) => {
         const nextRefs = { ...s.overridePresetRefs }
-        for (const key of editingKeys) {
+        for (const key of editingFanoutKeys) {
           nextRefs[key] = presetId
         }
         return { overridePresetRefs: nextRefs }
       })
     }
-  }, [editingKeys, setOverrideBatch, isEditingDefault, setDefaultMaterial])
+  }, [editingFanoutKeys, setOverrideBatch, isEditingDefault, setDefaultMaterial])
 
   // A/B toggle: switch between original and modified
   const handleReset = useCallback(() => {
@@ -567,9 +561,9 @@ function MaterialEditorInner({
         >
           {viewingOriginal ? t('materialEditor.restoreModified') : t('materialEditor.restoreOriginal')}
         </button>
-        {multiEdit && (
+        {isEditingMaterialDefinition && editingFanoutKeys.length > 1 && (
           <span className="text-[11px] text-muted-foreground">
-            {t('materialEditor.partsSelected_other', { count: editingKeys.length })}
+            {t('materialEditor.partsSelected_other', { count: editingFanoutKeys.length })}
           </span>
         )}
       </div>
@@ -583,7 +577,9 @@ export default function MaterialEditor() {
   const { t } = useTranslation()
   const visible = useMaterialStore((s) => s.materialEditorVisible)
   const position = useMaterialStore((s) => s.materialEditorPosition)
-  const editingKeys = useMaterialStore((s) => s.editingOverrideKeys)
+  const editingOverrideKey = useMaterialStore((s) => s.editingOverrideKey)
+  const editingFanoutKeys = useMaterialStore((s) => s.editingFanoutKeys)
+  const isEditingMaterialDefinition = useMaterialStore((s) => s.isEditingMaterialDefinition)
   const overrides = useMaterialStore((s) => s.materialOverrides)
   const overrideMaterial = useMaterialStore((s) => s.overrideMaterial)
   const presetRefs = useMaterialStore((s) => s.overridePresetRefs)
@@ -595,18 +591,23 @@ export default function MaterialEditor() {
   const closeEditor = useMaterialStore((s) => s.closeMaterialEditor)
   const setPosition = useMaterialStore((s) => s.setMaterialEditorPosition)
 
-  // Resolve effective appearance from the first editing key (or default material)
-  const primaryKey = editingKeys[0] ?? ''
+  const primaryKey = editingOverrideKey
 
   if (!visible) return null
 
-  const appearance: MaterialAppearance | undefined = isEditingDefault
-    ? (defaultMaterial ?? undefined)
-    : primaryKey ? (overrides[primaryKey] ?? materialOriginals[primaryKey]) : undefined
+  // Resolve effective appearance based on editing mode
+  const appearance: MaterialAppearance | undefined = (() => {
+    if (isEditingDefault) return defaultMaterial ?? undefined
+    if (!primaryKey) return undefined
+    if (isEditingMaterialDefinition) {
+      // GLB material editing — use original, skip per-mesh overrides
+      return materialOriginals[primaryKey]
+    }
+    return overrides[primaryKey] ?? materialOriginals[primaryKey]
+  })()
   const activePresetId = primaryKey ? (presetRefs[primaryKey] ?? null) : null
 
   const disabled = !overrideMaterial
-  const multiEdit = editingKeys.length > 1
   const title = isEditingDefault
     ? t('materialEditor.defaultMaterial')
     : editorTitle || t('materialEditor.defaultMaterial')
@@ -620,10 +621,10 @@ export default function MaterialEditor() {
       appearance={appearance}
       activePresetId={activePresetId}
       primaryKey={primaryKey}
-      editingKeys={editingKeys}
+      editingFanoutKeys={editingFanoutKeys}
       isEditingDefault={isEditingDefault}
+      isEditingMaterialDefinition={isEditingMaterialDefinition}
       disabled={disabled}
-      multiEdit={multiEdit}
       title={title}
       position={position}
       onClose={closeEditor}

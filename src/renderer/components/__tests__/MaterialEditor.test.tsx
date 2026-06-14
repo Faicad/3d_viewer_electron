@@ -41,7 +41,9 @@ const brassMaterial: MaterialAppearance = {
 function resetStore() {
   useMaterialStore.setState({
     materialOverrides: {},
-    editingOverrideKeys: [],
+    editingOverrideKey: '',
+    editingFanoutKeys: [],
+    isEditingMaterialDefinition: false,
     overrideMaterial: true,
     overridePresetRefs: {},
     materialClipboard: null,
@@ -57,8 +59,9 @@ function resetStore() {
 }
 
 function openEditor(fileId: string, partId: string, original: MaterialAppearance) {
+  const key = `${fileId}:${partId}`
   useMaterialStore.getState().setMaterialOriginalsForFile(fileId, { [partId]: { ...original } })
-  useMaterialStore.getState().openMaterialEditor([`${fileId}:${partId}`], `${original.name} / part`)
+  useMaterialStore.getState().openMaterialEditor(key, [key], `${original.name} / part`, false)
 }
 
 // Must import AFTER store setup — MaterialEditor reads store on import

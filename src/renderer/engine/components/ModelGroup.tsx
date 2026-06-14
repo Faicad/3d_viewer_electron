@@ -357,7 +357,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             // View mode delta: reposition mesh for assembly/import view
             if (currentViewMode !== 'print' && bambuMeta) {
               const partInfo = {
-                partId: bambuMeta.parts[i]?.partId ?? (src.userData?.partId || src.name || `part-${i}`),
+                partId: bambuMeta.parts[i]?.partId ?? (src.name || `part-${i}`),
                 meshIndex: i,
                 name: '',
                 triangleCount: 0,
@@ -418,7 +418,9 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               setSkinningFlag(mat, true)
             }
 
-            const rawPartId = src.userData?.partId || src.name || `part-${i}`
+            // Use src.name (stable) instead of src.userData?.partId (mutated on
+            // previous mount in StrictMode, causing double fileId prefix).
+            const rawPartId = src.name || `part-${i}`
             // Scope partId with fileId so that meshes from different files
             // never collide in the selection / highlight / drag / bounding-box
             // system (all of which match by partId across all model groups).

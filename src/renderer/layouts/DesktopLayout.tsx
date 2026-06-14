@@ -46,26 +46,6 @@ import { CacheManager } from '@/components/CacheManager'
 import { findFileIdForNode, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
 
 /** Find the first part node (meshIndex !== undefined) in a scene tree recursively */
-function findFirstPartInTree(node: SceneTreeNode): { partId: string; partName: string } | null {
-  if (node.meshIndex !== undefined) {
-    return { partId: node.id, partName: node.name }
-  }
-  if (node.children) {
-    for (const child of node.children) {
-      const found = findFirstPartInTree(child)
-      if (found) return found
-    }
-  }
-  return null
-}
-
-/** Collect all scoped part IDs under a scene tree node. */
-function collectPartKeys(node: SceneTreeNode): string[] {
-  if (node.meshIndex !== undefined) return [node.id]
-  if (!node.children) return []
-  return node.children.flatMap(collectPartKeys)
-}
-
 /** Find a node by id in the scene tree (recursive). */
 function findNodeInTree(nodes: SceneTreeNode[], id: string): SceneTreeNode | null {
   for (const n of nodes) {
@@ -256,6 +236,11 @@ export default function DesktopLayout() {
   const handlePartContextMenu = useCallback((e: React.MouseEvent, partId: string, fileId: string, nodePathStr?: string) => {
     const materialStore = useMaterialStore.getState()
     const modelStore = useModelStore.getState()
+
+    // Select the right-clicked part so the scene-tree highlight and the
+    // auto-switch editing-target effect stay consistent.
+    useSelectionStore.getState().setSelectedReference(partId, { shiftKey: false })
+
     // In multi-file mode, partId (node.id) is scoped as "fileId:rawPartId".
     // Extract the unscoped partId for material store operations that construct
     // the override key via makeOverrideKey(fileId, rawPartId).
@@ -276,7 +261,7 @@ export default function DesktopLayout() {
           icon: Palette,
           action: () => {
             const key = partId
-            materialStore.openMaterialEditor([key], title)
+            materialStore.openMaterialEditor(key, [key], title, false)
           },
         },
         {
@@ -365,24 +350,13 @@ export default function DesktopLayout() {
     const hasAnims = (file?.animations?.length ?? 0) > 0
     const isBambu3mf = file?.format === '3mf' && file?.bambuMetadata != null
     const currentView = engineStore.viewMode
+
+    // Select the right-clicked file node
+    useSelectionStore.getState().setSelectedReference(`file:${fileId}`, { shiftKey: false })
+
     e.preventDefault()
     e.stopPropagation()
     const items: ContextMenuItemDef[] = []
-    // File-level material editor — collects all part keys under this file
-    const fileNode = modelStore.sceneTree.find(n => n.id === `file:${fileId}`)
-    const allPartKeys = fileNode ? collectPartKeys(fileNode) : []
-    const title = fileNode
-      ? materialEditorTitle(fileNode, modelStore.sceneTree, modelStore.loadedFiles)
-      : (file?.fileName ?? fileId)
-    items.push({
-      label: '编辑材质',
-      icon: Palette,
-      action: () => {
-        useMaterialStore.getState().openMaterialEditor(allPartKeys, title)
-      },
-      disabled: allPartKeys.length === 0,
-    })
-    items.push({ type: 'separator' })
     if (isGlb) {
       items.push({
         label: t('glbExtension.menuTitle'),
@@ -475,25 +449,14 @@ export default function DesktopLayout() {
   const handleNodeContextMenu = useCallback((e: React.MouseEvent, nodeId: string, _fileId: string | undefined, nodePathStr: string) => {
     e.preventDefault()
     e.stopPropagation()
-    const modelStore = useModelStore.getState()
-    const groupNode = findNodeInTree(modelStore.sceneTree, nodeId)
-    const allPartKeys = groupNode ? collectPartKeys(groupNode) : []
-    const title = groupNode
-      ? materialEditorTitle(groupNode, modelStore.sceneTree, modelStore.loadedFiles)
-      : nodePathStr
+
+    // Select the right-clicked node
+    useSelectionStore.getState().setSelectedReference(nodeId, { shiftKey: false })
+
     setCtxMenu({
       x: e.clientX,
       y: e.clientY,
       items: [
-        {
-          label: '编辑材质',
-          icon: Palette,
-          action: () => {
-            useMaterialStore.getState().openMaterialEditor(allPartKeys, title)
-          },
-          disabled: allPartKeys.length === 0,
-        },
-        { type: 'separator' },
         {
           label: 'Copy Node Path',
           icon: Copy,
@@ -519,77 +482,89 @@ export default function DesktopLayout() {
     const modelStore = useModelStore.getState()
     const selectionStore = useSelectionStore.getState()
 
-    // If already open, close it (toggle behavior)
+    // Toggle: if editor is already open, close it
     if (materialStore.materialEditorVisible) {
       materialStore.closeMaterialEditor()
       return
     }
 
-    // Check if something is currently selected
-    const selectedId = selectionStore.selectedReferenceIds[0]
-    if (selectedId) {
-      // Try to find the selected node in the scene tree
+    // Case 1: No files loaded → edit default material
+    if (modelStore.loadedFiles.length === 0) {
+      materialStore.openDefaultMaterialEditor()
+      return
+    }
+
+    // Case 2: Exactly one selection, and it's a mesh node → edit that mesh
+    const selectedIds = selectionStore.selectedReferenceIds
+    if (selectedIds.length === 1) {
+      const selectedId = selectedIds[0]
       const selectedNode = findNodeInTree(modelStore.sceneTree, selectedId)
-      if (selectedNode) {
-        const keys = collectPartKeys(selectedNode)
-        if (keys.length > 0) {
+      if (selectedNode && selectedNode.meshIndex !== undefined) {
+        const fileId = findFileIdForNode(modelStore.sceneTree, selectedId)
+        if (fileId) {
+          const key = selectedId
           const title = materialEditorTitle(selectedNode, modelStore.sceneTree, modelStore.loadedFiles)
-          materialStore.openMaterialEditor(keys, title)
+          materialStore.openMaterialEditor(key, [key], title, false)
           return
         }
       }
     }
 
-    // No valid selection — find first part of first file
-    if (modelStore.loadedFiles.length > 0) {
-      const firstFile = modelStore.loadedFiles[0]
-      const fileNode = modelStore.sceneTree.find(n => n.id === `file:${firstFile.id}`)
-      if (fileNode) {
-        const firstPart = findFirstPartInTree(fileNode)
-        if (firstPart) {
-          const title = `${firstPart.partName} / ${firstFile.fileName}`
-          materialStore.openMaterialEditor([`${firstFile.id}:${firstPart.partId}`], title)
-          return
-        }
-      }
-    }
-
-    // No files loaded — manage default material
-    materialStore.openDefaultMaterialEditor()
+    // Case 3: Otherwise → show hint
+    toast.info('请先选中一个对象')
   }, [])
 
-  // Auto-switch editing target when selection changes while material editor is open
-  const selectedIds = useSelectionStore((s) => s.selectedReferenceIds)
-  const materialEditorVisible = useMaterialStore((s) => s.materialEditorVisible)
-  const prevSelectedRef = useRef<string[]>([])
+  // ---- Auto-switch material editor when selecting a different mesh ----
+  const selectedRefIds = useSelectionStore((s) => s.selectedReferenceIds)
   useEffect(() => {
-    if (!materialEditorVisible) return
-    // Compare by value to avoid reacting to same-selection re-renders
-    const prev = prevSelectedRef.current
-    if (prev.length === selectedIds.length && prev.every((id, i) => id === selectedIds[i])) return
-    prevSelectedRef.current = selectedIds
+    const matStore = useMaterialStore.getState()
 
-    const materialStore = useMaterialStore.getState()
-    if (materialStore.isEditingDefault && selectedIds.length === 0) return
+    // Only auto-switch when editor is open and editing a single mesh
+    // (not default material, not GLB material definition)
+    if (!matStore.materialEditorVisible) return
+    if (matStore.isEditingDefault) return
+    if (matStore.isEditingMaterialDefinition) return
 
-    const selectedId = selectedIds[0]
-    if (!selectedId) return
+    // Only when exactly one node is selected
+    if (selectedRefIds.length !== 1) return
 
+    const newId = selectedRefIds[0]
+    if (newId === matStore.editingOverrideKey) return
+
+    // Must be a mesh node (not file, not group)
     const modelStore = useModelStore.getState()
-    const selectedNode = findNodeInTree(modelStore.sceneTree, selectedId)
-    if (!selectedNode) return
+    const node = findNodeInTree(modelStore.sceneTree, newId)
+    if (!node || node.meshIndex === undefined) return
 
-    const keys = collectPartKeys(selectedNode)
-    if (keys.length === 0) return
+    const fileId = findFileIdForNode(modelStore.sceneTree, newId)
+    if (!fileId) return
 
-    // Build a stable key fingerprint by sorting the collected keys
-    const keyFingerprint = keys.slice().sort().join(',')
-    const currentFingerprint = materialStore.editingOverrideKeys.slice().sort().join(',')
-    if (currentFingerprint === keyFingerprint) return // already editing this set
+    const title = materialEditorTitle(node, modelStore.sceneTree, modelStore.loadedFiles)
+    matStore.openMaterialEditor(newId, [newId], title, false)
+  }, [selectedRefIds])
 
-    const title = materialEditorTitle(selectedNode, modelStore.sceneTree, modelStore.loadedFiles)
-    materialStore.openMaterialEditor(keys, title)
-  }, [selectedIds, materialEditorVisible])
+  // ---- Mutual exclusion: close material panel on model load / file switch ----
+  const loadedFileCount = useModelStore((s) => s.loadedFiles.length)
+  const prevLoadedFileCount = useRef(loadedFileCount)
+  useEffect(() => {
+    // Model loaded while default material editor is open → close it
+    if (prevLoadedFileCount.current === 0 && loadedFileCount > 0) {
+      const matStore = useMaterialStore.getState()
+      if (matStore.isEditingDefault && matStore.materialEditorVisible) {
+        matStore.closeMaterialEditor()
+      }
+    }
+    prevLoadedFileCount.current = loadedFileCount
+  }, [loadedFileCount])
+
+  const activeFileId = useModelStore((s) => s.activeFileId)
+  useEffect(() => {
+    // File switched → close any open material panel
+    const matStore = useMaterialStore.getState()
+    if (matStore.materialEditorVisible) {
+      matStore.closeMaterialEditor()
+    }
+  }, [activeFileId])
 
   useEffect(() => {
     if (!resizing) return
