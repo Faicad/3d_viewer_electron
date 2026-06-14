@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.4.0...v1.5.0) (2026-06-14)
+
+
+### Features
+
+* add Docker setup for VitePress docs site ([54ac292](https://github.com/YOUR_ORG/3d_viewer_electron/commits/54ac292d3596f6a60b7dce4a94a5e4e3142e179c))
+* add model export (STL/GLB) with toolbar button and context menu ([cb3ebe2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cb3ebe29312361e4f94bab9ff7fd82ae253e481a))
+* include git commit hash in version display ([fd71fd6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fd71fd64c1e2d4f5c99a4853588dac5cae0f6720))
+* introduce declarative property-map and MaterialProxy architecture ([fb878e0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fb878e0b4b9b11e08119ef2e8f0194ba1b629275))
+* port SCAD file format (Phase 1) from 3d_viewer_web ([3f4c5c5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3f4c5c55146dc60548ad6d7b807c1a48adb2ad2a))
+
+
+### Bug Fixes
+
+* ensureAppearance in openMaterialEditor, not in consumer components ([11fa36c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/11fa36ccbb8af2b2c54c31b8871d970ec5882d7e))
+* exportModel leaked scene-helper meshes (heatbed + shadow floor) ([b37d333](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b37d3332e96a137a96f95dca41deb65294963e06))
+* Heatbed.setVisible propagates visible to all descendants ([f8d5e8e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f8d5e8edeb3798deb2dfeee62704cad9e7f4f4c0))
+* port 8 shadow system fixes ([86fe802](https://github.com/YOUR_ORG/3d_viewer_electron/commits/86fe8027a84689adeb2131a12fef07a47ff25756))
+* skip shadow pixel-level assertions on macOS CI due to Metal tone-mapping ([51bf273](https://github.com/YOUR_ORG/3d_viewer_electron/commits/51bf273cd40ce91804e551379ad22b47c92f9e02))
+* split install steps in deploy-pages workflow to avoid workspace detection ([c84936c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c84936c5dce30b6a11ec80729398922dfb1322d2))
+* trigger ensureAppearance in openMaterialEditor before first render ([fe4fe25](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fe4fe25cb614d65497c1aa52b288c05628b32b04))
+* upgrade configure-pages to v6 and deploy-pages to v5 to drop Node.js 20 ([d3ce285](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d3ce285113f55240b9cdc661b9acccfc2e70d5ec))
+* use native save dialog to avoid Windows Zone.Identifier on exported files ([a6392b9](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a6392b92ee0e62456b3ff318cc16fa19b9904750))
+* use path.join in readDirectory test for cross-platform path separator ([15750fd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/15750fd90fa5e2803b10e04c055750ed1dd39340))
+
+
+### Performance Improvements
+
+* defer materialToAppearance to on-demand generation ([08db19c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/08db19c2e36fa8775350811583a7fcb9248396b4))
+* limit shadow casters to top-16 meshes by bounding-box volume ([33f5d17](https://github.com/YOUR_ORG/3d_viewer_electron/commits/33f5d17b4d0a85ab9b6eac3c50fa8a393f692782))
+
+
+### Code Refactoring
+
+* unified material editor with three-mode mutual exclusion ([7a81271](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7a812715e01f513edbadb895ed1914babdac9696))
+
 ## [1.4.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.3.0...v1.4.0) (2026-06-09)
 
 
