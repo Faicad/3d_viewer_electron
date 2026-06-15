@@ -1,10 +1,34 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useThemeSync, useLanguageSync } from '@/components/settings/hooks'
+import { useEngineStore } from '@/stores/engine-store'
+import { useUIStore } from '@/stores/ui-store'
 import DesktopLayout from '@/layouts/DesktopLayout'
 
 export default function App() {
   useThemeSync()
   useLanguageSync()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?') + 1))
+    const embed = params.get('embed')
+    if (embed === '1') {
+      const ui = useUIStore.getState()
+      if (ui.rightPanelOpen) ui.toggleRightPanel()
+    }
+    const autoRotate = params.get('autoRotate')
+    if (autoRotate === '0' || autoRotate === 'false') {
+      useEngineStore.getState().setAutoRotate(false)
+    } else if (autoRotate === '1' || autoRotate === 'true') {
+      useEngineStore.getState().setAutoRotate(true)
+    }
+    const movieMode = params.get('movie_mode')
+    if (movieMode === '1') {
+      useEngineStore.getState().setMovieMode(true)
+      useEngineStore.getState().setControlsEnabled(false)
+    }
+  }, [])
+
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/workspace" replace />} />

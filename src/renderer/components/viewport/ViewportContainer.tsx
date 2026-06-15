@@ -162,6 +162,7 @@ export default function ViewportContainer() {
   const modelGroupMapRef = useRef<Map<string, THREE.Group>>(new Map())
   const mainCamera = useEngineStore((s) => s.camera)
   const initShowHeatbed = useEngineStore((s) => s.initShowHeatbed)
+  const controlsEnabled = useEngineStore((s) => s.controlsEnabled)
   const modelBuffer = useModelStore((s) => s.modelBuffer)
   const modelFormat = useModelStore((s) => s.modelFormat)
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
@@ -871,7 +872,7 @@ export default function ViewportContainer() {
           }
         }}
       >
-        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !isCameraAnimating && !isObjectDragging && !rotating} />
+        <OrbitControls ref={controlsRef} makeDefault enableDamping enabled={activeToolMode === 'view' && !isCameraAnimating && !isObjectDragging && !rotating && controlsEnabled} />
         <UpAxisAnimator upAxis={activeUpAxis} animateCamera={animateCamera} />
         <CameraModeSwitcher />
         <SceneSetup />

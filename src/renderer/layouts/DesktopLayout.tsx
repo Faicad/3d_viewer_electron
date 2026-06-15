@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Bomb,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Zap,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -970,13 +970,12 @@ export default function DesktopLayout() {
 
         <Separator orientation="vertical" className="h-5 shrink-0" />
 
-        {!isSvgMode && (<>
+        {!isSvgMode && hasAnimations && (<>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              disabled={!hasAnimations}
               onClick={() => {
                 const file = useModelStore.getState().loadedFiles.find((f) => f.animations?.length)
                 if (file) useModelStore.getState().openAnimDialog(file.id)
@@ -987,7 +986,7 @@ export default function DesktopLayout() {
               <Play className="toolbar-icon h-4 w-4 text-green-500" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent className={cn(!hasAnimations && "bg-muted text-muted-foreground")}>{t('toolbar.animationPlayer')}</TooltipContent>
+          <TooltipContent>{t('toolbar.animationPlayer')}</TooltipContent>
         </Tooltip>
         </>)}
         {!isSvgMode && (<>
@@ -1003,7 +1002,7 @@ export default function DesktopLayout() {
               aria-label={t('toolbar.explosion')}
               data-testid="toolbar-explosion"
             >
-              <Bomb className="toolbar-icon h-4 w-4 text-red-500" />
+              <Zap className="toolbar-icon h-4 w-4 text-red-500" />
             </Button>
           </TooltipTrigger>
           <TooltipContent className={cn(!activeTool && "bg-muted text-muted-foreground")}>{t('toolbar.explosion')}</TooltipContent>

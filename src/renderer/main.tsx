@@ -49,19 +49,63 @@ window.__demoGSAPRotate = () => {
   import('@/ai-injection/demos/gsap-rotate-demo').then(({ buildGSAPRotatePayload }) => {
     const msg = JSON.parse(buildGSAPRotatePayload())
     executeCommand(msg)
+    hideDemoPanelIfMovieMode()
   })
 }
 window.__demoGSAPAssemble = () => {
   import('@/ai-injection/demos/gsap-assemble-demo').then(({ buildGSAPAssemblePayload }) => {
     const msg = JSON.parse(buildGSAPAssemblePayload())
     executeCommand(msg)
+    hideDemoPanelIfMovieMode()
   })
 }
 window.__demoGSAPExplode = () => {
   import('@/ai-injection/demos/gsap-explode-demo').then(({ buildGSAPExplodePayload }) => {
     const msg = JSON.parse(buildGSAPExplodePayload())
     executeCommand(msg)
+    hideDemoPanelIfMovieMode()
   })
+}
+
+// ---- camera animation helper (GSAP proxy pattern) ----
+window.__animateCamera = (opts: { to?: { x: number; y: number; z: number }; factor?: number; duration?: number }): Promise<void> => {
+  return new Promise((resolve) => {
+    const dev = window.__r3f_dev
+    const controls = dev?.controls
+    if (!controls) { resolve(); return }
+    const cam = controls.object
+    const center = controls.target.clone()
+    let targetPos: THREE.Vector3
+    if (opts.to) {
+      targetPos = new THREE.Vector3(opts.to.x, opts.to.y, opts.to.z)
+    } else {
+      const factor = opts.factor ?? 1
+      const dir = cam.position.clone().sub(center).normalize()
+      const dist = cam.position.distanceTo(center)
+      targetPos = center.clone().add(dir.multiplyScalar(dist * factor))
+    }
+    const dur = opts.duration ?? 1
+    const proxy = { x: cam.position.x, y: cam.position.y, z: cam.position.z }
+    gsap.to(proxy, {
+      x: targetPos.x, y: targetPos.y, z: targetPos.z,
+      duration: dur, ease: 'power2.inOut',
+      onUpdate: () => {
+        cam.position.set(proxy.x, proxy.y, proxy.z)
+        controls.update()
+      },
+      onComplete: resolve,
+    })
+  })
+}
+
+function hideDemoPanelIfMovieMode() {
+  if (useEngineStore.getState().movieMode) {
+    const panel = document.getElementById('gsap-panel')
+    if (panel) {
+      panel.style.opacity = '0'
+      panel.style.background = 'rgba(13,13,26,0)'
+    }
+  }
 }
 
 // Suppress console.log/warn/debug/info in production
@@ -226,6 +270,12 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
           dev.controls.update()
         }
         return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success' }
+      }
+      case 'animateCamera': {
+        const to = params.to ? (params.to as { x: number; y: number; z: number }) : undefined
+        return window.__animateCamera({ to, factor: params.factor as number | undefined, duration: params.duration as number | undefined }).then(() => ({
+          type: '3d-viewer', id: msg.id, command: cmd, status: 'success',
+        }))
       }
       case 'zoomToFit': {
         const dev = window.__r3f_dev

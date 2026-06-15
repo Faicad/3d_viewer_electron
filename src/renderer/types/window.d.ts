@@ -34,6 +34,8 @@ declare global {
     viewerAPI?: ViewerAPI
     /** GSAP library exposed for AI-injected code */
     __gsap?: unknown
+    /** Animate camera to absolute position or zoom by factor (GSAP proxy pattern) */
+    __animateCamera: (opts: { to?: { x: number; y: number; z: number }; factor?: number; duration?: number }) => Promise<void>
     /** THREE.js exposed for AI-injected code (math utilities: Vector3, Quaternion, etc.) */
     __THREE?: unknown
     /** Dev convenience: trigger GSAP rotate demo via executeCode */

@@ -1,0 +1,6 @@
+old
+*.webm
+*.wav
+*.glb
+*.mp3
+**/gen/*

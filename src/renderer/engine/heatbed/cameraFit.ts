@@ -126,12 +126,15 @@ export function computeCameraFitTarget(
   box.getCenter(target)
 
   // Step 3: compute camera distance from zoom factor.
-  // OrcaSlicer: visible world-width at m_distance = viewport_w / m_zoom.
-  // Three.js: visible world-width at distance d = 2 * d * tan(fov/2).
-  // Equating: viewport_w / zoom = 2 * d * tan(fov/2) → d = viewport_w / (2 * zoom * tan(fov/2))
+  // Three.js fov = vertical field of view.
+  // Visible world height at distance d = 2 * d * tan(fov/2).
+  // The zoom factor gives the world-space extent fitting the viewport:
+  //   constrained_dim_world = constrained_viewport_dim / zoom
+  // Whichever dimension constrained the zoom, the distance is:
+  //   viewport_h / zoom = 2 * d * tan(fov/2)  →  d = viewport_h / (2 * zoom * tan(fov/2))
   const fovRad = THREE.MathUtils.degToRad(camera.fov)
   const distance = Math.max(
-    viewport.width / (2 * zoom * Math.tan(fovRad / 2)),
+    viewport.height / (2 * zoom * Math.tan(fovRad / 2)),
     camera.near * 10,  // minimum safe distance
   )
 

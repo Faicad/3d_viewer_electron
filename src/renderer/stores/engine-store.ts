@@ -97,6 +97,14 @@ interface EngineStore {
   setAutoRotate: (v: boolean) => void
 
   // ---------------------------------------------------------------------------
+  // Movie mode (set via URL param `movie_mode=1`)
+  // ---------------------------------------------------------------------------
+  movieMode: boolean
+  setMovieMode: (v: boolean) => void
+  controlsEnabled: boolean
+  setControlsEnabled: (v: boolean) => void
+
+  // ---------------------------------------------------------------------------
   // Heatbed
   // ---------------------------------------------------------------------------
   showHeatbed: boolean
@@ -238,6 +246,11 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
 
   AutoRotate: true,
   setAutoRotate: (v) => set({ AutoRotate: v }),
+
+  movieMode: false,
+  setMovieMode: (v) => set({ movieMode: v }),
+  controlsEnabled: true,
+  setControlsEnabled: (v) => set({ controlsEnabled: v }),
 
   __animActive: false,
   set__animActive: (v) => set({ __animActive: v }),
