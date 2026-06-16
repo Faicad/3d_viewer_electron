@@ -3,7 +3,7 @@ import { useModelStore } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { useUIStore } from '@/stores/ui-store'
-import type { ViewerAPI, PartProxy, CameraState, LoadedFileInfo, PartInfo, SceneTreeNodeInfo, ScreenRay, PartTransform, ViewerEvent } from './types'
+import type { ViewerAPI, PartProxy, CameraState, LoadedFileInfo, PartInfo, SceneTreeNodeInfo, ScreenRay, PartTransform } from './types'
 
 // ---- internal helpers ----
 
@@ -226,25 +226,6 @@ function setPartTransform(partId: string, transform: PartTransform): void {
   }
 }
 
-// ---- Events ----
-
-const listeners = new Map<ViewerEvent, Set<() => void>>()
-
-function onViewerEvent(event: ViewerEvent, callback: () => void): () => void {
-  if (!listeners.has(event)) listeners.set(event, new Set())
-  listeners.get(event)!.add(callback)
-  return () => {
-    listeners.get(event)?.delete(callback)
-  }
-}
-
-function emit(event: ViewerEvent): void {
-  const cbs = listeners.get(event)
-  if (cbs) {
-    for (const cb of cbs) cb()
-  }
-}
-
 // ---- Build and register ----
 
 export function createViewerAPI(): ViewerAPI {
@@ -263,36 +244,6 @@ export function createViewerAPI(): ViewerAPI {
     zoomToFit,
     getPartProxy,
     setPartTransform,
-    on: onViewerEvent,
+    on: () => { console.warn('[viewer-api] on() is deprecated, events not supported'); return () => {} },
   }
-}
-
-/** Called by app render loop to drive 'animationTick' and 'cameraChange' events. */
-export function emitViewerEvents(frameCount: number): void {
-  // animationTick: every frame
-  emit('animationTick')
-
-  // cameraChange: throttled to every 10 frames
-  if (frameCount % 10 === 0) {
-    emit('cameraChange')
-  }
-}
-
-// ---- Internal rAF loop for event emission ----
-let _raFId = 0
-let _frameCount = 0
-
-function _tickLoop(): void {
-  _frameCount++
-  emit('animationTick')
-  if (_frameCount % 10 === 0) {
-    emit('cameraChange')
-  }
-  _raFId = requestAnimationFrame(_tickLoop)
-}
-
-/** Start the internal event-emission loop. Called once from registerAIInjection(). */
-export function startEventLoop(): void {
-  if (_raFId) return
-  _raFId = requestAnimationFrame(_tickLoop)
 }

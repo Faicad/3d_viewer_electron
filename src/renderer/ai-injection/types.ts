@@ -84,18 +84,3 @@ export interface PartTransform {
 }
 
 export type ViewerEvent = 'cameraChange' | 'selectionChange' | 'animationTick'
-
-// ---- Injection types ----
-
-export type InjectMode = 'replace' | 'append' | 'clear'
-
-export interface ExecuteCodeParams {
-  html?: string
-  css?: string
-  js?: string
-  mode?: InjectMode
-}
-
-export interface AIInjection {
-  execute(html?: string, css?: string, js?: string, mode?: string): void
-}

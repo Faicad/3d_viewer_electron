@@ -4,7 +4,7 @@ import type { useModelStore } from '@/stores/model-store'
 import type { useAnimationStore } from '@/stores/animation-store'
 import type { useMaterialStore } from '@/stores/material-store'
 import type { useSvgWorkspaceStore, parseSvgViewBox as ParseSvgViewBox, parseSvgLayers as ParseSvgLayers } from '@/stores/svg-workspace-store'
-import type { ViewerAPI, AIInjection } from '@/ai-injection/types'
+import type { ViewerAPI } from '@/ai-injection/types'
 
 declare global {
   interface Window {
@@ -30,7 +30,6 @@ declare global {
     __exportSceneToStlBase64: () => Promise<{ data: string; byteLength: number }>
     /** AI code injection — 3D scene bridge for AI-generated code */
     __viewerAPI?: ViewerAPI
-    __aiInjection?: AIInjection
     viewerAPI?: ViewerAPI
     /** GSAP library exposed for AI-injected code */
     __gsap?: unknown

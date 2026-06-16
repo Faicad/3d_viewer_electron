@@ -45,24 +45,26 @@ if (globalThis.crypto && !globalThis.crypto.randomUUID) {
 window.__gsap = gsap
 window.__THREE = THREE
 
+let _demoCleanup: (() => void) | null = null
+
 window.__demoGSAPRotate = () => {
-  import('@/ai-injection/demos/gsap-rotate-demo').then(({ buildGSAPRotatePayload }) => {
-    const msg = JSON.parse(buildGSAPRotatePayload())
-    executeCommand(msg)
+  _demoCleanup?.()
+  import('@/ai-injection/demos/gsap-rotate-demo').then(({ startRotateDemo }) => {
+    _demoCleanup = startRotateDemo()
     hideDemoPanelIfMovieMode()
   })
 }
 window.__demoGSAPAssemble = () => {
-  import('@/ai-injection/demos/gsap-assemble-demo').then(({ buildGSAPAssemblePayload }) => {
-    const msg = JSON.parse(buildGSAPAssemblePayload())
-    executeCommand(msg)
+  _demoCleanup?.()
+  import('@/ai-injection/demos/gsap-assemble-demo').then(({ startAssembleDemo }) => {
+    _demoCleanup = startAssembleDemo()
     hideDemoPanelIfMovieMode()
   })
 }
 window.__demoGSAPExplode = () => {
-  import('@/ai-injection/demos/gsap-explode-demo').then(({ buildGSAPExplodePayload }) => {
-    const msg = JSON.parse(buildGSAPExplodePayload())
-    executeCommand(msg)
+  _demoCleanup?.()
+  import('@/ai-injection/demos/gsap-explode-demo').then(({ startExplodeDemo }) => {
+    _demoCleanup = startExplodeDemo()
     hideDemoPanelIfMovieMode()
   })
 }
@@ -640,12 +642,6 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
         }
         return doExport()
       }
-      case 'executeCode': {
-        const inj = window.__aiInjection
-        if (!inj) throw new Error('AI injection not available')
-        inj.execute(params.html as string | undefined, params.css as string | undefined, params.js as string | undefined, params.mode as string | undefined)
-        return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success', data: { injected: true, mode: params.mode ?? 'replace' } }
-      }
       default: {
         return { type: '3d-viewer', id: msg.id, command: cmd, status: 'error', error: 'Unknown command: ' + cmd }
       }
@@ -756,17 +752,15 @@ createRoot(document.getElementById('root')!).render(
 // Broadcast viewerReady after initial render
 setTimeout(() => { broadcastEmbedEvent('viewerReady', {}) }, 1000)
 
-// ---- AI Code Injection ----
+// ---- Viewer API ----
 setTimeout(() => {
-  import('@/ai-injection').then(({ registerAIInjection, startEventLoop }) => {
+  import('@/ai-injection').then(({ registerViewerAPI }) => {
     try {
-      registerAIInjection()
-      startEventLoop()
-      console.log('[ai-injection] registered')
+      registerViewerAPI()
     } catch (err) {
-      console.error('[ai-injection] register failed:', err)
+      console.error('[viewer-api] register failed:', err)
     }
   }).catch((err) => {
-    console.error('[ai-injection] module load failed:', err)
+    console.error('[viewer-api] module load failed:', err)
   })
 }, 0)
