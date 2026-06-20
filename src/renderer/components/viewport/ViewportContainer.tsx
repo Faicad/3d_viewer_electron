@@ -810,7 +810,7 @@ export default function ViewportContainer() {
 
   const playEntryAnimationRef = useRef(playEntryAnimation)
 
-  const applyCameraFit = useCallback((box: THREE.Box3, controls: OrbitControlsImpl, focusTarget: 'bed' | 'model' = 'model') => {
+  const applyCameraFit = useCallback((box: THREE.Box3, controls: OrbitControlsImpl, focusTarget: 'bed' | 'model' = 'model', durationMs?: number) => {
     const size = box.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
     if (maxDim === 0) return
@@ -829,7 +829,7 @@ export default function ViewportContainer() {
       if (result) {
         controls.target.copy(result.target)
         controls.update()
-        animateCamera(result.position, targetUp)
+        animateCamera(result.position, targetUp, undefined, durationMs ?? 1000)
         return
       }
       // Fall through to fallback on compute failure

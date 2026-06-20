@@ -188,13 +188,17 @@ test('shadow visibility diagnostic', async () => {
     const ctx = offscreen.getContext('2d')!
     ctx.drawImage(canvas, 0, 0)
 
-    // Background reference: sample corners
-    const cornerPixels: number[] = []
-    for (const [cx, cy] of [[10, 10], [w - 10, 10], [10, h - 10], [w - 10, h - 10]]) {
-      const px = ctx.getImageData(cx, cy, 1, 1).data
-      cornerPixels.push((px[0] + px[1] + px[2]) / 3)
+    // Background reference: sample top-center strip (avoids corners which may contain shadow floor)
+    let bgSum = 0
+    let bgCount = 0
+    for (let x = Math.floor(w * 0.3); x < w * 0.7; x += 4) {
+      for (let y = 5; y < 25; y += 4) {
+        const px = ctx.getImageData(x, y, 1, 1).data
+        bgSum += (px[0] + px[1] + px[2]) / 3
+        bgCount++
+      }
     }
-    const bgBrightness = cornerPixels.reduce((a, b) => a + b, 0) / cornerPixels.length
+    const bgBrightness = bgSum / bgCount
     const threshold = bgBrightness * 0.7
 
     // Dense sampling over the lower-center region
