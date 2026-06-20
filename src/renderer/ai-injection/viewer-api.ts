@@ -8,30 +8,45 @@ import type { ViewerAPI, PartProxy, CameraState, LoadedFileInfo, PartInfo, Scene
 // ---- internal helpers ----
 
 function findMeshInScene(partId: string): THREE.Object3D | null {
+  // Fast path: search current modelGroup (single-file or last-synced file)
   const mg = useEngineStore.getState().modelGroup
-  if (!mg) return null
+  if (mg) {
+    if (partId === '__model__') return mg
+    let found: THREE.Object3D | null = null
+    mg.traverse((child) => {
+      if (found) return
+      if (child instanceof THREE.Mesh && (child as THREE.Mesh).userData?.partId === partId) {
+        found = child
+      }
+    })
+    if (found) return found
+  }
 
-  // Special sentinel: '__model__' returns the model group itself
-  if (partId === '__model__') return mg
-
-  let found: THREE.Object3D | null = null
-  mg.traverse((child) => {
-    if (found) return
-    if (child instanceof THREE.Mesh && (child as THREE.Mesh).userData?.partId === partId) {
-      found = child
+  // Fallback: search all file groups in __modelGroupMap for multi-file scenes
+  const modelGroupMap = (window as any).__modelGroupMap as Map<string, THREE.Group> | undefined
+  if (modelGroupMap) {
+    for (const group of modelGroupMap.values()) {
+      if (partId === '__model__') return group
+      let found: THREE.Object3D | null = null
+      group.traverse((child) => {
+        if (found) return
+        if (child instanceof THREE.Mesh && (child as THREE.Mesh).userData?.partId === partId) {
+          found = child
+        }
+      })
+      if (found) return found
     }
-  })
-  return found
+  }
+
+  return null
 }
 
 function getCamera(): THREE.Camera | null {
-  const dev = window.__r3f_dev
-  return dev?.camera ?? null
+  return window.__r3f_dev?.camera ?? null
 }
 
 function getControls(): import('three-stdlib').OrbitControls | null {
-  const dev = window.__r3f_dev
-  return dev?.controls ?? null
+  return window.__r3f_dev?.controls ?? null
 }
 
 // ---- ViewerAPI implementation ----

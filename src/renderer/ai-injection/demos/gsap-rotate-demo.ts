@@ -4,13 +4,14 @@ export function startRotateDemo(): () => void {
   const api = window.__viewerAPI
 
   if (!gsap || !THREE || !api) {
-    console.warn('[gsap-rotate] Missing dependencies')
+    console.warn('[gsap-rotate] Missing dependencies: gsap=' + !!gsap + ' THREE=' + !!THREE + ' api=' + !!api)
     return () => {}
   }
 
   const panelId = 'gsap-demo-rotate'
   const styleId = 'gsap-demo-rotate-style'
 
+  // Create panel
   const existing = document.getElementById(panelId)
   if (existing) existing.remove()
 
@@ -46,6 +47,7 @@ export function startRotateDemo(): () => void {
     </select>
   </div>`
 
+  // Add styles
   const oldStyle = document.getElementById(styleId)
   if (oldStyle) oldStyle.remove()
   const style = document.createElement('style')
@@ -77,6 +79,7 @@ export function startRotateDemo(): () => void {
   const layer = document.getElementById('ai-layer') ?? document.body
   layer.appendChild(panel)
 
+  // Animation state
   const orbit = { angle: 0 }
   const cfg = { speed: 1, dir: 1, paused: false, axis: 'y', ease: 'elastic.inOut', mode: 'camera' }
   let _axisVec = new THREE.Vector3(0, 1, 0)

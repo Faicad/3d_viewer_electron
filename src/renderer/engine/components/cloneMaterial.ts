@@ -121,8 +121,8 @@ export function cloneAndConvertMaterial(
 /** Default material color for meshes without source materials — bright blue. */
 export const DEFAULT_MATERIAL_COLOR = '#4A90D9'
 export const DEFAULT_MATERIAL_HEX = 0x4a90d9
-export const DEFAULT_MATERIAL_ROUGHNESS = 0.35
-export const DEFAULT_MATERIAL_METALNESS = 0.1
+export const DEFAULT_MATERIAL_ROUGHNESS = 0.5
+export const DEFAULT_MATERIAL_METALNESS = 0.0
 /** sRGB components of {@link DEFAULT_MATERIAL_COLOR} with alpha 1. */
 export const DEFAULT_MATERIAL_SRGB: [number, number, number, number] = [
   ((DEFAULT_MATERIAL_HEX >> 16) & 0xff) / 255,
@@ -137,6 +137,7 @@ export function createDefaultMaterial(): THREE.MeshPhysicalMaterial {
   mat.color.setStyle(DEFAULT_MATERIAL_COLOR)
   mat.roughness = DEFAULT_MATERIAL_ROUGHNESS
   mat.metalness = DEFAULT_MATERIAL_METALNESS
+  mat.envMapIntensity = 0.6
   mat.side = THREE.FrontSide
   mat.needsUpdate = true
   return mat

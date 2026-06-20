@@ -28,17 +28,45 @@ declare global {
     __gpuInfo?: { detected: boolean; isSoftware: boolean; vendor?: string; renderer?: string; reason?: string }
     /** E2E export helper: exports all scene meshes as binary STL, returns base64. */
     __exportSceneToStlBase64: () => Promise<{ data: string; byteLength: number }>
-    /** AI code injection — 3D scene bridge for AI-generated code */
+    /** 3D scene bridge for AI/demo code */
     __viewerAPI?: ViewerAPI
     viewerAPI?: ViewerAPI
-    /** GSAP library exposed for AI-injected code */
+    /** GSAP library for animations */
     __gsap?: unknown
-    /** Animate camera to absolute position or zoom by factor (GSAP proxy pattern) */
-    __animateCamera: (opts: { to?: { x: number; y: number; z: number }; factor?: number; duration?: number }) => Promise<void>
-    /** THREE.js exposed for AI-injected code (math utilities: Vector3, Quaternion, etc.) */
+    /** Export current scene meshes to GLB or STL, returns { base64, byteLength, format } */
+    __exportModel: (format?: 'glb' | 'stl') => Promise<{ base64: string; byteLength: number; format: string }>
+    /** Animate camera: move to position, zoom by factor, or rotate around target (GSAP proxy pattern) */
+    __animateCamera: (opts: {
+      to?: { x: number; y: number; z: number }
+      factor?: number
+      duration?: number
+      ease?: string
+      /** Shorthand rotation angle (used when `rotate` is a string like 'y'; ignored when `rotate` is an object) */
+      angle?: number
+      rotate?: 'x' | 'y' | 'z' | 'up' | { axis: 'x' | 'y' | 'z' | 'up'; angle: number }
+    }) => Promise<void>
+    /** Trigger entry animation (auto / zoom / slide) on demand. Overrides > URL params > defaults. */
+    __triggerEntryAnimation: (opts?: {
+      type?: 'auto' | 'zoom' | 'slide'
+      duration?: number
+      direction?: 'top' | 'bottom' | 'left' | 'right'
+      zoomDist?: number
+      zoomEndDist?: number
+      slideDist?: number
+      targetShiftY?: number
+      ease?: string
+      reverse?: boolean
+    }) => Promise<void>
+    /** Entry animation config from last loadModel command (consumed once by resolveEntryConfig). */
+    __pendingEntryConfig?: Record<string, string>
+    /** THREE.js exposed for animation math utilities */
     __THREE?: unknown
-    /** Dev convenience: trigger GSAP rotate demo via executeCode */
+    /** Dev convenience: trigger GSAP rotate demo */
     __demoGSAPRotate?: () => void
+    /** Dev convenience: trigger GSAP assemble demo */
+    __demoGSAPAssemble?: () => void
+    /** Dev convenience: trigger GSAP explode demo */
+    __demoGSAPExplode?: (params?: { spread?: number; range?: number }) => void
   }
 }
 

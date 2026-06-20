@@ -720,6 +720,14 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     return mat
   }, [defaultMaterial])
 
+  // Feature-edge geometry for edge-line overlay on single-mesh formats (STL, PLY, etc.).
+  // Returns null for mesh/debug/wireframe modes or when geometry is not yet available.
+  const edgeGeometry = useMemo(() => {
+    if (!mergedGeometry) return null
+    if (displayMode === 'mesh' || displayMode === 'debug' || displayMode === 'wireframe') return null
+    return new THREE.EdgesGeometry(mergedGeometry, 30)
+  }, [mergedGeometry, displayMode])
+
   // Derive checker-applied materials (view-layer, does not touch store)
   const checkerMaterials = useMemo(() => {
     if (!checkerEnabled || !checkerSlot || meshMaterials.length === 0) return null
@@ -896,9 +904,10 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   }
 
   // Non-GLB or placeholder: single merged mesh
-  if (!mergedGeometry) return null
 
   const isMeshOnly = displayMode === 'mesh' || displayMode === 'debug'
+
+  if (!mergedGeometry) return null
 
   // partId must match the scene-tree node id so that
   // object-mode clicks and tree-node clicks select the same entity.
@@ -935,7 +944,21 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
         castShadow
         userData={{ partId: mergedPartId }}
         material={isMeshOnly ? defaultMaterialWireframe : defaultMaterial}
-      />
+      >
+        {edgeGeometry && (
+          <lineSegments
+            visible={mergedVis}
+            geometry={edgeGeometry}
+          >
+            <lineBasicMaterial
+              color="#1a4570"
+              opacity={0.35}
+              transparent
+              depthTest
+            />
+          </lineSegments>
+        )}
+      </mesh>
     </group>
   )
 })

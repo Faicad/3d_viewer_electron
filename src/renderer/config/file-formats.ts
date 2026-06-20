@@ -761,6 +761,9 @@ export function detectFormat(filename: string): FormatId | null {
   return null
 }
 
+/** 100 MB – STEP/STP files larger than this are rejected. */
+export const MAX_STEP_FILE_SIZE = 100 * 1024 * 1024
+
 /** Check if a filename (or format id) refers to the STEP format
  *  (covers both '.step' and '.stp' extensions). */
 export function isStepFile(filenameOrFormat: string | null | undefined): boolean {

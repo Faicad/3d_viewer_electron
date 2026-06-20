@@ -61,25 +61,115 @@ window.__demoGSAPAssemble = () => {
     hideDemoPanelIfMovieMode()
   })
 }
-window.__demoGSAPExplode = () => {
+window.__demoGSAPExplode = (params?: { spread?: number; range?: number }) => {
   _demoCleanup?.()
   import('@/ai-injection/demos/gsap-explode-demo').then(({ startExplodeDemo }) => {
-    _demoCleanup = startExplodeDemo()
+    _demoCleanup = startExplodeDemo(params?.spread, params?.range)
     hideDemoPanelIfMovieMode()
   })
 }
 
+// ---- model export helper (returns base64) ----
+window.__exportModel = async (format: 'glb' | 'stl' = 'glb') => {
+  const scene = useEngineStore.getState().scene
+  if (!scene) throw new Error('No scene available')
+  const meshes = collectSceneMeshes(scene)
+  if (meshes.length === 0) throw new Error('No exportable geometry in scene')
+  let buffer: ArrayBuffer
+  if (format === 'stl') {
+    buffer = await meshesToStl(meshes)
+  } else {
+    buffer = await meshesToGlb(meshes)
+  }
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+  return { base64: btoa(binary), byteLength: buffer.byteLength, format }
+}
+
 // ---- camera animation helper (GSAP proxy pattern) ----
-window.__animateCamera = (opts: { to?: { x: number; y: number; z: number }; factor?: number; duration?: number }): Promise<void> => {
+interface AnimateCameraOpts {
+  to?: { x: number; y: number; z: number }
+  factor?: number
+  duration?: number
+  ease?: string
+  angle?: number
+  rotate?: 'x' | 'y' | 'z' | 'up' | { axis: 'x' | 'y' | 'z' | 'up'; angle: number }
+}
+window.__animateCamera = (opts: AnimateCameraOpts): Promise<void> => {
   return new Promise((resolve) => {
     const dev = window.__r3f_dev
     const controls = dev?.controls
     if (!controls) { resolve(); return }
     const cam = controls.object
     const center = controls.target.clone()
+
+    // ---- rotation branch ----
+    if (opts.rotate) {
+      const rotateOpt: { axis: string; angle: number } = typeof opts.rotate === 'string'
+        ? { axis: opts.rotate, angle: (opts as any).angle ?? 360 }
+        : { axis: opts.rotate.axis, angle: opts.rotate.angle }
+
+      let effectiveAxis = rotateOpt.axis
+      if (effectiveAxis === 'up') {
+        effectiveAxis = window.__modelStore.getState().activeUpAxis || 'y'
+      }
+
+      const dx = cam.position.x - center.x
+      const dy = cam.position.y - center.y
+      const dz = cam.position.z - center.z
+      let radius: number
+      let initialAngle: number
+
+      if (effectiveAxis === 'x') {
+        radius = Math.sqrt(dy * dy + dz * dz)
+        initialAngle = Math.atan2(dz, dy) * 180 / Math.PI
+      } else if (effectiveAxis === 'z') {
+        radius = Math.sqrt(dx * dx + dy * dy)
+        initialAngle = Math.atan2(dy, dx) * 180 / Math.PI
+      } else { // 'y'
+        radius = Math.sqrt(dx * dx + dz * dz)
+        initialAngle = Math.atan2(dz, dx) * 180 / Math.PI
+      }
+
+      if (radius < 0.001) { resolve(); return }
+
+      const dur = opts.duration ?? 1
+      const targetAngle = initialAngle + rotateOpt.angle
+      const proxy = { angle: initialAngle }
+
+      gsap.to(proxy, {
+        angle: targetAngle,
+        duration: dur,
+        ease: opts.ease ?? 'none',
+        onUpdate: () => {
+          const a = proxy.angle * Math.PI / 180
+          if (effectiveAxis === 'x') {
+            cam.position.y = center.y + radius * Math.cos(a)
+            cam.position.z = center.z + radius * Math.sin(a)
+          } else if (effectiveAxis === 'z') {
+            cam.position.x = center.x + radius * Math.cos(a)
+            cam.position.y = center.y + radius * Math.sin(a)
+          } else { // 'y'
+            cam.position.x = center.x + radius * Math.cos(a)
+            cam.position.z = center.z + radius * Math.sin(a)
+          }
+          controls.update()
+        },
+        onComplete: resolve,
+      })
+      return
+    }
+
+    // ---- position / zoom tween ----
     let targetPos: THREE.Vector3
     if (opts.to) {
       targetPos = new THREE.Vector3(opts.to.x, opts.to.y, opts.to.z)
+      if (opts.factor != null) {
+        const dir = targetPos.clone().sub(center).normalize()
+        const dist = cam.position.distanceTo(center)
+        targetPos = center.clone().add(dir.multiplyScalar(dist * opts.factor))
+      }
     } else {
       const factor = opts.factor ?? 1
       const dir = cam.position.clone().sub(center).normalize()
@@ -90,7 +180,7 @@ window.__animateCamera = (opts: { to?: { x: number; y: number; z: number }; fact
     const proxy = { x: cam.position.x, y: cam.position.y, z: cam.position.z }
     gsap.to(proxy, {
       x: targetPos.x, y: targetPos.y, z: targetPos.z,
-      duration: dur, ease: 'power2.inOut',
+      duration: dur, ease: opts.ease ?? 'power2.inOut',
       onUpdate: () => {
         cam.position.set(proxy.x, proxy.y, proxy.z)
         controls.update()
@@ -102,10 +192,12 @@ window.__animateCamera = (opts: { to?: { x: number; y: number; z: number }; fact
 
 function hideDemoPanelIfMovieMode() {
   if (useEngineStore.getState().movieMode) {
-    const panel = document.getElementById('gsap-panel')
-    if (panel) {
-      panel.style.opacity = '0'
-      panel.style.background = 'rgba(13,13,26,0)'
+    for (const id of ['gsap-demo-assemble', 'gsap-demo-rotate', 'gsap-demo-explode']) {
+      const panel = document.getElementById(id)
+      if (panel) {
+        panel.style.opacity = '0'
+        panel.style.background = 'rgba(13,13,26,0)'
+      }
     }
   }
 }

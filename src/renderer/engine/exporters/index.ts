@@ -107,6 +107,16 @@ export function collectFileMeshes(scene: THREE.Scene, fileId: string): THREE.Mes
 
 // ---- GLB export ----
 
+/** Clone a mesh with world transform baked into local transform. */
+function cloneMeshWithWorldTransform(mesh: THREE.Mesh): THREE.Mesh {
+  const clone = mesh.clone()
+  mesh.updateWorldMatrix(true, false)
+  clone.position.copy(mesh.getWorldPosition(new THREE.Vector3()))
+  clone.quaternion.copy(mesh.getWorldQuaternion(new THREE.Quaternion()))
+  clone.scale.copy(mesh.getWorldScale(new THREE.Vector3()))
+  return clone
+}
+
 /**
  * Export a collection of meshes to GLB (binary glTF).
  *
@@ -126,7 +136,7 @@ export async function meshesToGlb(
 
   const tmpScene = new THREE.Scene()
   for (const mesh of meshes) {
-    tmpScene.add(mesh.clone())
+    tmpScene.add(cloneMeshWithWorldTransform(mesh))
   }
 
   return exporter.parseAsync(tmpScene, {
@@ -164,7 +174,7 @@ export async function meshesToStl(
 
   const tmpScene = new THREE.Scene()
   for (const mesh of meshes) {
-    tmpScene.add(mesh.clone())
+    tmpScene.add(cloneMeshWithWorldTransform(mesh))
   }
 
   // STLExporter.parse({ binary: true }) returns a DataView (not raw ArrayBuffer).

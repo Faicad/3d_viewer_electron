@@ -2,15 +2,16 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { SupportedLanguage } from '@/i18n'
 
+const isLocalStorageAvailable = typeof localStorage !== 'undefined'
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
-    try { return localStorage.getItem(key) } catch (e) { console.error('localStorage getItem error:', e); return null }
+    return isLocalStorageAvailable ? localStorage.getItem(key) : null
   },
   setItem: (key: string, value: string): void => {
-    try { localStorage.setItem(key, value) } catch (e) { console.error('localStorage setItem error:', e) }
+    if (isLocalStorageAvailable) localStorage.setItem(key, value)
   },
   removeItem: (key: string): void => {
-    try { localStorage.removeItem(key) } catch (e) { console.error('localStorage removeItem error:', e) }
+    if (isLocalStorageAvailable) localStorage.removeItem(key)
   },
 }
 

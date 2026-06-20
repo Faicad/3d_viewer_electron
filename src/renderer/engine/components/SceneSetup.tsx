@@ -23,7 +23,7 @@ function dimensionsLabel(dims: BedDimensions): string {
 }
 
 export default function SceneSetup() {
-  const { gl, scene } = useThree()
+  const { gl, scene, camera } = useThree()
   const envRef = useRef<EnvironmentManager | null>(null)
 
   const selectedEnv = useEngineStore((s) => s.selectedEnv)
@@ -32,6 +32,7 @@ export default function SceneSetup() {
   const envRotation = useEngineStore((s) => s.envRotation)
   const envBackground = useEngineStore((s) => s.envBackground)
   const activeUpAxis = useModelStore((s) => s.activeUpAxis)
+  const movieMode = useEngineStore((s) => s.movieMode)
 
   useEffect(() => {
     const mgr = new EnvironmentManager(gl)
@@ -65,7 +66,8 @@ export default function SceneSetup() {
     const mgr = envRef.current
     if (!mgr || !selectedEnv) return
     let cancelled = false
-    mgr.setEnvironment(selectedEnv).then((_tex) => {
+    mgr.fadeEnvironment(scene, camera, 1000, async () => {
+      await mgr.setEnvironment(selectedEnv)
       if (cancelled) return
       const rot = useEngineStore.getState().envRotation
       applyEnvToScene(mgr, rot)
@@ -75,9 +77,9 @@ export default function SceneSetup() {
         mgr.adaptStudioToModel(useEngineStore.getState().modelBbox!)
         applyEnvToScene(mgr, rot)
       }
-    })
+    }, movieMode)
     return () => { cancelled = true }
-  }, [selectedEnv, scene])
+  }, [selectedEnv, scene, camera, movieMode])
 
   // Load custom environment map from local file when a new one is added
   useEffect(() => {
@@ -91,14 +93,17 @@ export default function SceneSetup() {
         if (cancelled || !result.success || !result.data) return
         await mgr.setEnvironmentFromFile(id, name, result.data)
         if (cancelled) return
-        applyEnvToScene(mgr, useEngineStore.getState().envRotation)
-        clearPendingCustomLoad()
+        mgr.fadeEnvironment(scene, camera, 1000, async () => {
+          if (cancelled) return
+          applyEnvToScene(mgr, useEngineStore.getState().envRotation)
+          clearPendingCustomLoad()
+        }, movieMode)
       } catch (err) {
         console.warn('[SceneSetup] Failed to load custom environment:', err)
       }
     })()
     return () => { cancelled = true }
-  }, [pendingCustomLoad])
+  }, [pendingCustomLoad, scene, camera, movieMode])
 
   // envRotation / upAxis: update the Euler without re-loading the texture
   useEffect(() => {
@@ -123,6 +128,8 @@ export default function SceneSetup() {
   useEffect(() => {
     const unsub = useEngineStore.subscribe((state, prevState) => {
       if (state.envIntensity === prevState.envIntensity) return
+      // Don't interrupt an active fade animation
+      if (envRef.current?.isFading()) return
       scene.environmentIntensity = state.envIntensity
     })
     return unsub

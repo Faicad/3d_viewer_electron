@@ -12,6 +12,8 @@ import { MARGIN_BED, MARGIN_MODEL } from './types'
  * @param box      - World-space bounding box
  * @param viewport - Viewport pixel dimensions { width, height }
  * @param marginFactor - Margin factor (bed=2.0, model=1.25)
+ * @param forwardOverride - Optional: use this as view direction instead of camera.getWorldDirection()
+ * @param upOverride - Optional: use this as up vector instead of camera.up
  * @returns zoom factor (>0), or -1 if box is degenerate
  */
 export function calcZoomToBoundingBoxFactor(
@@ -19,6 +21,8 @@ export function calcZoomToBoundingBoxFactor(
   box: THREE.Box3,
   viewport: { width: number; height: number },
   marginFactor: number,
+  forwardOverride?: THREE.Vector3,
+  upOverride?: THREE.Vector3,
 ): number {
   // 1. Max dimension of the bounding box
   const boxSize = new THREE.Vector3()
@@ -27,11 +31,12 @@ export function calcZoomToBoundingBoxFactor(
   if (maxBoxSize === 0) return -1
 
   // 2. Camera local coordinate axes
-  const forward = new THREE.Vector3()
-  camera.getWorldDirection(forward)  // view direction
+  const forward = forwardOverride ? forwardOverride.clone() : new THREE.Vector3()
+  if (!forwardOverride) camera.getWorldDirection(forward)  // view direction
+  const camUp = upOverride ?? camera.up
 
   const right = new THREE.Vector3()
-  right.crossVectors(forward, camera.up).normalize()  // right = forward × up
+  right.crossVectors(forward, camUp).normalize()  // right = forward × up
 
   const up = new THREE.Vector3()
   up.crossVectors(right, forward).normalize()  // up = right × forward
@@ -117,8 +122,24 @@ export function computeCameraFitTarget(
     box.max.z = 0
   }
 
-  // Step 1: compute zoom factor
-  const zoom = calcZoomToBoundingBoxFactor(camera, box, viewport, marginFactor)
+  // Step 1a: compute the target view direction (45° top-front) for zoom projection,
+  // rather than using camera.getWorldDirection() which depends on the camera's
+  // current orientation (may be incorrect at call time).
+  const DEFAULT_ZENIT_DEG = 45
+  const theta = THREE.MathUtils.degToRad(-DEFAULT_ZENIT_DEG)
+  const sinTheta = Math.sin(theta)
+  const cosTheta = Math.cos(theta)
+
+  // Camera look direction for the target 45° top-front view:
+  //   Z-up: position = (tx, ty + d*sinθ, tz + d*cosθ), lookDir = normalize(0, -sinθ, -cosθ) = (0, 0.707, -0.707)
+  //   Y-up: position = (tx, ty + d*cosθ, tz - d*sinθ), lookDir = normalize(0, -cosθ, sinθ) = (0, -0.707, -0.707)
+  const targetLookDir = upAxis === 'y'
+    ? new THREE.Vector3(0, -cosTheta, sinTheta)
+    : new THREE.Vector3(0, -sinTheta, -cosTheta)
+  const targetUp = upAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1)
+
+  // Step 1: compute zoom factor using the target view direction
+  const zoom = calcZoomToBoundingBoxFactor(camera, box, viewport, marginFactor, targetLookDir, targetUp)
   if (zoom <= 0) return null
 
   // Step 2: target = box center
@@ -141,10 +162,6 @@ export function computeCameraFitTarget(
   // Step 4: top-front orientation.
   //   theta = -45° (zenith angle, negative = above the target)
   //   phi   =   0° (azimuth; 0° = no X offset → X-axis stays horizontal on screen)
-  const DEFAULT_ZENIT_DEG = 45
-  const theta = THREE.MathUtils.degToRad(-DEFAULT_ZENIT_DEG)
-  const sinTheta = Math.sin(theta)
-  const cosTheta = Math.cos(theta)
 
   // With phi = 0: dx = 0, dy = sinTheta * dist, dz = cosTheta * dist
   // The "zenith" component (cosTheta * dist) goes to the up-axis:

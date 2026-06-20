@@ -5,7 +5,7 @@ import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import {
@@ -84,6 +84,11 @@ export function useFileLoader() {
         return
       }
       let buffer = fileResult.data
+
+      if (isStepFile(name) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+        toast.error('不支持超过100MB的STEP/STP文件')
+        return
+      }
 
       // Parse STEP header metadata before conversion
       let fileMeta: FileMeta | undefined

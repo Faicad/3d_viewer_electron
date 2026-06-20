@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -25,6 +25,11 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
       let format = detectFormat(file.name)
       if (!format) {
         toast.error(`Unsupported file format: ${file.name}`)
+        return
+      }
+
+      if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {
+        toast.error('不支持超过100MB的STEP/STP文件')
         return
       }
 

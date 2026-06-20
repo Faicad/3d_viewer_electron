@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { CleanRoomEnvironment } from './CleanRoomEnvironment'
 import { HDR_PRESETS, getPresetUrl } from './hdrPresets'
+import gsap from 'gsap'
 
 function isCustomEnvId(source: string): boolean {
   return source.startsWith('custom_')
@@ -42,6 +43,13 @@ export class EnvironmentManager {
   private _backgroundMode: BackgroundMode = 'grey'
   private _rgbeLoader: any | null = null
   private _pmremSize: number
+  /** GSAP tween for the current fade animation, or null if idle. */
+  private _fadeTween: gsap.core.Tween | null = null
+  /** Resources of the in-progress overlay to allow cleanup on cancel. */
+  private _overlayScene: THREE.Scene | null = null
+  private _overlayMesh: THREE.Mesh | null = null
+  private _overlayMat: THREE.MeshBasicMaterial | null = null
+  private _overlayRT: THREE.WebGLRenderTarget | null = null
 
   constructor(renderer: THREE.WebGLRenderer) {
     this._renderer = renderer
@@ -258,6 +266,177 @@ export class EnvironmentManager {
   }
 
   // ---------------------------------------------------------------------------
+  // Fade transition
+  // ---------------------------------------------------------------------------
+
+  /** Cancel any in-progress fade animation and dispose overlay resources. */
+  private _cancelFade(): void {
+    if (this._fadeTween) {
+      this._fadeTween.kill()
+      this._fadeTween = null
+    }
+    this._disposeOverlay()
+  }
+
+  /** Dispose the overlay quad and render target if they exist. */
+  private _disposeOverlay(): void {
+    const { _overlayScene: scene, _overlayMesh: mesh, _overlayMat: mat, _overlayRT: rt } = this
+    if (scene && mesh) scene.remove(mesh)
+    if (mat) mat.dispose()
+    if (mesh) mesh.geometry.dispose()
+    if (rt) rt.dispose()
+    this._overlayScene = null
+    this._overlayMesh = null
+    this._overlayMat = null
+    this._overlayRT = null
+  }
+
+  /** Whether a fade animation is currently running. */
+  isFading(): boolean {
+    return this._fadeTween !== null
+  }
+
+  /**
+   * Smoothly cross-fade the background image by capturing the current frame
+   * as a fullscreen overlay, swapping textures underneath, then fading the
+   * overlay out to reveal the new background.
+   *
+   * Fade animation is only performed in movie mode. In normal mode the
+   * swapCallback is called directly without any animation.
+   *
+   * Model PBR lighting (`scene.environmentIntensity`) is NOT touched.
+   *
+   * @param scene            The Three.js scene.
+   * @param camera           The active camera (used to render the capture).
+   * @param duration         Total cross-fade duration in ms (default 1000).
+   * @param swapCallback     Called immediately to swap `scene.background`
+   *                         and `scene.environment` (invisible under overlay).
+   * @param movieMode        If false, swap directly without animation.
+   */
+  async fadeEnvironment(
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    duration: number = 1000,
+    swapCallback: () => Promise<void>,
+    movieMode: boolean = false,
+  ): Promise<void> {
+    if (!movieMode) {
+      await swapCallback()
+      return
+    }
+
+    this._cancelFade()
+
+    const rect = this._renderer.domElement.getBoundingClientRect()
+    if (rect.width < 1 || rect.height < 1) {
+      // Canvas not visible — skip animation, just swap
+      await swapCallback()
+      return
+    }
+
+    const pr = this._renderer.getPixelRatio()
+    const rt = new THREE.WebGLRenderTarget(
+      Math.floor(rect.width * pr),
+      Math.floor(rect.height * pr),
+    )
+
+    // Capture the current frame (old background + current lighting)
+    this._renderer.setRenderTarget(rt)
+    this._renderer.render(scene, camera)
+    this._renderer.setRenderTarget(null)
+
+    // Fullscreen quad overlay showing the frozen frame
+    const quadMat = new THREE.MeshBasicMaterial({
+      map: rt.texture,
+      transparent: true,
+      opacity: 1,
+      depthTest: false,
+      depthWrite: false,
+    })
+    const quadMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), quadMat)
+    quadMesh.renderOrder = 999
+    quadMesh.frustumCulled = false
+    this._positionOverlayQuad(quadMesh, camera)
+    scene.add(quadMesh)
+
+    // Track overlay resources for cleanup on cancel/dispose
+    this._overlayScene = scene
+    this._overlayMesh = quadMesh
+    this._overlayMat = quadMat
+    this._overlayRT = rt
+
+    // Swap textures immediately (hidden under the overlay)
+    try {
+      await swapCallback()
+    } catch (err) {
+      console.warn('[EnvironmentManager] Fade swap failed, restoring:', err)
+      scene.remove(quadMesh)
+      quadMat.dispose()
+      quadMesh.geometry.dispose()
+      rt.dispose()
+      this._overlayScene = null
+      this._overlayMesh = null
+      this._overlayMat = null
+      this._overlayRT = null
+      return
+    }
+
+    // Fade out the overlay → reveals new background underneath
+    await this._fadeOutOverlay(scene, quadMesh, quadMat, camera, rt, duration)
+  }
+
+  /** Position and scale a PlaneGeometry(1,1) to fill the view of a camera. */
+  private _positionOverlayQuad(mesh: THREE.Mesh, camera: THREE.Camera): void {
+    const dist = 0.5
+    const dir = new THREE.Vector3()
+    camera.getWorldDirection(dir)
+    mesh.position.copy(camera.position).add(dir.clone().multiplyScalar(dist))
+    mesh.lookAt(camera.position)
+
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const vFov = (camera.fov * Math.PI) / 180
+      const height = 2 * Math.tan(vFov / 2) * dist
+      const aspect =
+        this._renderer.domElement.width / this._renderer.domElement.height
+      mesh.scale.set(height * aspect, height, 1)
+    }
+  }
+
+  /**
+   * GSAP fade-out of the overlay quad, updating its screen-space position
+   * each frame so it tracks the camera during the transition.
+   */
+  private _fadeOutOverlay(
+    scene: THREE.Scene,
+    mesh: THREE.Mesh,
+    material: THREE.MeshBasicMaterial,
+    camera: THREE.Camera,
+    rt: THREE.WebGLRenderTarget,
+    duration: number,
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      this._fadeTween = gsap.to(material, {
+        opacity: 0,
+        duration: duration / 1000,
+        ease: 'sine.inOut',
+        onUpdate: () => this._positionOverlayQuad(mesh, camera),
+        onComplete: () => {
+          scene.remove(mesh)
+          material.dispose()
+          mesh.geometry.dispose()
+          rt.dispose()
+          this._fadeTween = null
+          this._overlayScene = null
+          this._overlayMesh = null
+          this._overlayMat = null
+          this._overlayRT = null
+          resolve()
+        },
+      })
+    })
+  }
+
+  // ---------------------------------------------------------------------------
   // Background
   // ---------------------------------------------------------------------------
 
@@ -321,6 +500,7 @@ export class EnvironmentManager {
   // ---------------------------------------------------------------------------
 
   dispose(): void {
+    this._cancelFade()
     for (const tex of this._cache.values()) tex.dispose()
     this._cache.clear()
     for (const tex of this._bgCache.values()) tex.dispose()

@@ -12,7 +12,7 @@ import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { stepToGlbCached } from '@/lib/step-converter'
-import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile } from '@/config/file-formats'
+import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
@@ -71,6 +71,11 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     const format = detectFormat(file.name)
     if (!format) {
       console.error('[WorkspacePage] unsupported format:', file.name)
+      return
+    }
+
+    if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {
+      toast.error('不支持超过100MB的STEP/STP文件')
       return
     }
 
