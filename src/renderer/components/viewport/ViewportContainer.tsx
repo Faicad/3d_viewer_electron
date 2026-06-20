@@ -41,6 +41,9 @@ import { getMapColorSpace } from '@/engine/material/TextureCache'
 import { computeCameraFitTarget, autoSelectBedSize, computePlateLayout } from '@/engine/heatbed'
 import { toast } from 'sonner'
 
+/** Default entry animation duration in milliseconds (all three modes). */
+const DEFAULT_ENTRY_DURATION_MS = 2000
+
 /** X offset is 0 so the world X-axis stays horizontal-right on screen.
  *  Camera is positioned in the YZ plane (front-top) looking at origin. */
 const DEFAULT_CAM_POS: [number, number, number] = [0, -6, 4]
@@ -245,17 +248,18 @@ export default function ViewportContainer() {
   }, [])
 
   // ---- Camera fit / upAxis transition (replaces CameraAnimator) ----
-  const animateCamera = useCallback((targetPos: THREE.Vector3, targetUp: THREE.Vector3, onDone?: () => void) => {
+  const animateCamera = useCallback((targetPos: THREE.Vector3, targetUp: THREE.Vector3, onDone?: () => void, durationMs?: number) => {
     gsap.killTweensOf(camProxyRef.current)
     setRotating(false)
     setIsCameraAnimating(true)
     useEngineStore.getState().set__animActive(true)
 
+    const dur = (durationMs ?? 2000) / 1000
     const p = camProxyRef.current
     gsap.to(p, {
       x: targetPos.x, y: targetPos.y, z: targetPos.z,
       upX: targetUp.x, upY: targetUp.y, upZ: targetUp.z,
-      duration: 1.0, ease: 'power2.inOut',
+      duration: dur, ease: 'power2.inOut',
       onUpdate: () => {
         const cam = controlsRef.current!.object
         cam.position.set(p.x, p.y, p.z)
@@ -288,6 +292,12 @@ export default function ViewportContainer() {
       stopRotation()
     }
   }, [startRotation, stopRotation])
+
+  // Expose entry animation trigger for movie scripts and manual replay
+  useEffect(() => {
+    window.__triggerEntryAnimation = (opts) => playEntryAnimationRef.current!(opts)
+    return () => { delete (window as any).__triggerEntryAnimation }
+  }, [])
 
   const pendingBoxRef = useRef<THREE.Box3 | null>(null)
   // Track largest bounding box across all loaded models for multi-file camera fit
@@ -534,6 +544,272 @@ export default function ViewportContainer() {
     }
   }, [])
 
+  // ── Entry animation helpers ──
+
+  interface EntryAnimConfig {
+    type: string
+    duration: number
+    direction: string
+    zoomDist: number
+    zoomEndDist: number
+    slideDist: number
+    targetShiftY: number
+    ease: string
+  }
+
+  /** Helper: parse a float from URLSearchParams, return default if missing or NaN. */
+  function parseFloatParam(params: URLSearchParams, key: string, defaultVal: number): number {
+    const raw = params.get(key)
+    if (!raw) return defaultVal
+    const v = parseFloat(raw)
+    return isNaN(v) ? defaultVal : v
+  }
+
+  /** Helper: read param from pending config or URL, fallback to default. */
+  function entryParam(pending: Record<string, string> | undefined, params: URLSearchParams, key: string, defaultVal: number): number {
+    const raw = pending?.[key] ?? params.get(key)
+    if (!raw) return defaultVal
+    const v = parseFloat(raw)
+    return isNaN(v) ? defaultVal : v
+  }
+
+  /** Parse entryAnim config from pending (loadModel command), URL params, or movieMode. */
+  function resolveEntryConfig(movieMode: boolean): EntryAnimConfig {
+    const pending = (window as any).__pendingEntryConfig as Record<string, string> | undefined
+    if (pending) delete (window as any).__pendingEntryConfig
+
+    const hash = window.location.hash
+    const qIdx = hash.indexOf('?')
+    const params = qIdx >= 0 ? new URLSearchParams(hash.slice(qIdx)) : new URLSearchParams()
+
+    const explicit = pending?.entryAnim ?? params.get('entryAnim')
+    const type = explicit ?? (movieMode ? 'zoom' : 'auto')
+    const rawDuration = pending?.entryDuration ?? params.get('entryDuration')
+    const duration = rawDuration ? parseInt(rawDuration, 10) : DEFAULT_ENTRY_DURATION_MS
+    const direction = pending?.entryDir ?? (params.get('entryDir') || 'top')
+    const zoomDist = entryParam(pending, params, 'entryZoomDist', 20)
+    const zoomEndDist = entryParam(pending, params, 'entryZoomEndDist', 1.0)
+    const slideDist = entryParam(pending, params, 'entrySlideDist', 1.0)
+    const targetShiftY = entryParam(pending, params, 'entryTargetShiftY', 0)
+    const ease = pending?.entryEase ?? (params.get('entryEase') || 'power2.out')
+    return { type, duration, direction, zoomDist, zoomEndDist, slideDist, targetShiftY, ease }
+  }
+
+  /** Compute camera start position for entry animation (zoom / slide). */
+  function computeEntryStartPos(
+    type: string,
+    fitPos: THREE.Vector3,
+    center: THREE.Vector3,
+    direction: string,
+    upAxis: string,
+    fitDist: number,
+    zoomDist: number,
+    slideDist: number,
+  ): THREE.Vector3 {
+    if (type === 'zoom') {
+      const dir = new THREE.Vector3().copy(fitPos).sub(center).normalize()
+      return center.clone().add(dir.multiplyScalar(fitDist * zoomDist))
+    }
+    if (type === 'slide') {
+      const dir = new THREE.Vector3().copy(fitPos).sub(center).normalize()
+      const worldUp = upAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1)
+      const right = new THREE.Vector3().crossVectors(dir, worldUp).normalize()
+      const up = new THREE.Vector3().crossVectors(right, dir).normalize()
+      const offsetMap: Record<string, THREE.Vector3> = {
+        top:    up.clone().multiplyScalar(-fitDist * slideDist),
+        bottom: up.clone().multiplyScalar(fitDist * slideDist),
+        left:   right.clone().multiplyScalar(-fitDist * slideDist),
+        right:  right.clone().multiplyScalar(fitDist * slideDist),
+      }
+      return fitPos.clone().add(offsetMap[direction] || offsetMap.top)
+    }
+    return fitPos.clone()
+  }
+
+  /**
+   * Play entry animation (auto / zoom / slide / fade) on demand.
+   * Returns a Promise that resolves when the animation completes.
+   */
+  const playEntryAnimation = useCallback((overrides?: {
+    type?: string
+    duration?: number
+    direction?: string
+    zoomDist?: number
+    zoomEndDist?: number
+    slideDist?: number
+    targetShiftY?: number
+    ease?: string
+    reverse?: boolean
+  }): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      const actualType = overrides?.type ?? 'auto'
+
+      if (actualType === 'fade') {
+        const rev = overrides?.reverse ?? false
+        const dur = overrides?.duration ?? DEFAULT_ENTRY_DURATION_MS
+        const es = overrides?.ease ?? 'power2.out'
+        const st = useModelStore.getState()
+        const fileId = st.activeFileId ?? st.loadedFiles[0]?.id
+        if (!fileId) { resolve(); return }
+        const group = modelGroupMapRef.current.get(fileId)
+        if (!group) { resolve(); return }
+        const mats: THREE.Material[] = []
+        group.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            const ms = Array.isArray(child.material) ? child.material : [child.material]
+            for (const m of ms) {
+              if (m && !mats.includes(m)) mats.push(m)
+            }
+          }
+        })
+        if (mats.length === 0) { resolve(); return }
+        const startOp = rev ? 1 : 0
+        const endOp = rev ? 0 : 1
+        mats.forEach(m => { m.transparent = true; m.needsUpdate = true; m.opacity = startOp })
+        if (rev) {
+          group.traverse((child) => {
+            if (child instanceof THREE.Mesh) child.castShadow = false
+          })
+        }
+        const proxy = { opacity: startOp }
+        gsap.to(proxy, {
+          opacity: endOp,
+          duration: dur / 1000,
+          ease: es,
+          onUpdate: () => { mats.forEach(m => { m.opacity = proxy.opacity }) },
+          onComplete: () => {
+            if (endOp === 1) mats.forEach(m => { m.transparent = false; m.needsUpdate = true })
+            resolve()
+          },
+        })
+        return
+      }
+
+      const controls = controlsRef.current
+      if (!controls) { resolve(); return }
+      const camera = controls.object
+      if (!(camera instanceof THREE.PerspectiveCamera)) { resolve(); return }
+
+      const bboxArr = useEngineStore.getState().modelBbox
+      if (!bboxArr) { resolve(); return }
+      const box = new THREE.Box3(
+        new THREE.Vector3(bboxArr[0], bboxArr[1], bboxArr[2]),
+        new THREE.Vector3(bboxArr[3], bboxArr[4], bboxArr[5]),
+      )
+
+      const hash = window.location.hash
+      const qIdx = hash.indexOf('?')
+      const params = qIdx >= 0 ? new URLSearchParams(hash.slice(qIdx)) : new URLSearchParams()
+      const type = overrides?.type ?? params.get('entryAnim') ?? 'auto'
+      const duration = overrides?.duration ?? (params.get('entryDuration') ? parseInt(params.get('entryDuration')!, 10) : DEFAULT_ENTRY_DURATION_MS)
+      const direction = overrides?.direction ?? params.get('entryDir') ?? 'top'
+      const zoomDist = overrides?.zoomDist ?? parseFloatParam(params, 'entryZoomDist', 20)
+      const zoomEndDist = overrides?.zoomEndDist ?? parseFloatParam(params, 'entryZoomEndDist', 1.0)
+      const slideDist = overrides?.slideDist ?? parseFloatParam(params, 'entrySlideDist', 1.0)
+      const targetShiftY = overrides?.targetShiftY ?? parseFloatParam(params, 'entryTargetShiftY', 0)
+      const ease = overrides?.ease ?? params.get('entryEase') ?? 'power2.out'
+      const reverse = overrides?.reverse ?? false
+
+      if (type === 'auto') {
+        const upAxis = useModelStore.getState().activeUpAxis
+        const targetUp = upAxis === 'y'
+          ? new THREE.Vector3(0, 1, 0)
+          : new THREE.Vector3(0, 0, 1)
+        const domElement = controls.domElement!
+        const viewport = { width: domElement.clientWidth, height: domElement.clientHeight }
+        const result = computeCameraFitTarget(camera, box, viewport, 'model', upAxis)
+        if (result) {
+          controls.target.copy(result.target)
+          controls.update()
+          animateCamera(result.position, targetUp, resolve, duration)
+        } else {
+          resolve()
+        }
+        return
+      }
+
+      // zoom / slide
+      const upAxis = useModelStore.getState().activeUpAxis
+      const domElement = controls.domElement!
+      const viewport = { width: domElement.clientWidth, height: domElement.clientHeight }
+      const result = computeCameraFitTarget(camera, box, viewport, 'model', upAxis)
+      if (!result) { resolve(); return }
+
+      const center = box.getCenter(new THREE.Vector3())
+      controls.target.copy(center)
+      controls.update()
+
+      const fitPos = result.position
+      const fitDist = fitPos.distanceTo(center)
+      const isSlide = type === 'slide'
+      const modelHeight = upAxis === 'z'
+        ? box.max.z - box.min.z
+        : box.max.y - box.min.y
+
+      const rawStartPos = computeEntryStartPos(type, fitPos, center, direction, upAxis, fitDist, zoomDist, slideDist)
+      const viewDir = new THREE.Vector3().copy(fitPos).sub(center).normalize()
+      const rawEndPos = center.clone().add(viewDir.multiplyScalar(fitDist * zoomEndDist))
+
+      if (targetShiftY !== 0) {
+        const worldUp = upAxis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1)
+        const shift = worldUp.multiplyScalar(modelHeight * targetShiftY)
+        rawStartPos.add(shift)
+        rawEndPos.add(shift)
+      }
+
+      const startPos = reverse ? rawEndPos.clone() : rawStartPos
+      const endPos = reverse ? rawStartPos.clone() : rawEndPos
+
+      let fitQuat: THREE.Quaternion | null = null
+      if (isSlide) {
+        const tmp = camera.clone()
+        tmp.position.copy(endPos)
+        tmp.lookAt(center)
+        fitQuat = tmp.quaternion.clone()
+      }
+
+      camera.position.copy(startPos)
+      if (isSlide && fitQuat) {
+        camera.quaternion.copy(fitQuat)
+        controls.target.copy(center)
+      } else {
+        controls.update()
+      }
+
+      gsap.killTweensOf(camProxyRef.current)
+      setRotating(false)
+      setIsCameraAnimating(true)
+      useEngineStore.getState().set__animActive(true)
+
+      const p = camProxyRef.current
+      p.x = startPos.x; p.y = startPos.y; p.z = startPos.z
+      p.upX = camera.up.x; p.upY = camera.up.y; p.upZ = camera.up.z
+
+      gsap.to(p, {
+        x: endPos.x, y: endPos.y, z: endPos.z,
+        duration: duration / 1000,
+        ease,
+        onUpdate: () => {
+          controls.object.position.set(p.x, p.y, p.z)
+          if (!isSlide) {
+            controls.update()
+          }
+        },
+        onComplete: () => {
+          if (isSlide) {
+            controls.update()
+          }
+          setIsCameraAnimating(false)
+          useEngineStore.getState().set__animActive(false)
+          setCameraAnimDoneTick((v) => v + 1)
+          resolve()
+        },
+      })
+    })
+  }, [animateCamera])
+
+  const playEntryAnimationRef = useRef(playEntryAnimation)
+
   const applyCameraFit = useCallback((box: THREE.Box3, controls: OrbitControlsImpl, focusTarget: 'bed' | 'model' = 'model') => {
     const size = box.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
@@ -695,6 +971,35 @@ export default function ViewportContainer() {
     } else {
       applyCameraFit(largestBoxRef.current, controls, 'model')
     }
+
+    // Entry animation: zoom/slide/fade on model load
+    const movieMode = useEngineStore.getState().movieMode
+    const cfg = resolveEntryConfig(movieMode)
+    if (cfg.type !== 'auto') {
+      const upAxis = useModelStore.getState().activeUpAxis
+      if (cfg.type === 'fade') {
+        playEntryAnimationRef.current!({ type: 'fade', duration: cfg.duration, ease: cfg.ease })
+      } else {
+        const bboxArr = useEngineStore.getState().modelBbox
+        if (bboxArr) {
+          const box = new THREE.Box3(
+            new THREE.Vector3(bboxArr[0], bboxArr[1], bboxArr[2]),
+            new THREE.Vector3(bboxArr[3], bboxArr[4], bboxArr[5]),
+          )
+          const domElement = controls.domElement!
+          const viewport = { width: domElement.clientWidth, height: domElement.clientHeight }
+          const result = computeCameraFitTarget(controls.object as THREE.PerspectiveCamera, box, viewport, 'model', upAxis)
+          if (result) {
+            const center = box.getCenter(new THREE.Vector3())
+            const rawStartPos = computeEntryStartPos(cfg.type, result.position, center, cfg.direction, upAxis, result.position.distanceTo(center), cfg.zoomDist, cfg.slideDist)
+            controls.object.position.copy(rawStartPos)
+            controls.update()
+            playEntryAnimationRef.current!({ type: cfg.type, duration: cfg.duration, direction: cfg.direction, zoomDist: cfg.zoomDist, zoomEndDist: cfg.zoomEndDist, slideDist: cfg.slideDist, targetShiftY: cfg.targetShiftY, ease: cfg.ease })
+          }
+        }
+      }
+    }
+
     modelLoadCompletedRef.current = true
   }, [applyCameraFit])
 

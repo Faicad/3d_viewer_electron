@@ -17,13 +17,15 @@ import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
 import { initLogger } from '@/lib/logger'
-import { detectFormat, FORMAT_MAP, isStepFile } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { stepToGlbCached } from '@/lib/step-converter'
 import { scadToStl } from '@/lib/scad-converter'
 import { meshesToGlb } from '@/engine/exporters'
 import { collectPartKeys, findNodeInTree } from '@/lib/scene-tree-utils'
+import { queryParts } from '@/lib/part-query'
+import type { PartQuery } from '@/lib/part-query'
 import { MATERIAL_PRESETS, getPreset } from '@/engine/material/presets'
 import * as THREE from 'three'
 import gsap from 'gsap'
@@ -225,6 +227,7 @@ window.__materialStore = useMaterialStore
 window.__toolStore = useToolStore
 window.__selectionStore = useSelectionStore
 window.__svgWorkspaceStore = useSvgWorkspaceStore
+window.__queryParts = queryParts
 window.__svgFixtures = {}
 window.__svgHelpers = {
   parseSvgViewBox,
@@ -431,7 +434,9 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
         if (!presetName) throw new Error('Missing preset name')
         const preset = getPreset(presetName)
         if (!preset) throw new Error(`Unknown preset: ${presetName}`)
-        const targets = resolveMaterialTargets(params.partName as string | undefined)
+        const targets = params.query
+          ? queryParts(params.query as PartQuery).map(t => ({ fileId: t.fileId, key: t.partId, name: t.partName }))
+          : resolveMaterialTargets(params.partName as string | undefined)
         for (const t of targets) {
           const rawPartId = t.key.split(':').slice(1).join(':')
           stores.mat.setMaterialOverride(t.fileId, rawPartId, preset)
@@ -445,7 +450,9 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
       case 'setPartMaterial': {
         const app = params.appearance
         if (!app) throw new Error('Missing appearance')
-        const targets = resolveMaterialTargets(params.partName as string | undefined)
+        const targets = params.query
+          ? queryParts(params.query as PartQuery).map(t => ({ fileId: t.fileId, key: t.partId, name: t.partName }))
+          : resolveMaterialTargets(params.partName as string | undefined)
         for (const t of targets) {
           const rawPartId = t.key.split(':').slice(1).join(':')
           stores.mat.setMaterialOverride(t.fileId, rawPartId, app as any)
@@ -594,9 +601,19 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
         return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success' }
       }
       case 'loadModel': {
-        const { url, data, AutoRotate } = params as { url?: string; data?: string; AutoRotate?: boolean }
-        if (AutoRotate !== undefined) useEngineStore.getState().setAutoRotate(AutoRotate)
+        const { url, data, AutoRotate, ...rest } = params as Record<string, unknown>
+        if (AutoRotate !== undefined) useEngineStore.getState().setAutoRotate(AutoRotate as boolean)
         if (!url && !data) throw new Error('Must provide url or data')
+        // Store entry animation config for resolveEntryConfig to pick up
+        const entryKeys = ['entryAnim', 'entryDir', 'entryDuration', 'entryZoomDist', 'entryZoomEndDist', 'entrySlideDist', 'entryTargetShiftY', 'entryEase']
+        const pending: Record<string, string> = {}
+        for (const key of entryKeys) {
+          const v = rest[key]
+          if (v != null) pending[key] = String(v)
+        }
+        if (Object.keys(pending).length > 0) {
+          ;(window as any).__pendingEntryConfig = pending
+        }
         const doLoad = async (): Promise<ApiResponse> => {
           try {
             let buffer: ArrayBuffer
@@ -623,6 +640,10 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             }
             let format = detectFormat(fileName)
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
+
+            if (isStepFile(fileName) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+              throw new Error('不支持超过100MB的STEP/STP文件')
+            }
             let fileMeta: { step: ReturnType<typeof parseStepHeader> } | undefined
             if (isStepFile(fileName)) {
               const stepHeader = parseStepHeader(buffer)
