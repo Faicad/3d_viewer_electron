@@ -52,17 +52,6 @@ interface ModelGroupProps {
 }
 
 
-function mergeGeometries(meshes: THREE.Mesh[]): THREE.BufferGeometry {
-  const geoms = meshes.map((m) => {
-    const g = m.geometry.clone()
-    g.applyMatrix4(m.matrixWorld)
-    return g
-  })
-  if (geoms.length === 0) return new THREE.BufferGeometry()
-  if (geoms.length === 1) return geoms[0]
-  return mergeBufferGeometries(geoms, false)
-}
-
 /**
  * Detect when a material is the Three.js internal default — a plain
  * MeshBasicMaterial({ color: 0xffffff }) that Three.js auto-assigns
@@ -97,9 +86,6 @@ function setSkinningFlag(
     mat.needsUpdate = true
   }
 }
-
-// ---- multi-mesh rendering constants ----
-const MULTI_MESH_FORMATS: FormatId[] = ['glb', 'gltf', '3mf', 'model', 'fbx', 'dae', '3ds', 'usdz', 'vox', 'kmz', 'amf', 'lwo', 'md2', '3dm', 'wrl']
 
 /** Maximum number of meshes that cast shadows in multi-mesh mode.
  *  Only the largest K parts (by bounding-box volume) cast shadows to
@@ -161,7 +147,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
   }, [ref])
   const [glbMeshes, setGlbMeshes] = useState<THREE.Mesh[]>([])
   const [meshMaterials, setMeshMaterials] = useState<(THREE.Material | THREE.Material[] | null)[]>([])
-  const [mergedGeometry, setMergedGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [objects, setObjects] = useState<THREE.Object3D[]>([])
   const [error, setError] = useState<string | null>(null)
   const viewMode = useEngineStore((s) => s.viewMode)
@@ -233,7 +218,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     if (!buffer || !format) {
       setGlbMeshes([])
       setMeshMaterials([])
-      setMergedGeometry(null)
       setObjects([])
       setError(null)
       onPartInfosChangeRef.current([])
@@ -300,7 +284,6 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           setObjects(result.objects)
           setGlbMeshes([])
           setMeshMaterials([])
-          setMergedGeometry(null)
           onPartInfosChangeRef.current([])
           const tree = applySinglePartName(
             [{ id: fileId ? `${fileId}:${format}-objects` : `${format}-objects`, name: format.toUpperCase(), visible: true, expanded: true }],
@@ -333,303 +316,26 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           return
         }
 
-        // Determine whether to render as multi-mesh or single merged geometry
-        const useMultiMesh = MULTI_MESH_FORMATS.includes(format)
+        // Unified mesh pipeline: process all meshes individually.
+        // STL/PLY/OBJ produce a single mesh (same as single-part GLB);
+        // multi-mesh formats produce N meshes. The pipeline handles both uniformly.
+        const overallBox = new THREE.Box3()
+        const processed: THREE.Mesh[] = []
+        const materials: (THREE.Material | THREE.Material[] | null)[] = []
+        const partInfos: GlbPartInfo[] = []
+        const bambuMeta = result.bambuMetadata
+        const currentViewMode = viewMode
+        const _matCache = new Map<THREE.Material, THREE.Material | THREE.Material[] | null>()
 
-        if (useMultiMesh) {
-          // Multi-mesh path (GLB-like): keep individual meshes for face picking
-          const overallBox = new THREE.Box3()
-          const processed: THREE.Mesh[] = []
-          const materials: (THREE.Material | THREE.Material[] | null)[] = []
-          const partInfos: GlbPartInfo[] = []
-          const bambuMeta = result.bambuMetadata
-          const currentViewMode = viewMode
-          const _matCache = new Map<THREE.Material, THREE.Material | THREE.Material[] | null>()
+        resetYieldTimer()
+        for (let i = 0; i < meshes.length; i++) {
+          const src = meshes[i]
 
-          resetYieldTimer()
-          for (let i = 0; i < meshes.length; i++) {
-            const src = meshes[i]
-            const geo = cloneMeshGeometry(src)
-            src.updateWorldMatrix(true, false)
-            geo.applyMatrix4(src.matrixWorld)
+          const geo = cloneMeshGeometry(src)
+          src.updateWorldMatrix(true, false)
+          geo.applyMatrix4(src.matrixWorld)
 
-
-            // View mode delta: reposition mesh for assembly/import view
-            if (currentViewMode !== 'print' && bambuMeta) {
-              const partInfo = {
-                partId: bambuMeta.parts[i]?.partId ?? (src.name || `part-${i}`),
-                meshIndex: i,
-                name: '',
-                triangleCount: 0,
-                materialIndex: -1,
-                objectId: bambuMeta.parts[i]?.objectId,
-              } as GlbPartInfo
-              const delta = computeViewDelta(currentViewMode, bambuMeta, partInfo)
-              if (delta) {
-                geo.applyMatrix4(delta)
-              }
-            }
-
-            // Preserve skinning data: set skinning=true on material when
-            // geometry has skinIndex / skinWeight attributes, so
-            // MeshStandardMaterial compiles the correct shader variant.
-            const hasSkinning = geo.getAttribute('skinIndex') !== undefined
-
-            if (!geo.getAttribute('normal')) {
-              geo.computeVertexNormals()
-            }
-            geo.computeBoundingBox()
-
-            if (i > 0 && i % 30 === 0) {
-              await yieldToUI(true)
-            }
-
-            if (geo.boundingBox) {
-              overallBox.expandByObject(new THREE.Mesh(geo))
-            }
-
-            // Clone and convert material from source mesh.
-            // If the source has only the Three.js default (no file-defined
-            // material), treat it as null so the renderer applies its own
-            // default material (light blue) instead of the white fallback.
-            const mat: THREE.Material | THREE.Material[] | null = isThreeJsDefaultMaterial(src.material)
-              ? null
-              : bambuMeta
-                ? cloneAndConvertMaterial(src.material)
-                : (() => {
-                    const cached = _matCache.get(src.material)
-                    if (cached) return cached
-                    const cloned = cloneAndConvertMaterial(src.material)
-                    _matCache.set(src.material, cloned)
-                    return cloned
-                  })()
-
-            // Bambu 3MF: apply filament color from metadata
-            const partMeta = bambuMeta?.parts[i]
-            if (partMeta && bambuMeta) {
-              const fi = partMeta.extruder - 1
-              const colorHex = bambuMeta.filamentColors[fi]
-              if (colorHex && mat && 'color' in mat) {
-                ;(mat as THREE.MeshStandardMaterial).color = new THREE.Color(colorHex)
-              }
-            }
-
-            if (hasSkinning && mat) {
-              setSkinningFlag(mat, true)
-            }
-
-            // Use src.name (stable) instead of src.userData?.partId (mutated on
-            // previous mount in StrictMode, causing double fileId prefix).
-            const rawPartId = src.name || `part-${i}`
-            // Scope partId with fileId so that meshes from different files
-            // never collide in the selection / highlight / drag / bounding-box
-            // system (all of which match by partId across all model groups).
-            const partId = fileId ? `${fileId}:${String(rawPartId)}` : String(rawPartId)
-            const overrideKey = fileId ? partId : ''
-            const { materialOverrides, overrideMaterial } = useMaterialStore.getState()
-            const overrideAppearance = overrideMaterial && overrideKey
-              ? materialOverrides[overrideKey]
-              : undefined
-            const finalMat = overrideAppearance
-              ? getSharedMaterialFactory().createMaterial(overrideAppearance)
-              : mat
-            materials.push(finalMat)
-
-            const mesh = new THREE.Mesh(geo)
-            initMorphTargets(mesh)
-            mesh.userData._originalMaterial = mat
-            mesh.userData._overrideKey = overrideKey || undefined
-            processed.push(mesh)
-
-            const partName = partMeta?.name || src.name || `part-${i}`
-            partInfos.push({
-              partId: String(partId),
-              meshIndex: i,
-              name: partName,
-              triangleCount: geo.index
-                ? geo.index.count / 3
-                : geo.attributes.position?.count / 3 || 0,
-              materialIndex: src.userData?.gltfMaterialIndex ?? -1,
-              extruder: partMeta?.extruder,
-              plateId: partMeta?.plateId,
-              objectId: partMeta?.objectId,
-            })
-          }
-
-          // Per-plate centering only in print view (multi-plate Bambu 3MF).
-          // Assembly/import views always use single-group centering so the
-          // delta-repositioned model stays as one assembled group.
-          if (currentViewMode === 'print' && bambuMeta && bambuMeta.plates.size > 1) {
-            // Group processed meshes by plateId
-            const plateGroups = new Map<number, THREE.Mesh[]>()
-            for (let i = 0; i < processed.length; i++) {
-              const pid = partInfos[i]?.plateId ?? 1
-              if (!plateGroups.has(pid)) plateGroups.set(pid, [])
-              plateGroups.get(pid)!.push(processed[i])
-            }
-
-            // Center each plate's meshes independently
-            for (const [, meshes] of plateGroups) {
-              const plateBox = new THREE.Box3()
-              for (const mesh of meshes) {
-                plateBox.expandByObject(mesh)
-              }
-              const plateCenter = plateBox.getCenter(new THREE.Vector3())
-              for (const mesh of meshes) {
-                mesh.position.set(-plateCenter.x, -plateCenter.y, 0)
-              }
-            }
-
-            // Unified Z-lift (all objects bottom at Z=0)
-            const tmpGroup = new THREE.Group()
-            for (const mesh of processed) tmpGroup.add(mesh)
-            const afterBox = new THREE.Box3().setFromObject(tmpGroup)
-            const zLift = -afterBox.min.z
-            for (const mesh of processed) {
-              mesh.position.z += zLift
-            }
-
-            // Compute plate layout and apply per-plate world offsets
-            const plateDims = new Map<number, { width: number; depth: number }>()
-            for (const [pid, plateInfo] of bambuMeta.plates) {
-              plateDims.set(pid, {
-                width: plateInfo.size?.width ?? 200,
-                depth: plateInfo.size?.depth ?? 200,
-              })
-            }
-            const layout = computePlateLayout(plateDims)
-            const layoutByPlateId = new Map<number, PlateLayoutEntry>()
-            for (const entry of layout) {
-              layoutByPlateId.set(entry.plateId, entry)
-            }
-            for (let i = 0; i < processed.length; i++) {
-              const pid = partInfos[i]?.plateId ?? 1
-              const offset = layoutByPlateId.get(pid)
-              if (offset) {
-                processed[i].position.x += offset.centerX
-                processed[i].position.y += offset.centerY
-              }
-            }
-
-            // Centering offset (fallback for topology overlay) — use (0,0,zLift)
-            onCenteringOffsetChangeRef.current([0, 0, -zLift])
-          } else {
-            // Center XY (single-group, non-Bambu path)
-            const center = overallBox.getCenter(new THREE.Vector3())
-            for (const mesh of processed) {
-              mesh.position.set(-center.x, -center.y, 0)
-            }
-
-            // Place bottom on Z=0 (heatbed surface, doc §3)
-            const tmpGroup = new THREE.Group()
-            for (const mesh of processed) tmpGroup.add(mesh)
-            const afterBox = new THREE.Box3().setFromObject(tmpGroup)
-            const zLift = -afterBox.min.z
-            for (const mesh of processed) {
-              mesh.position.z += zLift
-            }
-
-            onCenteringOffsetChangeRef.current([center.x, center.y, center.z - zLift])
-          }
-
-          setMergedGeometry(null)
-          setObjects([])
-          setGlbMeshes(processed)
-          setMeshMaterials(materials)
-          materialsRef.current = materials
-          onPartInfosChangeRef.current(partInfos)
-
-          // Register mesh lookuper for lazy material appearance generation.
-          // MaterialToAppearance is deferred until MaterialEditor/ViewportContainer
-          // requests it for the currently selected mesh.
-          if (fileId) {
-            useMaterialStore.getState().registerMeshLookup(fileId, (partId: string) => {
-              const info = partInfos.find(p => p.partId === partId)
-              if (!info) return undefined
-              const mesh = processed[info.meshIndex]
-              if (!mesh) return undefined
-              return {
-                mesh,
-                originalMaterial: mesh.userData._originalMaterial as
-                  | THREE.Material
-                  | THREE.Material[]
-                  | null
-                  | undefined,
-                name: info.name,
-              }
-            })
-          }
-
-          // Ensure scene-tree node IDs match mesh partIds by setting
-          // userData.partId on the original THREE.Mesh objects before
-          // buildSceneTree walks the hierarchy. Without this, unnamed
-          // meshes get tree IDs from child.uuid while mesh partIds use
-          // "part-N", causing visibility toggle to fail.
-          if (result.sceneRoot) {
-            const partIdBySrc = new Map<THREE.Object3D, string>()
-            for (let i = 0; i < meshes.length; i++) {
-              partIdBySrc.set(meshes[i], String(partInfos[i].partId))
-            }
-            result.sceneRoot.traverse((obj) => {
-              const pid = partIdBySrc.get(obj)
-              if (pid !== undefined) {
-                obj.userData.partId = pid
-              }
-            })
-          }
-
-          let tree: SceneTreeNode[]
-          if (result.sceneRoot) {
-            tree = buildSceneTree(result.sceneRoot, partInfos)
-          } else if (bambuMeta && bambuMeta.plates.size > 1) {
-            // Group by plate
-            const plates = new Map<number, SceneTreeNode[]>()
-            for (const info of partInfos) {
-              const pid = info.plateId ?? 1
-              if (!plates.has(pid)) plates.set(pid, [])
-              plates.get(pid)!.push({
-                id: info.partId,
-                name: info.name,
-                visible: true,
-                expanded: true,
-                meshIndex: info.meshIndex,
-              })
-            }
-            tree = Array.from(plates.entries()).map(([plateId, children]) => ({
-              id: `plate-${plateId}`,
-              name: `Plate ${plateId}`,
-              visible: true,
-              expanded: true,
-              children,
-            }))
-          } else {
-            tree = partInfos.map((info) => ({
-              id: info.partId,
-              name: info.name,
-              visible: true,
-              expanded: true,
-              meshIndex: info.meshIndex,
-            }))
-          }
-
-          applySinglePartName(tree, fileName)
-          onSceneTreeChangeRef.current(tree)
-
-          const finalBox = new THREE.Box3()
-          for (const mesh of processed) {
-            const box = mesh.geometry.boundingBox
-            if (box) {
-              finalBox.expandByPoint(box.min.clone().add(mesh.position))
-              finalBox.expandByPoint(box.max.clone().add(mesh.position))
-            }
-          }
-          onLoadedRef.current?.(finalBox)
-          onLoadingPhaseChangeRef.current('done')
-        } else {
-          // Single merged geometry path (STL-like)
-          const geo = mergeGeometries(meshes)
-          geo.computeVertexNormals()
-          // STL heuristic: guess unit from bbox BEFORE centering, then normalize to mm.
+          // STL unit guess: scale raw geometry before any other processing.
           // Without scaling, an inch STL appears 25.4× smaller than mm STLs,
           // making it effectively invisible in multi-file scenes (see commit 0551317).
           if (format === 'stl') {
@@ -642,28 +348,278 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
               }
             }
           }
-          geo.center()
-          // Place bottom on Z=0 (heatbed surface, doc §3)
-          geo.computeBoundingBox()
-          if (geo.boundingBox && geo.boundingBox.min.z < 0) {
-            geo.translate(0, 0, -geo.boundingBox.min.z)
-            geo.computeBoundingBox()
+
+          // View mode delta: reposition mesh for assembly/import view
+          if (currentViewMode !== 'print' && bambuMeta) {
+            const partInfo = {
+              partId: bambuMeta.parts[i]?.partId ?? (src.name || `part-${i}`),
+              meshIndex: i,
+              name: '',
+              triangleCount: 0,
+              materialIndex: -1,
+              objectId: bambuMeta.parts[i]?.objectId,
+            } as GlbPartInfo
+            const delta = computeViewDelta(currentViewMode, bambuMeta, partInfo)
+            if (delta) {
+              geo.applyMatrix4(delta)
+            }
           }
-          setMergedGeometry(geo)
-          setGlbMeshes([])
-          setObjects([])
-          onPartInfosChangeRef.current([])
-          // Scope with fileId to prevent cross-file selection collision (21fe7da pattern)
-          const stlPartId = fileId ? `${fileId}:${format}-model` : `${format}-model`
-          const tree = applySinglePartName(
-            [{ id: stlPartId, name: format.toUpperCase(), visible: true, expanded: true }],
-            fileName,
-          )
-          onSceneTreeChangeRef.current(tree)
+
+          // Preserve skinning data: set skinning=true on material when
+          // geometry has skinIndex / skinWeight attributes, so
+          // MeshStandardMaterial compiles the correct shader variant.
+          const hasSkinning = geo.getAttribute('skinIndex') !== undefined
+
+          if (!geo.getAttribute('normal')) {
+            geo.computeVertexNormals()
+          }
           geo.computeBoundingBox()
-          if (geo.boundingBox) onLoadedRef.current?.(geo.boundingBox.clone())
-          onLoadingPhaseChangeRef.current('done')
+
+          if (i > 0 && i % 30 === 0) {
+            await yieldToUI(true)
+          }
+
+          if (geo.boundingBox) {
+            overallBox.expandByObject(new THREE.Mesh(geo))
+          }
+
+          // Clone and convert material from source mesh.
+          // If the source has only the Three.js default (no file-defined
+          // material), treat it as null so the renderer applies its own
+          // default material (light blue) instead of the white fallback.
+          const mat: THREE.Material | THREE.Material[] | null = isThreeJsDefaultMaterial(src.material)
+            ? null
+            : bambuMeta
+              ? cloneAndConvertMaterial(src.material)
+              : (() => {
+                  const cached = _matCache.get(src.material)
+                  if (cached) return cached
+                  const cloned = cloneAndConvertMaterial(src.material)
+                  _matCache.set(src.material, cloned)
+                  return cloned
+                })()
+
+          // Bambu 3MF: apply filament color from metadata
+          const partMeta = bambuMeta?.parts[i]
+          if (partMeta && bambuMeta) {
+            const fi = partMeta.extruder - 1
+            const colorHex = bambuMeta.filamentColors[fi]
+            if (colorHex && mat && 'color' in mat) {
+              ;(mat as THREE.MeshStandardMaterial).color = new THREE.Color(colorHex)
+            }
+          }
+
+          if (hasSkinning && mat) {
+            setSkinningFlag(mat, true)
+          }
+
+          // Use src.name (stable) instead of src.userData?.partId (mutated on
+          // previous mount in StrictMode, causing double fileId prefix).
+          const rawPartId = src.name || `part-${i}`
+          // Scope partId with fileId so that meshes from different files
+          // never collide in the selection / highlight / drag / bounding-box
+          // system (all of which match by partId across all model groups).
+          const partId = fileId ? `${fileId}:${String(rawPartId)}` : String(rawPartId)
+          const overrideKey = fileId ? partId : ''
+          const { materialOverrides, overrideMaterial } = useMaterialStore.getState()
+          const overrideAppearance = overrideMaterial && overrideKey
+            ? materialOverrides[overrideKey]
+            : undefined
+          const finalMat = overrideAppearance
+            ? getSharedMaterialFactory().createMaterial(overrideAppearance)
+            : mat
+          materials.push(finalMat)
+
+          const mesh = new THREE.Mesh(geo)
+          initMorphTargets(mesh)
+          mesh.userData._originalMaterial = mat
+          mesh.userData._overrideKey = overrideKey || undefined
+          mesh.userData.partId = String(partId)
+          processed.push(mesh)
+
+          const partName = partMeta?.name || src.name || `part-${i}`
+          partInfos.push({
+            partId: String(partId),
+            meshIndex: i,
+            name: partName,
+            triangleCount: geo.index
+              ? geo.index.count / 3
+              : geo.attributes.position?.count / 3 || 0,
+            materialIndex: src.userData?.gltfMaterialIndex ?? -1,
+            extruder: partMeta?.extruder,
+            plateId: partMeta?.plateId,
+            objectId: partMeta?.objectId,
+          })
         }
+
+        // Per-plate centering only in print view (multi-plate Bambu 3MF).
+        // Assembly/import views always use single-group centering so the
+        // delta-repositioned model stays as one assembled group.
+        if (currentViewMode === 'print' && bambuMeta && bambuMeta.plates.size > 1) {
+          // Group processed meshes by plateId
+          const plateGroups = new Map<number, THREE.Mesh[]>()
+          for (let i = 0; i < processed.length; i++) {
+            const pid = partInfos[i]?.plateId ?? 1
+            if (!plateGroups.has(pid)) plateGroups.set(pid, [])
+            plateGroups.get(pid)!.push(processed[i])
+          }
+
+          // Center each plate's meshes independently
+          for (const [, meshes] of plateGroups) {
+            const plateBox = new THREE.Box3()
+            for (const mesh of meshes) {
+              plateBox.expandByObject(mesh)
+            }
+            const plateCenter = plateBox.getCenter(new THREE.Vector3())
+            for (const mesh of meshes) {
+              mesh.position.set(-plateCenter.x, -plateCenter.y, 0)
+            }
+          }
+
+          // Unified Z-lift (all objects bottom at Z=0)
+          const tmpGroup = new THREE.Group()
+          for (const mesh of processed) tmpGroup.add(mesh)
+          const afterBox = new THREE.Box3().setFromObject(tmpGroup)
+          const zLift = -afterBox.min.z
+          for (const mesh of processed) {
+            mesh.position.z += zLift
+          }
+
+          // Compute plate layout and apply per-plate world offsets
+          const plateDims = new Map<number, { width: number; depth: number }>()
+          for (const [pid, plateInfo] of bambuMeta.plates) {
+            plateDims.set(pid, {
+              width: plateInfo.size?.width ?? 200,
+              depth: plateInfo.size?.depth ?? 200,
+            })
+          }
+          const layout = computePlateLayout(plateDims)
+          const layoutByPlateId = new Map<number, PlateLayoutEntry>()
+          for (const entry of layout) {
+            layoutByPlateId.set(entry.plateId, entry)
+          }
+          for (let i = 0; i < processed.length; i++) {
+            const pid = partInfos[i]?.plateId ?? 1
+            const offset = layoutByPlateId.get(pid)
+            if (offset) {
+              processed[i].position.x += offset.centerX
+              processed[i].position.y += offset.centerY
+            }
+          }
+
+          // Centering offset (fallback for topology overlay) — use (0,0,zLift)
+          onCenteringOffsetChangeRef.current([0, 0, -zLift])
+        } else {
+          // Center XY (single-group, non-Bambu path)
+          const center = overallBox.getCenter(new THREE.Vector3())
+          for (const mesh of processed) {
+            mesh.position.set(-center.x, -center.y, 0)
+          }
+
+          // Place bottom on Z=0 (heatbed surface, doc §3)
+          const tmpGroup = new THREE.Group()
+          for (const mesh of processed) tmpGroup.add(mesh)
+          const afterBox = new THREE.Box3().setFromObject(tmpGroup)
+          const zLift = -afterBox.min.z
+          for (const mesh of processed) {
+            mesh.position.z += zLift
+          }
+
+          onCenteringOffsetChangeRef.current([center.x, center.y, center.z - zLift])
+        }
+
+        setObjects([])
+        setGlbMeshes(processed)
+        setMeshMaterials(materials)
+        materialsRef.current = materials
+        onPartInfosChangeRef.current(partInfos)
+
+        // Register mesh lookuper for lazy material appearance generation.
+        // MaterialToAppearance is deferred until MaterialEditor/ViewportContainer
+        // requests it for the currently selected mesh.
+        if (fileId) {
+          useMaterialStore.getState().registerMeshLookup(fileId, (partId: string) => {
+            const info = partInfos.find(p => p.partId === partId)
+            if (!info) return undefined
+            const mesh = processed[info.meshIndex]
+            if (!mesh) return undefined
+            return {
+              mesh,
+              originalMaterial: mesh.userData._originalMaterial as
+                | THREE.Material
+                | THREE.Material[]
+                | null
+                | undefined,
+              name: info.name,
+            }
+          })
+        }
+
+        // Ensure scene-tree node IDs match mesh partIds by setting
+        // userData.partId on the original THREE.Mesh objects before
+        // buildSceneTree walks the hierarchy. Without this, unnamed
+        // meshes get tree IDs from child.uuid while mesh partIds use
+        // "part-N", causing visibility toggle to fail.
+        if (result.sceneRoot) {
+          const partIdBySrc = new Map<THREE.Object3D, string>()
+          for (let i = 0; i < meshes.length; i++) {
+            partIdBySrc.set(meshes[i], String(partInfos[i].partId))
+          }
+          result.sceneRoot.traverse((obj) => {
+            const pid = partIdBySrc.get(obj)
+            if (pid !== undefined) {
+              obj.userData.partId = pid
+            }
+          })
+        }
+
+        let tree: SceneTreeNode[]
+        if (result.sceneRoot) {
+          tree = buildSceneTree(result.sceneRoot, partInfos)
+        } else if (bambuMeta && bambuMeta.plates.size > 1) {
+          // Group by plate
+          const plates = new Map<number, SceneTreeNode[]>()
+          for (const info of partInfos) {
+            const pid = info.plateId ?? 1
+            if (!plates.has(pid)) plates.set(pid, [])
+            plates.get(pid)!.push({
+              id: info.partId,
+              name: info.name,
+              visible: true,
+              expanded: true,
+              meshIndex: info.meshIndex,
+            })
+          }
+          tree = Array.from(plates.entries()).map(([plateId, children]) => ({
+            id: `plate-${plateId}`,
+            name: `Plate ${plateId}`,
+            visible: true,
+            expanded: true,
+            children,
+          }))
+        } else {
+          tree = partInfos.map((info) => ({
+            id: info.partId,
+            name: info.name,
+            visible: true,
+            expanded: true,
+            meshIndex: info.meshIndex,
+          }))
+        }
+
+        applySinglePartName(tree, fileName)
+        onSceneTreeChangeRef.current(tree)
+
+        const finalBox = new THREE.Box3()
+        for (const mesh of processed) {
+          const box = mesh.geometry.boundingBox
+          if (box) {
+            finalBox.expandByPoint(box.min.clone().add(mesh.position))
+            finalBox.expandByPoint(box.max.clone().add(mesh.position))
+          }
+        }
+        onLoadedRef.current?.(finalBox)
+        onLoadingPhaseChangeRef.current('done')
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e)
@@ -695,7 +651,7 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     return () => {
       useEngineStore.getState().setModelGroup(null)
     }
-  }, [glbMeshes, mergedGeometry, objects])
+  }, [glbMeshes, objects])
 
   // Read material overrides from store for reactive updates
   const materialOverrides = useMaterialStore((s) => s.materialOverrides)
@@ -712,21 +668,42 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
     return createDefaultMaterial()
   }, [defaultMaterialAppearance])
 
-  // Wireframe variant of defaultMaterial for the merged-geometry mesh-only mode
-  const defaultMaterialWireframe = useMemo(() => {
-    const mat = defaultMaterial.clone()
-    mat.wireframe = true
-    mat.needsUpdate = true
-    return mat
-  }, [defaultMaterial])
+  // Merged geometry from all processed meshes, used only for edge-line overlay.
+  // This is a cosmetic visual aid (blue CAD wireframe) — not for rendering.
+  const mergedGeometry = useMemo(() => {
+    if (glbMeshes.length === 0) return null
+    if (glbMeshes.length === 1) return glbMeshes[0].geometry
+    const geoms = glbMeshes.map(m => {
+      const g = m.geometry.clone()
+      // Strip morph/skin attributes before merging — edge overlay only
+      // needs position + index. Skinning/morph attributes cause merge to
+      // fail when individual geometries have different attribute sets.
+      if (g.morphAttributes) {
+        for (const key of Object.keys(g.morphAttributes)) {
+          delete g.morphAttributes[key as keyof typeof g.morphAttributes]
+        }
+      }
+      g.morphTargetsRelative = undefined
+      delete (g as any).attributes.skinIndex
+      delete (g as any).attributes.skinWeight
+      g.applyMatrix4(new THREE.Matrix4().makeTranslation(m.position.x, m.position.y, m.position.z))
+      return g
+    })
+    return mergeBufferGeometries(geoms, false)
+  }, [glbMeshes])
 
-  // Feature-edge geometry for edge-line overlay on single-mesh formats (STL, PLY, etc.).
-  // Returns null for mesh/debug/wireframe modes or when geometry is not yet available.
+  // Edge-line overlay: shown when the model uses default material (no custom material data,
+  // no user overrides). This is format-independent — applies to STL, PLY, OBJ, DRC, GLB, etc.
+  const showEdgeOverlay = useMemo(() => {
+    if (displayMode !== 'solid') return false
+    if (glbMeshes.length === 0) return false
+    return !overrideMaterial && meshMaterials.every(m => m === null)
+  }, [displayMode, glbMeshes, meshMaterials, overrideMaterial])
+
   const edgeGeometry = useMemo(() => {
-    if (!mergedGeometry) return null
-    if (displayMode === 'mesh' || displayMode === 'debug' || displayMode === 'wireframe') return null
+    if (!showEdgeOverlay || !mergedGeometry) return null
     return new THREE.EdgesGeometry(mergedGeometry, 30)
-  }, [mergedGeometry, displayMode])
+  }, [showEdgeOverlay, mergedGeometry])
 
   // Derive checker-applied materials (view-layer, does not touch store)
   const checkerMaterials = useMemo(() => {
@@ -899,68 +876,15 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
             </mesh>
           )
         })}
-      </group>
-    )
-  }
-
-  // Non-GLB or placeholder: single merged mesh
-
-  const isMeshOnly = displayMode === 'mesh' || displayMode === 'debug'
-
-  if (!mergedGeometry) return null
-
-  // partId must match the scene-tree node id so that
-  // object-mode clicks and tree-node clicks select the same entity.
-  // Scoped with fileId to prevent cross-file selection collision (21fe7da pattern).
-  const mergedPartId = fileId ? `${fileId}:${format}-model` : `${format}-model`
-  const mergedVis = visibilityMap.get(mergedPartId) ?? true
-
-  if (displayMode === 'wireframe') {
-    return (
-      <group ref={combinedRef}>
-        <mesh
-          visible={mergedVis}
-          geometry={mergedGeometry}
-          castShadow
-          userData={{ partId: mergedPartId }}
-        >
-          <meshBasicMaterial
-            color={'#cccccc'}
-            transparent
-            opacity={0}
-            depthWrite={true}
-            colorWrite={false}
-          />
-        </mesh>
-      </group>
-    )
-  }
-
-  return (
-    <group ref={combinedRef}>
-      <mesh
-        visible={mergedVis}
-        geometry={mergedGeometry}
-        castShadow
-        userData={{ partId: mergedPartId }}
-        material={isMeshOnly ? defaultMaterialWireframe : defaultMaterial}
-      >
         {edgeGeometry && (
-          <lineSegments
-            visible={mergedVis}
-            geometry={edgeGeometry}
-          >
-            <lineBasicMaterial
-              color="#1a4570"
-              opacity={0.35}
-              transparent
-              depthTest
-            />
+          <lineSegments geometry={edgeGeometry}>
+            <lineBasicMaterial color="#1a4570" opacity={0.35} transparent depthTest />
           </lineSegments>
         )}
-      </mesh>
-    </group>
-  )
+      </group>
+    )
+  }
+
 })
 
 export default ModelGroup

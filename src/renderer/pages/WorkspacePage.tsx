@@ -67,11 +67,18 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     return unsubscribe
   }, [loadFilePath])
 
-  const processFileLocally = useCallback(async (file: File) => {
+  const processFileLocally = useCallback(async (file: File, opts?: { skipReset?: boolean }) => {
+    const { skipReset = false } = opts ?? {}
     const format = detectFormat(file.name)
     if (!format) {
       console.error('[WorkspacePage] unsupported format:', file.name)
       return
+    }
+
+    // Clear existing scene on first file load (skipReset=false for subsequent batch files)
+    if (!skipReset) {
+      useModelStore.getState().reset()
+      useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
     }
 
     if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {

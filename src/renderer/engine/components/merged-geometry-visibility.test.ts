@@ -1,21 +1,13 @@
 /**
  * @vitest-environment node
  *
- * Tests for merged-geometry visibility contract.
+ * Tests for unified mesh pipeline visibility contract.
  *
- * ModelGroup has three render paths:
- *   1. Non-mesh objects (GCode, point-cloud) — correctly uses visible={vis}
- *   2. GLB multi-mesh — correctly uses visible={vis}
- *   3. Merged geometry (STL/PLY/OBJ/DRC/AMF/3DS/WRL/VOX/KMZ/…) — MISSING visible
- *
- * This suite documents the contract that path (3) must follow so that
- * scene-tree eye-icon toggles actually hide/show the 3D model.
- *
- * The node ID for merged geometry is `${fileId}:${format}-model`
- * (see ModelGroup.tsx lines 641 and 892).
- * This must match the ID that buildSceneTree / onSceneTreeChangeRef emits
- * so that flattenVisibility(sceneTree) contains the key ModelGroup looks up.
+ * All mesh formats (GLB, STL, PLY, OBJ, DRC, etc.) go through the same pipeline.
+ * Each mesh gets a partId like `${fileId}:${rawPartId}` and a meshIndex.
+ * The scene tree is built from partInfos, and visibilityMap resolves node IDs.
  */
+
 import { describe, it, expect } from 'vitest'
 import { flattenVisibility } from '@/lib/scene-tree-utils'
 import type { SceneTreeNode } from '@/stores/model-store'
@@ -76,130 +68,135 @@ function syncChildren(combined: SceneTreeNode[], fileId: string): SceneTreeNode[
 }
 
 // ---------------------------------------------------------------------------
-// The ID pattern used by ModelGroup for merged-geometry formats
+// Unified pipeline partId format
+//
+// ModelGroup produces partIds as: fileId ? `${fileId}:${rawPartId}` : rawPartId
+// where rawPartId = src.name || `part-${i}`
+// For STL (no name from loader), rawPartId = 'part-0'
 // ---------------------------------------------------------------------------
-function mergedPartId(fileId: string, format: string): string {
-  return `${fileId}:${format}-model`
+function unifiedPartId(fileId: string, index: number): string {
+  return `${fileId}:part-${index}`
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('merged-geometry visibility contract', () => {
-  const FORMATS = ['stl', 'ply', 'obj', 'drc', 'amf', '3ds', 'wrl', 'vox', 'kmz'] as const
-
+describe('unified mesh pipeline visibility contract', () => {
   // -----------------------------------------------------------------------
-  // 1. ID format contract
+  // 1. ID format: all formats use the same partId pattern
   // -----------------------------------------------------------------------
 
-  it('merged geometry partId format matches scene-tree node id', () => {
+  it('unified pipeline partId uses part-N format (not format-model)', () => {
     const fileId = 'abc-123-def'
-    const format = 'stl'
-    const pid = mergedPartId(fileId, format)
-
-    expect(pid).toBe('abc-123-def:stl-model')
+    const pid = unifiedPartId(fileId, 0)
+    expect(pid).toBe('abc-123-def:part-0')
   })
 
-  it.each(FORMATS)('merged geometry partId for %s matches expected pattern', (format) => {
-    const pid = mergedPartId('file-001', format)
-    expect(pid).toBe(`file-001:${format}-model`)
-  })
+  it.each(['stl', 'ply', 'obj', 'drc', 'glb'] as const)(
+    'mesh from %s uses consistent partId format',
+    (_format) => {
+      const pid = unifiedPartId('file-001', 0)
+      // All formats use the same ID pattern — no format-specific suffix
+      expect(pid).toBe('file-001:part-0')
+    },
+  )
 
   // -----------------------------------------------------------------------
-  // 2. Scene tree structure for merged geometry
+  // 2. Scene tree structure: nodes have meshIndex
   // -----------------------------------------------------------------------
 
-  it('scene tree for merged geometry has the expected single-node structure', () => {
-    // This mirrors what ModelGroup does at line 642-645:
-    //   [{ id: stlPartId, name: format.toUpperCase(), visible: true, expanded: true }]
+  it('scene tree for STL has meshIndex on nodes', () => {
     const fileId = 'abc'
-    const format = 'stl'
     const tree: SceneTreeNode[] = [
       {
-        id: mergedPartId(fileId, format),
-        name: format.toUpperCase(),
+        id: unifiedPartId(fileId, 0),
+        name: 'part-0',
         visible: true,
         expanded: true,
+        meshIndex: 0,
       },
     ]
 
-    expect(tree[0].id).toBe('abc:stl-model')
+    expect(tree[0].id).toBe('abc:part-0')
+    expect(tree[0].meshIndex).toBe(0)
     expect(tree[0].visible).toBe(true)
   })
 
   // -----------------------------------------------------------------------
-  // 3. flattenVisibility resolves merged geometry node IDs
+  // 3. flattenVisibility resolves unified node IDs
   // -----------------------------------------------------------------------
 
-  it('flattenVisibility contains the merged geometry node id', () => {
+  it('flattenVisibility contains the unified node id', () => {
     const tree: SceneTreeNode[] = [
-      { id: 'abc:stl-model', name: 'STL', visible: true, expanded: true },
+      { id: 'abc:part-0', name: 'part-0', visible: true, expanded: true, meshIndex: 0 },
     ]
     const map = flattenVisibility(tree)
-    expect(map.get('abc:stl-model')).toBe(true)
+    expect(map.get('abc:part-0')).toBe(true)
   })
 
-  it('flattenVisibility returns false when merged geometry node is hidden', () => {
+  it('flattenVisibility returns false when node is hidden', () => {
     const tree: SceneTreeNode[] = [
-      { id: 'abc:stl-model', name: 'STL', visible: false, expanded: true },
+      { id: 'abc:part-0', name: 'part-0', visible: false, expanded: true, meshIndex: 0 },
     ]
     const map = flattenVisibility(tree)
-    expect(map.get('abc:stl-model')).toBe(false)
+    expect(map.get('abc:part-0')).toBe(false)
   })
 
   it('default to visible when node ID is not in the map (?? true fallback)', () => {
     const map = flattenVisibility([])
-    expect(map.get('abc:stl-model') ?? true).toBe(true)
+    expect(map.get('abc:part-0') ?? true).toBe(true)
   })
 
   // -----------------------------------------------------------------------
   // 4. Full pipeline: combined tree → toggle file node → sync → visibilityMap
   // -----------------------------------------------------------------------
 
-  it('file-level visibility toggle cascades to merged geometry node', () => {
-    // Build a scene tree for a single merged-geometry STL file
+  it('file-level visibility toggle cascades to mesh node', () => {
     const fileId = 'stl-file-001'
-    const format = 'stl'
-    const nodeId = mergedPartId(fileId, format)
+    const nodeId = unifiedPartId(fileId, 0)
 
     const fileTree: SceneTreeNode[] = [
-      { id: nodeId, name: 'STL', visible: true, expanded: true },
+      { id: nodeId, name: 'part-0', visible: true, expanded: true, meshIndex: 0 },
     ]
 
-    // Wrap in combined tree (what buildCombinedTree does)
+    // Wrap in combined tree
     let combined = buildCombinedTree([
       { id: fileId, name: 'model.stl', tree: fileTree },
     ])
 
-    // Toggle the file-level node visibility (what toggleNodeVisible does)
+    // Toggle the file-level node visibility
     combined = toggleNodeInTree(combined, `file:${fileId}`, 'visible')
     expect(combined[0].visible).toBe(false)
     expect(combined[0].children![0].visible).toBe(false)
 
-    // Sync back to file tree (what syncCombinedToFiles does)
+    // Sync back to file tree
     const synced = syncChildren(combined, fileId)
     expect(synced[0].visible).toBe(false)
 
-    // Compute visibility map (what ModelGroup does at lines 164-166)
+    // Compute visibility map
     const visibilityMap = flattenVisibility(synced)
 
-    // THIS is what ModelGroup should be doing for merged geometry:
+    // The mesh node should be hidden
     const vis = visibilityMap.get(nodeId) ?? true
     expect(vis).toBe(false)
   })
 
   // -----------------------------------------------------------------------
-  // 5. Multi-file scenario: two merged-geometry files from different folders
+  // 5. Multi-file scenario
   // -----------------------------------------------------------------------
 
   it('toggling one file does not affect the other in multi-file scene', () => {
-    const fileA = { id: 'file-a', name: 'cube.stl', tree: [
-      { id: mergedPartId('file-a', 'stl'), name: 'STL', visible: true, expanded: true },
-    ]}
-    const fileB = { id: 'file-b', name: 'sphere.stl', tree: [
-      { id: mergedPartId('file-b', 'stl'), name: 'STL', visible: true, expanded: true },
-    ]}
+    const fileA = {
+      id: 'file-a',
+      name: 'cube.stl',
+      tree: [{ id: unifiedPartId('file-a', 0), name: 'part-0', visible: true, expanded: true, meshIndex: 0 }],
+    }
+    const fileB = {
+      id: 'file-b',
+      name: 'sphere.ply',
+      tree: [{ id: unifiedPartId('file-b', 0), name: 'part-0', visible: true, expanded: true, meshIndex: 0 }],
+    }
 
     let combined = buildCombinedTree([fileA, fileB])
 
@@ -213,21 +210,22 @@ describe('merged-geometry visibility contract', () => {
     const visA = flattenVisibility(syncedA)
     const visB = flattenVisibility(syncedB)
 
-    // File A model should be hidden
-    expect(visA.get(mergedPartId('file-a', 'stl'))).toBe(false)
-    // File B model should still be visible
-    expect(visB.get(mergedPartId('file-b', 'stl'))).toBe(true)
+    expect(visA.get(unifiedPartId('file-a', 0))).toBe(false)
+    expect(visB.get(unifiedPartId('file-b', 0))).toBe(true)
   })
 
   // -----------------------------------------------------------------------
-  // 6. Mixed scene: GLB (correctly handled) + STL (merged geometry)
+  // 6. Mixed scene: GLB + STL both use unified pipeline
   // -----------------------------------------------------------------------
 
-  it('merged-geometry visibility matches GLB mesh visibility behavior', () => {
+  it('GLB and STL mesh visibility behave identically', () => {
     // A GLB file with two meshes
     const glbTree: SceneTreeNode[] = [
       {
-        id: 'glb-file:Root', name: 'Root', visible: true, expanded: true,
+        id: 'glb-file:Root',
+        name: 'Root',
+        visible: true,
+        expanded: true,
         children: [
           { id: 'glb-file:Mesh_Body', name: 'Mesh_Body', visible: true, meshIndex: 0 },
           { id: 'glb-file:Mesh_Head', name: 'Mesh_Head', visible: true, meshIndex: 1 },
@@ -235,9 +233,9 @@ describe('merged-geometry visibility contract', () => {
       },
     ]
 
-    // A merged-geometry STL file
+    // An STL file with one mesh (unified pipeline)
     const stlTree: SceneTreeNode[] = [
-      { id: mergedPartId('stl-file', 'stl'), name: 'STL', visible: true, expanded: true },
+      { id: unifiedPartId('stl-file', 0), name: 'part-0', visible: true, expanded: true, meshIndex: 0 },
     ]
 
     let combined = buildCombinedTree([
@@ -255,26 +253,21 @@ describe('merged-geometry visibility contract', () => {
     const glbMap = flattenVisibility(syncedGlb)
     const stlMap = flattenVisibility(syncedStl)
 
-    // GLB meshes are hidden (this already works in ModelGroup)
     expect(glbMap.get('glb-file:Mesh_Body')).toBe(false)
     expect(glbMap.get('glb-file:Mesh_Head')).toBe(false)
-
-    // STL merged geometry SHOULD be hidden (this is what we're fixing)
-    // If ModelGroup reads visibilityMap.get(mergedPartId) ?? true,
-    // this would return false — and the mesh would be hidden.
-    expect(stlMap.get(mergedPartId('stl-file', 'stl'))).toBe(false)
+    expect(stlMap.get(unifiedPartId('stl-file', 0))).toBe(false)
   })
 
   // -----------------------------------------------------------------------
   // 7. Toggle back to visible
   // -----------------------------------------------------------------------
 
-  it('merged geometry becomes visible again after toggle back', () => {
+  it('mesh becomes visible again after toggle back', () => {
     const fileId = 'abc'
-    const format = 'stl'
+    const nodeId = unifiedPartId(fileId, 0)
 
     const fileTree: SceneTreeNode[] = [
-      { id: mergedPartId(fileId, format), name: 'STL', visible: true, expanded: true },
+      { id: nodeId, name: 'part-0', visible: true, expanded: true, meshIndex: 0 },
     ]
 
     let combined = buildCombinedTree([{ id: fileId, name: 'm.stl', tree: fileTree }])
@@ -282,11 +275,29 @@ describe('merged-geometry visibility contract', () => {
     // Hide
     combined = toggleNodeInTree(combined, `file:${fileId}`, 'visible')
     let synced = syncChildren(combined, fileId)
-    expect(flattenVisibility(synced).get(mergedPartId(fileId, format))).toBe(false)
+    expect(flattenVisibility(synced).get(nodeId)).toBe(false)
 
     // Show again
     combined = toggleNodeInTree(combined, `file:${fileId}`, 'visible')
     synced = syncChildren(combined, fileId)
-    expect(flattenVisibility(synced).get(mergedPartId(fileId, format))).toBe(true)
+    expect(flattenVisibility(synced).get(nodeId)).toBe(true)
+  })
+
+  // -----------------------------------------------------------------------
+  // 8. Multi-mesh file (e.g. GLB with several parts)
+  // -----------------------------------------------------------------------
+
+  it('multi-mesh file: each part has unique ID and meshIndex', () => {
+    const tree: SceneTreeNode[] = [
+      { id: 'file-x:part-0', name: 'part-0', visible: true, expanded: true, meshIndex: 0 },
+      { id: 'file-x:part-1', name: 'part-1', visible: true, expanded: true, meshIndex: 1 },
+      { id: 'file-x:part-2', name: 'part-2', visible: true, expanded: true, meshIndex: 2 },
+    ]
+
+    const map = flattenVisibility(tree)
+    expect(map.get('file-x:part-0')).toBe(true)
+    expect(map.get('file-x:part-1')).toBe(true)
+    expect(map.get('file-x:part-2')).toBe(true)
+    expect(map.get('file-x:part-0') ?? true).toBe(true)
   })
 })

@@ -225,6 +225,7 @@ describe('partIdFromIntersection', () => {
     })
     // Object-mode picking: raycaster hits the mesh → calls partIdFromIntersection
     expect(partIdFromIntersection(intersection)).toBeNull()
-    // Expected: should return 'stl-model' (or scoped equivalent) so the mesh is selectable
+    // STL meshes now have userData.partId set by the unified pipeline.
+    // This test covers the edge case where userData is empty (null result).
   })
 })
