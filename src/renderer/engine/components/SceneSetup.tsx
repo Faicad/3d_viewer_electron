@@ -427,11 +427,12 @@ export default function SceneSetup() {
         useModelStore.getState().activeUpAxis === 'y' ? 1 : 0,
         useModelStore.getState().activeUpAxis === 'z' ? 1 : 0,
       )
-      // Dynamic shadow bias: scale with frustum texel size so bias works
-      // consistently across tiny (0.1 m GLB) and large (100 mm STL) models.
+      // Dynamic shadow bias: use small depth bias for flat surfaces + normalBias
+      // for sloped surfaces, avoiding Peter Panning while preventing acne.
       const mapSize = light.shadow.mapSize.width
       const texelSize = (2 * f.right) / mapSize // f.right === half
-      light.shadow.bias = -(Math.max(texelSize * 1.5, 0.0005))
+      light.shadow.bias = -(Math.max(texelSize * 0.2, 0.0001))
+      light.shadow.normalBias = Math.max(texelSize * 0.5, 0.0002)
       light.shadow.camera.updateProjectionMatrix()
     })
     return unsub
@@ -456,7 +457,8 @@ export default function SceneSetup() {
     )
     const mapSize = light.shadow.mapSize.width
     const texelSize = (2 * f.right) / mapSize
-    light.shadow.bias = -(Math.max(texelSize * 1.5, 0.0005))
+    light.shadow.bias = -(Math.max(texelSize * 0.2, 0.0001))
+    light.shadow.normalBias = Math.max(texelSize * 0.5, 0.0002)
     light.shadow.camera.updateProjectionMatrix()
   }, [activeUpAxis])
 

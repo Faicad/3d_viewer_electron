@@ -25,6 +25,9 @@ export class ShadowFloor {
       opacity: 0.5,
       depthWrite: false,
       transparent: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     })
 
     this._group = new THREE.Group()
@@ -54,7 +57,7 @@ export class ShadowFloor {
       maxZ - minZ,
     )
     const size = extent * 6
-    const epsilon = Math.max(extent * 0.01, 0.015)
+    const epsilon = Math.max(extent * 0.0001, 0.001)
 
     // Remove existing plane
     if (this._plane) {

@@ -22,6 +22,12 @@ export default function App() {
     } else if (autoRotate === '1' || autoRotate === 'true') {
       useEngineStore.getState().setAutoRotate(true)
     }
+    const shadowFloorEnabled = params.get('shadowFloorEnabled')
+    if (shadowFloorEnabled === '0' || shadowFloorEnabled === 'false') {
+      useEngineStore.getState().setShadowFloorEnabled(false)
+    } else if (shadowFloorEnabled === '1' || shadowFloorEnabled === 'true') {
+      useEngineStore.getState().setShadowFloorEnabled(true)
+    }
     const movieMode = params.get('movie_mode')
     if (movieMode === '1') {
       useEngineStore.getState().setMovieMode(true)
