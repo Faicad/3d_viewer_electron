@@ -60,8 +60,15 @@ test('shadow visibility diagnostic', async () => {
     es.getState().setEnvBackground('grey')
   })
 
-  // Wait a frame for shadow to render
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)))
+  // Force an explicit render frame and GPU sync to ensure the canvas shows
+  // current scene state (grey background + shadows) rather than a stale frame
+  // from the EffectComposer pipeline.
+  await page.evaluate(() => {
+    const d = (window as any).__r3f_dev as any
+    if (!d) return
+    d.gl.render(d.scene, d.camera)
+    d.gl.getContext().finish()
+  })
 
   // --- Full shadow diagnostic ---
   const diag = await page.evaluate(() => {

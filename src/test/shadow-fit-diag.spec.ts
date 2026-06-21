@@ -105,6 +105,15 @@ test('shadow visible on small model after camera auto-fit', async () => {
     expect(ratio).toBeLessThan(50)
   }
 
+  // Force an explicit render frame and GPU sync to ensure the canvas shows
+  // current scene state (grey background + shadows) rather than a stale frame.
+  await page.evaluate(() => {
+    const d = (window as any).__r3f_dev as any
+    if (!d) return
+    d.gl.render(d.scene, d.camera)
+    d.gl.getContext().finish()
+  })
+
   // Take screenshot for visual inspection
   // await page.screenshot({ path: path.join(__dirname, '..', '..', 'diag-fit.png') })
 

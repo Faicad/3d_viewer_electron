@@ -67,16 +67,25 @@ export default function SceneSetup() {
     if (!mgr || !selectedEnv) return
     let cancelled = false
     mgr.fadeEnvironment(scene, camera, 1000, async () => {
-      await mgr.setEnvironment(selectedEnv)
+      // For synchronous sources (studio, cleanroom), avoid await to prevent
+      // a microtask gap that would let other effects (envBackground) read
+      // a stale _currentTex (64px initial) before adaptStudioToModel runs.
+      if (selectedEnv === 'studio' || selectedEnv === '__cleanroom__') {
+        mgr.setEnvironment(selectedEnv)
+      } else {
+        await mgr.setEnvironment(selectedEnv)
+      }
       if (cancelled) return
+
+      // Adapt studio BEFORE applyEnvToScene, so the first frame (and any
+      // interleaved effects like envBackground) see the already-adapted
+      // high-res PMREM rather than the 64px initial version.
+      const bbox = useEngineStore.getState().modelBbox
+      if ((selectedEnv === 'studio' || selectedEnv === '__cleanroom__') && bbox) {
+        mgr.adaptStudioToModel(bbox)
+      }
       const rot = useEngineStore.getState().envRotation
       applyEnvToScene(mgr, rot)
-
-      // When switching to studio with a model already loaded, adapt floor height
-      if ((selectedEnv === 'studio' || selectedEnv === '__cleanroom__') && useEngineStore.getState().modelBbox) {
-        mgr.adaptStudioToModel(useEngineStore.getState().modelBbox!)
-        applyEnvToScene(mgr, rot)
-      }
     }, movieMode)
     return () => { cancelled = true }
   }, [selectedEnv, scene, camera, movieMode])
