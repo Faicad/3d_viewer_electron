@@ -74,25 +74,25 @@ class CleanRoomEnvironment extends Scene {
     this.add(light2)
 
     // +x
-    const light3 = new Mesh(geometry, createAreaLightMaterial(17))
+    const light3 = new Mesh(geometry, createAreaLightMaterial(15))
     light3.position.set(14.904, 12.198, -1.832)
     light3.scale.set(0.15, 4.265, 6.331)
     this.add(light3)
 
     // +z
-    const light4 = new Mesh(geometry, createAreaLightMaterial(43))
+    const light4 = new Mesh(geometry, createAreaLightMaterial(5))
     light4.position.set(-0.462, 8.89, 14.52)
     light4.scale.set(4.38, 5.441, 0.088)
     this.add(light4)
 
     // -z
-    const light5 = new Mesh(geometry, createAreaLightMaterial(20))
+    const light5 = new Mesh(geometry, createAreaLightMaterial(30))
     light5.position.set(3.235, 11.486, -12.541)
     light5.scale.set(2.5, 2.0, 0.1)
     this.add(light5)
 
     // +y (ceiling)
-    const light6 = new Mesh(geometry, createAreaLightMaterial(100))
+    const light6 = new Mesh(geometry, createAreaLightMaterial(20))
     light6.position.set(0.0, 20.0, 0.0)
     light6.scale.set(1.0, 0.1, 1.0)
     this.add(light6)
