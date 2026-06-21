@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
 import { TEXTURE_PROPS, extractAllScalars } from '@/engine/material/property-map'
+import { createNoiseTexture } from '@/engine/material/noiseTexture'
 
 // ---------------------------------------------------------------------------
 // Texture serialisation
@@ -139,6 +140,7 @@ export function createDefaultMaterial(): THREE.MeshPhysicalMaterial {
   mat.metalness = DEFAULT_MATERIAL_METALNESS
   mat.envMapIntensity = 0.6
   mat.side = THREE.FrontSide
+  mat.map = createNoiseTexture()
   mat.needsUpdate = true
   return mat
 }
