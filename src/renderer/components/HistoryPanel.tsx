@@ -149,7 +149,7 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         })
 
         useSvgWorkspaceStore.getState().addFilesBatch([{
-          fileId, fileName: entry.fileName, svgText,
+          fileId, fileName: entry.fileName, filePath: entry.filePath, svgText,
           layers, naturalWidth, naturalHeight,
         }])
 

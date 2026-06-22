@@ -128,8 +128,8 @@ describe('svgWorkspaceStore', () => {
     store.setCanvasSize(800, 600)
 
     store.addFilesBatch([
-      { fileId: 'a', fileName: 'a.svg', svgText: NO_GROUPS, layers: parseSvgLayers(NO_GROUPS), naturalWidth: 100, naturalHeight: 100 },
-      { fileId: 'b', fileName: 'b.svg', svgText: NO_GROUPS, layers: parseSvgLayers(NO_GROUPS), naturalWidth: 100, naturalHeight: 100 },
+      { fileId: 'a', fileName: 'a.svg', filePath: '/a.svg', svgText: NO_GROUPS, layers: parseSvgLayers(NO_GROUPS), naturalWidth: 100, naturalHeight: 100 },
+      { fileId: 'b', fileName: 'b.svg', filePath: '/b.svg', svgText: NO_GROUPS, layers: parseSvgLayers(NO_GROUPS), naturalWidth: 100, naturalHeight: 100 },
     ])
 
     const state = useSvgWorkspaceStore.getState()
@@ -144,11 +144,11 @@ describe('svgWorkspaceStore', () => {
     store.setCanvasSize(800, 600)
 
     // Add
-    store.toggleFile('x', 'x.svg', NO_GROUPS, parseSvgLayers(NO_GROUPS), 100, 100)
+    store.toggleFile('x', 'x.svg', '/x.svg', NO_GROUPS, parseSvgLayers(NO_GROUPS), 100, 100)
     expect(useSvgWorkspaceStore.getState().files).toHaveLength(1)
 
     // Remove
-    store.toggleFile('x', 'x.svg', NO_GROUPS, parseSvgLayers(NO_GROUPS), 100, 100)
+    store.toggleFile('x', 'x.svg', '/x.svg', NO_GROUPS, parseSvgLayers(NO_GROUPS), 100, 100)
     expect(useSvgWorkspaceStore.getState().files).toHaveLength(0)
   })
 
@@ -157,7 +157,7 @@ describe('svgWorkspaceStore', () => {
 
     // Add a grid file
     store.addFilesBatch([
-      { fileId: 'd', fileName: 'd.svg', svgText: NO_GROUPS, layers: parseSvgLayers(NO_GROUPS), naturalWidth: 100, naturalHeight: 100 },
+      { fileId: 'd', fileName: 'd.svg', filePath: '/d.svg', svgText: NO_GROUPS, layers: parseSvgLayers(NO_GROUPS), naturalWidth: 100, naturalHeight: 100 },
     ])
 
     expect(useSvgWorkspaceStore.getState().files[0].placement).toBe('grid')
@@ -174,7 +174,7 @@ describe('svgWorkspaceStore', () => {
     const store = useSvgWorkspaceStore.getState()
 
     store.addFilesBatch([
-      { fileId: 'e', fileName: 'e.svg', svgText: SAMPLE, layers: parseSvgLayers(SAMPLE), naturalWidth: 200, naturalHeight: 150 },
+      { fileId: 'e', fileName: 'e.svg', filePath: '/e.svg', svgText: SAMPLE, layers: parseSvgLayers(SAMPLE), naturalWidth: 200, naturalHeight: 150 },
     ])
 
     const before = useSvgWorkspaceStore.getState().files.find((x) => x.fileId === 'e')
@@ -193,7 +193,7 @@ describe('svgWorkspaceStore', () => {
     const store = useSvgWorkspaceStore.getState()
 
     store.addFilesBatch([
-      { fileId: 'f', fileName: 'f.svg', svgText: SAMPLE, layers: parseSvgLayers(SAMPLE), naturalWidth: 200, naturalHeight: 150 },
+      { fileId: 'f', fileName: 'f.svg', filePath: '/f.svg', svgText: SAMPLE, layers: parseSvgLayers(SAMPLE), naturalWidth: 200, naturalHeight: 150 },
     ])
 
     expect(useSvgWorkspaceStore.getState().files[0].visible).toBe(true)

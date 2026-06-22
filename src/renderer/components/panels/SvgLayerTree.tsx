@@ -1,7 +1,10 @@
+import { useState, useCallback } from 'react'
 import { useSvgWorkspaceStore } from '@/stores/svg-workspace-store'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Eye, EyeOff, X } from 'lucide-react'
+import { Eye, EyeOff, X, Copy, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ContextMenu } from '@/components/ui/ContextMenu'
+import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 
 export default function SvgLayerTree() {
   const files = useSvgWorkspaceStore((s) => s.files)
@@ -10,6 +13,32 @@ export default function SvgLayerTree() {
   const toggleLayer = useSvgWorkspaceStore((s) => s.toggleLayer)
   const toggleFileVisible = useSvgWorkspaceStore((s) => s.toggleFileVisible)
   const removeFile = useSvgWorkspaceStore((s) => s.removeFile)
+
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; items: ContextMenuItemDef[] } | null>(null)
+
+  const handleFileContextMenu = useCallback((e: React.MouseEvent, filePath: string) => {
+    e.preventDefault()
+    const items: ContextMenuItemDef[] = []
+    if (filePath) {
+      items.push({
+        label: 'Copy Path',
+        icon: Copy,
+        action: () => {
+          navigator.clipboard.writeText(filePath)
+        },
+      })
+      items.push({
+        label: 'Reveal in File Explorer',
+        icon: FolderOpen,
+        action: () => {
+          window.electronAPI.showItemInFolder(filePath)
+        },
+      })
+    }
+    if (items.length > 0) {
+      setCtxMenu({ x: e.clientX, y: e.clientY, items })
+    }
+  }, [])
 
   if (files.length === 0) {
     return (
@@ -38,6 +67,7 @@ export default function SvgLayerTree() {
                     !file.visible && 'opacity-40',
                   )}
                   onClick={() => selectFile(file.fileId)}
+                  onContextMenu={(e) => handleFileContextMenu(e, file.filePath)}
                 >
                   {/* File visibility toggle */}
                   <button
@@ -92,6 +122,13 @@ export default function SvgLayerTree() {
           })}
         </div>
       </ScrollArea>
+      {ctxMenu && (
+        <ContextMenu
+          position={{ x: ctxMenu.x, y: ctxMenu.y }}
+          items={ctxMenu.items}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   )
 }

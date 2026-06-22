@@ -87,7 +87,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
           })
 
           useSvgWorkspaceStore.getState().addFilesBatch([{
-            fileId, fileName: file.name, svgText,
+            fileId, fileName: file.name, filePath, svgText,
             layers, naturalWidth, naturalHeight,
           }])
 

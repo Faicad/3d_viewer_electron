@@ -160,7 +160,7 @@ export function useFileLoader() {
 
         // Add batch: file dialog opens multiple → grid layout
         useSvgWorkspaceStore.getState().addFilesBatch([{
-          fileId, fileName: name, svgText,
+          fileId, fileName: name, filePath, svgText,
           layers, naturalWidth, naturalHeight,
         }])
 

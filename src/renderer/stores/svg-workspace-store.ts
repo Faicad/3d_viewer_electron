@@ -14,6 +14,7 @@ export type SvgPlacement = 'grid' | 'free'
 export interface SvgWorkspaceFile {
   fileId: string
   fileName: string
+  filePath: string
   svgText: string
   layers: SvgLayer[]
   x: number
@@ -32,8 +33,8 @@ interface SvgWorkspaceState {
   canvasWidth: number
   canvasHeight: number
 
-  addFilesBatch: (files: { fileId: string; fileName: string; svgText: string; layers: SvgLayer[]; naturalWidth: number; naturalHeight: number }[]) => void
-  toggleFile: (fileId: string, fileName: string, svgText: string, layers: SvgLayer[], naturalWidth: number, naturalHeight: number) => void
+  addFilesBatch: (files: { fileId: string; fileName: string; filePath: string; svgText: string; layers: SvgLayer[]; naturalWidth: number; naturalHeight: number }[]) => void
+  toggleFile: (fileId: string, fileName: string, filePath: string, svgText: string, layers: SvgLayer[], naturalWidth: number, naturalHeight: number) => void
   removeFile: (fileId: string) => void
   selectFile: (fileId: string | null) => void
   moveFile: (fileId: string, x: number, y: number) => void
@@ -200,6 +201,7 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
     const files: SvgWorkspaceFile[] = incoming.map((f) => ({
       fileId: f.fileId,
       fileName: f.fileName,
+      filePath: f.filePath,
       svgText: f.svgText,
       layers: f.layers,
       x: 0,
@@ -218,7 +220,7 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
     set({ files, selectedFileId: files.length > 0 ? files[0].fileId : null })
   },
 
-  toggleFile: (fileId, fileName, svgText, layers, naturalWidth, naturalHeight) => {
+  toggleFile: (fileId, fileName, filePath, svgText, layers, naturalWidth, naturalHeight) => {
     const { files, canvasWidth, canvasHeight, selectedFileId } = get()
     const existing = files.find((f) => f.fileId === fileId)
 
@@ -242,6 +244,7 @@ export const useSvgWorkspaceStore = create<SvgWorkspaceState>()((set, get) => ({
     const newFile: SvgWorkspaceFile = {
       fileId,
       fileName,
+      filePath,
       svgText,
       layers: layers.map((l) => ({ ...l })),
       x: canvasWidth / 2,

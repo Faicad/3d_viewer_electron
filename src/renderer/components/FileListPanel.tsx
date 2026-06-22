@@ -720,6 +720,7 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       useSvgWorkspaceStore.getState().toggleFile(
         existing.id,
         existing.fileName,
+        existing.filePath,
         existing.svgText,
         existing.svgLayers || [],
         parseSvgViewBox(existing.svgText).naturalWidth,
@@ -787,7 +788,7 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       })
 
       // Toggle on
-      useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, svgText, layers, naturalWidth, naturalHeight)
+      useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, file.path, svgText, layers, naturalWidth, naturalHeight)
     } catch (e) {
       console.error('[toggleFileInScene] SVG/DXF load exception:', e)
       toast.error('Load failed: ' + String(e))

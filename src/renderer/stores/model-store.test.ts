@@ -452,7 +452,7 @@ describe('SVG workspace sync — FileListPanel toggle', () => {
       svgLayers,
     })
     useSvgWorkspaceStore.getState().toggleFile(
-      fileId, 'test.svg', SVG_SAMPLE, svgLayers, 200, 150,
+      fileId, 'test.svg', filePath, SVG_SAMPLE, svgLayers, 200, 150,
     )
 
     // After first click: file is in both stores
@@ -461,7 +461,7 @@ describe('SVG workspace sync — FileListPanel toggle', () => {
 
     // Step 2: Second click — workspace toggle removes it from canvas…
     useSvgWorkspaceStore.getState().toggleFile(
-      fileId, 'test.svg', SVG_SAMPLE, svgLayers, 200, 150,
+      fileId, 'test.svg', filePath, SVG_SAMPLE, svgLayers, 200, 150,
     )
 
     // Workspace is now empty (file removed from canvas)
@@ -495,7 +495,7 @@ describe('SVG workspace sync — FileListPanel toggle', () => {
       svgLayers,
     })
     useSvgWorkspaceStore.getState().toggleFile(
-      fileId, 'test2.svg', SVG_SAMPLE, svgLayers, 200, 150,
+      fileId, 'test2.svg', filePath, SVG_SAMPLE, svgLayers, 200, 150,
     )
 
     expect(useModelStore.getState().isFileLoaded(filePath)).toBe(true)
@@ -532,7 +532,7 @@ describe('SVG workspace sync — FileListPanel toggle', () => {
       svgLayers,
     })
     useSvgWorkspaceStore.getState().toggleFile(
-      fileId, 'test3.svg', SVG_SAMPLE, svgLayers, 200, 150,
+      fileId, 'test3.svg', filePath, SVG_SAMPLE, svgLayers, 200, 150,
     )
 
     expect(useModelStore.getState().loadedFiles).toHaveLength(1)
