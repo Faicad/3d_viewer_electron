@@ -169,6 +169,10 @@ export function useFileLoader() {
           if (blob) putThumbnail(cacheKey(filePath, mtimeMs), blob)
         })
 
+        if (!skipFolderUpdate) {
+          updateFolderForFile(filePath, name)
+        }
+
         return
       }
 
