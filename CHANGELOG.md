@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.5.0...v1.6.0) (2026-06-22)
+
+
+### Features
+
+* add auto-rotate API and unify camera animation with GSAP ([b89c1c5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b89c1c5e50a0af5f8b904d39f0d7ee254c6b3117))
+* port AI API server + explosion animation from web ([5d9cd92](https://github.com/YOUR_ORG/3d_viewer_electron/commits/5d9cd926811ecec9566e57e8162efee13bbd81f3))
+* port movie_mode, __animateCamera, cameraFit bugfix, and Zap icon ([1912dae](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1912daeb342b66a495840ff12058a5c105b1d01e))
+* **viewer:** add noise texture to default material ([e599bc8](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e599bc89fa9e942d14069d3f28321a5d272b0594))
+* **viewer:** port entry animation system (zoom/slide/fade), queryParts API, and STEP 100MB check to IPC handler ([494aa44](https://github.com/YOUR_ORG/3d_viewer_electron/commits/494aa44c39dce21d7c7f3ce239adba94af372717))
+* **viewer:** port STL edge-line overlay, material defaults, env fade, STEP 100MB check, and API enhancements from web ([ca92318](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ca92318e2f6116d620821368ce0d1bd705a3670d))
+
+
+### Bug Fixes
+
+* **env:** adjust CleanRoomEnvironment area light intensities ([587f0ec](https://github.com/YOUR_ORG/3d_viewer_electron/commits/587f0ecbb18cee557484a4516e8aacc2010391da))
+* handle EADDRINUSE on AI server listen with retry instead of hanging ([c3b6dbf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c3b6dbf87ae8752c9e43fe183f8b65f23f96c695))
+* missing folder update when opening SVG/DXF via file association ([43d2e5f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/43d2e5f001d13d8d4653423ae62445f5bcc9372a))
+* remove unused findFreePort after server listen refactor ([7f33077](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7f330771e295fcf20cffe337bf275a479e5060f2))
+* **renderer:** use normalBias to eliminate shadow Peter Panning ([3228242](https://github.com/YOUR_ORG/3d_viewer_electron/commits/322824223e2767e5fb376b6755c367077dfe88b3))
+* resolve git version string showing 'unknown' after packaging ([1970836](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1970836fabe9e38b6e517e6e39397f9caf5a01ea))
+* **server:** bind AI API server to 127.0.0.1 to avoid Windows firewall warning ([89dc78d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/89dc78d873244a0db1f78d10a3fdfb8cba2ee87e))
+* shadow E2E tests after cameraFit 45° and animateCamera duration changes ([12efebd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/12efebd3c925d72dce6cb06faabb013f17d570b7))
+* **test:** stabilize three flaky E2E tests (shadow-diag, shadow-fit-diag, studio-env) ([3f01a42](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3f01a42394be7105210a0490f5c5393f252e0ff3))
+* **thumbnail:** reduce lighting intensity to prevent white bloom ([87308c5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/87308c56e9d11fcb7ceec8c0b0a790ca197634d7))
+* **viewer:** complete unified mesh pipeline port and fix STL E2E selection tests ([829c6cd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/829c6cd0747188cb88e341f61a6491c9d6fc927d))
+
+
+### Code Refactoring
+
+* **ai-injection:** replace eval-based injection with overlay iframe + direct TS modules ([fef296b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fef296bc6ee11dbcc9767c9112d2bf23a7fe9c42))
+
 ## [1.5.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.4.0...v1.5.0) (2026-06-14)
 
 
