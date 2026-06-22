@@ -4,6 +4,16 @@
 # Slow checks (~3min): build + E2E tests
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Windows guard — use ci.ps1 instead
+case "$ROOT" in
+  /mnt/*)
+    echo "ERROR: ci.sh is a Linux/macOS script. On Windows, run: pwsh -NoProfile scripts/ci.ps1" >&2
+    exit 1
+    ;;
+esac
+
 # Safe exit: works whether script is sourced or executed directly
 _ci_exit() {
     # shellcheck disable=SC2317  # called from multiple contexts
@@ -15,15 +25,7 @@ _ci_exit() {
 
 PLATFORM=$(uname -s)
 
-# Detect Windows host regardless of shell:
-#   $OS / $os = Windows_NT — cmd, pwsh, Git Bash (uppercase or lowercase)
-#   uname -s matches MINGW*/MSYS*/CYGWIN* — Git Bash, MSYS2
-#   /mnt/c/Windows exists — WSL bash running on a Windows host
-if echo "${OS:-}${os:-}" | grep -q "Windows_NT" ||
-   echo "$PLATFORM" | grep -qE "^(MINGW|MSYS|CYGWIN)"; then
-  PLATFORM="Windows"
-  BUILD_SCRIPT="build:unpacked"
-elif [ "$PLATFORM" = "Linux" ]; then
+if [ "$PLATFORM" = "Linux" ]; then
   BUILD_SCRIPT="build:unpacked:linux"
 elif [ "$PLATFORM" = "Darwin" ]; then
   BUILD_SCRIPT="build:unpacked:mac"

@@ -286,7 +286,8 @@ describe('3MF export round-trip', () => {
     expect(buffer.byteLength).toBeGreaterThan(0)
 
     // 4. Write to disk for manual inspection
-    const outDir = path.resolve('src/test/fixtures')
+    const outDir = path.resolve('test-results')
+    fs.mkdirSync(outDir, { recursive: true })
     const outPath = path.join(outDir, `${fixture}.3mf`)
     fs.writeFileSync(outPath, new Uint8Array(buffer))
     expect(fs.existsSync(outPath)).toBe(true)
