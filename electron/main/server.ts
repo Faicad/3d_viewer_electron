@@ -22,7 +22,7 @@ function tryListen(server: http.Server, port: number, maxAttempts: number): Prom
           reject(err)
         }
       })
-      server.listen(p, () => {
+      server.listen(p, '127.0.0.1', () => {
         resolve({ server, port: p })
       })
     }
