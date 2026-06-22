@@ -329,12 +329,6 @@ export default function FileListPanel() {
         </div>
       </div>
 
-      {folderFiles.length === 0 ? (
-        <ScrollArea className="flex-1 p-4">
-          <p className="text-xs text-muted-foreground text-center py-8">{t('fileList.empty')}</p>
-        </ScrollArea>
-      ) : (
-      <>
       {currentFolderPath && (
         <ScrollArea className="border-b">
           <div
@@ -349,6 +343,14 @@ export default function FileListPanel() {
         </ScrollArea>
       )}
 
+      {folderFiles.length === 0 ? (
+        <ScrollArea className="flex-1 p-4">
+          <p className="text-xs text-muted-foreground text-center py-8">
+            {currentFolderPath ? t('fileList.noModels') : t('fileList.empty')}
+          </p>
+        </ScrollArea>
+      ) : (
+      <>
       {enablePreview ? (
         <ScrollArea className="flex-1">
           <div

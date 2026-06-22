@@ -102,6 +102,7 @@
 
   "fileList.title": "Files",
   "fileList.empty": "Load a file to browse models in the same folder",
+  "fileList.noModels": "This folder does not contain any 3D model files",
   "fileList.folder": "Folder",
   "fileList.sortByName": "Sort by name",
   "fileList.sortByType": "Sort by type",

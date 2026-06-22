@@ -102,6 +102,7 @@
 
   "fileList.title": "文件列表",
   "fileList.empty": "加载文件后显示同目录模型",
+  "fileList.noModels": "该文件夹没有包含任何3D模型文件",
   "fileList.folder": "文件夹",
   "fileList.sortByName": "按名称排序",
   "fileList.sortByType": "按类型排序",
