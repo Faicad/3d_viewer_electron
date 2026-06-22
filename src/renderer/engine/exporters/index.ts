@@ -11,7 +11,7 @@
 
 import * as THREE from 'three'
 import type { LoadedFileModel } from '@/stores/model-store'
-import { FORMAT_MAP, type FormatId } from '@/config/file-formats'
+import { FORMAT_MAP, type FormatId, type UnitSystem } from '@/config/file-formats'
 
 // ---- renderHint-based exportability ----
 
@@ -32,6 +32,25 @@ export function hasExportableModel(files: LoadedFileModel[]): boolean {
 export function isPureScad(files: LoadedFileModel[]): boolean {
   const exportable = files.filter(f => isFormatExportable(f.format))
   return exportable.length === 1 && exportable[0].format === 'scad'
+}
+
+// ---- unit conversion ----
+
+/**
+ * Convert a source unit to a linear scale factor relative to millimeters.
+ * Three.js scene uses meters by default; STL/3MF use millimeters.
+ */
+export function sourceUnitToScaleFactor(unit: UnitSystem): number {
+  switch (unit) {
+    case 'millimeter': return 1
+    case 'centimeter': return 10
+    case 'meter':      return 1000
+    case 'inch':       return 25.4
+    case 'foot':       return 304.8
+    case 'micron':     return 0.001
+    case 'angstrom':   return 1e-7
+    default:           return 1
+  }
 }
 
 // ---- download helper ----
@@ -107,13 +126,14 @@ export function collectFileMeshes(scene: THREE.Scene, fileId: string): THREE.Mes
 
 // ---- GLB export ----
 
-/** Clone a mesh with world transform baked into local transform. */
-function cloneMeshWithWorldTransform(mesh: THREE.Mesh): THREE.Mesh {
+/** Clone a mesh with world transform baked into local transform, with optional scale factor. */
+function cloneMeshWithWorldTransform(mesh: THREE.Mesh, scale?: number): THREE.Mesh {
   const clone = mesh.clone()
   mesh.updateWorldMatrix(true, false)
-  clone.position.copy(mesh.getWorldPosition(new THREE.Vector3()))
+  const s = scale ?? 1
+  clone.position.copy(mesh.getWorldPosition(new THREE.Vector3()).multiplyScalar(s))
   clone.quaternion.copy(mesh.getWorldQuaternion(new THREE.Quaternion()))
-  clone.scale.copy(mesh.getWorldScale(new THREE.Vector3()))
+  clone.scale.copy(mesh.getWorldScale(new THREE.Vector3()).multiplyScalar(s))
   return clone
 }
 
@@ -166,15 +186,17 @@ export async function exportSceneToGlb(
  */
 export async function meshesToStl(
   meshes: THREE.Mesh[],
+  sourceUnit: UnitSystem,
 ): Promise<ArrayBuffer> {
   const { STLExporter } = await import(
     'three/examples/jsm/exporters/STLExporter.js'
   )
   const exporter = new STLExporter()
+  const scale = sourceUnitToScaleFactor(sourceUnit)
 
   const tmpScene = new THREE.Scene()
   for (const mesh of meshes) {
-    tmpScene.add(cloneMeshWithWorldTransform(mesh))
+    tmpScene.add(cloneMeshWithWorldTransform(mesh, scale))
   }
 
   // STLExporter.parse({ binary: true }) returns a DataView (not raw ArrayBuffer).
@@ -201,7 +223,7 @@ export async function exportFileToStl(
   const meshes = collectFileMeshes(scene, file.id)
   if (meshes.length === 0) throw new Error(`No meshes found for file ${file.fileName}`)
 
-  const buffer = await meshesToStl(meshes)
+  const buffer = await meshesToStl(meshes, file.sourceUnit)
   const filename = `${file.fileName || 'model'}.stl`
   downloadArrayBuffer(buffer, filename)
 }
@@ -218,4 +240,62 @@ export async function exportFileToGlb(
 
   const glbBuffer = await meshesToGlb(meshes, file.animations)
   downloadArrayBuffer(glbBuffer, `${file.fileName || 'model'}.glb`)
+}
+
+// ---- 3MF export ----
+
+import type { PrintConfig } from './three-mf-exporter'
+
+export type { PrintConfig }
+
+/**
+ * Export a collection of meshes to 3MF (binary).
+ *
+ * Clones meshes into a temporary Scene so the exporter doesn't mutate the
+ * live rendered objects. Materials are preserved as color only.
+ */
+export async function meshesTo3mf(
+  meshes: THREE.Mesh[],
+  sourceUnit: UnitSystem,
+  printConfig?: Partial<PrintConfig>,
+): Promise<ArrayBuffer> {
+  const { exportTo3MF } = await import('./three-mf-exporter')
+  const scale = sourceUnitToScaleFactor(sourceUnit)
+
+  const tmpScene = new THREE.Scene()
+  for (const mesh of meshes) {
+    tmpScene.add(cloneMeshWithWorldTransform(mesh, scale))
+  }
+
+  const blob = await exportTo3MF(tmpScene, printConfig)
+  return blob.arrayBuffer()
+}
+
+/**
+ * Export all meshes currently in the R3F scene to 3MF and trigger download.
+ */
+export async function exportSceneTo3mf(
+  scene: THREE.Scene,
+  sourceUnit: UnitSystem,
+  filename = 'model.3mf',
+  printConfig?: Partial<PrintConfig>,
+): Promise<void> {
+  const meshes = collectSceneMeshes(scene)
+  if (meshes.length === 0) throw new Error('No exportable geometry in scene')
+  const buffer = await meshesTo3mf(meshes, sourceUnit, printConfig)
+  downloadArrayBuffer(buffer, filename)
+}
+
+/**
+ * Export meshes belonging to a specific file to 3MF and trigger download.
+ */
+export async function exportFileTo3mf(
+  scene: THREE.Scene,
+  file: LoadedFileModel,
+  printConfig?: Partial<PrintConfig>,
+): Promise<void> {
+  const meshes = collectFileMeshes(scene, file.id)
+  if (meshes.length === 0) throw new Error(`No meshes found for file ${file.fileName}`)
+  const buffer = await meshesTo3mf(meshes, file.sourceUnit, printConfig)
+  downloadArrayBuffer(buffer, `${file.fileName || 'model'}.3mf`)
 }

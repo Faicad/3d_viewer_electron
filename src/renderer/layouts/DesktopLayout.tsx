@@ -40,7 +40,7 @@ import { useMaterialStore } from '@/stores/material-store'
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 
-import { hasExportableModel, isPureScad, exportSceneToGlb, exportFileToStl, exportFileToGlb, isFormatExportable } from '@/engine/exporters'
+import { hasExportableModel, isPureScad, exportSceneToGlb, exportFileToStl, exportFileToGlb, exportFileTo3mf, isFormatExportable } from '@/engine/exporters'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
 import { findFileIdForNode, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
@@ -330,6 +330,17 @@ export default function DesktopLayout() {
     }
   }, [])
 
+  const handleFileExport3mf = useCallback(async (fileId: string) => {
+    const file = useModelStore.getState().loadedFiles.find(f => f.id === fileId)
+    const scene = useEngineStore.getState().scene
+    if (!file || !scene) return
+    try {
+      await exportFileTo3mf(scene, file)
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Export 3MF failed')
+    }
+  }, [])
+
   const handleFileExportGlb = useCallback(async (fileId: string) => {
     const file = useModelStore.getState().loadedFiles.find(f => f.id === fileId)
     const scene = useEngineStore.getState().scene
@@ -409,6 +420,11 @@ export default function DesktopLayout() {
         label: '导出 STL',
         icon: Download,
         action: () => { handleFileExportStl(fileId) },
+      })
+      items.push({
+        label: '导出 3MF',
+        icon: Download,
+        action: () => { handleFileExport3mf(fileId) },
       })
       items.push({
         label: '导出 GLB',
