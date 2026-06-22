@@ -3,9 +3,18 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import fs from 'fs'
+import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+function getGitHash(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
+  } catch {
+    return 'unknown'
+  }
+}
 
 export default defineConfig({
   main: {
@@ -17,6 +26,9 @@ export default defineConfig({
           index: path.resolve(__dirname, 'electron/main/index.ts')
         }
       }
+    },
+    define: {
+      'process.env.VITE_GIT_COMMIT': JSON.stringify(getGitHash())
     }
   },
   preload: {

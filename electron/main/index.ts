@@ -2,18 +2,11 @@ import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog, Menu } from 
 import { join, extname } from 'path'
 import * as fs from 'fs'
 import http from 'http'
-import { execSync } from 'child_process'
 import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 import { startServer } from './server'
 import { registerAIHandlers } from './ipc-handlers'
 
-function getGitCommit(): string {
-  try {
-    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
-  } catch {
-    return 'unknown'
-  }
-}
+const GIT_COMMIT = process.env.VITE_GIT_COMMIT || 'unknown'
 
 // Workaround for "Network service crashed" on Windows with Electron 39+
 // The network service sandbox conflicts with webSecurity:false + localhost loading in dev mode
@@ -225,7 +218,7 @@ ipcMain.handle('window:toggleFullscreen', () => {
   return willBeFullscreen
 })
 
-ipcMain.handle('electron:getAppVersion', () => `${app.getVersion()} (${getGitCommit()})`)
+ipcMain.handle('electron:getAppVersion', () => `${app.getVersion()} (${GIT_COMMIT})`)
 ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExternal(url))
 ipcMain.handle('shell:showItemInFolder', (_event, filePath: string) => shell.showItemInFolder(filePath))
 
