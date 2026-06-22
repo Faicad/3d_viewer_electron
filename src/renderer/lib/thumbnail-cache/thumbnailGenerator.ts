@@ -145,7 +145,7 @@ function getRenderer(): THREE.WebGLRenderer {
   renderer.setClearColor(0x000000, 0)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.2
+  renderer.toneMappingExposure = 1.0
 
   return renderer
 }
@@ -170,12 +170,12 @@ function setupLighting(scene: THREE.Scene, r: THREE.WebGLRenderer): void {
   // CleanRoomEnvironment has bright white walls + area lights — much more
   // natural than a handful of point lights and eliminates harsh black shadows.
   scene.environment = getOrCreateEnvMap(r)
-  scene.environmentIntensity = 1.0
+  scene.environmentIntensity = 0.85
 
   // Bare-minimum ambient as fallback for non-PBR materials (e.g. the
   // MeshBasicMaterial Three.js auto-assigns when a format has no materials).
   // MeshStandardMaterial meshes are lit entirely by the environment map above.
-  const ambient = new THREE.AmbientLight(0xFFFFFF, 0.4)
+  const ambient = new THREE.AmbientLight(0xFFFFFF, 0.33)
   scene.add(ambient)
 }
 
