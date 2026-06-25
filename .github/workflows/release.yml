@@ -30,6 +30,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: runner.os != 'Windows'
         run: pnpm run build
 
       - name: Package (Linux)
@@ -38,9 +39,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package (Windows)
+      - name: Build and Package (Windows — EN + CN)
         if: runner.os == 'Windows'
-        run: pnpm exec electron-builder --win --publish always
+        run: |
+          electron-vite build
+          electron-builder --win --publish always
+          node scripts/build-edition.mjs --cn
+          electron-builder --win --publish always --config.nsis.artifactName="3D_Viewer_${version}_${arch}_cn_Setup.${ext}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

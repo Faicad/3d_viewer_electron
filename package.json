@@ -1,6 +1,6 @@
 {
   "name": "3d_viewer_electron",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Faicad 3d Viewer Desktop Application",
   "author": "Faicad",
   "license": "LGPL-2.0-only",
@@ -24,8 +24,9 @@
     "release:major": "standard-version --release-as major",
     "postinstall": "electron-builder install-app-deps && node scripts/copy-draco-wasm.mjs",
     "build:win": "electron-vite build && electron-builder --win",
-    "build:win:cn": "EDITION=cn electron-vite build && electron-builder --win --config.nsis.artifactName=\"3D_Viewer_${version}_x64_cn_Setup.${ext}\"",
-    "build:win:eu": "DATA_REGION=eu electron-vite build && electron-builder --win",
+    "build:win:cn": "node scripts/build-edition.mjs --cn && electron-builder --win --config.nsis.artifactName=\"3D_Viewer_${version}_${arch}_cn_Setup.${ext}\"",
+    "build:win:release": "pnpm run build:win && pnpm run build:win:cn",
+    "build:win:eu": "node scripts/build-edition.mjs --eu && electron-builder --win",
     "build:unpacked": "electron-vite build && electron-builder --win --dir",
     "build:unpacked:linux": "electron-vite build && electron-builder --linux --dir",
     "build:unpacked:mac": "electron-vite build && electron-builder --mac --dir",
@@ -212,7 +213,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "3D_Viewer_${version}_${arch}_Setup.${ext}"
     }
   }
 }

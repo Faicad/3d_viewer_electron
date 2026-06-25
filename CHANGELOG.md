@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.6.0...v1.7.0) (2026-06-25)
+
+
+### Features
+
+* **export:** add 3MF exporter with sourceUnit scaling ([e299942](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e299942d05b1ec2bfa819a00fccb881e32ef526e))
+* **svg-layer-tree:** add 'Copy Path' and 'Reveal in File Explorer' context menu for DXF/SVG files ([1113c4c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1113c4cd65188f7619decf9b54792a6e03a849ce))
+* **telemetry:** implement anonymous usage telemetry with data_region-aware transport ([bf44b14](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bf44b14e06174585cb335269a3b255a4f2efa375))
+
+
+### Bug Fixes
+
+* **file-list:** show folder path and proper message when selected folder has no models ([56c52b5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/56c52b5bc1a99e4feaa5411b86b425631aeb4ee5))
+
 ## [1.6.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.5.0...v1.6.0) (2026-06-22)
 
 
