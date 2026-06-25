@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.7.0...v1.7.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ci:** linux AppImage fileAssociations ext 改为 string，publish job 添加 checkout ([fb8ca8c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fb8ca8c4f98501933ed81937a4b40bf554b8bfc6))
+
 ## [1.7.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.6.0...v1.7.0) (2026-06-25)
 
 
