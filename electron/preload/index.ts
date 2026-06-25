@@ -40,4 +40,12 @@ contextBridge.exposeInMainWorld('env', {
   DEV: import.meta.env.DEV,
   PROD: !import.meta.env.DEV,
   E2E: process.env.E2E === '1',
+
+  // Telemetry
+  DATA_REGION: process.env.EDITION === 'cn' ? 'cn' : (process.env.DATA_REGION || 'us'),
+  EDITION: process.env.EDITION || undefined,
+
+  // Version info
+  APP_VERSION: process.env.VITE_GIT_COMMIT || 'unknown',
+  READABLE_VERSION: '',
 })

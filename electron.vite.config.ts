@@ -28,7 +28,10 @@ export default defineConfig({
       }
     },
     define: {
-      'process.env.VITE_GIT_COMMIT': JSON.stringify(getGitHash())
+      'process.env.VITE_GIT_COMMIT': JSON.stringify(getGitHash()),
+      'process.env.VITE_DATA_REGION': JSON.stringify(
+        process.env.EDITION === 'cn' ? 'cn' : (process.env.DATA_REGION || 'us')
+      ),
     }
   },
   preload: {

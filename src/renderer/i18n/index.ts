@@ -80,8 +80,13 @@ const getInitialLanguage = (): string => {
   if (saved && Object.keys(resources).includes(saved)) {
     return saved
   }
+
+  // CN edition defaults to Chinese, English edition follows browser
+  const edition = (window as any).env?.EDITION
+  if (edition === 'cn') return 'zh'
+
   const browserLang = navigator.language.slice(0, 2)
-  return Object.keys(resources).includes(browserLang) ? browserLang : 'zh'
+  return Object.keys(resources).includes(browserLang) ? browserLang : 'en'
 }
 
 i18n.use(initReactI18next).init({

@@ -17,6 +17,7 @@ import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
 import { initLogger } from '@/lib/logger'
+import { initTelemetry, trackEvent, redactTelemetryString } from '@/telemetry'
 import { detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -206,6 +207,9 @@ function hideDemoPanelIfMovieMode() {
 
 // Suppress console.log/warn/debug/info in production
 initLogger()
+
+// Initialize telemetry (reads DATA_REGION + EDITION from window.env, no-op if absent)
+initTelemetry()
 
 // Expose export helper for E2E round-trip tests
 window.__exportSceneToStlBase64 = async (): Promise<{ data: string; byteLength: number }> => {
@@ -560,6 +564,7 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
         const gl = window.__r3f_dev?.gl
         if (!gl) throw new Error('Renderer not ready')
         const { width, height } = params as { width?: number; height?: number }
+        trackEvent('screenshot', { width: width || 0, height: height || 0 })
         const canvas = gl.domElement as HTMLCanvasElement
         let dataUrl: string
         if (width || height) {
@@ -614,6 +619,11 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
         if (Object.keys(pending).length > 0) {
           ;(window as any).__pendingEntryConfig = pending
         }
+        const loadStartTime = Date.now()
+        const loadFileName = (url ? url.split('/').pop() || 'model' : 'model.glb')
+        const loadFileFormat = loadFileName.split('.').pop()?.toLowerCase() || 'unknown'
+        trackEvent('file_load_start', { format: loadFileFormat, fileName: loadFileName })
+
         const doLoad = async (): Promise<ApiResponse> => {
           try {
             let buffer: ArrayBuffer
@@ -677,8 +687,10 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
                 animations: file?.animations?.map((a) => ({ name: a.name, duration: a.duration })) ?? [],
               } }
           } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            trackEvent('file_load_error', { format: loadFileFormat, error: redactTelemetryString(errMsg), duration_ms: Date.now() - loadStartTime })
             return { type: '3d-viewer', id: msg.id, command: cmd, status: 'error',
-              error: err instanceof Error ? err.message : String(err) }
+              error: errMsg }
           }
         }
         return doLoad()
@@ -736,6 +748,7 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
       case 'exportModel': {
         const format = (params as { format?: string }).format
         if (format !== 'stl' && format !== 'glb') {
+          trackEvent('file_export_error', { format: format || 'unknown', reason: 'invalid_format' })
           return { type: '3d-viewer', id: msg.id, command: cmd, status: 'error', error: 'format is required and must be "stl" or "glb"' }
         }
         const doExport = async (): Promise<ApiResponse> => {
@@ -747,13 +760,17 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
           let ext: string
           if (format === 'stl') { buffer = await meshesToStl(meshes); ext = 'stl' }
           else { buffer = await meshesToGlb(meshes); ext = 'glb' }
+          trackEvent('file_export', { format: ext, byteLength: buffer.byteLength })
           const bytes = new Uint8Array(buffer)
           let binary = ''
           for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
           return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success',
             data: { base64: btoa(binary), byteLength: buffer.byteLength, format: ext } }
         }
-        return doExport()
+        return doExport().catch((err) => {
+          trackEvent('file_export_error', { format, reason: err instanceof Error ? err.message : String(err) })
+          throw err
+        })
       }
       default: {
         return { type: '3d-viewer', id: msg.id, command: cmd, status: 'error', error: 'Unknown command: ' + cmd }
@@ -829,7 +846,7 @@ try {
   })
 } catch { /* ignore subscription errors */ }
 
-// Global error handlers
+// Global error handlers — surface errors to console, window.__errors, and telemetry
 window.addEventListener('error', (event) => {
   if (event.message?.includes('ResizeObserver loop')) return
   const err = event.error
@@ -837,16 +854,19 @@ window.addEventListener('error', (event) => {
     const detail = { message: err.message, stack: err.stack ?? '', timestamp: Date.now() }
     window.__errors.push(detail)
     console.error('[Global Error]', err.message, '\n', err.stack)
+    if (!(window as any).env?.E2E) trackEvent('error_unhandled', { error_message: redactTelemetryString(err.message) })
   } else {
     const detail = { message: event.message, stack: `${event.filename}:${event.lineno}:${event.colno}`, timestamp: Date.now() }
     window.__errors.push(detail)
     console.error('[Global Error]', event.message, '\n', event.filename, ':', event.lineno, ':', event.colno)
+    if (!(window as any).env?.E2E) trackEvent('error_unhandled', { error_message: redactTelemetryString(event.message) })
   }
 })
 
 window.addEventListener('unhandledrejection', (event) => {
   window.__errors.push({ message: String(event.reason), stack: '', timestamp: Date.now() })
   console.error('[Unhandled Promise Rejection]', event.reason)
+  if (!(window as any).env?.E2E) trackEvent('error_unhandled', { error_message: redactTelemetryString(String(event.reason)) })
 })
 
 createRoot(document.getElementById('root')!).render(

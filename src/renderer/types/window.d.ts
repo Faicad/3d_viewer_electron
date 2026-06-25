@@ -67,6 +67,40 @@ declare global {
     __demoGSAPAssemble?: () => void
     /** Dev convenience: trigger GSAP explode demo */
     __demoGSAPExplode?: (params?: { spread?: number; range?: number }) => void
+
+    /** Electron preload API */
+    electronAPI: {
+      getAppVersion: () => Promise<string>
+      getPlatform: () => string
+      openExternal: (url: string) => Promise<void>
+      readDirectory: (dirPath: string) => Promise<{ success: boolean; files?: { name: string; path: string; mtimeMs: number }[]; error?: string }>
+      readFile: (filePath: string) => Promise<{ success: boolean; data?: ArrayBuffer; error?: string }>
+      readFileAsBase64: (filePath: string) => Promise<{ success: boolean; data?: string; error?: string }>
+      getFilePath: (file: File) => string
+      openFileDialog: () => Promise<{ success: boolean; filePaths?: string[]; error?: string }>
+      openDirectoryDialog: () => Promise<{ success: boolean; filePath?: string | null; error?: string }>
+      openEnvironmentMapDialog: () => Promise<{ success: boolean; filePath?: string | null; error?: string }>
+      toggleFullscreen: () => Promise<boolean>
+      onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => () => void
+      getPendingFilePath: () => Promise<string | null>
+      saveFile: (data: string, defaultName: string) => Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>
+      showItemInFolder: (filePath: string) => Promise<void>
+      onOpenExternalFile: (callback: (filePath: string) => void) => () => void
+      onAIAction: (callback: (command: any) => void) => () => void
+      postAIResult: (payload: { id: string; data?: unknown; error?: string }) => void
+    }
+
+    /** Build-time injected env */
+    env: {
+      DEV: boolean
+      PROD: boolean
+      E2E: boolean
+      DATA_REGION?: string
+      EDITION?: string
+      AGENT?: string
+      APP_VERSION?: string
+      READABLE_VERSION?: string
+    }
   }
 }
 

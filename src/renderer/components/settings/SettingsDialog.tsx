@@ -30,6 +30,8 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
     dark: isZh ? '深色' : 'Dark',
     system: isZh ? '跟随系统' : 'System',
     enablePreview: isZh ? '启用预览' : 'Enable Preview',
+    telemetry: isZh ? '使用统计' : 'Usage Statistics',
+    telemetryDesc: isZh ? '帮助我们改进产品' : 'Help us improve the product',
     language: isZh ? '语言' : 'Language',
     followSystem: isZh ? '跟随系统' : 'System',
     version: isZh ? '版本' : 'Version',
@@ -59,6 +61,11 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
 
           <SettingSection title={labels.enablePreview}>
             <PreviewOption />
+          </SettingSection>
+
+          <SettingSection title={labels.telemetry}>
+            <TelemetryOption />
+            <p className="text-xs text-muted-foreground">{labels.telemetryDesc}</p>
           </SettingSection>
 
           <SettingSection title={labels.language}>
@@ -135,6 +142,28 @@ function VersionDisplay({ version }: { version: string }) {
     <div className="text-sm text-muted-foreground">
       {version}
     </div>
+  )
+}
+
+function TelemetryOption() {
+  const telemetryEnabled = useUIStore((s) => s.telemetryEnabled)
+  const setTelemetryEnabled = useUIStore((s) => s.setTelemetryEnabled)
+
+  return (
+    <button
+      onClick={() => setTelemetryEnabled(!telemetryEnabled)}
+      className={cn(
+        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+        telemetryEnabled ? 'bg-primary' : 'bg-muted-foreground/30'
+      )}
+    >
+      <span
+        className={cn(
+          'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform',
+          telemetryEnabled ? 'translate-x-6' : 'translate-x-1'
+        )}
+      />
+    </button>
   )
 }
 

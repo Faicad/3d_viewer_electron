@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { trackEvent, redactTelemetryString } from '@/telemetry'
 
 interface State {
   error: Error | null
@@ -13,6 +14,7 @@ export class ErrorBoundary extends Component<{ children: React.ReactNode }, Stat
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack)
+    trackEvent('error_caught', { error_message: redactTelemetryString(error.message) })
   }
 
   render() {

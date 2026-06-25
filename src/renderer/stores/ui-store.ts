@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { SupportedLanguage } from '@/i18n'
+import { setTelemetryEnabled as setTelemetryModuleEnabled } from '@/telemetry'
 
 const isLocalStorageAvailable = typeof localStorage !== 'undefined'
 const safeLocalStorage = {
@@ -29,6 +30,7 @@ interface UIStore {
   theme: 'light' | 'dark' | 'system'
   cameraMode: CameraMode
   enablePreview: boolean
+  telemetryEnabled: boolean
   isFullscreen: boolean
   headerVisible: boolean
   bottomVisible: boolean
@@ -51,6 +53,7 @@ interface UIStore {
   setTheme: (theme: 'light' | 'dark' | 'system') => void
   setCameraMode: (mode: CameraMode) => void
   setEnablePreview: (v: boolean) => void
+  setTelemetryEnabled: (v: boolean) => void
 }
 
 export const useUIStore = create<UIStore>()(
@@ -67,6 +70,7 @@ export const useUIStore = create<UIStore>()(
       theme: 'system',
       cameraMode: 'perspective',
       enablePreview: true,
+      telemetryEnabled: true,
       isFullscreen: false,
       headerVisible: true,
       bottomVisible: true,
@@ -92,10 +96,14 @@ export const useUIStore = create<UIStore>()(
       setTheme: (theme) => set({ theme }),
       setCameraMode: (cameraMode) => set({ cameraMode }),
       setEnablePreview: (enablePreview) => set({ enablePreview }),
+      setTelemetryEnabled: (telemetryEnabled) => {
+        setTelemetryModuleEnabled(telemetryEnabled)
+        set({ telemetryEnabled })
+      },
     }),
     {
       name: 'faicad-ui',
-      partialize: (s) => ({ language: s.language, theme: s.theme, enablePreview: s.enablePreview }),
+      partialize: (s) => ({ language: s.language, theme: s.theme, enablePreview: s.enablePreview, telemetryEnabled: s.telemetryEnabled }),
       storage: createJSONStorage(() => safeLocalStorage),
     }
   )
