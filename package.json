@@ -2,7 +2,10 @@
   "name": "3d_viewer_electron",
   "version": "1.7.1",
   "description": "Faicad 3d Viewer Desktop Application",
-  "author": "Faicad",
+  "author": {
+    "name": "Faicad",
+    "email": "yuan_xin_yu@hotmail.com"
+  },
   "license": "LGPL-2.0-only",
   "private": true,
   "type": "module",
