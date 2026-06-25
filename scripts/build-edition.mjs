@@ -13,8 +13,10 @@ if (isCN) env.EDITION = 'cn'
 if (args.includes('--eu')) env.DATA_REGION = 'eu'
 
 function run(cmd, cmdArgs) {
+  const opts = { env, stdio: 'inherit' }
+  if (process.platform === 'win32') opts.shell = true
   return new Promise((resolve, reject) => {
-    const cp = spawn(cmd, cmdArgs, { env, stdio: 'inherit' })
+    const cp = spawn(cmd, cmdArgs, opts)
     cp.on('exit', (code) => code === 0 ? resolve() : reject(new Error(`${cmd} exited with ${code}`)))
     cp.on('error', reject)
   })
