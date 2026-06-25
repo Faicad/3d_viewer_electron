@@ -42,10 +42,8 @@ jobs:
       - name: Build and Package (Windows — EN + CN)
         if: runner.os == 'Windows'
         run: |
-          pnpm exec electron-vite build
-          pnpm exec electron-builder --win --publish always
-          node scripts/build-edition.mjs --cn
-          pnpm exec electron-builder --win --publish always --config.nsis.artifactName="3D_Viewer_${version}_${arch}_cn_Setup.${ext}"
+          node scripts/build-edition.mjs --publish
+          node scripts/build-edition.mjs --cn --publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
