@@ -60,6 +60,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
       - run: gh release edit ${{ github.ref_name }} --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
