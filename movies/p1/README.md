@@ -4,59 +4,96 @@
 
 | 文件 | 说明 |
 |------|------|
-| `m1.mjs` | 录制 m1 视频（Car.glb Anisotropy 材质 + 一键金色） |
-| `m1_old.mjs` | m1 旧版（AnisotropyBarnLamp 模型，存档参考） |
-| `m2.mjs` | 录制 m2 视频（box_boss HDR 切换 + 自动旋转） |
-| `m1.ass` | m1 字幕（ASS 格式） |
-| `m2.ass` | m2 字幕 |
-| `m1m2.ass` | m1+m2 合并字幕 |
-| `m1m2_merge.json` | m1+m2 合并配置 |
-| `gen/` | 输出目录（视频、音频、中间文件） |
+| `m1.mjs` | Voron Trident 爆炸动画展示 |
+| `m2.mjs` | 截图合成视频（WorkBuddy 安装教程） |
+| `m3.mjs` | Car.glb 金色材质 + 爆炸 + HDR 切换 + 封面截图 |
+| `cover.mjs` | 封面预处理：在封面截图中央添加 "3D模型查看" 文字 |
+| `gen/` | 输出目录（视频、音频、封面、烧录成品、合并成品） |
+| `part-names.json` | 零件名中英文映射 |
+| `exported.glb` | Voron Trident 导出模型 |
 
 ## 前置条件
 
-- `npm run build` — 先构建前端（录制时启动 viewer）
-- `movies/alex-productions-acoustic-folk-friends.wav` — 背景音乐
-- `movies/Car.glb` — m1 模型文件
-- `src/test/fixtures/box_boss.glb` — m2 模型文件
+- `npm run build` — 先构建前端
+- `pip install edge-tts` — TTS 语音生成
+- `python3 -m pip install Pillow` — 封面图片文字处理
 
+## 一键合成（推荐）
 
-## 流程
-
-### 1. 录制视频
+所有步骤自动完成：录制 → 字幕 → 烧录 → 封面 → 合并：
 
 ```bash
-node movies/p1/m1.mjs
-node movies/p1/m2.mjs
-node movies/p1/m3.mjs
+node movies/mergeVideo.mjs movies/p1
 ```
 
-每段脚本生成横竖两个版本（`_h.webm` / `_v.webm`），输出到 `gen/`。
+等价于依次执行：
+1. `node movies/p1/m1.mjs` — 录制 m1
+2. `node movies/p1/m3.mjs` — 录制 m3
+3. `node movies/generate-subtitle.mjs movies/p1/m1.mjs` — m1 字幕
+4. `node movies/generate-subtitle.mjs movies/p1/m3.mjs` — m3 字幕
+5. `node movies/burn.mjs movies/p1/m1.mjs` — 烧录 m1
+6. `node movies/burn.mjs movies/p1/m3.mjs` — 烧录 m3
+7. `node movies/p1/cover.mjs` — 封面预处理（加文字）
+8. FFmpeg 合并 → `gen/merged_h.mp4` + `gen/merged_v.mp4`
 
-### 2. 生成配音（TTS）
+**m2（截图合成）需手动执行**：
 
 ```bash
-node movies/generateAudio.mjs movies/p1/m1.ass
-node movies/generateAudio.mjs movies/p1/m2.ass
-node movies/generateAudio.mjs movies/p1/m1m2.ass
+node movies/generate-image-video.mjs movies/p1/m2.mjs
 ```
 
-读取 ASS 字幕，用 edge-tts 生成中文配音 mp3，输出到 `gen/`。
+## 分步流程
 
-### 3. 烧录字幕 + 混音（单段）
+### 1. 录制视频（需要 headed 浏览器）
+
+```bash
+node movies/p1/m1.mjs        # Voron Trident 爆炸
+node movies/p1/m3.mjs        # Car 材质+HDR
+```
+
+输出到 `gen/mX_h.webm` / `gen/mX_v.webm`。
+
+在录制脚本中可调用 `captureCover(page)` 截图，自动保存为 `gen/p1_cover_{h|v}.png`。
+
+### 2. 生成字幕 + 配音
+
+```bash
+node movies/generate-subtitle.mjs movies/p1/m1.mjs
+node movies/generate-subtitle.mjs movies/p1/m3.mjs
+```
+
+输出 `gen/mX.subtitle` + `gen/mX.mp3`。
+
+### 3. 单文件烧录
 
 ```bash
 node movies/burn.mjs movies/p1/m1.mjs
-node movies/burn.mjs movies/p1/m2.mjs
+node movies/burn.mjs movies/p1/m3.mjs
 ```
 
-字幕烧录 + 背景音乐混音，输出 `gen/*_burn_h.mp4` / `*_burn_v.mp4`。
+输出 `gen/mX_burn_{h|v}.mp4`。burn 阶段不处理封面。
 
-### 4. 合并多段视频
+### 4. 封面预处理
 
 ```bash
-node movies/mergeVideo.mjs movies/p1/m1m2_merge.json
+node movies/p1/cover.mjs
 ```
 
-将 m1 和 m2 的视频拼接，加上合并字幕和背景音乐，输出 `gen/m1m2_merge_h.mp4` / `_v.mp4`。
+读取 `gen/p1_cover_{h|v}.png`（录制时截图），生成 `gen/p1_cover_final_{h|v}.png`（添加居中白色文字 + 黑色描边，文字宽度 = 画面 80%）。
 
+### 5. 合并
+
+```bash
+node movies/mergeVideo.mjs movies/p1
+```
+
+自动发现所有片段 → burn → 拼接 + BGM + 封面。封面自动检测 `_final_` 版本。
+
+## 封面预处理自定义
+
+修改 `cover.mjs` 中的文字内容或样式，然后重新运行：
+
+```bash
+node movies/p1/cover.mjs
+node movies/mergeVideo.mjs movies/p1
+```

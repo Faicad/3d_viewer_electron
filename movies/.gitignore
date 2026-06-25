@@ -4,3 +4,8 @@ old
 *.glb
 *.mp3
 **/gen/*
+screenshot/*
+pretrained_models/*
+p*/*.stl
+p*/*.3mf
+exported.stl

@@ -1,9 +1,0 @@
-{
-  "fps": 25,
-  "subtitle": "movies/p1/m1m2.ass",
-  "audioBg": "movies/alex-productions-acoustic-folk-friends.wav",
-  "clips_h": ["movies/p1/gen/m1_h.webm", "movies/p1/gen/m2_h.webm"],
-  "clips_v": ["movies/p1/gen/m1_v.webm", "movies/p1/gen/m2_v.webm"],
-  "output_h": "movies/p1/gen/m1m2_merge_h.mp4",
-  "output_v": "movies/p1/gen/m1m2_merge_v.mp4"
-}

@@ -67,6 +67,21 @@ declare global {
     __demoGSAPAssemble?: () => void
     /** Dev convenience: trigger GSAP explode demo */
     __demoGSAPExplode?: (params?: { spread?: number; range?: number }) => void
+    /** Movie recording: execute a viewer command, returns result or promise of result */
+    __executeCommand: (command: string, params?: Record<string, unknown>) => any
+    /** Movie recording: TTS sync timing data injected by lib-electron */
+    __ttsTiming?: { groups: Array<{ totalDuration: number }>; ttsTotal: number }
+    /** Movie recording: sync point timestamps collected during recording */
+    __movieSyncPoints?: number[]
+    /** Movie recording: performance.now() timestamp when model was ready */
+    __tModelBrowser?: number
+    /** Movie recording: maps file IDs to THREE.Group for material traversal */
+    __modelGroupMap?: Map<string, import('three').Group>
+    __engineStore: typeof import('@/stores/engine-store').useEngineStore
+    __toolStore: typeof import('@/stores/tool-store').useToolStore
+    __selectionStore: typeof import('@/stores/selection-store').useSelectionStore
+    __uiStore: typeof import('@/stores/ui-store').useUIStore
+    __fitCameraToHeatbed: (duration: number, margin: string) => void
 
     /** Electron preload API */
     electronAPI: {

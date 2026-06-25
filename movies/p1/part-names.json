@@ -1,0 +1,58 @@
+{
+  "_x8751F4B_3": {
+    "name": "esta80_interior_LHD",
+    "zh": "车内饰"
+  },
+  "esta80_wing_varis": {
+    "name": "esta80_wing_varis",
+    "zh": "尾翼"
+  },
+  "0x902958B9": {
+    "name": "esta80_sideskirt_varis",
+    "zh": "侧裙"
+  },
+  "0x80032836": {
+    "name": "esta80_bumper_F_varis",
+    "zh": "前保险杠"
+  },
+  "Cube002": {
+    "name": "esta80_bumper_R_vs",
+    "zh": "后保险杠"
+  },
+  "_xAA19AFE2": {
+    "name": "esta80_body",
+    "zh": "车身"
+  },
+  "_xB87B1033_1": {
+    "name": "esta80_door_R",
+    "zh": "右车门"
+  },
+  "esta80_hood": {
+    "name": "esta80_hood",
+    "zh": "引擎盖"
+  },
+  "_x68E1A1E8": {
+    "name": "esta80_tailgate",
+    "zh": "后备箱门"
+  },
+  "_x921654F7_1": {
+    "name": "esta80_door_L",
+    "zh": "左车门"
+  },
+  "_x671A3933": {
+    "name": "esta80_mirror_L",
+    "zh": "左后视镜"
+  },
+  "_x746DF813": {
+    "name": "esta80_mirror_R",
+    "zh": "右后视镜"
+  },
+  "_xAA19AFE2003": {
+    "name": "esta80_fender_L",
+    "zh": "左翼子板"
+  },
+  "_xAA19AFE2004": {
+    "name": "esta80_fender_R",
+    "zh": "右翼子板"
+  }
+}

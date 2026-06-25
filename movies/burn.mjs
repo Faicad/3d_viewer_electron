@@ -1,15 +1,59 @@
+import { readFileSync } from 'fs'
 import { pathToFileURL } from 'url'
-import { dirname, join } from 'path'
-import { burnVideo } from './lib.mjs'
+import { dirname, join, basename, extname } from 'path'
+import { spawnSync } from 'child_process'
+import { burnVideo } from './lib-electron.mjs'
 
-const scriptPath = process.argv[2]
-if (!scriptPath) {
-  console.error('Usage: node movies/burn.mjs <script.mjs>')
+const args = process.argv.slice(2)
+const scriptArg = args[0]
+if (!scriptArg) {
+  console.error('Usage: node movies/burn.mjs <script.mjs> [-s|-m|-g] [-h|-v] [-30] [-f] [--tts <provider>]')
   process.exit(1)
 }
 
-const absPath = join(process.cwd(), scriptPath)
+const absPath = join(process.cwd(), scriptArg)
 const scriptUrl = pathToFileURL(absPath).href
 const genDir = join(dirname(absPath), 'gen')
+const scriptName = basename(absPath, extname(absPath))
 
+// Detect image-based script vs Playwright 3D
+const src = readFileSync(absPath, 'utf-8')
+const isImageScript = /(?:^|\n)const\s+image\s*=\s*['"][^'"]+['"]\s*;?\s*\n/.test(src)
+
+// Flags to forward to child processes (exclude burn.mjs-only flags)
+const childFlags = args.slice(1)
+
+// Extract --tts <provider> for forwarding
+const ttsIdx = args.indexOf('--tts')
+const ttsArgs = ttsIdx >= 0 ? ['--tts', args[ttsIdx + 1]] : []
+
+// ── Step 1: Generate video (makeMovie handles pregen internally for 3D scripts) ──
+if (isImageScript) {
+  console.log(`\n=== Generating image video: ${scriptName} ===`)
+  const r = spawnSync('node', [
+    'movies/generate-image-video.mjs', absPath, '--no-burn', ...childFlags, ...ttsArgs,
+  ], { stdio: 'inherit', timeout: 600000 })
+  if (r.status !== 0) process.exit(r.status ?? 1)
+} else {
+  console.log(`\n=== Recording 3D video: ${scriptName} ===`)
+  const r = spawnSync('node', [absPath, ...childFlags], { stdio: 'inherit', timeout: 600000 })
+  if (r.status !== 0) process.exit(r.status ?? 1)
+}
+
+// ── Step 2: Generate subtitle + audio ──
+// Image scripts: TTS already generated inside generate-image-video.mjs (step 1).
+// 3D scripts: generate via generate-subtitle.mjs.
+if (!isImageScript) {
+  console.log(`\n=== Generating subtitle + audio: ${scriptName} ===`)
+  const subFlags = [...ttsArgs]
+  const isForce = args.includes('-f') || args.includes('--force')
+  if (isForce) subFlags.unshift('-f')
+  const r = spawnSync('node', [
+    'movies/generate-subtitle.mjs', absPath, ...subFlags,
+  ], { stdio: 'inherit', timeout: 600000 })
+  if (r.status !== 0) process.exit(r.status ?? 1)
+}
+
+// ── Step 3: Burn subtitles + audio into final video ──
+console.log(`\n=== Burning subtitles: ${scriptName} ===`)
 burnVideo(scriptUrl, genDir)

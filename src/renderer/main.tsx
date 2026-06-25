@@ -28,6 +28,7 @@ import { collectPartKeys, findNodeInTree } from '@/lib/scene-tree-utils'
 import { queryParts } from '@/lib/part-query'
 import type { PartQuery } from '@/lib/part-query'
 import { MATERIAL_PRESETS, getPreset } from '@/engine/material/presets'
+import { computeCameraFitTarget } from '@/engine/heatbed'
 import * as THREE from 'three'
 import gsap from 'gsap'
 import App from './App'
@@ -193,6 +194,36 @@ window.__animateCamera = (opts: AnimateCameraOpts): Promise<void> => {
   })
 }
 
+window.__fitCameraToHeatbed = (durationMs?: number, marginFactor?: number): Promise<void> => {
+  return new Promise((resolve) => {
+    const dev = window.__r3f_dev
+    const controls = dev?.controls
+    const camera = dev?.camera
+    const gl = dev?.gl
+    if (!controls || !camera || !gl) { resolve(); return }
+    if (!(camera instanceof THREE.PerspectiveCamera)) { resolve(); return }
+
+    const bedSize = window.__engineStore.getState().bedSize
+    const h = bedSize / 2
+    const bedBox = new THREE.Box3(
+      new THREE.Vector3(-h, -h, 0),
+      new THREE.Vector3(h, h, 0),
+    )
+
+    const viewport = { width: gl.domElement.clientWidth, height: gl.domElement.clientHeight }
+    const upAxis = window.__modelStore.getState().activeUpAxis || 'y'
+
+    const result = computeCameraFitTarget(camera, bedBox, viewport, 'bed', upAxis, marginFactor)
+    if (!result) { resolve(); return }
+
+    controls.target.copy(result.target)
+    controls.update()
+
+    const durSec = (durationMs ?? 2000) / 1000
+    window.__animateCamera({ to: result.position, duration: durSec }).then(resolve)
+  })
+}
+
 function hideDemoPanelIfMovieMode() {
   if (useEngineStore.getState().movieMode) {
     for (const id of ['gsap-demo-assemble', 'gsap-demo-rotate', 'gsap-demo-explode']) {
@@ -231,6 +262,8 @@ window.__materialStore = useMaterialStore
 window.__toolStore = useToolStore
 window.__selectionStore = useSelectionStore
 window.__svgWorkspaceStore = useSvgWorkspaceStore
+window.__executeCommand = (command: string, params?: Record<string, unknown>) =>
+  executeCommand({ command, params: params ?? {} })
 window.__queryParts = queryParts
 window.__svgFixtures = {}
 window.__svgHelpers = {
@@ -680,6 +713,84 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             await new Promise(r => setTimeout(r, 100))
             const ms = useModelStore.getState()
             const file = ms.loadedFiles.find((f) => f.id === fileId)
+            return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success',
+              data: { fileId, fileName, format, sourceUnit: file?.sourceUnit ?? loadResult.sourceUnit,
+                partCount: ms.glbPartInfos.length,
+                parts: ms.glbPartInfos.map((p) => ({ partId: p.partId, name: p.name, triangleCount: p.triangleCount })),
+                animations: file?.animations?.map((a) => ({ name: a.name, duration: a.duration })) ?? [],
+              } }
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            trackEvent('file_load_error', { format: loadFileFormat, error: redactTelemetryString(errMsg), duration_ms: Date.now() - loadStartTime })
+            return { type: '3d-viewer', id: msg.id, command: cmd, status: 'error',
+              error: errMsg }
+          }
+        }
+        return doLoad()
+      }
+      case 'loadFile': {
+        const { filePath, ...rest } = params as Record<string, unknown>
+        if (!filePath) throw new Error('Missing required parameter: filePath')
+        if (!window.electronAPI) throw new Error('electronAPI not available (not running in Electron)')
+
+        // viewerParams from makeMovie (same keys as loadModel)
+        const entryKeys = ['entryAnim', 'entryDir', 'entryDuration', 'entryZoomDist', 'entryZoomEndDist', 'entrySlideDist', 'entryTargetShiftY', 'entryEase']
+        const pending: Record<string, string> = {}
+        for (const key of entryKeys) {
+          const v = rest[key]
+          if (v != null) pending[key] = String(v)
+        }
+        if (Object.keys(pending).length > 0) {
+          ;(window as any).__pendingEntryConfig = pending
+        }
+
+        const loadStartTime = Date.now()
+        const loadFileName = String(filePath).split(/[/\\]/).pop() || 'model'
+        const loadFileFormat = loadFileName.split('.').pop()?.toLowerCase() || 'unknown'
+        trackEvent('file_load_start', { format: loadFileFormat, fileName: loadFileName })
+
+        const doLoad = async (): Promise<ApiResponse> => {
+          try {
+            const fileResult = await window.electronAPI!.readFile(String(filePath))
+            if (!fileResult.success || !fileResult.data) {
+              throw new Error(`Failed to read file: ${filePath}`)
+            }
+            let buffer = fileResult.data
+            const fileName = loadFileName
+
+            let format = detectFormat(fileName)
+            if (!format) throw new Error(`Unsupported file format: ${fileName}`)
+
+            if (isStepFile(fileName) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+              throw new Error('不支持超过100MB的STEP/STP文件')
+            }
+            let fileMeta: { step: ReturnType<typeof parseStepHeader> } | undefined
+            if (isStepFile(fileName)) {
+              const stepHeader = parseStepHeader(buffer)
+              if (stepHeader) fileMeta = { step: stepHeader }
+            }
+            if (isStepFile(fileName)) {
+              const { buffer: glbBuffer } = await stepToGlbCached(buffer,
+                { filePath: String(filePath), mtimeMs: Date.now() },
+                { wasmPath: '/wasm/occt-import-js.wasm' },
+              )
+              buffer = glbBuffer
+              format = 'glb'
+            }
+            const loadResult = await loadFormat(buffer, format, fileName)
+            const fileId = crypto.randomUUID()
+            setCachedResult(fileId, loadResult)
+            useModelStore.getState().addLoadedFile({
+              id: fileId, fileName, filePath: String(filePath), mtimeMs: Date.now(), buffer,
+              format, sceneTree: [], glbPartInfos: [], modelCenteringOffset: null,
+              sourceUnit: loadResult.sourceUnit ?? FORMAT_MAP[format].defaultUnit,
+              fileGroup: FORMAT_MAP[format].group, loadingPhase: 'loading',
+              bambuMetadata: loadResult.bambuMetadata, fileMeta,
+            })
+            await new Promise(r => setTimeout(r, 100))
+            const ms = useModelStore.getState()
+            const file = ms.loadedFiles.find((f) => f.id === fileId)
+            trackEvent('file_load_success', { format, fileName, duration_ms: Date.now() - loadStartTime })
             return { type: '3d-viewer', id: msg.id, command: cmd, status: 'success',
               data: { fileId, fileName, format, sourceUnit: file?.sourceUnit ?? loadResult.sourceUnit,
                 partCount: ms.glbPartInfos.length,
