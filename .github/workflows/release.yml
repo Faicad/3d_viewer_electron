@@ -55,6 +55,7 @@ jobs:
 
   publish:
     needs: release
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
