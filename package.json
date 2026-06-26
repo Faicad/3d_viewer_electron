@@ -25,7 +25,7 @@
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
-    "postinstall": "electron-builder install-app-deps && node scripts/copy-draco-wasm.mjs",
+    "postinstall": "node scripts/ensure-electron-binary.mjs && electron-builder install-app-deps && node scripts/copy-draco-wasm.mjs",
     "build:win": "electron-vite build && electron-builder --win",
     "build:win:cn": "node scripts/build-edition.mjs --cn",
     "build:win:release": "pnpm run build:win && pnpm run build:win:cn",
