@@ -10,7 +10,7 @@ declare global {
   interface Window {
     __r3f_indicator?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer }
     __r3f_viewcube?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; hoveredFace?: string | null }
-    __r3f_dev?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; selectorRuntime?: SelectorRuntime | null }
+    __r3f_dev?: { camera: THREE.Camera; scene: THREE.Scene; gl: THREE.WebGLRenderer; selectorRuntime?: SelectorRuntime | null; controls?: import('three-stdlib').OrbitControls | null; triggerResetCamera?: () => void }
     __modelStore: typeof useModelStore
     __animationStore: typeof useAnimationStore
     __materialStore: typeof useMaterialStore

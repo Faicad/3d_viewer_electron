@@ -517,6 +517,12 @@ export default function ViewportContainer() {
     if (dev) dev.selectorRuntime = selectorRuntime
   }, [selectorRuntime])
 
+  // Expose OrbitControls to window.__r3f_dev for AI control API (setCameraPosition, resetCamera, zoomToFit)
+  useEffect(() => {
+    const dev = window.__r3f_dev
+    if (dev && controlsRef.current) dev.controls = controlsRef.current
+  })
+
   // Resolve first selected reference for HUD
   const selectedReference = useMemo(() => {
     const id = selectedReferenceIds[0]
