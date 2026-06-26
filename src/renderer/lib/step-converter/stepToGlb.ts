@@ -63,7 +63,9 @@ export function buildGlbFromResult(
       const meshNode = buildNodeForMesh(
         importResult.meshes[meshIdx], builder, { color, occurrenceId },
       );
-      childIndices.push(builder.addNode(meshNode));
+      if (meshNode !== null) {
+        childIndices.push(builder.addNode(meshNode));
+      }
     }
 
     for (const childNode of (occtNode.children || [])) {
@@ -109,7 +111,7 @@ function buildNodeForMesh(
   mesh: OcctMesh,
   builder: GlbBuilder,
   { color, occurrenceId }: { color?: number[]; occurrenceId: string },
-): Record<string, unknown> {
+): Record<string, unknown> | null {
   const posArray = mesh.attributes.position.array;
   const normArray = mesh.attributes.normal?.array;
   const idxArray = mesh.index.array;
@@ -142,6 +144,8 @@ function buildNodeForMesh(
 
   const indices = new Uint32Array(idxArray);
   const meshIndex = builder.addMesh(positions, normals, [[indices, materialIndex]], min, max, mesh.name);
+
+  if (meshIndex === null) return null;
 
   return {
     name: occurrenceId,

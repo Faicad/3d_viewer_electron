@@ -233,12 +233,12 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         }
       } catch (err) {
         useModelStore.getState().hideProgress()
-        console.error('[useFileUpload] upload failed:', err)
+        console.error(`[useFileUpload] upload failed for ${file.name}:`, err)
         if (err instanceof ModelEmptyError) {
           toast.error(t('error.modelEmpty', { fileName: err.fileName }))
         } else {
           const message = err instanceof Error ? err.message : String(err)
-          toast.error(message || 'Load failed')
+          toast.error(`${file.name}: ${message || 'Load failed'}`)
         }
       } finally {
         setIsUploading(false)
