@@ -224,6 +224,11 @@ function scriptHasImage(scriptPath) {
   return /(?:^|\n)const\s+image\s*=\s*['"][^'"]+['"]\s*;?\s*\n/.test(src)
 }
 
+function scriptHasUrls(scriptPath) {
+  const src = readFileSync(scriptPath, 'utf-8')
+  return /(?:^|\n)const\s+urls\s*=/.test(src)
+}
+
 async function generateTtsSegment(text, outPath, voice = DEFAULT_VOICE, ttsProvider = DEFAULT_TTS_PROVIDER) {
   let ttsText = cleanTtsText(text)
   if (ttsProvider === 'spark-tts') {
@@ -464,14 +469,14 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
   }
 
   // 2. Detect script type
-  const isImageScript = scriptHasImage(scriptPath)
-  if (isImageScript) {
-    console.log('Image script detected — skipping video duration check')
+  const isSlideScript = scriptHasImage(scriptPath) || scriptHasUrls(scriptPath)
+  if (isSlideScript) {
+    console.log('Slide script detected (image/urls) — skipping video duration check')
   }
 
-  // 3. Probe video duration (skip for image scripts)
+  // 3. Probe video duration (skip for slide scripts)
   let videoDuration = 0
-  if (!isImageScript) {
+  if (!isSlideScript) {
     videoDuration = findVideoDuration(scriptDir, scriptName)
     if (videoDuration <= 0) {
       console.error('\nNo video found in gen/ — record first with `node ' + scriptPath + '`')
@@ -534,7 +539,7 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
   const audioTotal = computeAudioTotal(segments)
   console.log(`TTS audio total: ${audioTotal.toFixed(2)}s (speech + gaps)`)
 
-  if (isImageScript) {
+  if (isSlideScript) {
     videoDuration = audioTotal
     console.log(`Video duration:  ${videoDuration.toFixed(2)}s (from TTS)`)
   } else {
@@ -662,7 +667,7 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
 }
 
 // ── Exports ──
-export { generateSubtitle, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE, parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript, probeDuration, generateTtsSegment, cleanTtsText, normalizeSparkTtsText, parseVoicePrefix, loadDotEnv, generateSilence, ttsCacheKey }
+export { generateSubtitle, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE, parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript, probeDuration, generateTtsSegment, cleanTtsText, normalizeSparkTtsText, parseVoicePrefix, loadDotEnv, generateSilence, ttsCacheKey, scriptHasImage, scriptHasUrls }
 
 // ── CLI ──
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
