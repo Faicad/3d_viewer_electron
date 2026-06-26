@@ -79,11 +79,17 @@ function setupProtocol(): void {
 }
 
 function createWindow(): void {
+  // Movie mode: use env-provided viewport size so window is created at the
+  // correct dimensions from the start — avoids a visible resize after launch.
+  const movieW = process.env.MOVIE_VIEWPORT_WIDTH ? parseInt(process.env.MOVIE_VIEWPORT_WIDTH, 10) : 0
+  const movieH = process.env.MOVIE_VIEWPORT_HEIGHT ? parseInt(process.env.MOVIE_VIEWPORT_HEIGHT, 10) : 0
+  const isMovie = movieW > 0 && movieH > 0
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    width: isMovie ? movieW : 1280,
+    height: isMovie ? movieH : 800,
+    minWidth: isMovie ? movieW : 800,
+    minHeight: isMovie ? movieH : 600,
     title: 'Faicad',
     backgroundColor: '#ffffff',
     show: false,

@@ -82,16 +82,16 @@ export const MODEL_PORT = 4179
 
 export const SIZE_PRESETS = {
   s: { label: '540p', orientations: [
-    { width: 960, height: 540, suffix: '_h' },
-    { width: 540, height: 960, suffix: '_v' },
+    { width: 960, height: 540, suffix: '_h' },   // 16:9 landscape
+    { width: 540, height: 720, suffix: '_v' },   // 3:4 portrait
   ]},
   m: { label: '720p', orientations: [
-    { width: 1280, height: 720, suffix: '_h' },
-    { width: 720, height: 1280, suffix: '_v' },
+    { width: 1280, height: 720, suffix: '_h' },  // 16:9 landscape
+    { width: 720, height: 960, suffix: '_v' },   // 3:4 portrait
   ]},
   g: { label: '1080p', orientations: [
-    { width: 1920, height: 1080, suffix: '_h' },
-    { width: 1080, height: 1920, suffix: '_v' },
+    { width: 1920, height: 1080, suffix: '_h' }, // 16:9 landscape
+    { width: 1080, height: 1440, suffix: '_v' }, // 3:4 portrait
   ]},
 }
 
@@ -1573,8 +1573,8 @@ export async function makeMovie(scriptUrl, modelPath, viewerParams, pageFn, outp
     console.log(`[${suffix}] Launching Electron (${width}×${height})...`)
     const electronApp = await electron.launch({
       executablePath: getElectronExePath(),
-      args: ['--no-sandbox', '--disable-gpu-shader-disk-cache'],
-      env: { ...process.env, E2E: '1', MOVIE_MODE: '1' },
+      args: ['--no-sandbox', '--disable-gpu-shader-disk-cache', '--force-device-scale-factor=1'],
+      env: { ...process.env, E2E: '1', MOVIE_MODE: '1', MOVIE_VIEWPORT_WIDTH: String(width), MOVIE_VIEWPORT_HEIGHT: String(height) },
       recordVideo: { dir: outDir, size: viewport },
     })
     const page = await electronApp.firstWindow()

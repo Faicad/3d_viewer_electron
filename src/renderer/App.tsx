@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useThemeSync, useLanguageSync } from '@/components/settings/hooks'
 import { useEngineStore } from '@/stores/engine-store'
-import { useUIStore } from '@/stores/ui-store'
 import DesktopLayout from '@/layouts/DesktopLayout'
 
 export default function App() {
