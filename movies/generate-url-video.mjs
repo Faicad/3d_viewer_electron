@@ -52,17 +52,22 @@ function computeImageDurations(entries) {
 
 /**
  * 从全页截图生成滚动视频片段。
- * 首屏停留 STATIC_DURATION 秒，然后以 scrollSpeed px/s 向下滚动，到底停止。
+ * 首屏停留 STATIC_DURATION 秒，然后以 scrollSpeed px/s 向下滚动，
+ * 最后 PAUSE_END 秒停止滚动（为片段间过渡准备稳定末帧）。
  * 截图可能比 viewport 窄（如 1905px vs 1920px 由滚动条导致），先 pad 再 crop。
  */
 function buildScrollClip(fullImagePath, outputPath, viewW, viewH, duration, scrollSpeed, scrollable, imageW, imageH) {
   console.log(`    ${basename(outputPath)} (${duration.toFixed(2)}s, scroll ${scrollSpeed}px/s, img ${imageW}×${imageH})`)
 
+  const PAUSE_END = 0.5
   const tempOutput = outputPath.replace(/\.\w+$/, '.tmp$&')
   const padFilter = `pad=${Math.max(imageW, viewW)}:${Math.max(imageH, viewH)}:${Math.floor((Math.max(imageW, viewW) - imageW) / 2)}:0:black`
 
-  // 无需滚动：静止显示首屏
-  if (scrollable <= 0 || duration <= STATIC_DURATION || scrollSpeed <= 0) {
+  // 计算有效滚动时长（扣掉首屏滞留和结尾静止）
+  const effectiveScrollTime = Math.max(0, duration - STATIC_DURATION - PAUSE_END)
+
+  // 无需滚动或不足以滚动
+  if (scrollable <= 0 || duration <= STATIC_DURATION + PAUSE_END || scrollSpeed <= 0) {
     const r = spawnSync('ffmpeg', [
       '-y', '-loop', '1', '-t', duration.toFixed(3), '-i', fullImagePath,
       '-vf', `${padFilter},crop=${viewW}:${viewH}:0:0`,
@@ -75,10 +80,11 @@ function buildScrollClip(fullImagePath, outputPath, viewW, viewH, duration, scro
       return false
     }
   } else {
-    // 滚动：首屏静止 → 缓慢下移
+    // 滚动：首屏静止 → 缓慢下移 → 最后 PAUSE_END 秒定格
+    const scrollEndPos = Math.min(scrollable, effectiveScrollTime * scrollSpeed)
     const r = spawnSync('ffmpeg', [
       '-y', '-loop', '1', '-i', fullImagePath,
-      '-vf', `${padFilter},crop=${viewW}:${viewH}:0:'min(${scrollable}, max(0, (t-${STATIC_DURATION})*${scrollSpeed}))'`,
+      '-vf', `${padFilter},crop=${viewW}:${viewH}:0:'min(${scrollEndPos}, max(0, (t-${STATIC_DURATION})*${scrollSpeed}))'`,
       '-t', duration.toFixed(3),
       '-c:v', 'libvpx-vp9', '-b:v', '8M', '-pix_fmt', 'yuv420p',
       tempOutput,
