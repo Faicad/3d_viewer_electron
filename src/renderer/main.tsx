@@ -789,6 +789,25 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
               fileGroup: FORMAT_MAP[format].group, loadingPhase: 'loading',
               bambuMetadata: loadResult.bambuMetadata, fileMeta,
             })
+
+            // Populate right-side FileListPanel so thumbnails render in movie mode
+            const dirPath = String(filePath).slice(0, Math.max(
+              String(filePath).lastIndexOf('/'),
+              String(filePath).lastIndexOf('\\'),
+            ))
+            try {
+              const dirResult = await window.electronAPI.readDirectory(dirPath)
+              if (dirResult.success && dirResult.files) {
+                useModelStore.getState().setFolderFiles(dirPath, dirResult.files)
+                const idx = dirResult.files.findIndex(f => f.name === fileName)
+                if (idx !== -1) {
+                  useModelStore.getState().setSelectedFileIndex(idx)
+                }
+              }
+            } catch (e) {
+              console.warn('[loadFile] Failed to read directory for file list:', e)
+            }
+
             await new Promise(r => setTimeout(r, 100))
             const ms = useModelStore.getState()
             const file = ms.loadedFiles.find((f) => f.id === fileId)
