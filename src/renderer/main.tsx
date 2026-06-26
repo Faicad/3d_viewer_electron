@@ -52,22 +52,22 @@ window.__THREE = THREE
 let _demoCleanup: (() => void) | null = null
 
 window.__demoGSAPRotate = () => {
-  _demoCleanup?.()
-  import('@/ai-injection/demos/gsap-rotate-demo').then(({ startRotateDemo }) => {
+  return import('@/ai-injection/demos/gsap-rotate-demo').then(({ startRotateDemo }) => {
+    _demoCleanup?.()
     _demoCleanup = startRotateDemo()
     hideDemoPanelIfMovieMode()
   })
 }
 window.__demoGSAPAssemble = () => {
-  _demoCleanup?.()
-  import('@/ai-injection/demos/gsap-assemble-demo').then(({ startAssembleDemo }) => {
+  return import('@/ai-injection/demos/gsap-assemble-demo').then(({ startAssembleDemo }) => {
+    _demoCleanup?.()
     _demoCleanup = startAssembleDemo()
     hideDemoPanelIfMovieMode()
   })
 }
 window.__demoGSAPExplode = (params?: { spread?: number; range?: number }) => {
-  _demoCleanup?.()
-  import('@/ai-injection/demos/gsap-explode-demo').then(({ startExplodeDemo }) => {
+  return import('@/ai-injection/demos/gsap-explode-demo').then(({ startExplodeDemo }) => {
+    _demoCleanup?.()
     _demoCleanup = startExplodeDemo(params?.spread, params?.range)
     hideDemoPanelIfMovieMode()
   })
@@ -407,7 +407,9 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
       }
       case 'animateCamera': {
         const to = params.to ? (params.to as { x: number; y: number; z: number }) : undefined
-        return window.__animateCamera({ to, factor: params.factor as number | undefined, duration: params.duration as number | undefined }).then(() => ({
+        const rotate = params.rotate as (AnimateCameraOpts['rotate']) | undefined
+        const ease = params.ease as string | undefined
+        return window.__animateCamera({ to, factor: params.factor as number | undefined, duration: params.duration as number | undefined, rotate, ease }).then(() => ({
           type: '3d-viewer', id: msg.id, command: cmd, status: 'success',
         }))
       }

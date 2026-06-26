@@ -1378,7 +1378,7 @@ export async function recordOne(electronApp, page, viewport, suffix, pageFn, rec
   majorAxis = _currentIsLandscape ? 'x' : 'y'
   minorAxis = _currentIsLandscape ? 'y' : 'x'
 
-  // Apply viewerParams to engine store (mirrors what web version does via URL params)
+  // Apply viewerParams to stores (mirrors what web version does via URL params)
   if (viewerParams) {
     await page.evaluate((vp) => {
       const store = window.__engineStore?.getState?.()
