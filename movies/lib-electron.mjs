@@ -1365,13 +1365,24 @@ export async function recordOne(electronApp, page, viewport, suffix, pageFn, rec
     if (msg.type() === 'error') console.log('[browser:error]', msg.text())
   })
 
-  // Set viewport for this orientation
+  // Resize the actual Electron BrowserWindow (not just CDP viewport emulation)
+  const bwHandle = await electronApp.browserWindow(page)
+  await bwHandle.evaluate((bw, { width, height }) => {
+    bw.setContentSize(width, height)
+  }, { width: viewport.width, height: viewport.height })
   await page.setViewportSize(viewport)
 
   // Wait for app to be ready (canvas + executeCommand + modelStore)
   await page.waitForSelector('canvas', { timeout: 20000 })
   await page.waitForFunction(() => typeof (window).__executeCommand === 'function', { timeout: 15000 })
   await page.waitForFunction(() => typeof (window).__modelStore?.getState === 'function', { timeout: 15000 })
+
+  // Diagnostic: check actual OS-level window size
+  const bwCheck = await bwHandle.evaluate((bw) => ({
+    bounds: bw.getBounds(),
+    contentSize: bw.getContentSize(),
+  }))
+  console.log(`[${suffix}] BrowserWindow: bounds=${JSON.stringify(bwCheck.bounds)} contentSize=${JSON.stringify(bwCheck.contentSize)}`)
 
   // Set orientation context so all lib functions auto-resolve '1.5;2' syntax
   _currentIsLandscape = viewport.width > viewport.height
@@ -1395,6 +1406,20 @@ export async function recordOne(electronApp, page, viewport, suffix, pageFn, rec
         store.setShadowFloorEnabled(val)
       }
     }, viewerParams)
+    // Optional panel control: closeLeftPanel / closeRightPanel (script-controllable, supports ';' syntax)
+    const closeLeft = viewerParams.closeLeftPanel != null &&
+      (viewerParams.closeLeftPanel === '1' || viewerParams.closeLeftPanel === 'true' || viewerParams.closeLeftPanel === true)
+    const closeRight = viewerParams.closeRightPanel != null &&
+      (viewerParams.closeRightPanel === '1' || viewerParams.closeRightPanel === 'true' || viewerParams.closeRightPanel === true)
+    if (closeLeft || closeRight) {
+      await page.evaluate(({ left, right }) => {
+        const ui = window.__uiStore?.getState?.()
+        if (!ui) return
+        if (left && ui.leftPanelOpen) ui.toggleLeftPanel()
+        if (right && ui.rightPanelOpen) ui.toggleRightPanel()
+      }, { left: closeLeft, right: closeRight })
+      if (closeLeft || closeRight) await page.waitForTimeout(300)
+    }
   }
 
   const tPageOpen = Date.now()

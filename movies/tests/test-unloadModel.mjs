@@ -67,7 +67,7 @@ async function main() {
   try {
     const modelPath = 'src/test/fixtures/cube_output.glb'
     const glbUrl = `http://localhost:${MODEL_PORT}/${modelPath}`
-    const url = `http://localhost:${VIEWER_PORT}/#/workspace?url=${encodeURIComponent(glbUrl)}&embed=1&AutoRotate=0`
+    const url = `http://localhost:${VIEWER_PORT}/#/workspace?url=${encodeURIComponent(glbUrl)}&AutoRotate=0`
 
     // ── 1. Open viewer with first model ──
     console.log('1. Open viewer with first model...')

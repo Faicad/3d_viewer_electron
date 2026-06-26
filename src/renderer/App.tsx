@@ -11,11 +11,6 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?') + 1))
-    const embed = params.get('embed')
-    if (embed === '1') {
-      const ui = useUIStore.getState()
-      if (ui.rightPanelOpen) ui.toggleRightPanel()
-    }
     const autoRotate = params.get('autoRotate')
     if (autoRotate === '0' || autoRotate === 'false') {
       useEngineStore.getState().setAutoRotate(false)

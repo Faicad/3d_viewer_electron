@@ -1164,6 +1164,7 @@ export default function ViewportContainer() {
           useEngineStore.getState().setEngineObjects({ camera, scene, gl })
           window.__r3f_dev = { camera, scene, gl }
           window.__engineStore = useEngineStore
+          window.__uiStore = useUIStore
 
           // Detect software GPU at init time (while WebGL context is fresh).
           // E2E tests read window.__isSoftwareGpu instead of probing WebGL

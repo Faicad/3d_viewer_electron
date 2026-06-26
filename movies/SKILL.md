@@ -123,7 +123,7 @@ const projectDir = join(dirname(fileURLToPath(import.meta.url)), 'gen')
 makeMovie(
   import.meta.url,                    // 自动推导输出文件名
   'your-model.glb',                   // fixtures 下的模型文件
-  { embed: '1' },                     // URL 参数 (movie_mode=1 + entryAnim=zoom 由 lib.mjs 默认注入)
+  {},                               // viewerParams
   async (page, suffix, tPageOpen) => {
     await startRecording(page, tPageOpen, 2000)
 

@@ -10,6 +10,8 @@ node scripts/local-ci.mjs   # tsc + vitest (all) + playwright (all), output to c
 
 **Must pass `node scripts/local-ci.mjs` before `git commit`. No exceptions.** This is the final gate — don't run it frequently during development (full Playwright suite is slow).
 
+**Do not run CI frequently. After running CI once, you MUST remember which tests failed. Afterwards, only run the failing tests.** If you are only fixing failing tests, you should NOT run CI again. Just fix the tests you broke yourself.
+
 ## Project Overview
 
 Faicad 3D Viewer is an Electron desktop application for viewing 3D model files (STL/GLB/3MF/STEP/STP). It uses a custom protocol `faicad-viewer://` to serve the renderer process.

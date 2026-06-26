@@ -10,5 +10,4 @@ pretrained_models/*
 p*/*.stl
 p*/*.3mf
 p*/
-e*/
 exported.stl
