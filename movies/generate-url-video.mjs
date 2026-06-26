@@ -9,10 +9,10 @@ import { generateSubtitle, parseSubtitleLines, INITIAL_GAP, INTER_LINE_GAP, DEFA
 // ── Constants ──
 const STATIC_DURATION = 1         // 首屏停留秒数
 const ORIENTATIONS = [
-  // 横屏：页面高度 × 5%/秒（原 10% 的 50%）
-  { width: 1920, height: 1080, suffix: '_h', label: '横屏', scrollRatio: 0.05 },
-  // 竖屏：页面高度 × 3%/秒（原 10% 的 30%）
-  { width: 1080, height: 1920, suffix: '_v', label: '竖屏', scrollRatio: 0.03 },
+  // 横屏：屏幕高度 × 3%/秒
+  { width: 1920, height: 1080, suffix: '_h', label: '横屏', scrollRatio: 0.03 },
+  // 竖屏：屏幕高度 × 2%/秒
+  { width: 1080, height: 1920, suffix: '_v', label: '竖屏', scrollRatio: 0.02 },
 ]
 
 function pad4(i) { return String(i).padStart(4, '0') }
@@ -276,7 +276,7 @@ async function generateUrlVideo(scriptPath) {
           const dims = probeImageDimensions(fullPng)
           if (!dims) { console.error(`  Cannot probe ${basename(fullPng)}`); anyFailed = true; continue }
           const scrollable = Math.max(0, dims.height - height)
-          const scrollSpeed = Math.round(dims.height * scrollRatio)
+          const scrollSpeed = Math.round(height * scrollRatio)
           if (!buildScrollClip(fullPng, clipWebm, width, height, imageDurations[i], scrollSpeed, scrollable, dims.width, dims.height)) {
             anyFailed = true
           }

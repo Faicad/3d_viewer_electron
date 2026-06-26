@@ -124,7 +124,7 @@ await page.screenshot({ path: outputPath, type: 'png', fullPage: true })
 ```
 第一秒     → 显示网页首屏（scrollY = 0）
 一秒后     → 开始缓慢向下滚动
-滚动速度   → ~10% 的页面总高度 / 秒
+滚动速度   → 视口高度 × scrollRatio（像素/秒，横屏默认 3%，竖屏默认 2%）
 ```
 
 ### 计算方法
@@ -133,7 +133,7 @@ await page.screenshot({ path: outputPath, type: 'png', fullPage: true })
 全页高度       = fullH（截图像素高度）
 视口高度       = viewH（横屏1080，竖屏1920）
 可滚动距离     = scrollable = max(0, fullH - viewH)
-滚动速度       = speed = scrollable * 0.10  (≈10%页面高度/秒)
+滚动速度       = speed = viewH × scrollRatio（像素/秒，横屏默认 0.03，竖屏默认 0.02）
 最大可滚时间   = scrollable / speed (秒)
 ```
 
@@ -232,7 +232,7 @@ import * as lib from './lib.mjs'
 import { parseSubtitleLines } from './generate-subtitle.mjs'
 
 // ── 配置 ──
-const SCROLL_RATIO = 0.10  // 每秒滚动页面高度的百分比
+const SCROLL_RATIO = 0.10  // 每秒滚动距离 = 视口高度 × scrollRatio
 const STATIC_DURATION = 1  // 首屏停留秒数
 
 // ── 解析脚本 ──
