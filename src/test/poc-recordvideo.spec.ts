@@ -1,22 +1,20 @@
 // Phase 0 POC: Verify recordVideo works with _electron.launch() at 25fps
 import { test, expect, _electron } from '@playwright/test'
 import { spawnSync } from 'child_process'
-import { mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs'
+import { mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 const EXE_PATH = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
-const RECORD_DIR = path.join(PROJECT_ROOT, 'test-results')
+const RECORD_DIR = path.join(PROJECT_ROOT, 'test-results', 'poc-recordvideo')
 
 test.describe('Phase 0: recordVideo POC', () => {
   test('recordVideo produces 25fps webm from Electron', async () => {
     // Clean output dir
     if (existsSync(RECORD_DIR)) {
-      for (const f of readdirSync(RECORD_DIR)) {
-        unlinkSync(path.join(RECORD_DIR, f))
-      }
+      rmSync(RECORD_DIR, { recursive: true, force: true })
     }
     mkdirSync(RECORD_DIR, { recursive: true })
 

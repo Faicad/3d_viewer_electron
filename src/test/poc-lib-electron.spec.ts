@@ -1,20 +1,20 @@
 // Phase 3 integration: test lib-electron.mjs core flow
 import { test, expect, _electron } from '@playwright/test'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
-import { mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs'
+import { mkdirSync, existsSync, rmSync, statSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
 const TEST_GLB = path.join(__dirname, 'fixtures', 'test-box.glb')
-const RECORD_DIR = path.join(PROJECT_ROOT, 'test-results')
+const RECORD_DIR = path.join(PROJECT_ROOT, 'test-results', 'poc-lib-electron')
 
 test.describe('Phase 3: lib-electron core flow', () => {
   test('recordVideo + loadFile + waitForModel + pageFn', async () => {
     // Clean output dir
     if (existsSync(RECORD_DIR)) {
-      for (const f of readdirSync(RECORD_DIR)) unlinkSync(path.join(RECORD_DIR, f))
+      rmSync(RECORD_DIR, { recursive: true, force: true })
     }
     mkdirSync(RECORD_DIR, { recursive: true })
 
@@ -55,12 +55,17 @@ test.describe('Phase 3: lib-electron core flow', () => {
     })
 
     // 5. Run pageFn — simulate a simple recording
-    const tPageFn = Date.now()
     await page.waitForTimeout(3000) // "record" 3 seconds
     console.log('Recorded 3s')
 
-    // 6. Collect syncpoints (same as recordOne post-pageFn)
-    const pageFnDuration = Date.now() - tPageFn
+    // 6. Verify right-panel thumbnails populated after loadFile
+    const fileListState = await page.evaluate(() => {
+      const ms = (window as any).__modelStore.getState()
+      return { folderFilesLen: ms.folderFiles.length, currentFolderPath: ms.currentFolderPath }
+    })
+    console.log('FileList state:', fileListState)
+    expect(fileListState.folderFilesLen).toBeGreaterThan(0)
+    expect(fileListState.currentFolderPath).toBeTruthy()
 
     // 7. Get video path
     const videoPath = await page.video()?.path()

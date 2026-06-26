@@ -42,6 +42,11 @@ test.describe('Phase 1: loadFile command', () => {
     expect(state.loadedFiles.length).toBeGreaterThan(0)
     console.log('Model loaded successfully, parts:', state.glbPartInfos?.length)
 
+    // Verify right-panel FileList is populated (folderFiles set by loadFile)
+    expect(state.folderFiles.length).toBeGreaterThan(0)
+    expect(state.currentFolderPath).toBeTruthy()
+    console.log('FileList populated:', state.folderFiles.length, 'files in', state.currentFolderPath)
+
     await electronApp.close()
     cleanupUserDataDir(userDataDir)
   })
