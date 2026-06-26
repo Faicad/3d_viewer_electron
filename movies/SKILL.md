@@ -52,12 +52,31 @@
                                              └──────────────────┘
 ```
 
+### 路径 C：URL 网页录制（自动截图 + 滚动效果）
+
+```
+┌──────────────────┐    ┌──────────────────────────┐    ┌──────────────────┐
+│ Chrome 浏览器     │    │ generate-url-video.mjs    │ →  │ burn 烧录字幕+音 │
+│ (Playwright)     │ →  │ 全页截图 → 滚动片段 →    │    │ 频 (同路径A)     │
+│ 用户登录状态      │    │ 拼接 → TTS .subtitle     │    │ + 混背景音乐     │
+└──────────────────┘    │ + .mp3 → .webm           │    │                  │
+                        └──────────────────────────┘    └──────────────────┘
+                                                                     │
+                                                     ┌────────────────┘
+                                                     ▼
+                                             ┌──────────────────┐
+                                             │ merge 拼接多片段  │
+                                             │ + 封面作为第 1 帧  │
+                                             └──────────────────┘
+```
+
 | 概念 | 说明 | 命令 | 输出 |
 |------|------|------|------|
 | **pregen-tts** (TTS 预生成) | TTS 预生成 + 分组时长计算（路径 A，`makeMovie` 自动调用） | `node movies/pregen-tts.mjs <script>` | `gen/{name}.tts-timing.json` + `gen/{name}_segments/seg_*.mp3` |
 | **record** (录制) | 录制 3D 画面，syncpoint TTS 感知自动等待（路径 A） | `node <script>.mjs [-s\|-m\|-g] [-h\|-v]` | `gen/{name}_{h\|v}.webm` |
 | **generate-subtitle** (字幕+配音) | 从缓存读取 TTS 时长 → `.subtitle` + `.mp3`（无溢出校验） | `node movies/generate-subtitle.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` |
 | **generate-image-video** (截图合成) | 截图 → TTS → 图片视频（路径 B，一步完成） | `node movies/generate-image-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **generate-url-video** (URL 录制) | 网页截图 → TTS → 滚动视频（路径 C，一步完成） | `node movies/generate-url-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
 | **burn** (烧录) | 烧录 .subtitle 字幕 + 音频 + bgm | `node movies/burn.mjs <script> [-s\|-m\|-g] [-h\|-v]` | `gen/{name}_burn_{h\|v}_{N}.mp4` |
 | **merge** (合并) | 多个录制拼接 + 字幕 + 音频 → 成品 | `node movies/mergeVideo.mjs <dir>` | `gen/merged_{h\|v}.mp4` |
 | **cover** (封面预处理) | 对截图封面加文字/滤镜（约定：项目下 `cover.mjs`） | `node movies/p1/cover.mjs` | `gen/{project}_cover_final_{h\|v}.png` |
@@ -184,11 +203,15 @@ makeMovie(
 
 | 参数 | 分辨率（横屏 × 竖屏） | 说明 |
 |------|----------------------|------|
-| `-s` | 854×480 + 480×854 | 480p（默认） |
-| `-m` | 1280×720 + 720×1280 | 720p |
-| `-g` | 1920×1080 + 1080×1920 | 1080p |
+| `-s` | 854×480 + 480×854 | 480p（仅路径 A） |
+| `-m` | 1280×720 + 720×1280 | 720p（仅路径 A） |
+| `-g` | 1920×1080 + 1080×1440 | 1080p（路径 A 默认） |
 | `-h` | — | 只渲染横屏（跳过竖屏） |
 | `-v` | — | 只渲染竖屏（跳过横屏） |
+
+> **路径 B（截图合成）** — 输出分辨率由图片实际尺寸决定，`-s/-m/-g` 不生效。前缀匹配 `_h` 和 `_v` 决定方向。默认竖屏尺寸为 1080×1920。
+>
+> **路径 C（URL 录制）** — 使用固定尺寸 1920×1080（横屏）和 1080×1920（竖屏），不受 `-s/-m/-g` 控制。`-h`/`-v` 方向过滤仍然有效。
 
 示例：
 
@@ -197,6 +220,7 @@ node movies/p1/m3.mjs -m            # 录制 720p
 node movies/p1/m3.mjs -m -v         # 只录制竖屏 720p
 node movies/burn.mjs p1/m1 -g       # 烧录 1080p
 node movies/burn.mjs p1/m1 -h       # 只烧录横屏
+node movies/generate-url-video.mjs movies/e1/m0.mjs -v  # URL 模式，只录竖屏
 ```
 
 未指定时默认 `-s`（480p），横竖屏都渲染。
@@ -360,6 +384,8 @@ pip install edge-tts
 
 **当视频素材是截图而非 3D 场景时使用。** 与 `generate-subtitle.mjs` 不同，它集成了 TTS 生成 + 图片合成视频一步完成。
 
+**输出分辨率由图片实际尺寸决定**，脚本按图片原始宽高比缩放 + 黑边填充到目标尺寸。横屏图片统一用 `_h` 后缀（如 `WorkBuddy_h.png`），竖屏用 `_v` 后缀（默认 1080×1920）。`-s/-m/-g` 参数对此路径不生效。
+
 ### 前置条件
 
 先准备好截图：
@@ -411,6 +437,96 @@ node movies/generate-image-video.mjs movies/p1/m2.mjs
 |------|------|---------|
 | `audioVoice` | 1.0 | `burn`: `gen/{name}.mp3`; `merge`: 从 `subtitle` 自动推导（同名不同后缀） |
 | `audioBg` | 0.5 | `burn`: `movies/` 下默认 bgm; `merge`: JSON 配置 `audioBg` |
+
+---
+
+## 第二步（备选）：URL 网页录制 — `generate-url-video.mjs`
+
+**当视频素材来自网页而非本地截图或 3D 场景时使用。** 自动打开 URL → 全页截图 → FFmpeg 滚动效果 → 拼接 → TTS → 烧录，一步完成。
+
+### 脚本格式
+
+```javascript
+// movies/e1/m0.mjs
+const subtitle = `
+在 MakerWorld 上浏览 3D 模型
+选择一个喜欢的模型下载
+`;
+
+const urls = [
+  'https://makerworld.com.cn/zh/3d-models',
+  'https://makerworld.com.cn/zh/models/2649415-ha-lan-de',
+];
+```
+
+- `const urls` — URL 数组，每个台词对应一个 URL
+- subtitle 行数必须等于 `urls.length`，一一对应
+- `const image` 字段不需要
+
+### 使用
+
+```bash
+# 一步完成：截图 → 滚动片段 → 拼接 → TTS → 字幕 → 烧录
+node movies/generate-url-video.mjs movies/e1/m0.mjs
+
+# 仅截图不烧录
+node movies/generate-url-video.mjs movies/e1/m0.mjs --no-burn
+
+# 仅竖屏
+node movies/generate-url-video.mjs movies/e1/m0.mjs -v
+```
+
+### 尺寸规格
+
+| 方向 | 分辨率 | 说明 |
+|------|--------|------|
+| 横屏 `_h` | 1920×1080 | 与路径 A/B 一致 |
+| 竖屏 `_v` | 1080×1920 | 全高清竖屏，9:16 比例 |
+
+竖屏 1080×1920 ≠ 路径 A/B 的 1080×1440，因网页通常纵向滚动，更高画幅能展示更多内容。
+
+### 工作流程
+
+1. **解析**：从 `.mjs` 提取 `const urls = [...]` 和 `const subtitle = \`...\``，校验行数
+2. **TTS 预生成**：调用 `pregen-tts.mjs` 生成语音缓存
+3. **字幕生成**：从缓存读取 TTS 实测时长 → `.subtitle` + `.mp3`
+4. **截图**：Playwright 启动系统 Chrome（带用户登录信息），每个 URL 截取完整网页（`fullPage: true`）
+5. **滚动片段**：每张截图生成一段 FFmpeg 视频，首屏停留 1 秒后缓慢向下滚动
+   - 横屏滚动速度：页面高度 × 5%/秒
+   - 竖屏滚动速度：页面高度 × 3%/秒
+6. **拼接**：所有片段用 concat demuxer 无损拼接 → `_{h|v}.webm`
+7. **烧录**：烧录字幕 + 混音 → `_burn_{h|v}.mp4`
+
+### 滚动效果
+
+```
+第一秒     → 显示网页首屏（scrollY = 0）
+一秒后     → 开始缓慢向下滚动
+滚动速度   → 横屏 5% 页高/秒，竖屏 3% 页高/秒
+到底后     → 静止（不会超出页面底部）
+```
+
+FFmpeg 实现：`pad`（补黑边）→ `crop`（时变 y 表达滚动）→ `format`。
+
+由于截图可能比 viewport 窄（例如 1905px vs 1920px，因滚动条宽度导致），先 `pad` 补黑边再 `crop`。
+
+### 浏览器要求
+
+- 使用系统安装的 **Chrome**，Playwright 通过 `chromium.launch({ channel: 'chrome' })` 启动
+- 有头模式（`headless: false`），自动携带用户浏览器 Profile 和登录 Cookie
+- **运行前需关闭 Chrome**（Playwright 需独占用户数据目录）
+- 脚本启动时会检测并提示
+
+### 输出文件
+
+| 文件 | 说明 |
+|------|------|
+| `gen/{name}.subtitle` | 字幕 JSON |
+| `gen/{name}.mp3` | TTS 配音 |
+| `gen/{name}_{h\|v}.webm` | 拼接后的完整视频 |
+| `gen/{name}_burn_{h\|v}.mp4` | 烧录字幕后的最终成品 |
+| `gen/{name}_{NNNN}_{h\|v}_full.png` | 各 URL 全页截图（中间产物，可删除） |
+| `gen/{name}_{NNNN}_{h\|v}.webm` | 各 URL 独立滚动片段（中间产物，可删除） |
 
 ---
 
@@ -608,6 +724,7 @@ movies/
 ├── burn.mjs                    ← 单文件烧录 CLI
 ├── generate-subtitle.mjs       ← .mjs → TTS逐行实测 → .subtitle + .mp3（一步完成）
 ├── generate-image-video.mjs    ← .mjs → TTS + 截图合成 → .subtitle + .mp3 + .webm（路径 B）
+├── generate-url-video.mjs     ← .mjs → URL 网页截图 + 滚动拼接 → .subtitle + .mp3 + .webm（路径 C）
 ├── screenshot-window.ps1       ← PowerShell 窗口截图脚本
 ├── mark-text-easyocr.py        ← Python OCR 标注脚本
 ├── cover-process.py            ← 封面图片文字叠加工具（Python Pillow）
@@ -671,6 +788,15 @@ movies/
 - [ ] 5. **单文件烧录**：`node movies/burn.mjs movies/p2/m2.mjs`（同路径 A）
 - [ ] 6. **合并**：`node movies/mergeVideo.mjs movies/p2`（自动全流程）
 - [ ] 7. 检查输出的 `_burn_h.mp4` 等时长、字幕、音频
+
+### 路径 C：URL 网页录制
+
+- [ ] 1. 在 `movies/` 下新建项目目录（如 `e2/`）
+- [ ] 2. 写 `.mjs` 脚本，声明 `const subtitle = \`...\`` + `const urls = [...]`
+- [ ] 3. 关闭 Chrome 浏览器
+- [ ] 4. 运行 `node movies/generate-url-video.mjs movies/e2/m0.mjs` 一步完成截图 + 视频 + TTS + 字幕 + 烧录
+- [ ] 5. 也可分步：先 `--no-burn` 只生成视频，再用 `burn.mjs` 烧录
+- [ ] 6. 检查输出的 `_burn_h.mp4` / `_burn_v.mp4` 时长、字幕、音频、滚动效果
 
 ---
 
@@ -758,6 +884,7 @@ FFmpeg filter 语法中 `:` 是选项分隔符。`C:/path/file.ass` 会被解析
 - TTS 预生成：`movies/pregen-tts.mjs`（`.mjs` → TTS 预生成 → `.tts-timing.json` + 音频缓存；`makeMovie` 自动调用）
 - 字幕+配音生成：`movies/generate-subtitle.mjs`（`.mjs` → 从缓存读取 TTS → `.subtitle` + `.mp3`；无溢出校验）
 - 截图合成（路径 B）：`movies/generate-image-video.mjs`（`.mjs` → TTS + 图片合成 → `.subtitle` + `.mp3` + `.webm`）
+- URL 网页录制（路径 C）：`movies/generate-url-video.mjs`（`.mjs` → URL 截图 + 滚动拼接 → `.subtitle` + `.mp3` + `.webm`）
 - 字幕工具函数：`movies/generate-subtitle.mjs` & `movies/generate-image-video.mjs`（`cleanTtsText`, `cleanDisplayText`）
 - 核心渲染+合并：`movies/mergeVideo.mjs`（`mergeProject`, `processProjectCovers`, `detectProjectCover`）
 - 单文件烧录 CLI：`movies/burn.mjs`
@@ -766,4 +893,5 @@ FFmpeg filter 语法中 `:` 是选项分隔符。`C:/path/file.ass` 会被解析
 - 窗口截图：`movies/screenshot-window.ps1`（PowerShell 脚本）
 - OCR 标注：`movies/mark-text-easyocr.py`（Python 脚本）
 - 项目示例：`movies/p1/`（m1 Voron Trident 爆炸, m2 截图合成, m3 Car 材质+HDR+封面, cover.mjs 封面预处理）
+- URL 录制示例：`movies/e1/m0.mjs`（2 行字幕, 2 个 MakerWorld URL）
 
