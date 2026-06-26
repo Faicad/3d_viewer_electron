@@ -251,6 +251,26 @@ async function generateImageVideo(scriptPath) {
     const result = await generateSubtitle(scriptPath, { ttsProvider })
     segments = result.segments
     imageDurations = result.imageDurations
+
+    // Fallback: if subtitle was up-to-date (skipped → empty segments), read from file
+    if (segments.length === 0) {
+      const subtitlePath = join(genDir, `${scriptName}.subtitle`)
+      if (!existsSync(subtitlePath)) {
+        console.error(`\nSubtitle not found at ${subtitlePath}`)
+        process.exit(1)
+      }
+      const data = JSON.parse(readFileSync(subtitlePath, 'utf-8'))
+      const entries = data.segments[0].entries
+      const round2 = (v) => Math.round(v * 100) / 100
+      const segDurs = entries.map(e => round2(e.e - e.s))
+      imageDurations = segDurs.map((d, i) => {
+        let dur = d
+        if (i === 0) dur += INITIAL_GAP
+        if (i < segDurs.length - 1) dur += INTER_LINE_GAP
+        return round2(dur)
+      })
+      segments = entries
+    }
   }
 
   // 2. Build image videos per orientation

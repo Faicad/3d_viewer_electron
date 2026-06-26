@@ -3,9 +3,12 @@ old
 *.wav
 *.glb
 *.mp3
+*.step
 **/gen/*
 screenshot/*
 pretrained_models/*
 p*/*.stl
 p*/*.3mf
+p*/
+e*/
 exported.stl
