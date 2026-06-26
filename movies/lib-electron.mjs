@@ -1574,7 +1574,7 @@ export async function makeMovie(scriptUrl, modelPath, viewerParams, pageFn, outp
     const electronApp = await electron.launch({
       executablePath: getElectronExePath(),
       args: ['--no-sandbox', '--disable-gpu-shader-disk-cache'],
-      env: { ...process.env, E2E: '1' },
+      env: { ...process.env, E2E: '1', MOVIE_MODE: '1' },
       recordVideo: { dir: outDir, size: viewport },
     })
     const page = await electronApp.firstWindow()

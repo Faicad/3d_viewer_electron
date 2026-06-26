@@ -98,8 +98,9 @@ function createWindow(): void {
   mainWindow.once('ready-to-show', () => {
     console.log('[Main] ready-to-show, showing window')
     mainWindow!.show()
-    // Minimize in E2E mode so test windows don't disrupt the desktop
-    if (process.env.E2E) mainWindow!.minimize()
+    // Minimize in E2E mode so test windows don't disrupt the desktop.
+    // Movie recording keeps the window visible (movie_mode=1).
+    if (process.env.E2E && !process.env.MOVIE_MODE) mainWindow!.minimize()
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
