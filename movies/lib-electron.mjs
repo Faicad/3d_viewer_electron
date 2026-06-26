@@ -1060,9 +1060,14 @@ export async function loadModel(page, modelPath, opts = {}, timeout = 60000) {
   }, resetCanvas)
   // Electron: use absolute path for loadFile command
   const absPath = resolve(modelPath)
+  const loadFileParams = { filePath: absPath }
+  const entryKeys = ['entryAnim', 'entryDir', 'entryDuration', 'entryZoomDist', 'entryZoomEndDist', 'entrySlideDist', 'entryTargetShiftY', 'entryEase']
+  for (const key of entryKeys) {
+    if (resolved[key] != null) loadFileParams[key] = resolved[key]
+  }
   const result = await page.evaluate(async (p) => {
-    return window.__executeCommand('loadFile', { filePath: p })
-  }, absPath)
+    return window.__executeCommand('loadFile', p)
+  }, loadFileParams)
   if (result?.status === 'error') {
     throw new Error(`Failed to load model: ${result.error}`)
   }
@@ -1355,7 +1360,7 @@ export function clearOverlays(page) {
   })
 }
 
-export async function recordOne(electronApp, page, viewport, suffix, pageFn, recordDir, entryDuration, modelPath, ttsTiming) {
+export async function recordOne(electronApp, page, viewport, suffix, pageFn, recordDir, entryDuration, modelPath, ttsTiming, viewerParams) {
   page.on('console', msg => {
     if (msg.type() === 'error') console.log('[browser:error]', msg.text())
   })
@@ -1373,13 +1378,48 @@ export async function recordOne(electronApp, page, viewport, suffix, pageFn, rec
   majorAxis = _currentIsLandscape ? 'x' : 'y'
   minorAxis = _currentIsLandscape ? 'y' : 'x'
 
+  // Apply viewerParams to engine store (mirrors what web version does via URL params)
+  if (viewerParams) {
+    await page.evaluate((vp) => {
+      const store = window.__engineStore?.getState?.()
+      if (!store) return
+      if (vp.movie_mode === '1' || vp.movie_mode === true) {
+        store.setMovieMode(true)
+        store.setControlsEnabled(false)
+      }
+      if (vp.AutoRotate != null) {
+        store.setAutoRotate(vp.AutoRotate === '1' || vp.AutoRotate === 'true' || vp.AutoRotate === true)
+      }
+      if (vp.shadowFloorEnabled != null) {
+        const val = vp.shadowFloorEnabled === '1' || vp.shadowFloorEnabled === 'true' || vp.shadowFloorEnabled === true
+        store.setShadowFloorEnabled(val)
+      }
+    }, viewerParams)
+  }
+
   const tPageOpen = Date.now()
   console.log(`[${suffix}] Loading model: ${modelPath}`)
 
+  // Build loadFile params including entry animation config
+  const loadFileParams = { filePath: modelPath }
+  if (viewerParams) {
+    const entryKeys = ['entryAnim', 'entryDir', 'entryDuration', 'entryZoomDist', 'entryZoomEndDist', 'entrySlideDist', 'entryTargetShiftY', 'entryEase']
+    for (const key of entryKeys) {
+      if (viewerParams[key] != null) loadFileParams[key] = viewerParams[key]
+    }
+    // Fade 动画不改变相机视角，剥离摄像机相关参数
+    if (viewerParams.entryAnim === 'fade') {
+      delete loadFileParams.entryDir
+      delete loadFileParams.entryZoomDist
+      delete loadFileParams.entryZoomEndDist
+      delete loadFileParams.entrySlideDist
+      delete loadFileParams.entryTargetShiftY
+    }
+  }
   // Load model via executeCommand（复用 Phase 1 的 loadFile IPC）
   const loadResult = await page.evaluate(async (fp) => {
-    return window.__executeCommand('loadFile', { filePath: fp })
-  }, modelPath)
+    return window.__executeCommand('loadFile', fp)
+  }, loadFileParams)
   if (loadResult?.status === 'error') {
     throw new Error(`Failed to load model: ${loadResult.error}`)
   }
@@ -1515,7 +1555,7 @@ export async function makeMovie(scriptUrl, modelPath, viewerParams, pageFn, outp
     const page = await electronApp.firstWindow()
 
     try {
-      const result = await recordOne(electronApp, page, viewport, suffix, pageFn, outDir, resolvedEntryDuration, absModelPath, ttsTiming)
+      const result = await recordOne(electronApp, page, viewport, suffix, pageFn, outDir, resolvedEntryDuration, absModelPath, ttsTiming, resolvedParams)
       result.suffix = suffix
       results.push(result)
     } catch (err) {
