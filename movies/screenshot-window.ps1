@@ -95,6 +95,9 @@ public class WindowCapture {
   public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
   [DllImport("user32.dll")]
+  public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+
+  [DllImport("user32.dll")]
   public static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
   [DllImport("user32.dll")]
@@ -134,6 +137,7 @@ public class WindowCapture {
 
   const uint SRCCOPY = 0x00CC0020;
   const int SW_SHOWNORMAL = 1;
+  const int SW_SHOWMINIMIZED = 2;
   const int SW_MAXIMIZE = 3;
   const int SW_RESTORE = 9;
   const uint MONITOR_DEFAULTTONEAREST = 2;
@@ -193,10 +197,8 @@ public class WindowCapture {
   }
 
   private static void CaptureWindow(IntPtr hWnd, string outPath) {
-    int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
-    int hr = DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, out RECT rect, Marshal.SizeOf<RECT>());
-    if (hr != 0) GetWindowRect(hWnd, out rect);
-
+    RECT rect;
+    GetWindowRect(hWnd, out rect);
     int w = rect.Right - rect.Left;
     int h = rect.Bottom - rect.Top;
     if (w <= 0 || h <= 0) throw new Exception("Invalid window dimensions");
@@ -214,17 +216,6 @@ public class WindowCapture {
   }
 
   public static void CaptureLandscape(IntPtr hWnd, string outPath) {
-    ShowWindow(hWnd, SW_MAXIMIZE);
-    Sleep(800);
-    SetForegroundWindow(hWnd);
-    Sleep(200);
-    CaptureWindow(hWnd, outPath);
-  }
-
-  public static void CapturePortrait3to4(IntPtr hWnd, string outPath) {
-    ShowWindow(hWnd, SW_RESTORE);
-    Sleep(500);
-
     var monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
     var mi = new MONITORINFO();
     mi.cbSize = Marshal.SizeOf<MONITORINFO>();
@@ -232,27 +223,56 @@ public class WindowCapture {
 
     int workW = mi.rcWork.Right - mi.rcWork.Left;
     int workH = mi.rcWork.Bottom - mi.rcWork.Top;
-    int targetW = workH * 3 / 4;
-    if (targetW > workW) targetW = workW;
+
+    // Landscape 4:3 — height is the constraint, maximize it
+    int targetH = workH;
+    int targetW = workH * 4 / 3;
     int x = mi.rcWork.Left + (workW - targetW) / 2;
     int y = mi.rcWork.Top;
 
-    // remove WS_THICKFRAME to bypass app's min-width constraint
+    // force window out of maximized state
+    ShowWindow(hWnd, SW_SHOWNORMAL);
+    Sleep(500);
+
     int oldStyle = GetWindowLong(hWnd, GWL_STYLE);
     SetWindowLong(hWnd, GWL_STYLE, oldStyle & ~WS_THICKFRAME);
 
-    WINDOWPLACEMENT wp = new WINDOWPLACEMENT();
-    wp.length = Marshal.SizeOf<WINDOWPLACEMENT>();
-    GetWindowPlacement(hWnd, ref wp);
-    wp.showCmd = SW_SHOWNORMAL;
-    wp.rcNormalPosition.Left = x;
-    wp.rcNormalPosition.Top = y;
-    wp.rcNormalPosition.Right = x + targetW;
-    wp.rcNormalPosition.Bottom = y + workH;
-    SetWindowPlacement(hWnd, ref wp);
+    MoveWindow(hWnd, x, y, targetW, targetH, true);
     Sleep(1000);
 
-    // restore style
+    SetWindowLong(hWnd, GWL_STYLE, oldStyle);
+    SetWindowPos(hWnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+    SetForegroundWindow(hWnd);
+    Sleep(200);
+    CaptureWindow(hWnd, outPath);
+  }
+
+  public static void CapturePortrait3to4(IntPtr hWnd, string outPath) {
+    var monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+    var mi = new MONITORINFO();
+    mi.cbSize = Marshal.SizeOf<MONITORINFO>();
+    GetMonitorInfo(monitor, ref mi);
+
+    int workW = mi.rcWork.Right - mi.rcWork.Left;
+    int workH = mi.rcWork.Bottom - mi.rcWork.Top;
+
+    // Portrait 3:4 — height is the constraint, maximize it
+    int targetH = workH;
+    int targetW = workH * 3 / 4;
+    int x = mi.rcWork.Left + (workW - targetW) / 2;
+    int y = mi.rcWork.Top;
+
+    // force window out of maximized state
+    ShowWindow(hWnd, SW_SHOWNORMAL);
+    Sleep(500);
+
+    int oldStyle = GetWindowLong(hWnd, GWL_STYLE);
+    SetWindowLong(hWnd, GWL_STYLE, oldStyle & ~WS_THICKFRAME);
+
+    MoveWindow(hWnd, x, y, targetW, targetH, true);
+    Sleep(1000);
+
     SetWindowLong(hWnd, GWL_STYLE, oldStyle);
     SetWindowPos(hWnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
@@ -273,24 +293,27 @@ $refs = @(
   Join-Path $pwshDir "System.ComponentModel.Primitives.dll"
   Join-Path $pwshDir "System.Console.dll"
 )
+$typeName = "WindowCapture_$([DateTime]::Now.Ticks)"
+$code = $code -replace 'class WindowCapture', "class $typeName"
 Add-Type -TypeDefinition $code -ReferencedAssemblies $refs
 
+$captureType = [Type]$typeName
 $hWnd = $null
 try {
-  $hWnd = [WindowCapture]::FindHandle($WindowTitle)
+  $hWnd = $captureType::FindHandle($WindowTitle)
 } catch {
   Write-Error $_.Exception.Message; exit 1
 }
 
 try {
-  [WindowCapture]::CaptureLandscape($hWnd, $landscapePath)
+  $captureType::CaptureLandscape($hWnd, $landscapePath)
   Write-Host "✓ 横屏截图已保存: $landscapePath"
 } catch {
   Write-Error "横屏截图失败: $($_.Exception.Message)"; exit 1
 }
 
 try {
-  [WindowCapture]::CapturePortrait3to4($hWnd, $portraitPath)
+  $captureType::CapturePortrait3to4($hWnd, $portraitPath)
   Write-Host "✓ 竖屏截图已保存: $portraitPath"
 } catch {
   Write-Error "竖屏截图失败: $($_.Exception.Message)"; exit 1
