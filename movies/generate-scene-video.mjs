@@ -145,11 +145,11 @@ async function generateHyperVideo(scriptPath) {
     ? preset.orientations.filter(o => o.suffix === `_${orientationFilter}`)
     : preset.orientations
 
-  // 3. Dynamic import to get hyperframes() function
+  // 3. Dynamic import to get scene() function
   const mod = await import(pathToFileURL(scriptPath).href)
-  const hyperframesFn = mod.hyperframes
-  if (typeof hyperframesFn !== 'function') {
-    console.error('\nERROR: Script must export a `hyperframes()` function')
+  const sceneFn = mod.scene
+  if (typeof sceneFn !== 'function') {
+    console.error('\nERROR: Script must export a `scene()` function')
     process.exit(1)
   }
 
@@ -217,13 +217,13 @@ async function generateHyperVideo(scriptPath) {
       }
     }
 
-    // 5. Call hyperframes() for each segment → scene HTML + animation code
+    // 5. Call scene() for each segment → scene HTML + animation code
     const sceneHtmls = []
     const animChunks = []
     let startTime = 0
 
     for (let i = 0; i < segments.length; i++) {
-      const result = hyperframesFn({
+      const result = sceneFn({
         imagePath: bgPaths[i],
         width, height,
         duration: imageDurations[i],

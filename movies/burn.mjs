@@ -16,11 +16,11 @@ const scriptUrl = pathToFileURL(absPath).href
 const genDir = join(dirname(absPath), 'gen')
 const scriptName = basename(absPath, extname(absPath))
 
-// Detect script type (hyperframes must be checked first — it may also have const image)
+// Detect script type (scene must be checked first — it may also have const image)
 const src = readFileSync(absPath, 'utf-8')
-const isHyperScript = /\bexport\s+function\s+hyperframes\s*\(/.test(src)
-const isImageScript = !isHyperScript && /(?:^|\n)const\s+image\s*=\s*['"][^'"]+['"]\s*;?\s*\n/.test(src)
-const isUrlScript = !isHyperScript && /(?:^|\n)const\s+urls\s*=/.test(src)
+const isSceneScript = /\bexport\s+function\s+scene\s*\(/.test(src)
+const isImageScript = !isSceneScript && /(?:^|\n)const\s+image\s*=\s*['"][^'"]+['"]\s*;?\s*\n/.test(src)
+const isUrlScript = !isSceneScript && /(?:^|\n)const\s+urls\s*=/.test(src)
 
 // Flags to forward to child processes (exclude burn.mjs-only flags)
 const childFlags = args.slice(1)
@@ -30,10 +30,10 @@ const ttsIdx = args.indexOf('--tts')
 const ttsArgs = ttsIdx >= 0 ? ['--tts', args[ttsIdx + 1]] : []
 
 // ── Step 1: Generate video ──
-if (isHyperScript) {
-  console.log(`\n=== Generating hyperframes video: ${scriptName} ===`)
+if (isSceneScript) {
+  console.log(`\n=== Generating scene video: ${scriptName} ===`)
   const r = spawnSync('node', [
-    'movies/generate-hyper-video.mjs', absPath, '--no-burn', ...childFlags, ...ttsArgs,
+    'movies/generate-scene-video.mjs', absPath, '--no-burn', ...childFlags, ...ttsArgs,
   ], { stdio: 'inherit', timeout: 600000 })
   if (r.status !== 0) process.exit(r.status ?? 1)
 } else if (isUrlScript) {
