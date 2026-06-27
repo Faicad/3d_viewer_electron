@@ -188,6 +188,21 @@ public class WindowCapture {
 
   public static IntPtr FindHandle(string keyword) {
     var title = FindTitle(keyword);
+    if (title == null) {
+      var noSpaceKeyword = keyword.Replace(" ", "").Replace("\t", "");
+      EnumWindows((hWnd2, _) => {
+        if (!IsWindowVisible(hWnd2)) return true;
+        int len = GetWindowTextLength(hWnd2);
+        if (len == 0) return true;
+        var sb = new StringBuilder(len + 1);
+        GetWindowText(hWnd2, sb, sb.Capacity);
+        if (sb.ToString().Replace(" ", "").Replace("\t", "").IndexOf(noSpaceKeyword, StringComparison.OrdinalIgnoreCase) >= 0) {
+          title = sb.ToString();
+          return false;
+        }
+        return true;
+      }, IntPtr.Zero);
+    }
     if (title == null) throw new Exception("Window not found: " + keyword);
     Console.Error.WriteLine("MATCH:" + title);
     var hWnd = FindByTitle(title);
@@ -197,8 +212,10 @@ public class WindowCapture {
   }
 
   private static void CaptureWindow(IntPtr hWnd, string outPath) {
+    int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
     RECT rect;
-    GetWindowRect(hWnd, out rect);
+    int hr = DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, out rect, Marshal.SizeOf<RECT>());
+    if (hr != 0) GetWindowRect(hWnd, out rect);
     int w = rect.Right - rect.Left;
     int h = rect.Bottom - rect.Top;
     if (w <= 0 || h <= 0) throw new Exception("Invalid window dimensions");
