@@ -79,11 +79,12 @@ window.__exportModel = async (format: 'glb' | 'stl' = 'glb') => {
   if (!scene) throw new Error('No scene available')
   const meshes = collectSceneMeshes(scene)
   if (meshes.length === 0) throw new Error('No exportable geometry in scene')
+  const sourceFiles = useModelStore.getState().loadedFiles
   let buffer: ArrayBuffer
   if (format === 'stl') {
-    buffer = await meshesToStl(meshes)
+    buffer = await meshesToStl(meshes, 'millimeter', sourceFiles)
   } else {
-    buffer = await meshesToGlb(meshes)
+    buffer = await meshesToGlb(meshes, undefined, sourceFiles)
   }
   const bytes = new Uint8Array(buffer)
   let binary = ''
@@ -248,7 +249,8 @@ window.__exportSceneToStlBase64 = async (): Promise<{ data: string; byteLength: 
   if (!scene) throw new Error('No scene available')
   const meshes = collectSceneMeshes(scene)
   if (meshes.length === 0) throw new Error('No exportable geometry')
-  const buffer = await meshesToStl(meshes)
+  const sourceFiles = useModelStore.getState().loadedFiles
+  const buffer = await meshesToStl(meshes, 'millimeter', sourceFiles)
   const bytes = new Uint8Array(buffer)
   let binary = ''
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
@@ -888,10 +890,11 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
           if (!scene) throw new Error('No scene available')
           const meshes = collectSceneMeshes(scene)
           if (meshes.length === 0) throw new Error('No exportable geometry in scene')
+          const sourceFiles = useModelStore.getState().loadedFiles
           let buffer: ArrayBuffer
           let ext: string
-          if (format === 'stl') { buffer = await meshesToStl(meshes); ext = 'stl' }
-          else { buffer = await meshesToGlb(meshes); ext = 'glb' }
+          if (format === 'stl') { buffer = await meshesToStl(meshes, 'millimeter', sourceFiles); ext = 'stl' }
+          else { buffer = await meshesToGlb(meshes, undefined, sourceFiles); ext = 'glb' }
           trackEvent('file_export', { format: ext, byteLength: buffer.byteLength })
           const bytes = new Uint8Array(buffer)
           let binary = ''

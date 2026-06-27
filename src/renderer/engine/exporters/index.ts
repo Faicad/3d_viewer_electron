@@ -11,7 +11,7 @@
 
 import * as THREE from 'three'
 import type { LoadedFileModel } from '@/stores/model-store'
-import { FORMAT_MAP, type FormatId, type UnitSystem } from '@/config/file-formats'
+import { FORMAT_MAP, type FormatId, type UnitSystem, type UpAxis } from '@/config/file-formats'
 
 // ---- renderHint-based exportability ----
 
@@ -145,18 +145,77 @@ function cloneMeshWithWorldTransform(mesh: THREE.Mesh, scale?: number): THREE.Me
  * responsible for passing meshes that already carry the final (overridden)
  * material.
  */
+// ---- axis conversion (Z-up ↔ Y-up) ----
+
+/** Rotation matrix: +90° around X axis — converts Y-up vertex data to Z-up. */
+const ROT_X_Y_TO_Z = new THREE.Matrix4().makeRotationX(Math.PI / 2)
+
+/** Rotation matrix: -90° around X axis — converts Z-up vertex data to Y-up. */
+const ROT_X_Z_TO_Y = new THREE.Matrix4().makeRotationX(-Math.PI / 2)
+
+/**
+ * Apply axis rotation to a single mesh's geometry to match the target up-axis.
+ * Only transforms when source and target up-axes differ; same-axis is a no-op.
+ */
+function convertMeshToTargetUp(
+  mesh: THREE.Mesh,
+  targetUp: UpAxis,
+  sourceUp: UpAxis,
+): void {
+  if (sourceUp === targetUp) return
+  const matrix = sourceUp === 'z' && targetUp === 'y' ? ROT_X_Z_TO_Y : ROT_X_Y_TO_Z
+  mesh.geometry.applyMatrix4(matrix)
+}
+
+/**
+ * Apply axis conversion to a collection of meshes so their vertex data matches
+ * the target format's native up-axis.
+ *
+ * Determines each mesh's source up-axis by extracting the fileId from
+ * `mesh.userData.partId` (formatted as `"fileId:partName"`) and looking it up
+ * in the provided file list. Meshes that cannot be matched to a file are
+ * left unchanged.
+ */
+function applyAxisConversion(
+  meshes: THREE.Mesh[],
+  targetUp: UpAxis,
+  sourceFiles: LoadedFileModel[],
+): void {
+  if (sourceFiles.length === 0) return
+
+  const upMap = new Map<string, UpAxis>()
+  for (const f of sourceFiles) {
+    upMap.set(f.id, f.upAxis ?? 'y')
+  }
+
+  for (const mesh of meshes) {
+    const partId = mesh.userData?.partId as string | undefined
+    if (!partId) continue
+    const colonIdx = partId.indexOf(':')
+    if (colonIdx === -1) continue
+    const fileId = partId.slice(0, colonIdx)
+    const sourceUp = upMap.get(fileId)
+    if (!sourceUp) continue
+    convertMeshToTargetUp(mesh, targetUp, sourceUp)
+  }
+}
+
 export async function meshesToGlb(
   meshes: THREE.Mesh[],
   animations?: THREE.AnimationClip[],
+  sourceFiles?: LoadedFileModel[],
 ): Promise<ArrayBuffer> {
   const { GLTFExporter } = await import(
     'three/examples/jsm/exporters/GLTFExporter.js'
   )
   const exporter = new GLTFExporter()
 
+  const clones = meshes.map(m => cloneMeshWithWorldTransform(m))
+  applyAxisConversion(clones, 'y', sourceFiles ?? [])
+
   const tmpScene = new THREE.Scene()
-  for (const mesh of meshes) {
-    tmpScene.add(cloneMeshWithWorldTransform(mesh))
+  for (const clone of clones) {
+    tmpScene.add(clone)
   }
 
   return exporter.parseAsync(tmpScene, {
@@ -172,10 +231,11 @@ export async function exportSceneToGlb(
   scene: THREE.Scene,
   animations?: THREE.AnimationClip[],
   filename = 'model.glb',
+  sourceFiles?: LoadedFileModel[],
 ): Promise<void> {
   const meshes = collectSceneMeshes(scene)
   if (meshes.length === 0) throw new Error('No exportable geometry in scene')
-  const glbBuffer = await meshesToGlb(meshes, animations)
+  const glbBuffer = await meshesToGlb(meshes, animations, sourceFiles)
   downloadArrayBuffer(glbBuffer, filename)
 }
 
@@ -187,6 +247,7 @@ export async function exportSceneToGlb(
 export async function meshesToStl(
   meshes: THREE.Mesh[],
   sourceUnit: UnitSystem,
+  sourceFiles?: LoadedFileModel[],
 ): Promise<ArrayBuffer> {
   const { STLExporter } = await import(
     'three/examples/jsm/exporters/STLExporter.js'
@@ -194,9 +255,12 @@ export async function meshesToStl(
   const exporter = new STLExporter()
   const scale = sourceUnitToScaleFactor(sourceUnit)
 
+  const clones = meshes.map(m => cloneMeshWithWorldTransform(m, scale))
+  applyAxisConversion(clones, 'z', sourceFiles ?? [])
+
   const tmpScene = new THREE.Scene()
-  for (const mesh of meshes) {
-    tmpScene.add(cloneMeshWithWorldTransform(mesh, scale))
+  for (const clone of clones) {
+    tmpScene.add(clone)
   }
 
   // STLExporter.parse({ binary: true }) returns a DataView (not raw ArrayBuffer).
@@ -223,7 +287,7 @@ export async function exportFileToStl(
   const meshes = collectFileMeshes(scene, file.id)
   if (meshes.length === 0) throw new Error(`No meshes found for file ${file.fileName}`)
 
-  const buffer = await meshesToStl(meshes, file.sourceUnit)
+  const buffer = await meshesToStl(meshes, file.sourceUnit, [file])
   const filename = `${file.fileName || 'model'}.stl`
   downloadArrayBuffer(buffer, filename)
 }
@@ -238,7 +302,7 @@ export async function exportFileToGlb(
   const meshes = collectFileMeshes(scene, file.id)
   if (meshes.length === 0) throw new Error(`No meshes found for file ${file.fileName}`)
 
-  const glbBuffer = await meshesToGlb(meshes, file.animations)
+  const glbBuffer = await meshesToGlb(meshes, file.animations, [file])
   downloadArrayBuffer(glbBuffer, `${file.fileName || 'model'}.glb`)
 }
 
@@ -258,13 +322,17 @@ export async function meshesTo3mf(
   meshes: THREE.Mesh[],
   sourceUnit: UnitSystem,
   printConfig?: Partial<PrintConfig>,
+  sourceFiles?: LoadedFileModel[],
 ): Promise<ArrayBuffer> {
   const { exportTo3MF } = await import('./three-mf-exporter')
   const scale = sourceUnitToScaleFactor(sourceUnit)
 
+  const clones = meshes.map(m => cloneMeshWithWorldTransform(m, scale))
+  applyAxisConversion(clones, 'z', sourceFiles ?? [])
+
   const tmpScene = new THREE.Scene()
-  for (const mesh of meshes) {
-    tmpScene.add(cloneMeshWithWorldTransform(mesh, scale))
+  for (const clone of clones) {
+    tmpScene.add(clone)
   }
 
   const blob = await exportTo3MF(tmpScene, printConfig)
@@ -279,10 +347,11 @@ export async function exportSceneTo3mf(
   sourceUnit: UnitSystem,
   filename = 'model.3mf',
   printConfig?: Partial<PrintConfig>,
+  sourceFiles?: LoadedFileModel[],
 ): Promise<void> {
   const meshes = collectSceneMeshes(scene)
   if (meshes.length === 0) throw new Error('No exportable geometry in scene')
-  const buffer = await meshesTo3mf(meshes, sourceUnit, printConfig)
+  const buffer = await meshesTo3mf(meshes, sourceUnit, printConfig, sourceFiles)
   downloadArrayBuffer(buffer, filename)
 }
 
@@ -296,6 +365,6 @@ export async function exportFileTo3mf(
 ): Promise<void> {
   const meshes = collectFileMeshes(scene, file.id)
   if (meshes.length === 0) throw new Error(`No meshes found for file ${file.fileName}`)
-  const buffer = await meshesTo3mf(meshes, file.sourceUnit, printConfig)
+  const buffer = await meshesTo3mf(meshes, file.sourceUnit, printConfig, [file])
   downloadArrayBuffer(buffer, `${file.fileName || 'model'}.3mf`)
 }

@@ -312,7 +312,7 @@ export default function DesktopLayout() {
         const scadFile = files.find(f => f.format === 'scad')!
         await exportFileToStl(scene, scadFile)
       } else {
-        await exportSceneToGlb(scene)
+        await exportSceneToGlb(scene, undefined, undefined, files)
       }
     } catch (err: any) {
       toast.error(err?.message ?? 'Export failed')
