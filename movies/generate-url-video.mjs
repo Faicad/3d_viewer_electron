@@ -187,6 +187,7 @@ async function generateUrlVideo(scriptPath) {
 
   // 2. TTS + 字幕时间轴（与 generate-image-video.mjs 完全一致）
   const noTts = process.argv.slice(2).includes('--no-tts')
+  const noFetch = process.argv.slice(2).includes('--no-fetch')
   const ttsArgIndex = process.argv.slice(2).indexOf('--tts')
   const ttsProvider = ttsArgIndex >= 0 ? process.argv.slice(2)[ttsArgIndex + 1] : DEFAULT_TTS_PROVIDER
 
@@ -239,18 +240,21 @@ async function generateUrlVideo(scriptPath) {
     : ORIENTATIONS
 
   // 4. 截图 → 滚动片段 → 拼接（URL 模式特有）
-  console.log(`\n=== Capturing URLs with Chrome ===`)
+  console.log(`\n=== ${noFetch ? 'Reusing existing screenshots' : 'Capturing URLs with Chrome'} ===`)
 
-  // 检查 Chrome 是否正在运行
-  try {
-    const tl = spawnSync('tasklist', ['/fi', 'IMAGENAME eq chrome.exe'], { stdio: 'pipe', timeout: 5000 })
-    if (tl.stdout && tl.stdout.toString().toLowerCase().includes('chrome.exe')) {
-      console.error('\nChrome 正在运行！请关闭 Chrome 后重试（Playwright 需要独占用户数据目录）。')
-      process.exit(1)
-    }
-  } catch {}
+  let browser
+  if (!noFetch) {
+    // 检查 Chrome 是否正在运行
+    try {
+      const tl = spawnSync('tasklist', ['/fi', 'IMAGENAME eq chrome.exe'], { stdio: 'pipe', timeout: 5000 })
+      if (tl.stdout && tl.stdout.toString().toLowerCase().includes('chrome.exe')) {
+        console.error('\nChrome 正在运行！请关闭 Chrome 后重试（Playwright 需要独占用户数据目录）。')
+        process.exit(1)
+      }
+    } catch {}
 
-  const browser = await chromium.launch({ channel: 'chrome', headless: false })
+    browser = await chromium.launch({ channel: 'chrome', headless: false })
+  }
 
   try {
     for (const { width, height, suffix, label, scrollRatio } of orientations) {
@@ -265,7 +269,13 @@ async function generateUrlVideo(scriptPath) {
         console.log(`\n[${label}] ${i + 1}/${urls.length}`)
 
         // 全页截图
-        if (!existsSync(fullPng)) {
+        if (noFetch) {
+          if (!existsSync(fullPng)) {
+            console.error(`  --no-fetch: ${basename(fullPng)} not found`)
+            anyFailed = true
+            continue
+          }
+        } else if (!existsSync(fullPng)) {
           console.log(`  Screenshot: ${basename(fullPng)}`)
           const page = await browser.newPage({ viewport: { width, height } })
           try {
@@ -303,7 +313,7 @@ async function generateUrlVideo(scriptPath) {
       }
     }
   } finally {
-    await browser.close()
+    if (browser) await browser.close()
   }
 
   // 5. 烧录字幕（与 generate-image-video.mjs 一致：lib.burnVideo 等价调用）
@@ -322,7 +332,7 @@ async function generateUrlVideo(scriptPath) {
 // ── CLI ──
 const scriptPath = resolve(process.argv[2])
 if (!scriptPath) {
-  console.error('Usage: node movies/generate-url-video.mjs [--tts edge-tts|tencent-tts|indextts|spark-tts] <script.mjs>')
+  console.error('Usage: node movies/generate-url-video.mjs [--tts edge-tts|tencent-tts|indextts|spark-tts] [--no-tts] [--no-fetch] <script.mjs>')
   process.exit(1)
 }
 if (!existsSync(scriptPath)) {
