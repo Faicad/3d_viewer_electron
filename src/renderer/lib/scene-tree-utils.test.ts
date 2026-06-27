@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { SceneTreeNode } from '@/stores/model-store'
+import { findNodeAncestors } from '@/lib/scene-tree-utils'
 
 // Duplicate the relevant functions from model-store to test in isolation.
 // These are also tested in model-store.test.ts but we need specific
@@ -241,5 +242,67 @@ function meshPartId(src: { userData?: { partId?: string }; name?: string }, inde
     expect(visMap.get('part-0')).toBeUndefined()
     // visibilityMap.get('part-0') ?? true → true (visible!) — BUG: should be hidden
     expect(visMap.get('part-0') ?? true).toBe(true)
+  })
+})
+
+describe('findNodeAncestors', () => {
+  const tree: SceneTreeNode[] = [
+    {
+      id: 'file:abc', name: 'RobotExpressive.glb', visible: true, expanded: true,
+      children: [
+        {
+          id: 'RobotExpressive', name: 'RobotExpressive', visible: true, expanded: true,
+          children: [
+            {
+              id: 'RobotArmature', name: 'RobotArmature', visible: true, expanded: true,
+              children: [
+                {
+                  id: 'Bone', name: 'Bone', visible: true, expanded: true,
+                  children: [
+                    {
+                      id: 'FootR', name: 'FootR', visible: true, expanded: true,
+                      children: [
+                        { id: 'FootR_1', name: 'FootR_1', visible: true, meshIndex: 0 },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ]
+
+  it('returns all ancestors for a deep node (root-first)', () => {
+    const ancestors = findNodeAncestors(tree, 'FootR_1')
+    expect(ancestors).toEqual([
+      'file:abc',
+      'RobotExpressive',
+      'RobotArmature',
+      'Bone',
+      'FootR',
+    ])
+  })
+
+  it('returns direct parent for a shallow node', () => {
+    const ancestors = findNodeAncestors(tree, 'RobotExpressive')
+    expect(ancestors).toEqual(['file:abc'])
+  })
+
+  it('returns empty array for a root-level node', () => {
+    const ancestors = findNodeAncestors(tree, 'file:abc')
+    expect(ancestors).toEqual([])
+  })
+
+  it('returns empty array for node not found', () => {
+    const ancestors = findNodeAncestors(tree, 'nonexistent')
+    expect(ancestors).toEqual([])
+  })
+
+  it('returns empty array for empty tree', () => {
+    const ancestors = findNodeAncestors([], 'anything')
+    expect(ancestors).toEqual([])
   })
 })

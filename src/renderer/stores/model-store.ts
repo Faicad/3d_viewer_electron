@@ -175,6 +175,7 @@ interface ModelStore {
   setModelVersion: (v: number) => void
   updateSceneTree: (tree: SceneTreeNode[]) => void
   toggleNodeExpanded: (nodeId: string) => void
+  setNodeExpanded: (nodeId: string, expanded: boolean) => void
   toggleNodeVisible: (nodeId: string) => void
   replaceModel: (buffer: ArrayBuffer) => Promise<void>
   setModelBuffer: (buffer: ArrayBuffer, format: FormatId) => void
@@ -231,6 +232,30 @@ function toggleNodeInTree(
     }
     if (node.children && node.children.length > 0) {
       return { ...node, children: toggleNodeInTree(node.children, nodeId, key) }
+    }
+    return node
+  })
+}
+
+function setNodeInTree(
+  nodes: SceneTreeNode[],
+  nodeId: string,
+  key: 'expanded' | 'visible',
+  value: boolean,
+): SceneTreeNode[] {
+  return nodes.map((node) => {
+    if (node.id === nodeId) {
+      if (key === 'visible' && node.children && node.children.length > 0) {
+        return {
+          ...node,
+          visible: value,
+          children: setAllVisible(node.children, value),
+        }
+      }
+      return { ...node, [key]: value }
+    }
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: setNodeInTree(node.children, nodeId, key, value) }
     }
     return node
   })
@@ -388,6 +413,13 @@ export const useModelStore = create<ModelStore>()((set, get) => ({
   toggleNodeExpanded: (nodeId) => {
     set((state) => {
       const newTree = toggleNodeInTree(state.sceneTree, nodeId, 'expanded')
+      return { sceneTree: newTree, loadedFiles: syncCombinedToFiles(newTree, state.loadedFiles) }
+    })
+  },
+
+  setNodeExpanded: (nodeId, expanded) => {
+    set((state) => {
+      const newTree = setNodeInTree(state.sceneTree, nodeId, 'expanded', expanded)
       return { sceneTree: newTree, loadedFiles: syncCombinedToFiles(newTree, state.loadedFiles) }
     })
   },

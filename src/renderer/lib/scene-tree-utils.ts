@@ -55,6 +55,22 @@ export function findNodeInTree(nodes: SceneTreeNode[], id: string): SceneTreeNod
   return null
 }
 
+/** Find ancestor node IDs for a given node in the scene tree (root-first).
+ *  Returns an empty array if the node is at the root level or not found. */
+export function findNodeAncestors(tree: SceneTreeNode[], nodeId: string): string[] {
+  function search(nodes: SceneTreeNode[], path: string[]): string[] | null {
+    for (const n of nodes) {
+      if (n.id === nodeId) return path
+      if (n.children) {
+        const found = search(n.children, [...path, n.id])
+        if (found) return found
+      }
+    }
+    return null
+  }
+  return search(tree, []) ?? []
+}
+
 /** Collect all scoped part IDs under a scene tree node. */
 export function collectPartKeys(node: SceneTreeNode): string[] {
   if (node.meshIndex !== undefined) return [node.id]

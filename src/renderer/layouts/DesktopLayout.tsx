@@ -43,7 +43,7 @@ import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 import { hasExportableModel, isPureScad, exportSceneToGlb, exportFileToStl, exportFileToGlb, exportFileTo3mf, isFormatExportable } from '@/engine/exporters'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
-import { findFileIdForNode, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
+import { findFileIdForNode, findNodeAncestors, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
 
 /** Find the first part node (meshIndex !== undefined) in a scene tree recursively */
 /** Find a node by id in the scene tree (recursive). */
@@ -93,6 +93,7 @@ function SceneTreeItem({ node, depth, parentFileId, treePath, onPartContextMenu,
   return (
     <>
       <div
+        data-node-id={node.id}
         data-testid={isPartNode ? 'scene-tree-part' : isFileNode ? 'scene-tree-file' : 'scene-tree-group'}
         className={cn(
           'flex items-center gap-1 text-sm py-1 px-1 rounded hover:bg-accent cursor-pointer group whitespace-nowrap',
@@ -558,6 +559,35 @@ export default function DesktopLayout() {
     const title = materialEditorTitle(node, modelStore.sceneTree, modelStore.loadedFiles)
     matStore.openMaterialEditor(newId, [newId], title, false)
   }, [selectedRefIds])
+
+  // ---- Auto-expand ancestors and scroll selected node into view ----
+  const leftPanelOpen = useUIStore((s) => s.leftPanelOpen)
+  useEffect(() => {
+    if (selectedRefIds.length === 0) return
+    const targetId = selectedRefIds[selectedRefIds.length - 1]
+
+    const modelStore = useModelStore.getState()
+    // Auto-expand ancestors so the selected node is rendered in the DOM
+    const ancestors = findNodeAncestors(modelStore.sceneTree, targetId)
+    for (const ancestorId of ancestors) {
+      const node = findNodeInTree(modelStore.sceneTree, ancestorId)
+      if (node && !node.expanded) {
+        modelStore.setNodeExpanded(ancestorId, true)
+      }
+    }
+
+    // Scroll the selected node into the visible area after React commits the DOM update.
+    // Only when the panel is open — otherwise the DOM isn't rendered yet.
+    if (!leftPanelOpen) return
+
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-node-id="${CSS.escape(targetId)}"]`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [selectedRefIds, leftPanelOpen])
 
   // ---- Mutual exclusion: close material panel on model load / file switch ----
   const loadedFileCount = useModelStore((s) => s.loadedFiles.length)
