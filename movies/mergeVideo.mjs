@@ -237,7 +237,7 @@ function mergeProject(dirPath) {
 
   // 1. Scan .mjs files (exclude cover.mjs — 由 processProjectCovers 单独处理)
   const files = readdirSync(absDir)
-    .filter(f => f.endsWith('.mjs') && f !== 'cover.mjs')
+    .filter(f => f.endsWith('.mjs') && f !== 'cover.mjs' && !f.startsWith('skip'))
     .sort()
   if (files.length === 0) {
     console.error(`No .mjs files found in ${dirPath}`)

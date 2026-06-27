@@ -33,7 +33,7 @@ const ttsArgs = ttsIdx >= 0 ? ['--tts', args[ttsIdx + 1]] : []
 if (isSceneScript) {
   console.log(`\n=== Generating scene video: ${scriptName} ===`)
   const r = spawnSync('node', [
-    'movies/generate-scene-video.mjs', absPath, '--no-burn', ...childFlags, ...ttsArgs,
+    'movies/generate-html-video.mjs', absPath, '--no-burn', ...childFlags, ...ttsArgs,
   ], { stdio: 'inherit', timeout: 600000 })
   if (r.status !== 0) process.exit(r.status ?? 1)
 } else if (isUrlScript) {
@@ -58,7 +58,7 @@ if (isSceneScript) {
 // ── Step 2: Generate subtitle + audio ──
 // Hyper/Image/URL scripts: TTS already generated internally (step 1).
 // 3D scripts: generate via generate-subtitle.mjs.
-if (!isHyperScript && !isImageScript && !isUrlScript) {
+if (!isSceneScript && !isImageScript && !isUrlScript) {
   console.log(`\n=== Generating subtitle + audio: ${scriptName} ===`)
   const subFlags = [...ttsArgs]
   const isForce = args.includes('-f') || args.includes('--force')

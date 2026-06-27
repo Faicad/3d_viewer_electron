@@ -1,4 +1,4 @@
-# 第4种视频类型：Scene 动画
+# 第4种视频类型：HTML 动画
 
 ## 1. 现有 3 种视频类型
 
@@ -7,11 +7,11 @@
 | 1 | **3D 录制** | `import * as lib` + `lib.makeMovie()` | 直接 `node` 执行 |
 | 2 | **截图合成** | `const image = '...'` | `generate-image-video.mjs` |
 | 3 | **URL 网页** | `const urls = [...]` | `generate-url-video.mjs` |
-| 4 | **Scene 动画** | `export function scene` | `generate-scene-video.mjs` |
+| 4 | **HTML 动画** | `export function scene` | `generate-html-video.mjs` |
 
 ## 2. 核心思想
 
-脚本导出 `scene()` 函数，每段调用一次，返回该段的 HTML + GSAP 动画代码。`generate-scene-video.mjs` 将所有段的 HTML 组装成一个多页 composition，用 Playwright 录制整个 GSAP 时间线。
+脚本导出 `scene()` 函数，每段调用一次，返回该段的 HTML + GSAP 动画代码。`generate-html-video.mjs` 将所有段的 HTML 组装成一个多页 composition，用 Playwright 录制整个 GSAP 时间线。
 
 **与设计稿的区别**：未使用 `@hyperframes/producer` SDK 或 `hyperframe.runtime.iife.js`。渲染直接在 Playwright 中播放 GSAP timeline 并录制屏幕，耗时与视频时长相当（1:1）。
 
@@ -126,7 +126,7 @@ export function scene({ index, startTime, totalDuration }) {
 burn.mjs 检测类型
     │
     ▼ (export function scene 匹配)
-generate-scene-video.mjs
+generate-html-video.mjs
     ├── 动态 import → scene()
     ├── generateSubtitle() → segments + 时长
     ├── scanOrientationImages() → 每段图片
@@ -141,7 +141,7 @@ generate-scene-video.mjs
 
 ```
 movies/
-├── generate-scene-video.mjs    ← 生成器
+├── generate-html-video.mjs    ← 生成器
 ├── burn.mjs                    ← 入口（检测 + 调度）
 ├── templates/
 │   └── gsap.min.js             ← GSAP（离线 vendor）
