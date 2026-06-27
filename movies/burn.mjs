@@ -16,10 +16,11 @@ const scriptUrl = pathToFileURL(absPath).href
 const genDir = join(dirname(absPath), 'gen')
 const scriptName = basename(absPath, extname(absPath))
 
-// Detect image-based script vs URL-based script vs Playwright 3D
+// Detect script type (hyperframes must be checked first — it may also have const image)
 const src = readFileSync(absPath, 'utf-8')
-const isImageScript = /(?:^|\n)const\s+image\s*=\s*['"][^'"]+['"]\s*;?\s*\n/.test(src)
-const isUrlScript = /(?:^|\n)const\s+urls\s*=/.test(src)
+const isHyperScript = /\bexport\s+function\s+hyperframes\s*\(/.test(src)
+const isImageScript = !isHyperScript && /(?:^|\n)const\s+image\s*=\s*['"][^'"]+['"]\s*;?\s*\n/.test(src)
+const isUrlScript = !isHyperScript && /(?:^|\n)const\s+urls\s*=/.test(src)
 
 // Flags to forward to child processes (exclude burn.mjs-only flags)
 const childFlags = args.slice(1)
@@ -29,7 +30,13 @@ const ttsIdx = args.indexOf('--tts')
 const ttsArgs = ttsIdx >= 0 ? ['--tts', args[ttsIdx + 1]] : []
 
 // ── Step 1: Generate video ──
-if (isUrlScript) {
+if (isHyperScript) {
+  console.log(`\n=== Generating hyperframes video: ${scriptName} ===`)
+  const r = spawnSync('node', [
+    'movies/generate-hyper-video.mjs', absPath, '--no-burn', ...childFlags, ...ttsArgs,
+  ], { stdio: 'inherit', timeout: 600000 })
+  if (r.status !== 0) process.exit(r.status ?? 1)
+} else if (isUrlScript) {
   // URL script: screenshots → scrolling clips → concat → TTS → subtitle → burn (all in one)
   console.log(`\n=== Generating URL video: ${scriptName} ===`)
   const r = spawnSync('node', [
@@ -49,9 +56,9 @@ if (isUrlScript) {
 }
 
 // ── Step 2: Generate subtitle + audio ──
-// Image/URL scripts: TTS already generated internally (step 1).
+// Hyper/Image/URL scripts: TTS already generated internally (step 1).
 // 3D scripts: generate via generate-subtitle.mjs.
-if (!isImageScript && !isUrlScript) {
+if (!isHyperScript && !isImageScript && !isUrlScript) {
   console.log(`\n=== Generating subtitle + audio: ${scriptName} ===`)
   const subFlags = [...ttsArgs]
   const isForce = args.includes('-f') || args.includes('--force')
@@ -64,7 +71,7 @@ if (!isImageScript && !isUrlScript) {
 
 // ── Step 3: Burn subtitles + audio into final video ──
 // URL scripts: burn already done inside generate-url-video.mjs.
-// Image scripts: burn done here via burnVideo (generate-image-video.mjs was called with --no-burn).
+// Hyper/Image scripts: burn done here via burnVideo (generate-hyper/mage-video.mjs was called with --no-burn).
 if (!isUrlScript) {
   console.log(`\n=== Burning subtitles: ${scriptName} ===`)
   burnVideo(scriptUrl, genDir)
