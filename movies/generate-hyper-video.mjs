@@ -200,25 +200,37 @@ async function generateHyperVideo(scriptPath) {
     const totalDuration = imageDurations.reduce((a, b) => a + b, 0)
     console.log(`\n  Segments: ${segments.length}, total ${totalDuration.toFixed(2)}s → ${width}×${height}`)
 
-    // 4. Call hyperframes() for each segment to get scene HTML + animation code
+    // 4. Create composition dir, copy images alongside
+    const hfDir = join(genDir, `.hf_${scriptName}${suffix}`)
+    mkdirSync(hfDir, { recursive: true })
+
+    // Copy each bg image into composition dir (file:// same-origin)
+    const bgPaths = []
+    for (let i = 0; i < segments.length; i++) {
+      if (perSegmentImages[i]) {
+        const ext = extname(perSegmentImages[i])
+        const bgName = `bg_${i}${ext}`
+        copyFileSync(perSegmentImages[i], join(hfDir, bgName))
+        bgPaths.push(bgName)
+      } else {
+        bgPaths.push(null)
+      }
+    }
+
+    // 5. Call hyperframes() for each segment → scene HTML + animation code
     const sceneHtmls = []
     const animChunks = []
     let startTime = 0
 
     for (let i = 0; i < segments.length; i++) {
-      const imgUrl = perSegmentImages[i]
-        ? pathToFileURL(resolve(perSegmentImages[i])).href
-        : null
       const result = hyperframesFn({
-        imagePath: imgUrl,
-        imageLocalPath: perSegmentImages[i],
+        imagePath: bgPaths[i],
         width, height,
         duration: imageDurations[i],
         fps, index: i,
         startTime,
         totalDuration,
       })
-      // Support both { html, animation? } and plain string
       if (typeof result === 'string') {
         sceneHtmls.push(result)
       } else {
@@ -228,31 +240,24 @@ async function generateHyperVideo(scriptPath) {
       startTime += imageDurations[i]
     }
 
-    // 5. Build full composition HTML
+    // 6. Build full composition HTML
     const totalDur = totalDuration
 
-    // Build GSAP timeline — scene switches + user animation code
     let gsapCode = ''
     let cumulativeTime = 0
     for (let i = 0; i < segments.length; i++) {
       const t = cumulativeTime
-      if (i === 0) {
-        gsapCode += `  tl.set('#s0', {opacity:1,display:'block'}, 0);\n`
-      } else {
-        gsapCode += `  tl.set('#s${i-1}', {display:'none'}, ${t.toFixed(3)});\n`
-        gsapCode += `  tl.set('#s${i}', {opacity:1,display:'block'}, ${t.toFixed(3)});\n`
+      if (i > 0) {
+        gsapCode += `  tl.set('#s${i-1}', {opacity:0}, ${t.toFixed(3)});\n`
+        gsapCode += `  tl.set('#s${i}', {opacity:1}, ${t.toFixed(3)});\n`
       }
       cumulativeTime += imageDurations[i]
     }
-    // User-provided animation code
-    for (const chunk of animChunks) {
-      gsapCode += chunk
-    }
-    // Pad to ensure exact total duration
+    for (const chunk of animChunks) gsapCode += chunk
     gsapCode += `  tl.to({}, {duration: ${totalDur.toFixed(3)}}, ${totalDur.toFixed(3)});\n`
 
     const scenesHtml = sceneHtmls.map((html, i) =>
-      `<div class="scene" id="s${i}">\n${html}\n</div>`
+      `<div class="scene" id="s${i}"${i === 0 ? ' style="opacity:1"' : ''}>\n${html}\n</div>`
     ).join('\n')
 
     const compositionHtml = `<!DOCTYPE html>
@@ -262,8 +267,8 @@ async function generateHyperVideo(scriptPath) {
   <meta name="viewport" content="width=${width}, height=${height}">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    html,body{width:${width}px;height:${height}px;overflow:hidden;background:#000}
-    .scene{position:absolute;top:0;left:0;width:${width}px;height:${height}px;overflow:hidden;display:none}
+    html,body{width:${width}px;height:${height}px;overflow:hidden;background:#d8d8d8}
+    .scene{position:absolute;top:0;left:0;width:${width}px;height:${height}px;overflow:hidden;opacity:0;background:#d8d8d8}
   </style>
 </head>
 <body>
@@ -278,8 +283,6 @@ ${gsapCode}
 </body>
 </html>`
 
-    const hfDir = join(genDir, `.hf_${scriptName}${suffix}`)
-    mkdirSync(hfDir, { recursive: true })
     const htmlPath = join(hfDir, 'index.html')
     writeFileSync(htmlPath, compositionHtml)
 
@@ -299,6 +302,7 @@ ${gsapCode}
     try {
       const context = await browser.newContext({
         recordVideo: { dir: hfDir, size: { width, height } },
+        viewport: { width, height },
         deviceScaleFactor: 1,
       })
       const page = await context.newPage()
