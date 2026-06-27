@@ -29,6 +29,18 @@ function parseImageBase(scriptPath) {
   return m[1]
 }
 
+function parseScriptConfig(scriptPath) {
+  const src = readFileSync(scriptPath, 'utf-8')
+  const m = src.match(/(?:^|\n)\s*const\s+config\s*=\s*(\[[\s\S]*?\])\s*;?\s*(?:\n|$)/)
+  if (!m) return []
+  try {
+    return (0, eval)(m[1])
+  } catch {
+    console.error('Failed to parse config in', scriptPath)
+    process.exit(1)
+  }
+}
+
 function stripOrientation(name, suffix) {
   return name.replaceAll(suffix, '')
 }
@@ -97,7 +109,14 @@ function extractLastFrame(videoPath, outputPath) {
   return r.status === 0 && existsSync(outputPath) && statSync(outputPath).size > 0
 }
 
-function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, targetH, fps, prevFrameImage) {
+function getOrderedScripts(scriptDir) {
+  if (!existsSync(scriptDir)) return []
+  return readdirSync(scriptDir)
+    .filter(f => f.endsWith('.mjs') && f !== 'cover.mjs')
+    .sort()
+}
+
+function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, targetH, fps, prevFrameImage, segmentConfig, isFirstVideo) {
   const n = imagePaths.length
   const totalDur = imageDurations.reduce((a, b) => a + b, 0)
   console.log(`  Images: ${n}, total ${totalDur.toFixed(2)}s → ${outputPath}`)
@@ -105,92 +124,110 @@ function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, target
     console.log(`    ${basename(imagePaths[i])}: ${imageDurations[i].toFixed(2)}s`)
   }
 
+  const segmentAnim = segmentConfig ?? []
+
   const AD = n > 1 ? Math.min(1, imageDurations[0]) : 0
-  const hasEntrance = n > 1 && AD >= 1 / fps + 0.001
-  const SCALE = `scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,` +
-    `pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps}`
+  const hasEntrance = n > 1 && AD >= 1 / fps + 0.001 && !isFirstVideo
+
+  if (hasEntrance && !prevFrameImage) {
+    console.error(`\nERROR: Non-first video requires prevFrameImage for entrance background — missing.`)
+    process.exit(1)
+  }
+
+  const ZOOM_RATE = 0.20
+  const ZOOM_PER_FRAME = ZOOM_RATE / fps
+  const SCALE_FILTER = `scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,` +
+    `pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2,setsar=1`
 
   const tempOutput = outputPath.replace(/\.\w+$/, '.tmp$&')
 
-  if (n === 1) {
-    const r = spawnSync('ffmpeg', [
-      '-y', '-loop', '1', '-t', totalDur.toFixed(3), '-i', imagePaths[0],
-      '-vf', SCALE,
-      '-c:v', 'libvpx-vp9', '-b:v', '8M',
-      '-pix_fmt', 'yuv420p',
-      tempOutput,
-    ], { stdio: 'pipe', timeout: 120000 })
-    if (r.status !== 0) {
-      console.error('  FFmpeg failed:', r.stderr.toString().slice(0, 1000))
-      try { rmSync(tempOutput, { force: true }) } catch {}
-      return false
-    }
-  } else if (!hasEntrance) {
-    const inputs = []
-    const filterParts = []
-    const concatLabels = []
-    for (let i = 0; i < n; i++) {
-      inputs.push('-loop', '1', '-t', imageDurations[i].toFixed(3), '-i', imagePaths[i])
-      filterParts.push(`[${i}:v]${SCALE}[v${i}]`)
-      concatLabels.push(`v${i}`)
-    }
-    filterParts.push(`[${concatLabels.join('][')}]concat=n=${n}:v=1:a=0[outv]`)
-    const r = spawnSync('ffmpeg', [
-      '-y', ...inputs,
-      '-filter_complex', filterParts.join(';'),
-      '-map', '[outv]',
-      '-c:v', 'libvpx-vp9', '-b:v', '8M',
-      '-pix_fmt', 'yuv420p',
-      tempOutput,
-    ], { stdio: 'pipe', timeout: 120000 })
-    if (r.status !== 0) {
-      console.error('  FFmpeg failed:', r.stderr.toString().slice(0, 1000))
-      try { rmSync(tempOutput, { force: true }) } catch {}
-      return false
-    }
-  } else {
-    const dur0 = imageDurations[0]
-    const inputs = ['-loop', '1', '-t', dur0.toFixed(3), '-i', imagePaths[0]]
-    const filterParts = []
-    const concatLabels = []
+  const inputs = []
+  const filterParts = []
+  const concatLabels = []
+  let inputIdx = 0
 
-    // Entrance background: prevFrameImage or white (full dur0)
-    if (prevFrameImage) {
-      inputs.push('-loop', '1', '-t', dur0.toFixed(3), '-i', prevFrameImage)
-      filterParts.push(`[1:v]${SCALE}[bg0]`)
+  for (let i = 0; i < n; i++) {
+    const dur = imageDurations[i].toFixed(3)
+    const durNum = imageDurations[i]
+    const label = `v${i}`
+
+    if (i === 0 && hasEntrance) {
+      // Entrance: background + foreground with optional zoom
+      if (prevFrameImage) {
+        inputs.push('-loop', '1', '-t', dur, '-i', prevFrameImage)
+        filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[bg0]`)
+        inputIdx++
+      }
+      inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
+
+      const fgLabel = `fg0`
+      if (segmentAnim[i]?.animation === 'zoom') {
+        const delay = AD + 0.5
+        const delayFrames = Math.round(delay * fps)
+        const freezeFrames = Math.round(0.5 * fps)
+        const zoomFrames = Math.max(0, Math.round(durNum * fps) - delayFrames - freezeFrames)
+        if (zoomFrames > 0) {
+          const finalZoom = 1 + ZOOM_PER_FRAME * zoomFrames
+          filterParts.push(
+            `[${inputIdx}:v]${SCALE_FILTER},` +
+            `zoompan=z='min(1+${ZOOM_PER_FRAME}*max(0,it-${delayFrames}),${finalZoom.toFixed(6)})':` +
+            `d=1:s=${targetW}x${targetH}:fps=${fps}[${fgLabel}]`
+          )
+        } else {
+          filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${fgLabel}]`)
+        }
+      } else {
+        filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${fgLabel}]`)
+      }
+      inputIdx++
+
+      filterParts.push(`[bg0][${fgLabel}]overlay=x='min(0,-${targetW}+${targetW}*t/${AD})':y=0[${label}]`)
+    } else if (segmentAnim[i]?.animation === 'zoom') {
+      const delay = i === 0
+        ? (isFirstVideo ? 1.0 : AD + 0.5)
+        : 0
+      const delayFrames = Math.round(delay * fps)
+      const freezeFrames = Math.round(0.5 * fps)
+      const zoomFrames = Math.max(0, Math.round(durNum * fps) - delayFrames - freezeFrames)
+
+      if (zoomFrames <= 0) {
+        inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
+        filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${label}]`)
+        inputIdx++
+      } else {
+        const finalZoom = 1 + ZOOM_PER_FRAME * zoomFrames
+        inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
+        filterParts.push(
+          `[${inputIdx}:v]${SCALE_FILTER},` +
+          `zoompan=z='min(1+${ZOOM_PER_FRAME}*max(0,it-${delayFrames}),${finalZoom.toFixed(6)})':` +
+          `d=1:s=${targetW}x${targetH}:fps=${fps}[${label}]`
+        )
+        inputIdx++
+      }
     } else {
-      filterParts.push(`color=c=white:s=${targetW}x${targetH}:d=${dur0.toFixed(3)}:r=${fps}[bg0]`)
+      inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
+      filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${label}]`)
+      inputIdx++
     }
 
-    // First image: overlay on bg with slide from left over AD seconds
-    filterParts.push(`[0:v]${SCALE}[raw0]`)
-    filterParts.push(`[bg0][raw0]overlay=x='min(0,-${targetW}+${targetW}*t/${AD})':y=0[v0]`)
-    concatLabels.push('v0')
+    concatLabels.push(label)
+  }
 
-    // Remaining images: static
-    for (let i = 1; i < n; i++) {
-      inputs.push('-loop', '1', '-t', imageDurations[i].toFixed(3), '-i', imagePaths[i])
-      const idx = prevFrameImage ? i + 1 : i
-      filterParts.push(`[${idx}:v]${SCALE}[v${i}]`)
-      concatLabels.push(`v${i}`)
-    }
+  filterParts.push(`[${concatLabels.join('][')}]concat=n=${n}:v=1:a=0[outv]`)
 
-    filterParts.push(`[${concatLabels.join('][')}]concat=n=${n}:v=1:a=0[outv]`)
+  const r = spawnSync('ffmpeg', [
+    '-y', ...inputs,
+    '-filter_complex', filterParts.join(';'),
+    '-map', '[outv]',
+    '-c:v', 'libvpx-vp9', '-b:v', '8M',
+    '-pix_fmt', 'yuv420p',
+    tempOutput,
+  ], { stdio: 'pipe', timeout: 120000 })
 
-    const r = spawnSync('ffmpeg', [
-      '-y', ...inputs,
-      '-filter_complex', filterParts.join(';'),
-      '-map', '[outv]',
-      '-c:v', 'libvpx-vp9', '-b:v', '8M',
-      '-pix_fmt', 'yuv420p',
-      tempOutput,
-    ], { stdio: 'pipe', timeout: 120000 })
-
-    if (r.status !== 0) {
-      console.error('  FFmpeg failed:', r.stderr.toString().slice(0, 1000))
-      try { rmSync(tempOutput, { force: true }) } catch {}
-      return false
-    }
+  if (r.status !== 0) {
+    console.error('  FFmpeg failed:', r.stderr.toString().slice(0, 1000))
+    try { rmSync(tempOutput, { force: true }) } catch {}
+    return false
   }
 
   if (existsSync(outputPath)) rmSync(outputPath, { force: true })
@@ -273,6 +310,13 @@ async function generateImageVideo(scriptPath) {
     }
   }
 
+  // Parse optional per-segment config
+  const segmentConfig = parseScriptConfig(scriptPath)
+  if (segmentConfig.length > 0 && segmentConfig.length !== segments.length) {
+    console.error(`\nERROR: config has ${segmentConfig.length} entries but subtitle has ${segments.length} lines`)
+    process.exit(1)
+  }
+
   // 2. Build image videos per orientation
   const preset = lib.resolveSizePreset()
   const orientationFilter = lib.resolveOrientationFilter()
@@ -284,11 +328,11 @@ async function generateImageVideo(scriptPath) {
 
   // Find previous video in the same directory for entrance background
   const prevFrameDir = join(genDir, '.prev_frames')
-  const allScripts = existsSync(scriptDir)
-    ? readdirSync(scriptDir).filter(f => f.endsWith('.mjs') && f !== 'cover.mjs').sort()
-    : []
+  const allScripts = getOrderedScripts(scriptDir)
   const scriptFileName = basename(scriptPath)
   const scriptIdx = allScripts.indexOf(scriptFileName)
+  const isFirstVideo = scriptIdx <= 0
+  const prevName = scriptIdx > 0 ? allScripts[scriptIdx - 1].replace(/\.mjs$/, '') : null
 
   let anyVideo = false
   for (const { width, height, suffix } of orientations) {
@@ -302,16 +346,31 @@ async function generateImageVideo(scriptPath) {
       console.log(`  ${basename(img)}`)
     }
 
-    if (images.length !== segments.length) {
-      console.error(`\nERROR: ${images.length} images but ${segments.length} subtitle lines for ${suffix}`)
-      console.error(`  Images must equal subtitle lines (each line corresponds to one image).`)
+    // Build per-segment image list considering pre_image
+    const perSegmentImages = []
+    let imgIdx = 0
+    for (let i = 0; i < segments.length; i++) {
+      if (segmentConfig[i]?.pre_image) {
+        if (i === 0) {
+          console.error(`\nERROR: First line cannot have pre_image`)
+          process.exit(1)
+        }
+        perSegmentImages.push(perSegmentImages[i - 1])
+      } else {
+        perSegmentImages.push(images[imgIdx])
+        imgIdx++
+      }
+    }
+
+    const effectiveCount = segments.filter((_, i) => !segmentConfig[i]?.pre_image).length
+    if (images.length !== effectiveCount) {
+      console.error(`\nERROR: ${images.length} images but ${effectiveCount} required for ${suffix} (${segments.length} lines, ${segments.length - effectiveCount} use pre_image)`)
       process.exit(1)
     }
 
     // Auto-find previous video's last frame for entrance background
     let prevFrameImage = null
-    if (scriptIdx > 0) {
-      const prevName = allScripts[scriptIdx - 1].replace(/\.mjs$/, '')
+    if (scriptIdx > 0 && prevName) {
       const prevVideo = join(genDir, `${prevName}${suffix}.webm`)
       if (existsSync(prevVideo)) {
         mkdirSync(prevFrameDir, { recursive: true })
@@ -323,8 +382,13 @@ async function generateImageVideo(scriptPath) {
       }
     }
 
+    if (!isFirstVideo && !prevFrameImage) {
+      console.error(`\nERROR: ${scriptFileName} is not the first video but cannot find previous video (${prevName}${suffix}.webm)`)
+      process.exit(1)
+    }
+
     const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
-    buildImageVideo(images, imageDurations, outputVideo, width, height, fps, prevFrameImage)
+    buildImageVideo(perSegmentImages, imageDurations, outputVideo, width, height, fps, prevFrameImage, segmentConfig, isFirstVideo)
     anyVideo = true
   }
 
