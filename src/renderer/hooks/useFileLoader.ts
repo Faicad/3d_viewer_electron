@@ -78,9 +78,7 @@ export function useFileLoader() {
     const mtimeMs = Date.now()
 
     try {
-      if (isStepFile(name)) {
-        useModelStore.getState().showProgress('Reading STEP file...', 0)
-      } else if (format !== 'svg' && format !== 'dxf') {
+      if (format !== 'svg' && format !== 'dxf') {
         useModelStore.getState().showProgress(`Loading ${name}...`)
       }
 

@@ -96,9 +96,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     }
 
     // Show progress immediately, before file read
-    if (isStepFile(file.name)) {
-      useModelStore.getState().showProgress('Reading STEP file...', 0)
-    } else if (format !== 'svg' && format !== 'dxf') {
+    if (format !== 'svg' && format !== 'dxf') {
       useModelStore.getState().showProgress(`Loading ${file.name}...`)
     }
 
