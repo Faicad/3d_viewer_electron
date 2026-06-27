@@ -787,16 +787,23 @@ export default function ViewportContainer() {
       setIsCameraAnimating(true)
       useEngineStore.getState().set__animActive(true)
 
+      const targetUp = upAxis === 'y'
+        ? new THREE.Vector3(0, 1, 0)
+        : new THREE.Vector3(0, 0, 1)
+      camera.up.copy(targetUp)
+
       const p = camProxyRef.current
       p.x = startPos.x; p.y = startPos.y; p.z = startPos.z
-      p.upX = camera.up.x; p.upY = camera.up.y; p.upZ = camera.up.z
+      p.upX = targetUp.x; p.upY = targetUp.y; p.upZ = targetUp.z
 
       gsap.to(p, {
         x: endPos.x, y: endPos.y, z: endPos.z,
+        upX: targetUp.x, upY: targetUp.y, upZ: targetUp.z,
         duration: duration / 1000,
         ease,
         onUpdate: () => {
           controls.object.position.set(p.x, p.y, p.z)
+          controls.object.up.set(p.upX, p.upY, p.upZ).normalize()
           if (!isSlide) {
             controls.update()
           }
