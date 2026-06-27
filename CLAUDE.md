@@ -31,6 +31,10 @@ npx playwright test         # Run integration tests
 
 **Single test file**: `npx vitest run src/renderer/lib/step-converter/stepToGlb.test.ts`
 
+## Critical Rules
+
+- **严禁 `git checkout` 或类似操作** — 会永久丢失未暂存修改。没有用户明确许可，不得执行。
+
 ## Development Workflow
 
 ### Daily development (feature / bug fix)

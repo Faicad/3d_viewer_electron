@@ -298,7 +298,7 @@ ${gsapCode}
     const tempOutput = outputVideo.replace(/\.\w+$/, '.tmp$&')
 
     console.log(`  Launching Playwright to record ${totalDur.toFixed(2)}s video...`)
-    const browser = await chromium.launch({ headless: false })
+    const browser = await chromium.launch({ headless: false, args: ['--force-device-scale-factor=1'] })
     try {
       const context = await browser.newContext({
         recordVideo: { dir: hfDir, size: { width, height } },
