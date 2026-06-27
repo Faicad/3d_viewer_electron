@@ -78,6 +78,12 @@ export function useFileLoader() {
     const mtimeMs = Date.now()
 
     try {
+      if (isStepFile(name)) {
+        useModelStore.getState().showProgress('Reading STEP file...', 0)
+      } else if (format !== 'svg' && format !== 'dxf') {
+        useModelStore.getState().showProgress(`Loading ${name}...`)
+      }
+
       const fileResult = await window.electronAPI.readFile(filePath)
       if (!fileResult.success || !fileResult.data) {
         toast.error(`Failed to read: ${name}`)
@@ -174,11 +180,6 @@ export function useFileLoader() {
         }
 
         return
-      }
-
-      // 3D formats: show progress for non-STEP (STEP already has progress from above)
-      if (!isStepFile(name)) {
-        useModelStore.getState().showProgress(`Loading ${name}...`)
       }
 
       // Parse once — feeds both canvas and thumbnail

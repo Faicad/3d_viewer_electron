@@ -95,6 +95,13 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       return
     }
 
+    // Show progress immediately, before file read
+    if (isStepFile(file.name)) {
+      useModelStore.getState().showProgress('Reading STEP file...', 0)
+    } else if (format !== 'svg' && format !== 'dxf') {
+      useModelStore.getState().showProgress(`Loading ${file.name}...`)
+    }
+
     const rawBuffer = await file.arrayBuffer()
 
     if (isStepFile(file.name)) {
@@ -197,6 +204,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         fileGroup: FORMAT_MAP[format].group,
         loadingPhase: 'loading',
       })
+      useModelStore.getState().hideProgress()
     }
   }, [])
 
