@@ -43,6 +43,7 @@ Add-Type -AssemblyName System.Windows.Forms
 
 $code = @'
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
@@ -115,6 +116,12 @@ public class WindowCapture {
 
   [StructLayout(LayoutKind.Sequential)]
   public struct POINT { public int x, y; }
+
+  [DllImport("user32.dll")]
+  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+  [DllImport("user32.dll", CharSet = CharSet.Auto)]
+  public static extern IntPtr GetClassName(IntPtr hWnd, StringBuilder text, int count);
 
   [DllImport("kernel32.dll")]
   public static extern void Sleep(uint milliseconds);
@@ -203,6 +210,40 @@ public class WindowCapture {
         return true;
       }, IntPtr.Zero);
     }
+
+    if (title == null) {
+      IntPtr found = IntPtr.Zero;
+      EnumWindows((hWnd, _) => {
+        if (!IsWindowVisible(hWnd)) return true;
+        int len = GetWindowTextLength(hWnd);
+        if (len == 0) return true;
+        var sb = new StringBuilder(len + 1);
+        GetWindowText(hWnd, sb, sb.Capacity);
+        var cls = new StringBuilder(256);
+        GetClassName(hWnd, cls, cls.Capacity);
+        string clsName = cls.ToString();
+        if (clsName == "Progman" || clsName == "WorkerW" || clsName == "Shell_TrayWnd" ||
+            clsName == "Shell_SecondaryTrayWnd" || clsName == "Windows.UI.Core.CoreWindow") return true;
+        uint pid;
+        GetWindowThreadProcessId(hWnd, out pid);
+        try {
+          var proc = Process.GetProcessById((int)pid);
+          if (proc.ProcessName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0) {
+            found = hWnd;
+            title = sb.ToString();
+            return false;
+          }
+        } catch { }
+        return true;
+      }, IntPtr.Zero);
+      if (found != IntPtr.Zero) {
+        Console.Error.WriteLine("MATCH:" + title + " (by process: " + keyword + ")");
+        SetForegroundWindow(found);
+        Sleep(300);
+        return found;
+      }
+    }
+
     if (title == null) throw new Exception("Window not found: " + keyword);
     Console.Error.WriteLine("MATCH:" + title);
     var hWnd = FindByTitle(title);
@@ -309,6 +350,7 @@ $refs = @(
   Join-Path $pwshDir "System.Private.Windows.GdiPlus.dll"
   Join-Path $pwshDir "System.ComponentModel.Primitives.dll"
   Join-Path $pwshDir "System.Console.dll"
+  Join-Path $pwshDir "System.Diagnostics.Process.dll"
 )
 $typeName = "WindowCapture_$([DateTime]::Now.Ticks)"
 $code = $code -replace 'class WindowCapture', "class $typeName"
