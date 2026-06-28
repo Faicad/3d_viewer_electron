@@ -1,62 +1,65 @@
-import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-import * as lib from '../lib.mjs'
-
-// Windows自带3D查看器即将停用！替代神器来了
-
-
-// 最终，我决定还是自己写一个3D查看器
-// 就为解决三个痛点！
-
-// 第一，要快，秒开模型零等待
-// 第二，要方便，可快速浏览同目录所有3D模型
-// 第三，格式全，支持20多种3D文件格式
-
-
-// 最良心的是，这款工具完全开源免费！
-// 国内用户前往 Gitcode 下载，
-// 海外用户直接 Github 获取。
-// 无广告、无收费、无捆绑。
-// 如果你也需要一款稳定、快速
-// 的本地3D模型查看工具，
-// 建议你赶紧收藏自取！
-
-
-
-
 
 const subtitle = `
-{zh-CN-YunyangNeural}3D建模、预览、打印
---1--
-上个视频我发布了3D模型查看的技能(SKILL)
+海外用户直接Github获取
+国内用户前往Gitcode下载
+文件名带cn的是中文版
+建议你赶紧收藏自取！
 `;
 
 
-lib.makeMovie(
-  import.meta.url,
-  'movies/car.glb',
-  // 'movies/p1/exported.glb',
+const urls = [
   {
-    AutoRotate: '0',
-    closeLeftPanel: '0;1',
-    entryAnim: 'zoom', 
-    entryZoomDist: '5;10',
-    entryZoomEndDist: '1.1;1.8',
-    entryDuration: '4000',
-    entryTargetShiftY: '0.1',
+    url: 'https://github.com/faicad/3d_viewer_electron/',
+    description: '首句台词1秒后高亮显示右侧Releases区域，加一个文字标注"这里下载"',
+    anim: [
+      {
+        type: 'highlight-area',
+        selector: 'Releases sidebar',
+        triggerAt: 4.6,
+        highlightMs: 2500,
+        padding: 60,
+      },
+      {
+        type: 'text-annotation',
+        target: 'Releases sidebar',
+        text: '这里下载',
+        triggerAt: 4.6,
+        duration: 2.5,
+        position: 'top-right',
+      },
+    ],
   },
-  async (page, suffix, tPageOpen) => {
-    await lib.syncpoint(page)
-    
-    // GSAP爆炸 → 播放 → 重置
-    await lib.callDemo(page, 'GSAPExplode', { spread: '5', range:'5' })
-    await page.waitForSelector('#gsap-demo-explode')  // 等待动态 import 完成、面板创建
-    await lib.setSelectValue(page, 'e-axis-select', 'y')
-    // await lib.setSelectValue(page, 'e-easing-select', 'none')
-    await lib.clickById(page, 'e-btn-play')
-    // await lib.animateCamera(page, { rotate: 'y', angle:180, duration: 5000, ease: 'none' })
-
-
+  {
+    url: 'https://gitcode.com/Faicad/3d_viewer_electron',
+    description: '第二句台词1秒后，页面缓慢滚动到"查看全部发行版"。第三句台词开始时显示一个1秒的点击动画',
+    anim: [
+      {
+        type: 'scroll-to-text',
+        text: 'All releases',
+        offset: -200,
+        triggerAt: 6.87,
+        duration: 2.0,
+      },
+      {
+        type: 'click-highlight',
+        selector: 'All releases',
+        triggerAt: 7.72,
+        highlightMs: 1000,
+        ripple: true,
+      },
+    ],
   },
-)
+  {
+    url: 'https://gitcode.com/Faicad/3d_viewer_electron/releases/',
+    description: '点击动画结束后，加载本页面。本页面显示1秒后，高亮"3D_Viewer_1.7.2_x64_cn_Setup.exe"下载链接',
+    anim: [
+      {
+        type: 'highlight-area',
+        selector: '3D_Viewer_1.7.2_x64_cn_Setup.exe',
+        triggerAt: 9.72,
+        highlightMs: 3000,
+        padding: 10,
+      },
+    ],
+  },
+];

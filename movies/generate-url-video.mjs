@@ -1,24 +1,31 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, renameSync, statSync } from 'fs'
-import { resolve, dirname, basename, extname, join, relative } from 'path'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, renameSync } from 'fs'
+import { resolve, dirname, basename, extname, join } from 'path'
 import { spawnSync } from 'child_process'
-import { pathToFileURL, fileURLToPath } from 'url'
+import { pathToFileURL } from 'url'
 import { chromium } from 'playwright'
 import * as lib from './lib.mjs'
 import { generateSubtitle, parseSubtitleLines, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER } from './generate-subtitle.mjs'
+import { buildHtmlComposition, pad4 } from './html-composer.mjs'
 
-// ── Constants ──
-const STATIC_DURATION = 1         // 首屏停留秒数
-const ORIENTATIONS = [
-  // 横屏：屏幕高度 × 3%/秒
-  { width: 1920, height: 1080, suffix: '_h', label: '横屏', scrollRatio: 0.03 },
-  // 竖屏：屏幕高度 × 2%/秒
-  { width: 1080, height: 1920, suffix: '_v', label: '竖屏', scrollRatio: 0.02 },
-]
-
-function pad4(i) { return String(i).padStart(4, '0') }
 const round2 = (v) => Math.round(v * 100) / 100
 
-// ── Helpers ──
+async function takeScreenshot(url, outputPath, width, height) {
+  const browser = await chromium.launch({ headless: true, args: ['--force-device-scale-factor=1'] })
+  try {
+    const context = await browser.newContext({
+      viewport: { width, height },
+      deviceScaleFactor: 1,
+      ignoreHTTPSErrors: true,
+    })
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 })
+    await page.waitForTimeout(2000)
+    await page.screenshot({ path: outputPath, fullPage: true })
+    await context.close()
+  } finally {
+    await browser.close()
+  }
+}
 
 function parseUrls(scriptPath) {
   const src = readFileSync(scriptPath, 'utf-8')
@@ -30,142 +37,6 @@ function parseUrls(scriptPath) {
   return new Function(`return ${m[1]}`)()
 }
 
-function probeImageDimensions(imagePath) {
-  const r = spawnSync('ffprobe', [
-    '-v', 'error', '-select_streams', 'v:0',
-    '-show_entries', 'stream=width,height',
-    '-of', 'csv=p=0', imagePath,
-  ], { stdio: 'pipe', timeout: 10000 })
-  const [w, h] = r.stdout.toString().trim().split(',').map(Number)
-  return w && h ? { width: w, height: h } : null
-}
-
-function computeImageDurations(entries) {
-  const segDurs = entries.map(e => round2(e.e - e.s))
-  return segDurs.map((d, i) => {
-    let dur = d
-    if (i === 0) dur += INITIAL_GAP
-    if (i < segDurs.length - 1) dur += INTER_LINE_GAP
-    return round2(dur)
-  })
-}
-
-/**
- * 从全页截图生成滚动视频片段。
- * 首屏停留 STATIC_DURATION 秒，然后以 scrollSpeed px/s 向下滚动，
- * 最后 PAUSE_END 秒停止滚动（为片段间过渡准备稳定末帧）。
- * 截图可能比 viewport 窄（如 1905px vs 1920px 由滚动条导致），先 pad 再 crop。
- */
-function buildScrollClip(fullImagePath, outputPath, viewW, viewH, duration, scrollSpeed, scrollable, imageW, imageH) {
-  console.log(`    ${basename(outputPath)} (${duration.toFixed(2)}s, scroll ${scrollSpeed}px/s, img ${imageW}×${imageH})`)
-
-  const PAUSE_END = 0.5
-  const tempOutput = outputPath.replace(/\.\w+$/, '.tmp$&')
-  const padFilter = `pad=${Math.max(imageW, viewW)}:${Math.max(imageH, viewH)}:${Math.floor((Math.max(imageW, viewW) - imageW) / 2)}:0:black`
-
-  // 计算有效滚动时长（扣掉首屏滞留和结尾静止）
-  const effectiveScrollTime = Math.max(0, duration - STATIC_DURATION - PAUSE_END)
-
-  // 无需滚动或不足以滚动
-  if (scrollable <= 0 || duration <= STATIC_DURATION + PAUSE_END || scrollSpeed <= 0) {
-    const r = spawnSync('ffmpeg', [
-      '-y', '-loop', '1', '-t', duration.toFixed(3), '-i', fullImagePath,
-      '-vf', `${padFilter},crop=${viewW}:${viewH}:0:0`,
-      '-c:v', 'libvpx-vp9', '-b:v', '8M', '-pix_fmt', 'yuv420p',
-      tempOutput,
-    ], { stdio: 'pipe', timeout: 60000 })
-    if (r.status !== 0) {
-      console.error('    FFmpeg failed:', r.stderr.toString().split('\n').slice(-3).join('\n'))
-      try { rmSync(tempOutput, { force: true }) } catch {}
-      return false
-    }
-  } else {
-    // 滚动：首屏静止 → 缓慢下移 → 最后 PAUSE_END 秒定格
-    const scrollEndPos = Math.min(scrollable, effectiveScrollTime * scrollSpeed)
-    const r = spawnSync('ffmpeg', [
-      '-y', '-loop', '1', '-i', fullImagePath,
-      '-vf', `${padFilter},crop=${viewW}:${viewH}:0:'min(${scrollEndPos}, max(0, (t-${STATIC_DURATION})*${scrollSpeed}))'`,
-      '-t', duration.toFixed(3),
-      '-c:v', 'libvpx-vp9', '-b:v', '8M', '-pix_fmt', 'yuv420p',
-      tempOutput,
-    ], { stdio: 'pipe', timeout: 120000 })
-    if (r.status !== 0) {
-      console.error('    FFmpeg failed:', r.stderr.toString().split('\n').slice(-3).join('\n'))
-      try { rmSync(tempOutput, { force: true }) } catch {}
-      return false
-    }
-  }
-
-  if (existsSync(outputPath)) rmSync(outputPath, { force: true })
-  renameSync(tempOutput, outputPath)
-  return true
-}
-
-/** 用 concat demuxer 拼接同编码的 .webm 片段 */
-function concatWebmClips(clipPaths, outputPath) {
-  const existing = clipPaths.filter(p => existsSync(p) && statSync(p).size > 0)
-  if (existing.length === 0) return false
-  if (existing.length === 1) {
-    if (existsSync(outputPath)) rmSync(outputPath, { force: true })
-    renameSync(existing[0], outputPath)
-    return true
-  }
-
-  const listPath = join(dirname(outputPath), `.concat_${basename(outputPath)}.txt`)
-  writeFileSync(listPath, existing.map(p => `file '${resolve(p).replace(/\\/g, '/')}'`).join('\n'), 'utf-8')
-  const tempOutput = outputPath.replace(/\.\w+$/, '.tmp$&')
-  const r = spawnSync('ffmpeg', [
-    '-y', '-f', 'concat', '-safe', '0', '-i', listPath,
-    '-c', 'copy', tempOutput,
-  ], { stdio: 'pipe', timeout: 120000 })
-  try { rmSync(listPath, { force: true }) } catch {}
-
-  if (r.status !== 0) {
-    console.error('  Concat failed:', r.stderr.toString().slice(0, 500))
-    try { rmSync(tempOutput, { force: true }) } catch {}
-    return false
-  }
-  if (existsSync(outputPath)) rmSync(outputPath, { force: true })
-  renameSync(tempOutput, outputPath)
-  return true
-}
-
-/** 等价于 lib.burnVideo()，但使用 URL 模式自定义方向尺寸 */
-function burnUrlVideo(scriptUrl, genDir, orientations) {
-  const scriptName = basename(fileURLToPath(scriptUrl), '.mjs')
-  const targetFps = lib.resolve30fps() ? 30 : 25
-  const useDefaultBg = process.argv.slice(2).includes('--default-bg')
-  const audioBg = useDefaultBg ? lib.DEFAULT_BGM : null
-  const rel = (p) => relative(process.cwd(), p).replace(/\\/g, '/')
-
-  for (const { width, height, suffix } of orientations) {
-    const clip = rel(join(genDir, `${scriptName}${suffix}.webm`))
-    if (!existsSync(join(genDir, `${scriptName}${suffix}.webm`))) {
-      console.log(`  ${suffix} no video, skipping`)
-      continue
-    }
-    const subtitlePath = join(genDir, `${scriptName}.subtitle`)
-    const audioVoice = rel(join(genDir, `${scriptName}.mp3`))
-    const output = rel(join(genDir, `${scriptName}_burn${suffix}.mp4`))
-
-    console.log(`  ${suffix} (${width}×${height}) → ${basename(output)}`)
-    const ok = lib.renderVideo({
-      clips: [clip],
-      audioVoice,
-      audioBg: audioBg ? rel(audioBg) : null,
-      output,
-      subtitlePath: existsSync(subtitlePath) ? subtitlePath : null,
-      targetW: width,
-      targetH: height,
-      fps: targetFps,
-    })
-    if (!ok) {
-      console.error(`  Burn FAILED for ${suffix}`)
-      process.exit(1)
-    }
-  }
-}
-
 // ── Main ──
 
 async function generateUrlVideo(scriptPath) {
@@ -173,21 +44,20 @@ async function generateUrlVideo(scriptPath) {
   const scriptName = basename(scriptPath, extname(scriptPath))
   const genDir = join(scriptDir, 'gen')
 
-  console.log(`Script: ${basename(scriptPath)}`)
+  console.log(`Generate: ${basename(scriptPath)}`)
   mkdirSync(genDir, { recursive: true })
 
-  // 1. 解析台词和 URL
-  const lines = parseSubtitleLines(scriptPath)
+  // 1. Parse script
   const urls = parseUrls(scriptPath)
-  if (lines.length !== urls.length) {
-    console.error(`\nERROR: ${lines.length} subtitle lines but ${urls.length} URLs`)
+  const lines = parseSubtitleLines(scriptPath)
+  console.log(`Lines: ${lines.length}, URLs: ${urls.length}`)
+  if (urls.length > lines.length) {
+    console.error(`\nERROR: ${urls.length} URLs but only ${lines.length} subtitle lines`)
     process.exit(1)
   }
-  console.log(`URLs: ${urls.length}`)
 
-  // 2. TTS + 字幕时间轴（与 generate-image-video.mjs 完全一致）
+  // 2. Generate subtitle timing (or reuse)
   const noTts = process.argv.slice(2).includes('--no-tts')
-  const noFetch = process.argv.slice(2).includes('--no-fetch')
   const ttsArgIndex = process.argv.slice(2).indexOf('--tts')
   const ttsProvider = ttsArgIndex >= 0 ? process.argv.slice(2)[ttsArgIndex + 1] : DEFAULT_TTS_PROVIDER
 
@@ -195,133 +65,186 @@ async function generateUrlVideo(scriptPath) {
 
   if (noTts) {
     const subtitlePath = join(genDir, `${scriptName}.subtitle`)
-    const audioPath = join(genDir, `${scriptName}.mp3`)
-    if (!existsSync(subtitlePath) || !existsSync(audioPath)) {
-      console.error(`\n--no-tts: subtitle or audio not found in ${genDir}/`)
-      console.error('  Run without --no-tts first to generate TTS.')
+    if (!existsSync(subtitlePath)) {
+      console.error(`\n--no-tts: subtitle not found in ${genDir}/`)
       process.exit(1)
     }
     const data = JSON.parse(readFileSync(subtitlePath, 'utf-8'))
     const entries = data.segments[0].entries
-    imageDurations = computeImageDurations(entries)
-    segments = entries
-    console.log(`Reusing existing subtitle (${entries.length} entries, ${data.segments[0].duration}s)`)
+    const segDurs = entries.map(e => round2(e.e - e.s))
+    imageDurations = segDurs.map((d, i) => {
+      let dur = d
+      if (i === 0) dur += INITIAL_GAP
+      if (i < segDurs.length - 1) dur += INTER_LINE_GAP
+      return round2(dur)
+    })
+    segments = [{ entries }]
+    console.log(`Reusing existing subtitle (${entries.length} entries, ${data.segments[0].duration?.toFixed(2) || '?'}s)`)
   } else {
-    // 预生成 TTS
-    console.log(`\n=== Pre-generating TTS timing: ${scriptName} ===`)
+    console.log(`\n=== Pre-generating TTS ===`)
     const pregenArgs = ['movies/pregen-tts.mjs', scriptPath]
     if (ttsProvider) pregenArgs.push('--tts', ttsProvider)
     const pregenR = spawnSync('node', pregenArgs, { stdio: 'inherit', timeout: 600000 })
     if (pregenR.status !== 0) process.exit(pregenR.status ?? 1)
 
-    // 从缓存组装字幕 + 音频
     const result = await generateSubtitle(scriptPath, { ttsProvider })
     segments = result.segments
     imageDurations = result.imageDurations
 
-    // Fallback：subtitle 已是最新（跳过 → segments 为空），从文件读取
     if (segments.length === 0) {
       const subtitlePath = join(genDir, `${scriptName}.subtitle`)
-      if (!existsSync(subtitlePath)) {
-        console.error(`\nSubtitle not found at ${subtitlePath}`)
-        process.exit(1)
-      }
       const data = JSON.parse(readFileSync(subtitlePath, 'utf-8'))
       const entries = data.segments[0].entries
-      imageDurations = computeImageDurations(entries)
-      segments = entries
+      const segDurs = entries.map(e => round2(e.e - e.s))
+      imageDurations = segDurs.map((d, i) => {
+        let dur = d
+        if (i === 0) dur += INITIAL_GAP
+        if (i < segDurs.length - 1) dur += INTER_LINE_GAP
+        return round2(dur)
+      })
+      segments = [{ entries }]
     }
   }
 
-  // 3. 方向过滤
+  // 3. Validate anim
+  for (let i = 0; i < urls.length; i++) {
+    if (!urls[i].anim || urls[i].anim.length === 0) {
+      console.error(`\nERROR: URL ${i} has no anim array`)
+      process.exit(1)
+    }
+  }
+
+  const totalDuration = imageDurations.reduce((a, b) => a + b, 0)
+
+  // 4. Resolve orientations (use shared SIZE_PRESETS + resolveOrientationFilter)
+  const preset = lib.resolveSizePreset()
   const orientationFilter = lib.resolveOrientationFilter()
   const orientations = orientationFilter !== 'both'
-    ? ORIENTATIONS.filter(o => o.suffix === `_${orientationFilter}`)
-    : ORIENTATIONS
+    ? preset.orientations.filter(o => o.suffix === `_${orientationFilter}`)
+    : preset.orientations
 
-  // 4. 截图 → 滚动片段 → 拼接（URL 模式特有）
-  console.log(`\n=== ${noFetch ? 'Reusing existing screenshots' : 'Capturing URLs with Chrome'} ===`)
-
-  let browser
-  if (!noFetch) {
-    // 检查 Chrome 是否正在运行
-    try {
-      const tl = spawnSync('tasklist', ['/fi', 'IMAGENAME eq chrome.exe'], { stdio: 'pipe', timeout: 5000 })
-      if (tl.stdout && tl.stdout.toString().toLowerCase().includes('chrome.exe')) {
-        console.error('\nChrome 正在运行！请关闭 Chrome 后重试（Playwright 需要独占用户数据目录）。')
-        process.exit(1)
-      }
-    } catch {}
-
-    browser = await chromium.launch({ channel: 'chrome', headless: false })
+  // 5. Take screenshots for each orientation (if needed)
+  const force = process.argv.slice(2).includes('-f')
+  if (force) console.log('  -f: forcing screenshot refresh')
+  for (const { width, height, suffix } of orientations) {
+    for (let i = 0; i < urls.length; i++) {
+      const shotPath = join(genDir, `${scriptName}_${pad4(i)}${suffix}_full.png`)
+      if (existsSync(shotPath) && !force) continue
+      console.log(`  Screenshot ${pad4(i)}${suffix}: ${urls[i].url}`)
+      await takeScreenshot(urls[i].url, shotPath, width, height)
+    }
   }
 
-  try {
-    for (const { width, height, suffix, label, scrollRatio } of orientations) {
-      const clips = []
-      let anyFailed = false
+  // 6. Build HTML composition for each orientation
+  console.log(`\n=== Building composition (${totalDuration.toFixed(2)}s total) ===`)
 
-      for (let i = 0; i < urls.length; i++) {
-        const fullPng = join(genDir, `${scriptName}_${pad4(i)}${suffix}_full.png`)
-        const clipWebm = join(genDir, `${scriptName}_${pad4(i)}${suffix}.webm`)
-        clips.push(clipWebm)
-
-        console.log(`\n[${label}] ${i + 1}/${urls.length}`)
-
-        // 全页截图
-        if (noFetch) {
-          if (!existsSync(fullPng)) {
-            console.error(`  --no-fetch: ${basename(fullPng)} not found`)
-            anyFailed = true
-            continue
-          }
-        } else if (!existsSync(fullPng)) {
-          console.log(`  Screenshot: ${basename(fullPng)}`)
-          const page = await browser.newPage({ viewport: { width, height } })
-          try {
-            await page.goto(urls[i], { waitUntil: 'domcontentloaded', timeout: 30000 })
-            await page.waitForTimeout(3000)
-            await page.screenshot({ path: fullPng, fullPage: true })
-          } finally {
-            await page.close()
-          }
-        }
-
-        // 滚动片段
-        if (!existsSync(clipWebm)) {
-          const dims = probeImageDimensions(fullPng)
-          if (!dims) { console.error(`  Cannot probe ${basename(fullPng)}`); anyFailed = true; continue }
-          const scrollable = Math.max(0, dims.height - height)
-          const scrollSpeed = Math.round(height * scrollRatio)
-          if (!buildScrollClip(fullPng, clipWebm, width, height, imageDurations[i], scrollSpeed, scrollable, dims.width, dims.height)) {
-            anyFailed = true
-          }
-        }
-      }
-
-      if (anyFailed) process.exit(1)
-
-      // 拼接
-      console.log(`\n[${label}] Concatenating ${clips.length} clips...`)
-      const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
-      if (concatWebmClips(clips, outputVideo)) {
-        const mb = (readFileSync(outputVideo).length / 1024 / 1024).toFixed(2)
-        console.log(`  ${basename(outputVideo)} (${mb} MB)`)
+  for (const { width, height, suffix } of orientations) {
+    // Load marks for this orientation
+    const allMarks = []
+    for (let i = 0; i < urls.length; i++) {
+      const marksPathH = join(genDir, `${scriptName}_${pad4(i)}_h_marks.json`)
+      const marksPath = join(genDir, `${scriptName}_${pad4(i)}${suffix}_marks.json`)
+      const actualPath = suffix === '_h' || !existsSync(marksPath) ? marksPathH : marksPath
+      if (existsSync(actualPath)) {
+        allMarks.push(JSON.parse(readFileSync(actualPath, 'utf-8')))
       } else {
-        console.error(`  Concat FAILED for ${suffix}`)
-        process.exit(1)
+        console.warn(`  ⚠ Marks not found: ${basename(actualPath)}, using empty`)
+        allMarks.push({})
       }
     }
-  } finally {
-    if (browser) await browser.close()
+
+    const { hfDir, totalDuration: td } = buildHtmlComposition({
+      urls, marks: allMarks, segments, imageDurations,
+      genDir, scriptName, suffix, width, height,
+    })
+    console.log(`  Composition: ${hfDir}/index.html`)
+
+    // 6. Playwright record
+    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
+    const tempOutput = outputVideo.replace(/\.\w+$/, '.tmp$&')
+
+    console.log(`  Recording ${td.toFixed(2)}s video...`)
+    const browser = await chromium.launch({ headless: false, args: ['--force-device-scale-factor=1'] })
+    try {
+      const context = await browser.newContext({
+        recordVideo: { dir: hfDir, size: { width, height } },
+        viewport: { width, height },
+        deviceScaleFactor: 1,
+        ignoreHTTPSErrors: true,
+      })
+      const page = await context.newPage()
+      page.on('pageerror', err => console.error('  Page error:', err.message))
+
+      const htmlPath = join(hfDir, 'index.html')
+      await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle', timeout: 30000 })
+
+      const waitMs = Math.round(td * 1000) + 1500
+      console.log(`  Waiting ${(waitMs / 1000).toFixed(1)}s...`)
+      await page.waitForTimeout(waitMs)
+
+      await context.close()
+      const video = page.video()
+      if (video) {
+        const recordedPath = await video.path()
+        if (existsSync(recordedPath)) {
+          renameSync(recordedPath, tempOutput)
+        }
+      }
+    } finally {
+      await browser.close()
+    }
+
+    // Cleanup
+    rmSync(hfDir, { recursive: true, force: true })
+
+    if (!existsSync(tempOutput)) {
+      console.error(`  Failed to record video`)
+      process.exit(1)
+    }
+
+    // Trim exact duration
+    const r = spawnSync('ffmpeg', [
+      '-y', '-i', tempOutput,
+      '-t', td.toFixed(3),
+      '-c', 'copy',
+      outputVideo,
+    ], { stdio: 'pipe', timeout: 60000 })
+    rmSync(tempOutput, { force: true })
+
+    if (r.status !== 0) {
+      console.error(`  FFmpeg trim failed:`, r.stderr.toString().slice(0, 500))
+      process.exit(1)
+    }
+    const mb = (readFileSync(outputVideo).length / 1024 / 1024).toFixed(2)
+    console.log(`  Saved: ${basename(outputVideo)} (${mb} MB)`)
   }
 
-  // 5. 烧录字幕（与 generate-image-video.mjs 一致：lib.burnVideo 等价调用）
+  // 7. Burn subtitles
   const noBurn = process.argv.slice(2).includes('--no-burn')
   if (!noBurn) {
     console.log('\n=== Burning subtitles ===')
     const scriptUrl = pathToFileURL(scriptPath).href
-    burnUrlVideo(scriptUrl, genDir, orientations)
+    for (const { suffix } of orientations) {
+      const clip = join(genDir, `${scriptName}${suffix}.webm`)
+      if (!existsSync(clip)) continue
+      const subtitlePath = join(genDir, `${scriptName}.subtitle`)
+      const audioVoice = join(genDir, `${scriptName}.mp3`)
+      const output = join(genDir, `${scriptName}_burn${suffix}.mp4`)
+      const { width: targetW, height: targetH } = orientations.find(o => o.suffix === suffix) || { width: 1920, height: 1080 }
+      const targetFps = lib.resolve30fps() ? 30 : 25
+      const useDefaultBg = process.argv.slice(2).includes('--default-bg')
+      const audioBg = useDefaultBg ? lib.DEFAULT_BGM : null
+
+      console.log(`  ${suffix} → ${basename(output)}`)
+      lib.renderVideo({
+        clips: [clip],
+        audioVoice,
+        audioBg: audioBg ? audioBg : null,
+        output,
+        subtitlePath: existsSync(subtitlePath) ? subtitlePath : null,
+        targetW, targetH, fps: targetFps,
+      })
+    }
   } else {
     console.log('\n--no-burn: skipping subtitle burn')
   }
@@ -331,12 +254,8 @@ async function generateUrlVideo(scriptPath) {
 
 // ── CLI ──
 const scriptPath = resolve(process.argv[2])
-if (!scriptPath) {
-  console.error('Usage: node movies/generate-url-video.mjs [--tts edge-tts|tencent-tts|indextts|spark-tts] [--no-tts] [--no-fetch] <script.mjs>')
-  process.exit(1)
-}
-if (!existsSync(scriptPath)) {
-  console.error('Script not found:', scriptPath)
+if (!scriptPath || !existsSync(scriptPath)) {
+  console.error('Usage: node movies/generate-url-video.mjs [--tts edge-tts|tencent-tts] [--no-tts] [--no-burn] <script.mjs>')
   process.exit(1)
 }
 

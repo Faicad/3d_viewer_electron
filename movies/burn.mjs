@@ -37,7 +37,6 @@ if (isSceneScript) {
   ], { stdio: 'inherit', timeout: 600000 })
   if (r.status !== 0) process.exit(r.status ?? 1)
 } else if (isUrlScript) {
-  // URL script: screenshots → scrolling clips → concat → TTS → subtitle → burn (all in one)
   console.log(`\n=== Generating URL video: ${scriptName} ===`)
   const r = spawnSync('node', [
     'movies/generate-url-video.mjs', absPath, ...childFlags, ...ttsArgs,
