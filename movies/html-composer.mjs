@@ -109,7 +109,25 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
     .highlight-box{position:absolute;border:3px solid #ff6b35;border-radius:8px;box-shadow:0 0 20px rgba(255,107,53,0.5);pointer-events:none}
     .text-annotation{position:absolute;background:#ff6b35;color:#fff;padding:6px 14px;border-radius:6px;font:bold 18px sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,0.3)}
     .text-annotation::after{content:'';position:absolute;width:0;height:0;border:8px solid transparent}
-    .text-annotation.top-right::after{bottom:100%;right:24px;border-bottom-color:#ff6b35}
+    /* Arrow on left edge — annotation is right of target, arrow points left */
+    .text-annotation.right::after,
+    .text-annotation.top-right::after,
+    .text-annotation.bottom-right::after{right:100%;border-right-color:#ff6b35}
+    .text-annotation.right::after{top:50%;transform:translateY(-50%)}
+    .text-annotation.top-right::after{top:12px}
+    .text-annotation.bottom-right::after{bottom:12px}
+    /* Arrow on right edge — annotation is left of target, arrow points right */
+    .text-annotation.left::after,
+    .text-annotation.top-left::after,
+    .text-annotation.bottom-left::after{left:100%;border-left-color:#ff6b35}
+    .text-annotation.left::after{top:50%;transform:translateY(-50%)}
+    .text-annotation.top-left::after{top:12px}
+    .text-annotation.bottom-left::after{bottom:12px}
+    /* Arrow on bottom edge — annotation above target, arrow points down */
+    .text-annotation.top::after{top:100%;left:50%;transform:translateX(-50%);border-top-color:#ff6b35}
+    .text-annotation.center::after{display:none}
+    /* Arrow on top edge — annotation below target, arrow points up */
+    .text-annotation.bottom::after{bottom:100%;left:50%;transform:translateX(-50%);border-bottom-color:#ff6b35}
     .caption{position:absolute;font-weight:bold;font-family:'Microsoft YaHei','PingFang SC',sans-serif;text-shadow:0 4px 20px rgba(0,0,0,.95);white-space:nowrap;pointer-events:none}
     .cursor-overlay{position:absolute;pointer-events:none;z-index:100}
     .cursor-pointer{width:32px;height:32px;background:radial-gradient(circle,#fff 2px,#000 2px,#000 4px,transparent 4px);border-radius:50%;position:absolute}
@@ -257,15 +275,46 @@ function buildSceneHtml(scene, marks, index, width, height) {
     }
     if (step.type === 'text-annotation') {
       const pos = step.position || 'top-right'
-      const annoX = mark.x + mark.w + 10
-      const annoY = fy - 10
-      scrollHtml += `<div class="overlay text-annotation ${pos}" id="s${index}_anno${ai}" style="left:${annoX}px;top:${annoY}px;opacity:0">${step.text}</div>`
+      const gap = 12
+      const { annoX, annoY, xform } = computeAnnotationPos(pos, mark, fy, gap)
+      scrollHtml += `<div class="overlay text-annotation ${pos}" id="s${index}_anno${ai}" style="left:${annoX}px;top:${annoY}px;${xform}opacity:0">${step.text}</div>`
     }
   }
 
   scrollHtml += '</div>'
 
   return `<div class="scene" id="s${index}">${scrollHtml}${sceneExtras}</div>`
+}
+
+// Compute annotation position relative to its target mark element.
+// Returns { annoX, annoY, xform } — xform is a CSS transform string (or '').
+function computeAnnotationPos(pos, mark, fy, gap) {
+  const cx = mark.x + mark.w / 2
+  const cy = fy + mark.h / 2
+
+  switch (pos) {
+    case 'top':
+      return { annoX: cx, annoY: fy - gap, xform: 'transform:translate(-50%,-100%);' }
+    case 'center':
+      return { annoX: cx, annoY: cy, xform: 'transform:translate(-50%,-50%);' }
+    case 'bottom':
+      return { annoX: cx, annoY: fy + mark.h + gap, xform: 'transform:translate(-50%,0);' }
+    case 'left':
+      return { annoX: mark.x - gap, annoY: cy, xform: 'transform:translate(-100%,-50%);' }
+    case 'right':
+      return { annoX: mark.x + mark.w + gap, annoY: cy, xform: 'transform:translate(0,-50%);' }
+    case 'top-left':
+      return { annoX: mark.x - gap, annoY: fy, xform: 'transform:translate(-100%,0);' }
+    case 'top-right':
+      return { annoX: mark.x + mark.w + gap, annoY: fy, xform: '' }
+    case 'bottom-left':
+      return { annoX: mark.x - gap, annoY: fy + mark.h, xform: 'transform:translate(-100%,-100%);' }
+    case 'bottom-right':
+      return { annoX: mark.x + mark.w + gap, annoY: fy + mark.h, xform: 'transform:translate(0,-100%);' }
+    default:
+      // fallback: same as top-right
+      return { annoX: mark.x + mark.w + gap, annoY: fy, xform: '' }
+  }
 }
 
 function resolveMark(step, marks) {
@@ -294,8 +343,8 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
     // caption: ONE div (full text = layout anchor), spans control progressive reveal
     if (step.type === 'caption') {
       const parts = step.text.split('、')
+      // Caption fades in; scene crossfade handles fade-out at scene end
       chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:1,duration:0.3}, ${t.toFixed(3)});`)
-      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${(t + dur).toFixed(3)});`)
       if (parts.length > 1) {
         const subDur = dur / parts.length
         for (let si = 0; si < parts.length; si++) {

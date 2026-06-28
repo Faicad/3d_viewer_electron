@@ -237,7 +237,7 @@ const rect = await page.$eval('.download-btn', el => {
 | `click-highlight` | **Mark** | 鼠标点击效果 | `selector`, `triggerAt`, `highlightMs`, `ripple` |
 | `scroll-to-text` | **Mark** | 滚动到文字可见 | `text`, `triggerAt`, `duration`, `offset` |
 | `scroll-down` | — | 向下缓慢滚动 | `speed`, `triggerAt`, `pauseTop`, `pauseBottom` |
-| `caption` | **Caption** | 视口居中文字 | `text`, `triggerAt`, `duration`, **`top`**, **`fontSize`**, **`color`**, **`align`**, **`pad`** |
+| `caption` | **Caption** | 视口居中文字（自动保持到场景结束） | `text`, `triggerAt`, `duration`, **`top`**, **`fontSize`**, **`color`**, **`align`**, **`pad`** |
 | `page-transition` | — | 页面间过渡 | `transition`, `triggerAt`, `duration` |
 
 ### `caption` 样式参数（必须全部显式提供）
@@ -327,6 +327,20 @@ const rect = await page.$eval('.download-btn', el => {
   ],
 },
 ```
+
+**`text-annotation` 的 `position` 参数**（标注相对目标元素的位置，箭头始终指向目标）：
+
+| position | 位置 | 示例场景 |
+|----------|------|---------|
+| `top-right`（默认） | 目标右侧，顶部对齐 | 标注在元素右上角外侧 |
+| `top-left` | 目标左侧，顶部对齐 | 标注在元素左上角外侧 |
+| `bottom-right` | 目标右侧，底部对齐 | 标注在元素右下角外侧 |
+| `bottom-left` | 目标左侧，底部对齐 | 标注在元素左下角外侧 |
+| `right` | 目标右侧，垂直居中 | 标注在元素右边中间 |
+| `left` | 目标左侧，垂直居中 | 标注在元素左边中间 |
+| `top` | 目标正上方，水平居中 | 标注在元素上方居中 |
+| `center` | 目标区域内部居中 | 标注覆盖在元素正中间 |
+| `bottom` | 目标正下方，水平居中 | 标注在元素下方居中 |
 
 **Caption 示例**（视口定位，一行文字整体居中，`、` 自动累积三段）：
 

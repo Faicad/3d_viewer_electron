@@ -8,9 +8,9 @@
 
 const subtitle = `
 海外用户直接Github获取
-国内用户前往Gitcode下载
-文件名带cn的是中文版
-建议你赶紧收藏自取！
+国内用户前往Gitcode下载\n((gitcode.com/Faicad))
+文件名带cn的是中文版, 建议你下载试用
+求关注、求转发、求收藏
 `;
 
 
@@ -32,7 +32,7 @@ const urls = [
         text: '这里下载',
         triggerAt: 1.0,
         duration: 2.1,
-        position: 'top-right',
+        position: 'center',
       },
     ],
   },
@@ -64,16 +64,16 @@ const urls = [
   },
   {
     url: 'https://gitcode.com/Faicad/3d_viewer_electron/releases/',
-    description: 'url不变，延续画面内容。居中显示字幕动画"求关注、求转发、求收藏"，分三段显示出来',
+    description: 'url不变，延续画面内容。居中显示字幕动画"求关注、求转发、求收藏"，分三段显示出来。不消失',
     anim: [
       // 一行文字，分三段依次显示
       {
         type: 'caption',
         text: '求关注、求转发、求收藏',
         triggerAt: 0,            // 台词开始时
-        duration: 2.4,           // end = 0+2.4=2.4 ≤ 窗口2.4
+        duration: 2.4,           // 分段显示耗时
         top: { h: 46, v: 50 },
-        fontSize: { h: 36, v: 28 },
+        fontSize: { h: 68, v: 68 },
         color: '#ff6b35',
         align: { h: 'center', v: 'center' },
         pad: { h: 5, v: 8 },
