@@ -251,6 +251,7 @@ async function generateImageVideo(scriptPath) {
   mkdirSync(genDir, { recursive: true })
 
   const noTts = process.argv.slice(2).includes('--no-tts')
+  const force = process.argv.slice(2).includes('-f') || process.argv.slice(2).includes('--force')
   const ttsArgIndex = process.argv.slice(2).indexOf('--tts')
   const ttsProvider = ttsArgIndex >= 0 ? process.argv.slice(2)[ttsArgIndex + 1] : DEFAULT_TTS_PROVIDER
 
@@ -336,6 +337,22 @@ async function generateImageVideo(scriptPath) {
 
   let anyVideo = false
   for (const { width, height, suffix } of orientations) {
+    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
+
+    // ── 缓存检查：webm mtime >= 脚本源文件 + tts-timing ──
+    if (!force) {
+      const timingPath = join(genDir, `${scriptName}.tts-timing.json`)
+      const srcMtime = statSync(scriptPath).mtimeMs
+      const timingMtime = existsSync(timingPath) ? statSync(timingPath).mtimeMs : 0
+      if (existsSync(outputVideo) &&
+          statSync(outputVideo).mtimeMs >= srcMtime &&
+          statSync(outputVideo).mtimeMs >= timingMtime) {
+        console.log(`\n[${suffix}] ✓ Video up-to-date — skipping`)
+        anyVideo = true
+        continue
+      }
+    }
+
     const images = scanOrientationImages(imageBase, suffix)
     if (images.length === 0) {
       console.log(`\n[${suffix}] No images found matching "${basename(imageBase)}*${suffix}*.png", skipping`)
@@ -387,7 +404,6 @@ async function generateImageVideo(scriptPath) {
       process.exit(1)
     }
 
-    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
     buildImageVideo(perSegmentImages, imageDurations, outputVideo, width, height, fps, prevFrameImage, segmentConfig, isFirstVideo)
     anyVideo = true
   }

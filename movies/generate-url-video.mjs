@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, renameSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, renameSync, statSync } from 'fs'
 import { resolve, dirname, basename, extname, join } from 'path'
 import { spawnSync } from 'child_process'
 import { pathToFileURL } from 'url'
@@ -60,6 +60,7 @@ async function generateUrlVideo(scriptPath) {
 
   // 2. Generate subtitle timing (or reuse)
   const noTts = process.argv.slice(2).includes('--no-tts')
+  const force = process.argv.slice(2).includes('-f') || process.argv.slice(2).includes('--force')
   const ttsArgIndex = process.argv.slice(2).indexOf('--tts')
   const ttsProvider = ttsArgIndex >= 0 ? process.argv.slice(2)[ttsArgIndex + 1] : DEFAULT_TTS_PROVIDER
 
@@ -149,6 +150,20 @@ async function generateUrlVideo(scriptPath) {
   console.log(`\n=== Building composition (${totalDuration.toFixed(2)}s total) ===`)
 
   for (const { width, height, suffix } of orientations) {
+    // ── 缓存检查：webm mtime >= 脚本源文件 + tts-timing ──
+    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
+    if (!force) {
+      const timingPath = join(genDir, `${scriptName}.tts-timing.json`)
+      const srcMtime = statSync(scriptPath).mtimeMs
+      const timingMtime = existsSync(timingPath) ? statSync(timingPath).mtimeMs : 0
+      if (existsSync(outputVideo) &&
+          statSync(outputVideo).mtimeMs >= srcMtime &&
+          statSync(outputVideo).mtimeMs >= timingMtime) {
+        console.log(`  [${suffix}] ✓ Video up-to-date — skipping recording`)
+        continue
+      }
+    }
+
     // Load marks for this orientation.
     // URLs with only caption/scroll-down/page-transition/custom don't need marks.
     // Mark-requiring URLs MUST have a marks file — hard error if missing.
@@ -183,7 +198,6 @@ async function generateUrlVideo(scriptPath) {
     console.log(`  Composition: ${hfDir}/index.html`)
 
     // 6. Playwright record
-    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
     const tempOutput = outputVideo.replace(/\.\w+$/, '.tmp$&')
 
     console.log(`  Recording ${td.toFixed(2)}s video...`)

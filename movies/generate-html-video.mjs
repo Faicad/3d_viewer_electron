@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, renameSync, readdirSync, copyFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, renameSync, readdirSync, copyFileSync, statSync } from 'fs'
 import { resolve, dirname, basename, extname, join } from 'path'
 import { spawnSync } from 'child_process'
 import { pathToFileURL, fileURLToPath } from 'url'
@@ -86,6 +86,7 @@ async function generateHyperVideo(scriptPath) {
   mkdirSync(genDir, { recursive: true })
 
   const noTts = process.argv.slice(2).includes('--no-tts')
+  const force = process.argv.slice(2).includes('-f') || process.argv.slice(2).includes('--force')
   const ttsArgIndex = process.argv.slice(2).indexOf('--tts')
   const ttsProvider = ttsArgIndex >= 0 ? process.argv.slice(2)[ttsArgIndex + 1] : DEFAULT_TTS_PROVIDER
 
@@ -165,6 +166,22 @@ async function generateHyperVideo(scriptPath) {
   let anyVideo = false
 
   for (const { width, height, suffix } of orientations) {
+    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
+
+    // ── 缓存检查：webm mtime >= 脚本源文件 + tts-timing ──
+    if (!force) {
+      const timingPath = join(genDir, `${scriptName}.tts-timing.json`)
+      const srcMtime = statSync(scriptPath).mtimeMs
+      const timingMtime = existsSync(timingPath) ? statSync(timingPath).mtimeMs : 0
+      if (existsSync(outputVideo) &&
+          statSync(outputVideo).mtimeMs >= srcMtime &&
+          statSync(outputVideo).mtimeMs >= timingMtime) {
+        console.log(`\n[${suffix}] ✓ Video up-to-date — skipping`)
+        anyVideo = true
+        continue
+      }
+    }
+
     // Scan images if imageBase is set
     let perSegmentImages = []
     if (imageBase) {
@@ -294,7 +311,6 @@ ${gsapCode}
     console.log(`  Composition written: ${htmlPath}`)
 
     // 6. Render with Playwright
-    const outputVideo = join(genDir, `${scriptName}${suffix}.webm`)
     const tempOutput = outputVideo.replace(/\.\w+$/, '.tmp$&')
 
     console.log(`  Launching Playwright to record ${totalDur.toFixed(2)}s video...`)
