@@ -29,7 +29,7 @@ function loadDotEnv() {
 const INITIAL_GAP = 0.5     // silence before first line (s)
 const INTER_LINE_GAP = 0.15 // silence between lines (s) — both audio gap and subtitle gap
 const DEFAULT_VOICE = 'zh-CN-XiaoxiaoNeural'
-const DEFAULT_TTS_PROVIDER = 'edge-tts'
+const DEFAULT_TTS_PROVIDER = 'spark-tts'
 
 
 // edge-tts --list-voices | rg zh-CN

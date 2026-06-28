@@ -4,6 +4,7 @@ old
 *.glb
 *.mp3
 *.step
+skip*.mjs
 **/gen/*
 **/ai_gen/*.png
 screenshot/*

@@ -9,8 +9,8 @@ const projectName = basename(projectDir)
 const genDir = join(projectDir, 'gen')
 
 // ===== 文案 =====
-const text1 = 'AI写代码'
-const text2 = '踩坑了？'
+const text1 = '只剩3天时间'
+const text2 = '一款Windows软件停用'
 
 // ===== 预设 =====
 // 改这一行即可切换：gold-blue | rose-teal | amber-violet | coral-navy | emerald-peach | platinum-slate | neon-cyan | copper-sage | ruby-ice | lavender-mint
