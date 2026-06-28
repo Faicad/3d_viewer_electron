@@ -5,7 +5,3 @@ const subtitle = `
 
 
 const image = 'movies/screenshot/BambuStudio';
-
-const config = [
-    {"animation": "zoom"}
-]

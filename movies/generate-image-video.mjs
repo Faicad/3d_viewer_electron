@@ -29,18 +29,6 @@ function parseImageBase(scriptPath) {
   return m[1]
 }
 
-function parseScriptConfig(scriptPath) {
-  const src = readFileSync(scriptPath, 'utf-8')
-  const m = src.match(/(?:^|\n)\s*const\s+config\s*=\s*(\[[\s\S]*?\])\s*;?\s*(?:\n|$)/)
-  if (!m) return []
-  try {
-    return (0, eval)(m[1])
-  } catch {
-    console.error('Failed to parse config in', scriptPath)
-    process.exit(1)
-  }
-}
-
 function stripOrientation(name, suffix) {
   return name.replaceAll(suffix, '')
 }
@@ -116,7 +104,7 @@ function getOrderedScripts(scriptDir) {
     .sort()
 }
 
-function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, targetH, fps, prevFrameImage, segmentConfig, isFirstVideo) {
+function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, targetH, fps, prevFrameImage, isFirstVideo) {
   const n = imagePaths.length
   const totalDur = imageDurations.reduce((a, b) => a + b, 0)
   console.log(`  Images: ${n}, total ${totalDur.toFixed(2)}s → ${outputPath}`)
@@ -124,18 +112,9 @@ function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, target
     console.log(`    ${basename(imagePaths[i])}: ${imageDurations[i].toFixed(2)}s`)
   }
 
-  const segmentAnim = segmentConfig ?? []
-
   const AD = n > 1 ? Math.min(1, imageDurations[0]) : 0
   const hasEntrance = n > 1 && AD >= 1 / fps + 0.001 && !isFirstVideo
 
-  if (hasEntrance && !prevFrameImage) {
-    console.error(`\nERROR: Non-first video requires prevFrameImage for entrance background — missing.`)
-    process.exit(1)
-  }
-
-  const ZOOM_RATE = 0.20
-  const ZOOM_PER_FRAME = ZOOM_RATE / fps
   const SCALE_FILTER = `scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,` +
     `pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2,setsar=1`
 
@@ -148,62 +127,16 @@ function buildImageVideo(imagePaths, imageDurations, outputPath, targetW, target
 
   for (let i = 0; i < n; i++) {
     const dur = imageDurations[i].toFixed(3)
-    const durNum = imageDurations[i]
     const label = `v${i}`
 
-    if (i === 0 && hasEntrance) {
-      // Entrance: background + foreground with optional zoom
-      if (prevFrameImage) {
-        inputs.push('-loop', '1', '-t', dur, '-i', prevFrameImage)
-        filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[bg0]`)
-        inputIdx++
-      }
-      inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
-
-      const fgLabel = `fg0`
-      if (segmentAnim[i]?.animation === 'zoom') {
-        const delay = AD + 0.5
-        const delayFrames = Math.round(delay * fps)
-        const freezeFrames = Math.round(0.5 * fps)
-        const zoomFrames = Math.max(0, Math.round(durNum * fps) - delayFrames - freezeFrames)
-        if (zoomFrames > 0) {
-          const finalZoom = 1 + ZOOM_PER_FRAME * zoomFrames
-          filterParts.push(
-            `[${inputIdx}:v]${SCALE_FILTER},` +
-            `zoompan=z='min(1+${ZOOM_PER_FRAME}*max(0,it-${delayFrames}),${finalZoom.toFixed(6)})':` +
-            `d=1:s=${targetW}x${targetH}:fps=${fps}[${fgLabel}]`
-          )
-        } else {
-          filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${fgLabel}]`)
-        }
-      } else {
-        filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${fgLabel}]`)
-      }
+    if (i === 0 && hasEntrance && prevFrameImage) {
+      inputs.push('-loop', '1', '-t', dur, '-i', prevFrameImage)
+      filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[bg0]`)
       inputIdx++
-
-      filterParts.push(`[bg0][${fgLabel}]overlay=x='min(0,-${targetW}+${targetW}*t/${AD})':y=0[${label}]`)
-    } else if (segmentAnim[i]?.animation === 'zoom') {
-      const delay = i === 0
-        ? (isFirstVideo ? 1.0 : AD + 0.5)
-        : 0
-      const delayFrames = Math.round(delay * fps)
-      const freezeFrames = Math.round(0.5 * fps)
-      const zoomFrames = Math.max(0, Math.round(durNum * fps) - delayFrames - freezeFrames)
-
-      if (zoomFrames <= 0) {
-        inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
-        filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${label}]`)
-        inputIdx++
-      } else {
-        const finalZoom = 1 + ZOOM_PER_FRAME * zoomFrames
-        inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
-        filterParts.push(
-          `[${inputIdx}:v]${SCALE_FILTER},` +
-          `zoompan=z='min(1+${ZOOM_PER_FRAME}*max(0,it-${delayFrames}),${finalZoom.toFixed(6)})':` +
-          `d=1:s=${targetW}x${targetH}:fps=${fps}[${label}]`
-        )
-        inputIdx++
-      }
+      inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
+      filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[fg0]`)
+      inputIdx++
+      filterParts.push(`[bg0][fg0]overlay=x='min(0,-${targetW}+${targetW}*t/${AD})':y=0[${label}]`)
     } else {
       inputs.push('-loop', '1', '-t', dur, '-i', imagePaths[i])
       filterParts.push(`[${inputIdx}:v]${SCALE_FILTER},fps=${fps}[${label}]`)
@@ -311,13 +244,6 @@ async function generateImageVideo(scriptPath) {
     }
   }
 
-  // Parse optional per-segment config
-  const segmentConfig = parseScriptConfig(scriptPath)
-  if (segmentConfig.length > 0 && segmentConfig.length !== segments.length) {
-    console.error(`\nERROR: config has ${segmentConfig.length} entries but subtitle has ${segments.length} lines`)
-    process.exit(1)
-  }
-
   // 2. Build image videos per orientation
   const preset = lib.resolveSizePreset()
   const orientationFilter = lib.resolveOrientationFilter()
@@ -363,27 +289,11 @@ async function generateImageVideo(scriptPath) {
       console.log(`  ${basename(img)}`)
     }
 
-    // Build per-segment image list considering pre_image
-    const perSegmentImages = []
-    let imgIdx = 0
-    for (let i = 0; i < segments.length; i++) {
-      if (segmentConfig[i]?.pre_image) {
-        if (i === 0) {
-          console.error(`\nERROR: First line cannot have pre_image`)
-          process.exit(1)
-        }
-        perSegmentImages.push(perSegmentImages[i - 1])
-      } else {
-        perSegmentImages.push(images[imgIdx])
-        imgIdx++
-      }
-    }
-
-    const effectiveCount = segments.filter((_, i) => !segmentConfig[i]?.pre_image).length
-    if (images.length !== effectiveCount) {
-      console.error(`\nERROR: ${images.length} images but ${effectiveCount} required for ${suffix} (${segments.length} lines, ${segments.length - effectiveCount} use pre_image)`)
+    if (images.length !== segments.length) {
+      console.error(`\nERROR: ${images.length} images but ${segments.length} required for ${suffix}`)
       process.exit(1)
     }
+    const perSegmentImages = images
 
     // Auto-find previous video's last frame for entrance background
     let prevFrameImage = null
@@ -400,11 +310,10 @@ async function generateImageVideo(scriptPath) {
     }
 
     if (!isFirstVideo && !prevFrameImage) {
-      console.error(`\nERROR: ${scriptFileName} is not the first video but cannot find previous video (${prevName}${suffix}.webm)`)
-      process.exit(1)
+      console.warn(`\nWARN: ${scriptFileName} — previous video (${prevName}${suffix}.webm) not found, skipping entrance animation`)
     }
 
-    buildImageVideo(perSegmentImages, imageDurations, outputVideo, width, height, fps, prevFrameImage, segmentConfig, isFirstVideo)
+    buildImageVideo(perSegmentImages, imageDurations, outputVideo, width, height, fps, prevFrameImage, isFirstVideo)
     anyVideo = true
   }
 
