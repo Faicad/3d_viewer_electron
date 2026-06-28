@@ -11,7 +11,7 @@ const CLICK_TARGET = {
 }
 
 export function scene({ imagePath, width, height, duration, fps, index, startTime, totalDuration }) {
-  const bg = `<div style="position:absolute;inset:0;background:#d8d8d8 url('${imagePath}') no-repeat center/contain"></div>`;
+  const bg = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:#d8d8d8 url('${imagePath}') no-repeat center/contain"></div>`;
   const isLandscape = width > height
 
   let html = bg
