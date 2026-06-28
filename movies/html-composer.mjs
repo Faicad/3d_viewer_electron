@@ -26,7 +26,7 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
     // keeps its original line anchor so triggerAt remains self-contained)
     for (const step of anims) step._baseS = entries[i].s
     const prev = groups[groups.length - 1]
-    if (prev && urls[i].url === prev.url) {
+    if (prev && (urls[i].url === prev.url || !urls[i].url)) {
       prev.urlIndices.push(i)
       prev.anims.push(...anims)
       Object.assign(prev.marks, marks[i] || {})

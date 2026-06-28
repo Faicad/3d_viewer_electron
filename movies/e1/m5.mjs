@@ -62,7 +62,7 @@ const urls = [
     ],
   },
   {
-    url: 'https://gitcode.com/Faicad/3d_viewer_electron/releases/',
+    url: '',
     description: 'url不变，延续画面内容。居中显示字幕动画"求关注、求转发、求收藏"，分三段显示出来。不消失',
     anim: [
       // 一行文字，分三段依次显示

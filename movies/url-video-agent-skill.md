@@ -35,7 +35,7 @@ const urls = [
     description: '本页面显示1秒后，高亮"3D_Viewer_1.7.2_x64_cn_Setup.exe"下载链接',
   },
   {
-    url: 'https://gitcode.com/Faicad/3d_viewer_electron/releases/',
+    url: '',  // 空字符串 = 延续上一个 url 的画面，不创建新场景
     description: 'url不变，延续画面内容。居中显示字幕动画"求关注、求转发、求收藏"，分三段显示出来',
   },
 ];
@@ -45,6 +45,7 @@ const urls = [
 - `subtitle` 的每行对应一句台词，行号从 0 开始（首句=0）
 - `urls` 数量 = `subtitle` 行数（一一对应）
 - `description` 中的时间描述统一为："台词开始N秒后"、"结束前N秒"、"上个动画结束后"。场景延续用"url不变，延续画面内容"
+- **延续场景规则**：如果 `url` 设为空字符串 `''`，代表延续上一个 url 的画面，不会创建新场景，截图和 marks 复用上一个 URL 的。连续多个空字符串也全部合并到同一个场景。
 
 ---
 
@@ -88,7 +89,7 @@ node movies/pregen-tts.mjs <script.mjs>
 - 第 i 个 URL 的场景**结束** = `entries[i].e - entries[i].s`（该行台词持续时长）
 - 第 i 个 URL 的动画**默认结束** = `entries[i].e - entries[i].s`。即用户未指定 `duration` 或 `highlightMs` 时，`duration = (entries[i].e - entries[i].s) - triggerAt`
 - 如果 URL 数量少于台词行数，多余的台词行不绑定 URL
-- **「url不变，延续画面内容」**：连续相同 URL 自动合并为一个场景。共用一个截图，动画合并，场景时间从第一个台词行 s 到最后一行 e，中间不切换场景。各动画的 `triggerAt` 仍然相对于各自台词行的开始。
+- **「url不变，延续画面内容」**：将 `url` 设为空字符串 `''`，代表延续上一个 URL 的画面。空字符串条目自动合并到前一个场景，共用一个截图，动画合并，场景时间从第一个台词行 s 到最后一行 e，中间不切换场景。各动画的 `triggerAt` 仍然相对于各自台词行的开始。
 
 ### 必须检查的冲突
 
@@ -120,7 +121,7 @@ node movies/pregen-tts.mjs <script.mjs>
   URL 0: 0 — 3.1  (GitHub)
   URL 1: 0 — 2.97 (GitCode)
   URL 2: 0 — 3.05 (GitCode Releases)
-  URL 3: 0 — 2.4  (同 URL 2，合并场景)
+   URL 3: 0 — 2.4  (空字符串，合并到 URL 2 场景)
 
 动画计算（triggerAt 相对台词开始）:
   URL 0: "首句台词1秒后" → triggerAt = 1.0
@@ -131,7 +132,7 @@ node movies/pregen-tts.mjs <script.mjs>
          (auto-scroll: "All releases" y=957 超出视口，自动插入 scroll-to-text @ 1.47)
   URL 2: "本页面显示1秒后" → triggerAt = 1.0
          highlight-area triggerAt=1.0, end=1.0+2.05=3.05 ≤ 3.05 ✅
-  URL 3: url 与 URL 2 相同 → 合并到同一个场景
+   URL 3: url 为空字符串 → 合并到 URL 2 的场景
          caption triggerAt=0, duration=2.4 ≤ 2.4 ✅
 
 无冲突。所有动画在场景窗口内，URL 2 和 URL 3 自动合并无重叠。
@@ -381,7 +382,7 @@ ai_gen/
 
 ```mjs
 {
-  url: 'https://gitcode.com/Faicad/3d_viewer_electron/releases/',
+  url: '',  // 空字符串 = 延续上一个 url 的画面
   description: 'url不变，延续画面内容。居中显示字幕动画"求关注、求转发、求收藏"，分三段显示出来',
   anim: [
     {

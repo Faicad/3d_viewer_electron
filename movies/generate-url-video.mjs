@@ -129,21 +129,20 @@ async function generateUrlVideo(scriptPath) {
     ? preset.orientations.filter(o => o.suffix === `_${orientationFilter}`)
     : preset.orientations
 
+
+  if (force) console.log('screenshot can not refresh by code, it should be refreshed by ai.')
   // 5. Take screenshots for each orientation (if needed)
   // ⚠️ 暂时屏蔽：截图必须与 marks 同一时刻由 AI Agent 手动生成，
   //    generate-url-video.mjs 自动截图会导致截图与 marks 不匹配。
-  //    如要启用，删除下方注释块即可。
   /*
-  const force = process.argv.slice(2).includes('-f')
-  if (force) console.log('  -f: forcing screenshot refresh')
-  for (const { width, height, suffix } of orientations) {
-    for (let i = 0; i < urls.length; i++) {
-      const shotPath = join(aiGenDir, `${scriptName}_${pad4(i)}${suffix}_full.png`)
-      if (existsSync(shotPath) && !force) continue
-      console.log(`  Screenshot ${pad4(i)}${suffix}: ${urls[i].url}`)
-      await takeScreenshot(urls[i].url, shotPath, width, height)
-    }
-  }
+  // for (const { width, height, suffix } of orientations) {
+  //   for (let i = 0; i < urls.length; i++) {
+  //     const shotPath = join(aiGenDir, `${scriptName}_${pad4(i)}${suffix}_full.png`)
+  //     if (existsSync(shotPath) && !force) continue
+  //     console.log(`  Screenshot ${pad4(i)}${suffix}: ${urls[i].url}`)
+  //     await takeScreenshot(urls[i].url, shotPath, width, height)
+  //   }
+  // }
   */
 
   // 6. Build HTML composition for each orientation
