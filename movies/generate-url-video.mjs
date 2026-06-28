@@ -88,10 +88,13 @@ async function generateUrlVideo(scriptPath) {
     if (pregenR.status !== 0) process.exit(pregenR.status ?? 1)
 
     const result = await generateSubtitle(scriptPath, { ttsProvider })
-    segments = result.segments
     imageDurations = result.imageDurations
 
-    if (segments.length === 0) {
+    // result.entries is populated when generateSubtitle actually runs;
+    // fall back to reading the .subtitle file when it was skipped (up-to-date).
+    if (result.entries && result.entries.length > 0) {
+      segments = [{ entries: result.entries }]
+    } else {
       const subtitlePath = join(genDir, `${scriptName}.subtitle`)
       const data = JSON.parse(readFileSync(subtitlePath, 'utf-8'))
       const entries = data.segments[0].entries
