@@ -5,6 +5,7 @@ old
 *.mp3
 *.step
 **/gen/*
+**/ai_gen/*.png
 screenshot/*
 pretrained_models/*
 p*/*.stl

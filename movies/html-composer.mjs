@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 
 const GSAP_SRC = join(dirname(fileURLToPath(import.meta.url)), 'templates', 'gsap.min.js')
 
-export function buildHtmlComposition({ urls, marks, segments, imageDurations, genDir, scriptName, suffix, width, height }) {
+export function buildHtmlComposition({ urls, marks, segments, imageDurations, genDir, aiGenDir, scriptName, suffix, width, height }) {
   const hfDir = join(genDir, `.hf_${scriptName}${suffix}`)
   mkdirSync(hfDir, { recursive: true })
 
@@ -43,7 +43,7 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
 
   // Copy only needed screenshots
   for (const g of groups) {
-    const src = join(genDir, `${scriptName}_${pad4(g.bgIndex)}${suffix}_full.png`)
+    const src = join(aiGenDir || genDir, `${scriptName}_${pad4(g.bgIndex)}${suffix}_full.png`)
     if (existsSync(src)) {
       copyFileSync(src, join(hfDir, `bg_${g.urlIndices[0]}.png`))
     }

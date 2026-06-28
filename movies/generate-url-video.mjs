@@ -43,9 +43,11 @@ async function generateUrlVideo(scriptPath) {
   const scriptDir = dirname(scriptPath)
   const scriptName = basename(scriptPath, extname(scriptPath))
   const genDir = join(scriptDir, 'gen')
+  const aiGenDir = join(scriptDir, 'ai_gen')
 
   console.log(`Generate: ${basename(scriptPath)}`)
   mkdirSync(genDir, { recursive: true })
+  mkdirSync(aiGenDir, { recursive: true })
 
   // 1. Parse script
   const urls = parseUrls(scriptPath)
@@ -127,16 +129,21 @@ async function generateUrlVideo(scriptPath) {
     : preset.orientations
 
   // 5. Take screenshots for each orientation (if needed)
+  // ⚠️ 暂时屏蔽：截图必须与 marks 同一时刻由 AI Agent 手动生成，
+  //    generate-url-video.mjs 自动截图会导致截图与 marks 不匹配。
+  //    如要启用，删除下方注释块即可。
+  /*
   const force = process.argv.slice(2).includes('-f')
   if (force) console.log('  -f: forcing screenshot refresh')
   for (const { width, height, suffix } of orientations) {
     for (let i = 0; i < urls.length; i++) {
-      const shotPath = join(genDir, `${scriptName}_${pad4(i)}${suffix}_full.png`)
+      const shotPath = join(aiGenDir, `${scriptName}_${pad4(i)}${suffix}_full.png`)
       if (existsSync(shotPath) && !force) continue
       console.log(`  Screenshot ${pad4(i)}${suffix}: ${urls[i].url}`)
       await takeScreenshot(urls[i].url, shotPath, width, height)
     }
   }
+  */
 
   // 6. Build HTML composition for each orientation
   console.log(`\n=== Building composition (${totalDuration.toFixed(2)}s total) ===`)
@@ -155,22 +162,23 @@ async function generateUrlVideo(scriptPath) {
         continue
       }
 
-      const marksPathH = join(genDir, `${scriptName}_${pad4(i)}_h_marks.json`)
-      const marksPath = join(genDir, `${scriptName}_${pad4(i)}${suffix}_marks.json`)
-      const actualPath = suffix === '_h' || !existsSync(marksPath) ? marksPathH : marksPath
-      if (existsSync(actualPath)) {
-        allMarks.push(JSON.parse(readFileSync(actualPath, 'utf-8')))
+      // marks.json 是 AI Agent 手动生成的项目源文件，存放于 ai_gen/ 目录。
+      const marksName = `${scriptName}_${pad4(i)}${suffix}_marks.json`
+      const marksPath = join(aiGenDir, marksName)
+      if (existsSync(marksPath)) {
+        allMarks.push(JSON.parse(readFileSync(marksPath, 'utf-8')))
       } else {
-        console.error(`ERROR: URL ${i} needs marks but file not found: ${basename(actualPath)}`)
+        console.error(`ERROR: URL ${i} needs marks but file not found: ${marksName}`)
         console.error(`  URL: ${urls[i].url}`)
         console.error(`  Anim types: ${anims.map(a => a.type).join(', ')}`)
+        console.error(`  (looked in ${aiGenDir}/)`)
         process.exit(1)
       }
     }
 
     const { hfDir, totalDuration: td } = buildHtmlComposition({
       urls, marks: allMarks, segments, imageDurations,
-      genDir, scriptName, suffix, width, height,
+      genDir, aiGenDir, scriptName, suffix, width, height,
     })
     console.log(`  Composition: ${hfDir}/index.html`)
 

@@ -156,10 +156,10 @@ const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 ```js
 await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 await new Promise(r => setTimeout(r, 3000));  // 等动态渲染
-await page.screenshot({ path: 'gen/m5_0000_h_full.png', fullPage: true });
+await page.screenshot({ path: 'ai_gen/m5_0000_h_full.png', fullPage: true });
 ```
 
-文件命名规则：`<scriptName>_<NNNN>_h_full.png`（固定 4 位序号）。
+文件命名规则：`<scriptName>_<NNNN>_<h|v>_full.png`（固定 4 位序号），横屏 `_h`（1920×1080）和竖屏 `_v`（1080×1920）各截一份。
 
 ### 2.3 定位元素
 
@@ -202,7 +202,42 @@ const rect = await page.$eval('.download-btn', el => {
 }
 ```
 
-文件命名：`<scriptName>_<NNNN>_h_marks.json`（与截图同目录，`gen/` 下）。
+### 2.6 `ai_gen/` 目录规范
+
+**`ai_gen/` 是 AI Agent 的完整工作产物目录**，与 `.gitignore` 的 `gen/` 不同。git 提交规则：**只提交代码和 JSON 等文本文件，不提交 PNG 截图**（仅因 PNG 体积大；截图必须与 marks 同一时刻捕获，`generate-url-video.mjs` 的自动截图已屏蔽）。包含三类文件：
+
+| 文件 | 生成方式 | 可重现 | 用途 |
+|------|---------|--------|------|
+| `*_h_full.png` / `*_v_full.png` | `page.screenshot()` | ✅ 代码自动重截图 | URL 截图，作 HTML 合成背景 |
+| `*_h_marks.json` / `*_v_marks.json` | AI Agent 手动分析 DOM | ❌ 只能手动重写 | 元素坐标，供 anim 引用 |
+| `*.mjs`（分析脚本） | AI Agent 手写 | ✅ 可重新运行 | DOM 探索过程，标记方法论 |
+
+**分析脚本必须留存**。AI Agent 在定位元素时写的 Playwright 分析脚本（如 `find_github_sidebar.mjs`、`refine_dom.mjs`）**必须保存在 `ai_gen/` 下，不得删除**。原因是：
+
+1. **文档价值**：脚本完整记录了"如何找到这个元素"的分析过程（用了什么选择器、遍历了什么 DOM 结构、为何选择这个区域），比 marks.json 单独更有意义
+2. **可复现性**：页面改版后，不需要从头理解业务逻辑，直接改几个选择器就能重新运行
+3. **横向复用**：同类网站（如 GitHub、GitCode）的定位方法可直接复制到新脚本
+
+参考 `movies/e1/ai_gen/` 的示例结构：
+
+```
+ai_gen/
+├── capture_m5.mjs              # 主截图+定位脚本（一次性生成所有产物）
+├── find_github_sidebar.mjs     # DOM 分析脚本：定位 Releases 侧边栏容器
+├── refine_github_dom.mjs       # DOM 细化脚本：确认 BorderGrid-row 精确坐标
+├── m5_0000_h_full.png
+├── m5_0000_h_marks.json        # Releases sidebar: (1289,651) 272×149
+├── m5_0000_v_full.png
+├── m5_0000_v_marks.json        # 竖屏独立坐标
+├── m5_0001_h_full.png + marks
+├── m5_0001_v_full.png + marks
+├── m5_0002_h_full.png + marks
+├── m5_0002_v_full.png + marks
+├── m5_0003_h_full.png          # 仅截图（caption 背景）
+└── m5_0003_v_full.png
+```
+
+文件命名规则：`<scriptName>_<NNNN>_<h|v>_marks.json`。
 
 ---
 
