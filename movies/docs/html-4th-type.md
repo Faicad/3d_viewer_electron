@@ -28,7 +28,7 @@ Windows自带的3D查看器
 const image = 'movies/screenshot/3D查看器';
 
 export function scene({ imagePath, width, height, duration, fps, index, startTime, totalDuration }) {
-  const bg = `<div style="position:absolute;inset:0;background:#d8d8d8 url('${imagePath}') no-repeat center/contain"></div>`;
+  const bg = `<div style="position:absolute;inset:0;background:#d8d8d8 url('${imagePath}') no-repeat center / contain"></div>`;
   // ...
   return { html, animation }
 }
@@ -83,7 +83,7 @@ movies/screenshot/
 
 ```javascript
 export function scene({ imagePath, startTime }) {
-  const bg = `<div style="position:absolute;inset:0;background:#d8d8d8 url('${imagePath}') no-repeat center/contain"></div>`;
+  const bg = `<div style="position:absolute;inset:0;background:#d8d8d8 url('${imagePath}') no-repeat center / contain"></div>`;
   return {
     html: bg + `<div id="t" style="...opacity:0">动画文字</div>`,
     animation: `  tl.to('#t', {opacity:1,duration:0.8}, ${(startTime + 0.5).toFixed(3)});\n`,

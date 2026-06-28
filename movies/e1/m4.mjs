@@ -13,14 +13,15 @@ const subtitle = `
 第一，要快，秒开模型零等待
 --1--
 第二，格式全
-支持20多种3D文件格式
+支持二十多种3D文件格式
 还支持模型格式转换
-比如可以把虚拟3D常用的glb格式转换为
-3D打印常用的3mf格式
+比如可以把虚拟3D常用的GLB格式转换为
+三维打印常用的3MF格式
 第三，要方便
-右侧缩略图列表可快速浏览同目录所有的3D模型
---2--
+右侧缩略图列表可快速浏览同目录的3D模型
+--3--
 还可以全屏查看本目录所有模型的缩略图
+是不是很酷！
 最良心的是，这款工具完全开源免费
 无广告、无收费、无捆绑
 `;
@@ -72,7 +73,7 @@ lib.makeMovie(
     // 2. 停1秒
     await page.waitForTimeout(1000)
     await lib.animateCamera(page, { rotate: 'y', angle:-120, duration: 5000, ease: 'none' })
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(3000)
     await lib.syncpoint(page)
 
     // 3. 连续加载右侧缩略图中接下来的多个模型
@@ -177,6 +178,59 @@ lib.makeMovie(
     })
     await lib.animateCursorClick(page, '[data-movie-target="true"]', { duration: 1000, distanceY: 100 })
     await lib.waitForModel(page)
+    await page.waitForTimeout(500)
+    // 隐藏右侧的缩略图（仅竖屏）
+    await page.evaluate(() => {
+      if (window.innerHeight <= window.innerWidth) return
+      const ui = window.__uiStore?.getState?.()
+      if (ui?.rightPanelOpen) ui.toggleRightPanel()
+    })
+
+    // // 模型向up方向移动5%距离
+    // await page.evaluate(async () => {
+    //   const gsap = window.__gsap
+    //   const api = window.__viewerAPI
+    //   const THREE = window.__THREE
+    //   const part = api.getPartProxy('__model__')
+    //   if (!part) return
+
+    //   // Resolve up-axis
+    //   const up = window.__modelStore.getState().activeUpAxis
+    //   const upIndex = up === 'z' ? 2 : 1 // 0=x, 1=y, 2=z
+
+    //   // Compute model bounding box size
+    //   const dev = window.__r3f_dev
+    //   const box = new THREE.Box3()
+    //   let hasGeom = false
+    //   if (dev?.scene) {
+    //     dev.scene.traverse((obj) => {
+    //       if (obj.isMesh && obj.visible && obj.geometry) {
+    //         box.expandByObject(obj)
+    //         hasGeom = true
+    //       }
+    //     })
+    //   }
+    //   const size = hasGeom ? box.getSize(new THREE.Vector3()) : new THREE.Vector3(0, 0, 0)
+    //   const upExtent = size.getComponent(upIndex)
+    //   const distance = upExtent * 0.05
+
+    //   const startPos = [part.position.x, part.position.y, part.position.z]
+    //   const targetPos = [...startPos]
+    //   targetPos[upIndex] += distance
+
+    //   const proxy = { x: startPos[0], y: startPos[1], z: startPos[2] }
+    //   return new Promise((resolve) => {
+    //     gsap.to(proxy, {
+    //       x: targetPos[0], y: targetPos[1], z: targetPos[2],
+    //       duration: 2,
+    //       ease: 'power2.inOut',
+    //       onUpdate: () => {
+    //         api.setPartTransform('__model__', { position: [proxy.x, proxy.y, proxy.z] })
+    //       },
+    //       onComplete: resolve,
+    //     })
+    //   })
+    // })
     await page.waitForTimeout(2500)
   },
 )

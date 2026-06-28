@@ -1,6 +1,6 @@
 
 const subtitle = `
-也许还有拓竹的(Bambu Studio)可用
+也许还有拓竹的程序(Bambu Studio)可用
 但是打开一个文件总是要等十多秒
 有时甚至是几十秒
 `;
@@ -40,9 +40,9 @@ export function scene({ imagePath, width, height, duration, fps, index, startTim
 
   if (index === 0) {
     // 第一秒 bg_0 -> 立刻切为 bg_1 (0.3秒) -> 1.3s 立刻切为 bg_2
-    html = `<div id="i0" style="position:absolute;inset:0;background:#d8d8d8 url('bg_0.png') no-repeat center/contain"></div>`
-    html += `<div id="i1" style="position:absolute;inset:0;background:#d8d8d8 url('bg_1.png') no-repeat center/contain;opacity:0"></div>`
-    html += `<div id="i2" style="position:absolute;inset:0;background:#d8d8d8 url('bg_2.png') no-repeat center/contain;opacity:0"></div>`
+    html = `<div id="i0" style="position:absolute;inset:0;background:#d8d8d8 url('bg_0.png') no-repeat center / contain"></div>`
+    html += `<div id="i1" style="position:absolute;inset:0;background:#d8d8d8 url('bg_1.png') no-repeat center / contain;opacity:0"></div>`
+    html += `<div id="i2" style="position:absolute;inset:0;background:#d8d8d8 url('bg_2.png') no-repeat center / contain;opacity:0"></div>`
     const t = startTime
     animation += `  tl.set('#i0', {opacity:0}, ${(t + 1.0).toFixed(3)});\n`
     animation += `  tl.set('#i1', {opacity:1}, ${(t + 1.0).toFixed(3)});\n`
@@ -61,7 +61,7 @@ export function scene({ imagePath, width, height, duration, fps, index, startTim
       animation += `  tl.to('#d1_${i}', {opacity:1,duration:0.05}, ${(dotBase + i * dotInterval).toFixed(3)});\n`
     }
 
-    html = `<div style="position:absolute;inset:0;background:#d8d8d8 url('bg_2.png') no-repeat center/contain"></div>`
+    html = `<div style="position:absolute;inset:0;background:#d8d8d8 url('bg_2.png') no-repeat center / contain"></div>`
     html += `<div id="anno1" ${attr}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;等待漫长的启动${dotsHtml}</div>`
     animation += `  tl.to('#anno1', {opacity:1,duration:0.3,ease:'power2.out'}, ${(startTime + 2.0).toFixed(3)});\n`
   }
@@ -83,7 +83,7 @@ export function scene({ imagePath, width, height, duration, fps, index, startTim
       }
     }
 
-    html = `<div style="position:absolute;inset:0;background:#d8d8d8 url('bg_2.png') no-repeat center/contain"></div>`
+    html = `<div style="position:absolute;inset:0;background:#d8d8d8 url('bg_2.png') no-repeat center / contain"></div>`
     html += `<div ${attr.replace('opacity:0', 'opacity:1')}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;等待漫长的启动${dotsHtml}</div>`
     animation += dotsAnim
   }

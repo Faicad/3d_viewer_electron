@@ -9,10 +9,9 @@
 const subtitle = `
 海外用户直接Github获取
 国内用户前往Gitcode下载\n((gitcode.com/Faicad))
-文件名带cn的是中文版, 建议你下载试用
+文件名带cn的是中文版，建议你下载试用\n((gitcode.com/Faicad))
 求关注、求转发、求收藏
 `;
-
 
 const urls = [
   {

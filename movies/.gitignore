@@ -13,3 +13,4 @@ p*/*.stl
 p*/*.3mf
 p*/
 exported.stl
+__pycache__

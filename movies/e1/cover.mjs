@@ -14,19 +14,20 @@ const text2 = '一款Windows软件停用'
 
 // ===== 预设 =====
 // 改这一行即可切换：gold-blue | rose-teal | amber-violet | coral-navy | emerald-peach | platinum-slate | neon-cyan | copper-sage | ruby-ice | lavender-mint
-const PRESET = 'amber-violet'
+const PRESET = 'gold-ruby'
 const SWAP = false  // true → text1/text2 颜色互换
 
 // ===== 布局 =====
-// 横屏(h)竖屏(v)分开，每行文字独立配置 { top: 百分比数字, align: 'left'|'center'|'right' }
+// 横屏(h)竖屏(v)分开。每个 text 可选：{ top, align, pad?, fontSize? }
+// fontSize 不设则 auto（按行宽计算），横屏 auto 时自动减半
 const LAYOUT = {
   h: {
-    text1: { top: 44, align: 'left', pad:15 },
-    text2: { top: 70, align: 'right', pad:15 },
+    text1: { top: 20, align: 'center', pad:15, fontSize: 120 },
+    text2: { top: 33, align: 'right', pad:15 },
   },
   v: {
-    text1: { top: 23, align: 'center' },
-    text2: { top: 80, align: 'center' },
+    text1: { top: 23, align: 'center', fontSize: 120 },
+    text2: { top: 75, align: 'center' },
   },
 }
 
@@ -36,6 +37,10 @@ const PRESETS = {
   'gold-blue': {       // 金蓝 · 暖冷互补
     text1: ['#F8ECD0', '#F0D898', '#E4C878'],
     text2: ['#E0ECF8', '#C4D8EC', '#A8C4E0'],
+  },
+  'gold-gold': { 
+    text1: ['#F8ECD0', '#F0D898', '#E4C878'],
+    text2: ['#F8ECD0', '#F0D898', '#E4C878'],
   },
   'rose-teal': {       // 玫青 · 温柔互补
     text1: ['#F5D5E0', '#E8A0B8', '#D07890'],
@@ -143,15 +148,18 @@ try {
       imgUrl = pathToFileURL(rawPath).href
     }
 
-    const baseFs = fontSizeForWidth(w, text1)
-    const fs = isH ? Math.round(baseFs * 0.5) : baseFs
+    const layout = LAYOUT[orient]
+    const autoFs = t => isH
+      ? Math.round(fontSizeForWidth(w, t) * 0.5)
+      : fontSizeForWidth(w, t)
+    const fs1 = layout.text1.fontSize ?? autoFs(text1)
+    const fs2 = layout.text2.fontSize ?? autoFs(text2)
     const finalPath = join(genDir, `${projectName}_cover_final_${orient}.png`)
 
     const raw = PRESETS[PRESET] ?? PRESETS['gold-blue']
     const p = SWAP ? { text1: raw.text2, text2: raw.text1 } : raw
-    const layout = LAYOUT[orient]
-    const text1Css = positionCss(layout.text1) + gradientStyle(p.text1)
-    const text2Css = positionCss(layout.text2) + gradientStyle(p.text2)
+    const text1Css = positionCss(layout.text1) + `font-size:${fs1}px;` + gradientStyle(p.text1)
+    const text2Css = positionCss(layout.text2) + `font-size:${fs2}px;` + gradientStyle(p.text2)
 
     const targetRatio = isH ? 4 / 3 : 3 / 4
     const bgStyle = hasCoverOverlay
@@ -163,7 +171,7 @@ try {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:${w}px;height:${h}px;${bgStyle};position:relative}
-.t{font-size:${fs}px;font-weight:bold;font-family:'Microsoft YaHei','PingFang SC','Noto Sans CJK SC','Noto Sans CJK',sans-serif;filter:drop-shadow(0 2px 4px rgba(0,0,0,.85)) drop-shadow(0 6px 28px rgba(0,0,0,.45));line-height:1.2;position:absolute;word-break:keep-all;z-index:2}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;z-index:1;mix-blend-mode:multiply}
+.t{font-weight:bold;font-family:'Microsoft YaHei','PingFang SC','Noto Sans CJK SC','Noto Sans CJK',sans-serif;filter:drop-shadow(0 2px 4px rgba(0,0,0,.85)) drop-shadow(0 6px 28px rgba(0,0,0,.45));line-height:1.2;position:absolute;word-break:keep-all;z-index:2}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;z-index:1;mix-blend-mode:multiply}
 .text1{${text1Css}}
 .text2{${text2Css}}
 </style></head><body>
@@ -203,7 +211,7 @@ console.log('__CV__ viewport w='+document.documentElement.clientWidth+' h='+docu
     unlinkSync(htmlTmp)
 
     const srcLabel = hasCoverOverlay ? 'cover.png + gray bg' : basename(rawPath)
-    console.log(`[cover] ${srcLabel} → ${basename(finalPath)} (${w}×${h}, font ${fs}px${isH?', 60% scale':''})`)
+    console.log(`[cover] ${srcLabel} → ${basename(finalPath)} (${w}×${h}, "${text1}"=${fs1}px, "${text2}"=${fs2}px)`)
     anyWork = true
   }
 } finally {

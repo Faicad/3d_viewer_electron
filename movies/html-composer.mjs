@@ -80,7 +80,7 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
       gsapChunks.push(`  tl.to('#s${prevIdx}', {opacity:0,duration:${transitionDur}}, ${xfadeStart});`)
       gsapChunks.push(`  tl.to('#s${sceneIdx}', {opacity:1,duration:${transitionDur}}, ${xfadeStart});`)
     } else {
-      gsapChunks.push(`  tl.set('#s${sceneIdx}', {opacity:1}, ${sceneStart[gi].toFixed(3)});`)
+      gsapChunks.push(`  tl.set('#s${sceneIdx}', {opacity:1}, ${gi === 0 ? 0 : sceneStart[gi].toFixed(3)});`)
     }
 
     // Per-scene GSAP animations
@@ -283,7 +283,7 @@ function buildSceneHtml(scene, marks, index, width, height) {
 
   scrollHtml += '</div>'
 
-  return `<div class="scene" id="s${index}">${scrollHtml}${sceneExtras}</div>`
+  return `<div class="scene" id="s${index}"${index === 0 ? ' style="opacity:1"' : ''}>${scrollHtml}${sceneExtras}</div>`
 }
 
 // Compute annotation position relative to its target mark element.
