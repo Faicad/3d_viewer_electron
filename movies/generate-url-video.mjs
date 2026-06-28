@@ -5,7 +5,7 @@ import { pathToFileURL } from 'url'
 import { chromium } from 'playwright'
 import * as lib from './lib.mjs'
 import { generateSubtitle, parseSubtitleLines, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER } from './generate-subtitle.mjs'
-import { buildHtmlComposition, pad4 } from './html-composer.mjs'
+import { buildHtmlComposition, isMarkType, pad4 } from './html-composer.mjs'
 
 const round2 = (v) => Math.round(v * 100) / 100
 
@@ -139,17 +139,29 @@ async function generateUrlVideo(scriptPath) {
   console.log(`\n=== Building composition (${totalDuration.toFixed(2)}s total) ===`)
 
   for (const { width, height, suffix } of orientations) {
-    // Load marks for this orientation
+    // Load marks for this orientation.
+    // URLs with only caption/scroll-down/page-transition/custom don't need marks.
+    // Mark-requiring URLs MUST have a marks file — hard error if missing.
     const allMarks = []
     for (let i = 0; i < urls.length; i++) {
+      const anims = urls[i].anim || []
+      const needsMarks = anims.some(a => isMarkType(a.type))
+
+      if (!needsMarks) {
+        allMarks.push({})  // overlay-only, no file needed
+        continue
+      }
+
       const marksPathH = join(genDir, `${scriptName}_${pad4(i)}_h_marks.json`)
       const marksPath = join(genDir, `${scriptName}_${pad4(i)}${suffix}_marks.json`)
       const actualPath = suffix === '_h' || !existsSync(marksPath) ? marksPathH : marksPath
       if (existsSync(actualPath)) {
         allMarks.push(JSON.parse(readFileSync(actualPath, 'utf-8')))
       } else {
-        console.warn(`  ⚠ Marks not found: ${basename(actualPath)}, using empty`)
-        allMarks.push({})
+        console.error(`ERROR: URL ${i} needs marks but file not found: ${basename(actualPath)}`)
+        console.error(`  URL: ${urls[i].url}`)
+        console.error(`  Anim types: ${anims.map(a => a.type).join(', ')}`)
+        process.exit(1)
       }
     }
 

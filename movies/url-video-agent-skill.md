@@ -54,7 +54,7 @@ const urls = [
 node movies/pregen-tts.mjs <script.mjs>
 ```
 
-这会生成 `gen/<name>.subtitle`，其中包含每句台词的绝对时间（秒）：
+这会生成 `gen/<name>.subtitle`，其中包含每句台词的时间（秒）：
 
 ```json
 {
@@ -68,16 +68,14 @@ node movies/pregen-tts.mjs <script.mjs>
 }
 ```
 
-**关键**：根据这个时间轴计算 `triggerAt`：
+**关键**：根据这个时间轴计算 `triggerAt`。**triggerAt 是相对于当前台词行开始时刻的偏移秒数**。
 
-每个 URL 绑定唯一的台词行 `entries[i]`，所有时间描述都基于该行计算。**triggerAt 是相对于当前台词开始时刻的偏移秒数**，不是视频绝对时间。
-
-| description 中的说法 | 计算公式（相对值） | 绝对时间（供验证） |
-|----------------------|-------------------|-------------------|
-| "台词开始N秒后" | `N` | `entries[i].s + N` |
-| "结束前N秒" | `(entries[i].e - entries[i].s) - N` | `entries[i].e - N` |
-| "台词开始时" / 未指定 | `0` | `entries[i].s` |
-| "上个动画结束后" | 上一个 anim 步骤的 `triggerAt + duration`（或 `triggerAt + highlightMs/1000`） | `entries[i].s + 上一步结束偏移` |
+| description 中的说法 | 计算公式 |
+|----------------------|---------|
+| "台词开始N秒后" | `N` |
+| "结束前N秒" | `(entries[i].e - entries[i].s) - N` |
+| "台词开始时" / 未指定 | `0` |
+| "上个动画结束后" | 上一个 anim 步骤的 `triggerAt + duration`（或 `triggerAt + highlightMs/1000`） |
 
 ---
 
@@ -125,18 +123,16 @@ node movies/pregen-tts.mjs <script.mjs>
   URL 3: 0 — 2.4  (同 URL 2，合并场景)
 
 动画计算（triggerAt 相对台词开始）:
-  URL 0: "首句台词1秒后" → triggerAt = 1.0（绝对 0.5+1.0=1.5）
+  URL 0: "首句台词1秒后" → triggerAt = 1.0
          highlight-area triggerAt=1.0, end=1.0+2.1=3.1 ≤ 3.1 ✅
          text-annotation triggerAt=1.0, end=1.0+2.1=3.1 ✅
-  URL 1: "结束前1秒" → triggerAt = (6.72-3.75)-1.0 = 1.97（绝对 3.75+1.97=5.72）
+  URL 1: "结束前1秒" → triggerAt = (6.72-3.75)-1.0 = 1.97
          click-highlight triggerAt=1.97, end=1.97+1.0=2.97 ≤ 2.97 ✅
          (auto-scroll: "All releases" y=957 超出视口，自动插入 scroll-to-text @ 1.47)
-  URL 2: "本页面显示1秒后" → triggerAt = 1.0（绝对 6.87+1.0=7.87）
+  URL 2: "本页面显示1秒后" → triggerAt = 1.0
          highlight-area triggerAt=1.0, end=1.0+2.05=3.05 ≤ 3.05 ✅
-  URL 3: url 与 URL 2 相同 → 合并到同一个场景。triggerAt 仍相对本行开始(10.07)
-         "求关注" triggerAt=0, end=0+2.4=2.4 ≤ 2.4 ✅ (绝对 10.07)
-         "求转发" triggerAt=0.8, end=0.8+1.6=2.4 ✅ (绝对 10.87)
-         "求收藏" triggerAt=1.6, end=1.6+0.8=2.4 ✅ (绝对 11.67)
+  URL 3: url 与 URL 2 相同 → 合并到同一个场景
+         caption triggerAt=0, duration=2.4 ≤ 2.4 ✅
 
 无冲突。所有动画在场景窗口内，URL 2 和 URL 3 自动合并无重叠。
 ```
@@ -214,39 +210,99 @@ const rect = await page.$eval('.download-btn', el => {
 
 根据 description + subtitle 时间轴 + marks，组装每个 url 的 `anim` 数组。
 
+### Mark vs Caption（核心概念）
+
+动画分为两大类，区别在于**定位方式**：
+
+| 分类 | 定位方式 | 是否需要 marks.json | 找不到元素时 |
+|------|---------|-------------------|------------|
+| **Mark** | 通过 URL 页面内容定位（绑定 DOM 元素） | 是 | **必须报错** `process.exit(1)` |
+| **Caption** | 通过屏幕视口位置定位（不绑定任何元素） | 否 | 不涉及 |
+
+**Mark 类型**：`highlight-area`、`click-highlight`、`text-annotation`、`scroll-to-text`
+- 依赖 Playwright 在页面上找到目标元素，坐标写入 `marks.json`
+- **mark 找不到必须报错**，不允许静默跳过。`html-composer.mjs` 在 `resolveMark()` 中执行 `process.exit(1)`
+
+**Caption 类型**：`caption`
+- 不绑定页面元素，固定在视口位置，不随页面滚动
+- **必须在 .mjs 中明确提供样式、大小、定位参数**，方便用户直接调整，不依赖 html-composer 的默认值
+- `page-transition`、`scroll-down`、`custom` 也属于不需要 mark 的类型（非 Mark 非 Caption）
+
 ### 动画类型参考
 
-| type | 用途 | 关键参数 |
-|------|------|---------|
-| `highlight-area` | 高亮页面元素 | `selector`, `triggerAt`, `highlightMs`, `padding` |
-| `text-annotation` | 在页面元素旁加文字标注 | `target`, `text`, `triggerAt`, `duration`, `position` |
-| `click-highlight` | 鼠标点击效果 | `selector`, `triggerAt`, `highlightMs`, `ripple` |
-| `text-overlay` | 视口居中文字（无 mark） | `text`, `triggerAt`, `duration`, `top`, `fontSize`, `color`, `align`, `pad` |
-| `scroll-to-text` | 滚动到文字可见 | `text`, `triggerAt`, `duration`, `offset` |
-| `scroll-down` | 向下缓慢滚动 | `speed`, `triggerAt`, `pauseTop`, `pauseBottom` |
-| `page-transition` | 页面间过渡 | `transition`, `triggerAt`, `duration` |
+| type | 分类 | 用途 | 关键参数 |
+|------|------|------|---------|
+| `highlight-area` | **Mark** | 高亮页面元素 | `selector`, `triggerAt`, `highlightMs`, `padding` |
+| `text-annotation` | **Mark** | 在页面元素旁加文字标注 | `target`（marks key）, `text`（显示文字）, `triggerAt`, `duration`, `position` |
+| `click-highlight` | **Mark** | 鼠标点击效果 | `selector`, `triggerAt`, `highlightMs`, `ripple` |
+| `scroll-to-text` | **Mark** | 滚动到文字可见 | `text`, `triggerAt`, `duration`, `offset` |
+| `scroll-down` | — | 向下缓慢滚动 | `speed`, `triggerAt`, `pauseTop`, `pauseBottom` |
+| `caption` | **Caption** | 视口居中文字 | `text`, `triggerAt`, `duration`, **`top`**, **`fontSize`**, **`color`**, **`align`**, **`pad`** |
+| `page-transition` | — | 页面间过渡 | `transition`, `triggerAt`, `duration` |
 
-`text-annotation` 和 `text-overlay` 是两种完全不同的东西：
-- **`text-annotation`**：绑定页面元素（`target`），出现在目标旁边，跟随 scroll-layer 滚动
-- **`text-overlay`**：不绑定任何元素，视口定位，不随页面滚动。样式参数：
+### `caption` 样式参数（必须全部显式提供）
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `top` | 50 | 垂直位置（视口百分比） |
-| `fontSize` | 28 | 字号（px） |
-| `color` | `#ff6b35` | 文字颜色 |
-| `align` | `center` | 对齐：`center` / `left` / `right` |
-| `pad` | 5 | 水平边距百分比（align=left/right 时生效） |
+`caption` 是 Caption 类型，**所有样式参数必须在 .mjs 中显式写明**。
 
-**自动滚动**：`highlight-area`、`click-highlight`、`text-annotation` 如果目标元素不在当前视口内，`html-composer.mjs` 会自动插入 `scroll-to-text`。`text-overlay` 不参与自动滚动。
+每个样式参数支持两种格式：
+- **标量** — 横竖屏通用（如 `fontSize: 36`）
+- **`{h, v}` 对象** — 区分横屏/竖屏（如 `top: {h: 38, v: 45}`）
+
+`h` = 横屏（width > height），`v` = 竖屏。可只提供一种方向，缺失时自动 fallback 到另一个方向。
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `top` | number 或 `{h, v}` | 垂直位置（视口百分比，0=顶部 100=底部） |
+| `fontSize` | number 或 `{h, v}` | 字号（px） |
+| `color` | string 或 `{h, v}` | 文字颜色（如 `#ff6b35`） |
+| `align` | string 或 `{h, v}` | 对齐：`center` / `left` / `right` |
+| `pad` | number 或 `{h, v}` | 水平边距百分比（align=left/right 时生效） |
+
+### `caption` 的分段显示规则（`、` 分隔）
+
+`caption` 是**一句话，一个 DOM 元素，整行居中**。`、` 只是中文标点。
+
+如果 `text` 含 `、`（如 `"求关注、求转发、求收藏"`），`html-composer.mjs` 自动做渐进式文字动画：
+
+- **一个 div**，初始 textContent 为完整字符串
+- 通过 GSAP `tl.call` 在 staggered 时间点修改 `textContent`：
+  ```
+  t=0.0:   textContent = "求关注"
+  t=0.8:   textContent = "求关注、求转发"
+  t=1.6:   textContent = "求关注、求转发、求收藏"
+  ```
+- `duration` 均匀分配给各段
+- 整体淡入淡出照常
+
+**❌ 常见错误**：拆成多个 DOM 元素各自独立——会破坏"一句话整体居中"的语义，且各段互相遮挡。
+
+示例：
+
+```js
+{
+  type: 'caption',
+  text: '求关注、求转发、求收藏',   // 一行文字，`、` 自动累积分段，duration 均分
+  triggerAt: 0,
+  duration: 2.4,
+  top: { h: 38, v: 45 },
+  fontSize: { h: 36, v: 28 },
+  color: '#ff6b35',               // 标量，横竖屏一致
+  align: { h: 'center', v: 'center' },
+  pad: { h: 5, v: 8 },
+}
+```
+
+**自动滚动**：Mark 类型（`highlight-area`、`click-highlight`、`text-annotation`）如果目标元素不在当前视口内，`html-composer.mjs` 会自动插入 `scroll-to-text`。Caption 和其余非 Mark 类型不参与自动滚动。
 
 ### triggerAt 是相对时间
 
-所有 `triggerAt` 都是**相对于当前台词行开始时刻**的偏移秒数，不是视频绝对时间。视频生成时由 `html-composer.mjs` 自动加上 `entries[i].s` 换算为绝对时间。
+所有 `triggerAt` 都是**相对于当前台词行开始时刻**的偏移秒数。视频生成时由 `html-composer.mjs` 自动换算。
 
 这样设计的好处：增加/删除/修改一行台词，只影响该行自己的动画时间，无需重算其他行的 `triggerAt`。
 
 ### 示例
+
+**Mark 示例**（绑定页面元素，需要 marks.json）：
 
 ```mjs
 {
@@ -255,18 +311,40 @@ const rect = await page.$eval('.download-btn', el => {
   anim: [
     {
       type: 'highlight-area',
-      selector: 'Releases sidebar',      // 匹配 marks.json 中的 key
-      triggerAt: 1.0,                     // 台词开始1秒后 = 1.0（相对当前行）
-      highlightMs: 2.1,                   // 绝对结束 = entries[0].s + 1.0 + 2.1 = 3.6
+      selector: 'Releases sidebar',      // ← marks.json 的 key
+      triggerAt: 1.0,
+      highlightMs: 2.1,
       padding: 60,
     },
     {
       type: 'text-annotation',
-      target: 'Releases sidebar',         // 标记位置
-      text: '这里下载',
-      triggerAt: 1.0,                     // 相对时间，与上面同时触发
+      target: 'Releases sidebar',         // ← marks.json 的 key（不是显示文字！）
+      text: '这里下载',                    // ← 显示文字
+      triggerAt: 1.0,
       duration: 2.1,
       position: 'top-right',
+    },
+  ],
+},
+```
+
+**Caption 示例**（视口定位，一行文字整体居中，`、` 自动累积三段）：
+
+```mjs
+{
+  url: 'https://gitcode.com/Faicad/3d_viewer_electron/releases/',
+  description: 'url不变，延续画面内容。居中显示字幕动画"求关注、求转发、求收藏"，分三段显示出来',
+  anim: [
+    {
+      type: 'caption',
+      text: '求关注、求转发、求收藏',   // 一行文字，累积显示：求关注 → 求关注、求转发 → 求关注、求转发、求收藏
+      triggerAt: 0,
+      duration: 2.4,
+      top: { h: 46, v: 50 },
+      fontSize: { h: 36, v: 28 },
+      color: '#ff6b35',
+      align: { h: 'center', v: 'center' },
+      pad: { h: 5, v: 8 },
     },
   ],
 },

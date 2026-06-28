@@ -110,7 +110,7 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
     .text-annotation{position:absolute;background:#ff6b35;color:#fff;padding:6px 14px;border-radius:6px;font:bold 18px sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,0.3)}
     .text-annotation::after{content:'';position:absolute;width:0;height:0;border:8px solid transparent}
     .text-annotation.top-right::after{bottom:100%;right:24px;border-bottom-color:#ff6b35}
-    .text-overlay{position:absolute;font-weight:bold;font-family:'Microsoft YaHei','PingFang SC',sans-serif;text-shadow:0 4px 20px rgba(0,0,0,.95);white-space:nowrap;pointer-events:none}
+    .caption{position:absolute;font-weight:bold;font-family:'Microsoft YaHei','PingFang SC',sans-serif;text-shadow:0 4px 20px rgba(0,0,0,.95);white-space:nowrap;pointer-events:none}
     .cursor-overlay{position:absolute;pointer-events:none;z-index:100}
     .cursor-pointer{width:32px;height:32px;background:radial-gradient(circle,#fff 2px,#000 2px,#000 4px,transparent 4px);border-radius:50%;position:absolute}
     .click-ripple{position:absolute;border:3px solid #ff6b35;border-radius:50%;width:40px;height:40px;opacity:0}
@@ -132,6 +132,29 @@ ${gsapCode}
   return { hfDir, totalDuration }
 }
 
+// ── Mark vs Caption ──────────────────────────────────────────────
+// Mark:    content-positioned (tied to a page element found via Playwright).
+//          Lookup key → marks.json entry. Not found → hard error.
+// Caption: screen-positioned (viewport coords), no mark lookup.
+//          Must provide explicit style/size/position in .mjs.
+//
+const MARK_TYPES = new Set(['highlight-area', 'click-highlight', 'text-annotation', 'scroll-to-text'])
+
+function isMarkType(type) {
+  return MARK_TYPES.has(type)
+}
+
+// Resolve the marks.json lookup key for a step.  Must stay in sync with
+// resolveMark() below.  Callers should guard non-mark types with !isMarkType()
+// first — non-mark types don't have marks.
+function getMarkKey(step) {
+  // text-annotation: step.text is display content, step.target is the lookup key
+  if (step.type === 'text-annotation') {
+    return step.target || step.selector
+  }
+  return step.selector || step.text || step.target
+}
+
 function injectAutoScroll(anims, marks, viewportHeight) {
   if (!anims.length) return anims
 
@@ -148,10 +171,16 @@ function injectAutoScroll(anims, marks, viewportHeight) {
   const autoScrolled = new Set()
 
   for (const step of anims) {
-    const markKey = step.selector || step.text || step.target
+    // Non-mark types: no element lookup → skip auto-scroll
+    if (!isMarkType(step.type)) {
+      result.push(step)
+      continue
+    }
+
+    const markKey = getMarkKey(step)
     const needsTarget = step.type === 'highlight-area'
       || step.type === 'click-highlight'
-      || (step.type === 'text-annotation' && step.target)
+      || step.type === 'text-annotation'
 
     if (needsTarget && markKey && marks[markKey] && !hasScroll.has(markKey) && !autoScrolled.has(markKey)) {
       const mark = marks[markKey]
@@ -188,13 +217,28 @@ function buildSceneHtml(scene, marks, index, width, height) {
   for (let ai = 0; ai < anims.length; ai++) {
     const step = anims[ai]
 
-    // text-overlay: viewport-positioned, no mark, stays outside scroll layer
-    if (step.type === 'text-overlay') {
-      sceneExtras += `<div class="text-overlay" id="s${index}_overlay${ai}" style="${textOverlayStyle(step, width, height)};opacity:0">${step.text}</div>`
+    // Non-mark types: no mark lookup needed
+    if (!isMarkType(step.type)) {
+      if (step.type === 'caption') {
+        const parts = step.text.split('、')
+        const style = captionStyle(step, width, height)
+        if (parts.length > 1) {
+          // One div, full text as layout anchor. Spans for progressive reveal — layout never shifts.
+          let html = `<div class="caption" id="s${index}_c${ai}" style="${style};opacity:0">`
+          for (let si = 0; si < parts.length; si++) {
+            const sep = si > 0 ? '、' : ''
+            html += `<span id="s${index}_c${ai}_p${si}" style="opacity:0">${sep}${parts[si]}</span>`
+          }
+          html += '</div>'
+          sceneExtras += html
+        } else {
+          sceneExtras += `<div class="caption" id="s${index}_c${ai}" style="${style};opacity:0">${step.text}</div>`
+        }
+      }
       continue
     }
 
-    // All other types require a mark (resolved from selector/text/target)
+    // Mark type: requires a mark from marks.json
     const mark = resolveMark(step, marks)
 
     // Use fullY for vertical position inside scroll layer (absolute page coords)
@@ -225,10 +269,7 @@ function buildSceneHtml(scene, marks, index, width, height) {
 }
 
 function resolveMark(step, marks) {
-  // text-annotation: step.text is display content, step.target is the lookup key
-  const key = step.type === 'text-annotation'
-    ? (step.target || step.selector)
-    : (step.selector || step.text || step.target)
+  const key = getMarkKey(step)
   if (!key) {
     console.error(`ERROR: animation type="${step.type}" has no selector/text/target`)
     process.exit(1)
@@ -250,15 +291,23 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
     const t = step.triggerAt != null ? baseS + step.triggerAt : baseS
     const dur = step.duration != null ? step.duration : 1
 
-    // text-overlay: no mark, viewport-positioned
-    if (step.type === 'text-overlay') {
-      chunks.push(`  tl.to('#s${sceneIndex}_overlay${ai}', {opacity:1,duration:0.3}, ${t.toFixed(3)});`)
-      chunks.push(`  tl.to('#s${sceneIndex}_overlay${ai}', {opacity:0,duration:0.3}, ${(t + dur).toFixed(3)});`)
+    // caption: ONE div (full text = layout anchor), spans control progressive reveal
+    if (step.type === 'caption') {
+      const parts = step.text.split('、')
+      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:1,duration:0.3}, ${t.toFixed(3)});`)
+      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${(t + dur).toFixed(3)});`)
+      if (parts.length > 1) {
+        const subDur = dur / parts.length
+        for (let si = 0; si < parts.length; si++) {
+          const segT = (t + si * subDur).toFixed(3)
+          chunks.push(`  tl.to('#s${sceneIndex}_c${ai}_p${si}', {opacity:1,duration:0.3}, ${segT});`)
+        }
+      }
       continue
     }
 
-    // All other types require a mark
-    const mark = resolveMark(step, marks)
+    // Mark types require a mark from marks.json; non-mark types pass null
+    const mark = isMarkType(step.type) ? resolveMark(step, marks) : null
 
     switch (step.type) {
       case 'scroll-down': {
@@ -323,12 +372,23 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
   return chunks
 }
 
-function textOverlayStyle(step, width, height) {
-  const fontSize = step.fontSize || 28
-  const color = step.color || '#ff6b35'
-  const align = step.align || 'center'
-  const topPct = step.top != null ? step.top : 50
-  const pad = step.pad || 5
+// Resolve a scalar or {h, v} object.  When the value is an object with h/v
+// keys, pick the key matching the current orientation (landscape = width > height).
+// Falls back to the other key if the matching one is missing.  Scalars pass through.
+function hv(value, isLandscape) {
+  if (value != null && typeof value === 'object' && ('h' in value || 'v' in value)) {
+    return isLandscape ? (value.h != null ? value.h : value.v) : (value.v != null ? value.v : value.h)
+  }
+  return value
+}
+
+function captionStyle(step, width, height) {
+  const isLandscape = width > height
+  const fontSize = hv(step.fontSize, isLandscape) || 28
+  const color = hv(step.color, isLandscape) || '#ff6b35'
+  const align = hv(step.align, isLandscape) || 'center'
+  const topPct = hv(step.top, isLandscape) ?? 50
+  const pad = hv(step.pad, isLandscape) || 5
 
   let pos
   switch (align) {
@@ -348,4 +408,4 @@ function textOverlayStyle(step, width, height) {
 
 function pad4(i) { return String(i).padStart(4, '0') }
 
-export { pad4 }
+export { isMarkType, pad4 }
