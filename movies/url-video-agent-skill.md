@@ -70,13 +70,14 @@ node movies/pregen-tts.mjs <script.mjs>
 
 **关键**：根据这个时间轴计算 `triggerAt`：
 
-每个 URL 绑定唯一的台词行 `entries[i]`，所有时间描述都基于该行计算：
+每个 URL 绑定唯一的台词行 `entries[i]`，所有时间描述都基于该行计算。**triggerAt 是相对于当前台词开始时刻的偏移秒数**，不是视频绝对时间。
 
-| description 中的说法 | 计算公式 |
-|----------------------|---------|
-| "台词开始N秒后" | `entries[i].s + N` |
-| "结束前N秒" | `entries[i].e - N` |
-| "上个动画结束后" | 上一个 anim 步骤的 `triggerAt + highlightMs/1000`（或 `triggerAt + duration`） |
+| description 中的说法 | 计算公式（相对值） | 绝对时间（供验证） |
+|----------------------|-------------------|-------------------|
+| "台词开始N秒后" | `N` | `entries[i].s + N` |
+| "结束前N秒" | `(entries[i].e - entries[i].s) - N` | `entries[i].e - N` |
+| "台词开始时" / 未指定 | `0` | `entries[i].s` |
+| "上个动画结束后" | 上一个 anim 步骤的 `triggerAt + duration`（或 `triggerAt + highlightMs/1000`） | `entries[i].s + 上一步结束偏移` |
 
 ---
 
@@ -84,12 +85,12 @@ node movies/pregen-tts.mjs <script.mjs>
 
 ### 默认规则
 
-**用户未明确指定时，一行台词对应一个 URL**：
-- 第 i 个 URL 的场景**开始时间** = `entries[i].s`（该行台词开始）
-- 第 i 个 URL 的场景**结束时间** = `entries[i].e`（该行台词结束）
-- 第 i 个 URL 的动画**默认结束时间** = `entries[i].e`。即用户未指定 `duration` 或 `highlightMs` 时，`duration = entries[i].e - triggerAt`
+**用户未明确指定时，一行台词对应一个 URL**（`triggerAt` 均为相对当前台词开始的偏移秒数）：
+- 第 i 个 URL 的场景**开始** = `0`（该行台词开始，相对时间）
+- 第 i 个 URL 的场景**结束** = `entries[i].e - entries[i].s`（该行台词持续时长）
+- 第 i 个 URL 的动画**默认结束** = `entries[i].e - entries[i].s`。即用户未指定 `duration` 或 `highlightMs` 时，`duration = (entries[i].e - entries[i].s) - triggerAt`
 - 如果 URL 数量少于台词行数，多余的台词行不绑定 URL
-- **「url不变，延续画面内容」**：连续相同 URL 自动合并为一个场景。共用一个截图，动画合并，场景时间从第一个台词行 s 到最后一行 e，中间不切换场景
+- **「url不变，延续画面内容」**：连续相同 URL 自动合并为一个场景。共用一个截图，动画合并，场景时间从第一个台词行 s 到最后一行 e，中间不切换场景。各动画的 `triggerAt` 仍然相对于各自台词行的开始。
 
 ### 必须检查的冲突
 
@@ -97,7 +98,7 @@ node movies/pregen-tts.mjs <script.mjs>
 
 **1. 动画超出场景窗口**
 
-如果 `triggerAt` 或 `triggerAt + duration/highlightMs` 超出该 URL 的场景时间窗口（`entries[i].s` ~ `entries[i].e`），该动画在场景结束后才会触发，视频中看不到。
+如果 `triggerAt` 或 `triggerAt + duration/highlightMs` 超出该 URL 的场景时间窗口（`0` ~ `entries[i].e - entries[i].s`，即该行台词持续时长），该动画在场景结束后才会触发，视频中看不到。
 
 提示用户：
 - 是否延长场景？（会与下一个场景重叠）
@@ -112,30 +113,30 @@ node movies/pregen-tts.mjs <script.mjs>
 
 ```
 台词（从 m5.subtitle）:
-  [0] 0.5 — 3.6   海外用户直接Github获取
-  [1] 3.75 — 6.72  国内用户前往Gitcode下载
-  [2] 6.87 — 9.92  文件名带cn的是中文版
-  [3] 10.07 — 12.47 建议你赶紧收藏自取！
+  [0] 0.5 — 3.6   海外用户直接Github获取      窗口 3.1s
+  [1] 3.75 — 6.72  国内用户前往Gitcode下载     窗口 2.97s
+  [2] 6.87 — 9.92  文件名带cn的是中文版       窗口 3.05s
+  [3] 10.07 — 12.47 建议你赶紧收藏自取！       窗口 2.4s
 
 默认场景窗口:
-  URL 0: 0.5 — 3.6  (GitHub)
-  URL 1: 3.75 — 6.72 (GitCode)
-  URL 2: 6.87 — 9.92 (GitCode Releases)
-  URL 3: 10.07 — 12.47 (同 URL 2，合并场景)
+  URL 0: 0 — 3.1  (GitHub)
+  URL 1: 0 — 2.97 (GitCode)
+  URL 2: 0 — 3.05 (GitCode Releases)
+  URL 3: 0 — 2.4  (同 URL 2，合并场景)
 
-动画计算:
-  URL 0: "首句台词1秒后" = 0.5+1.0 = 1.5
-         highlight-area triggerAt=1.5, end=1.5+2.1=3.6 ✅
-         text-annotation triggerAt=1.5, end=1.5+2.1=3.6 ✅
-  URL 1: "结束前1秒" = 6.72-1.0 = 5.72
-         click-highlight triggerAt=5.72, end=5.72+1.0=6.72 ✅
-         (auto-scroll: "All releases" y=957 超出视口，自动插入 scroll-to-text @ 5.22)
-  URL 2: "本页面显示1秒后" = 6.87+1.0 = 7.87
-         highlight-area triggerAt=7.87, end=7.87+2.05=9.92 ✅
-  URL 3: url 与 URL 2 相同 → 合并到同一个场景
-         "求关注" triggerAt=10.07, end=10.07+2.4=12.47 ✅
-         "求转发" triggerAt=10.87, end=10.87+1.6=12.47 ✅
-         "求收藏" triggerAt=11.67, end=11.67+0.8=12.47 ✅
+动画计算（triggerAt 相对台词开始）:
+  URL 0: "首句台词1秒后" → triggerAt = 1.0（绝对 0.5+1.0=1.5）
+         highlight-area triggerAt=1.0, end=1.0+2.1=3.1 ≤ 3.1 ✅
+         text-annotation triggerAt=1.0, end=1.0+2.1=3.1 ✅
+  URL 1: "结束前1秒" → triggerAt = (6.72-3.75)-1.0 = 1.97（绝对 3.75+1.97=5.72）
+         click-highlight triggerAt=1.97, end=1.97+1.0=2.97 ≤ 2.97 ✅
+         (auto-scroll: "All releases" y=957 超出视口，自动插入 scroll-to-text @ 1.47)
+  URL 2: "本页面显示1秒后" → triggerAt = 1.0（绝对 6.87+1.0=7.87）
+         highlight-area triggerAt=1.0, end=1.0+2.05=3.05 ≤ 3.05 ✅
+  URL 3: url 与 URL 2 相同 → 合并到同一个场景。triggerAt 仍相对本行开始(10.07)
+         "求关注" triggerAt=0, end=0+2.4=2.4 ≤ 2.4 ✅ (绝对 10.07)
+         "求转发" triggerAt=0.8, end=0.8+1.6=2.4 ✅ (绝对 10.87)
+         "求收藏" triggerAt=1.6, end=1.6+0.8=2.4 ✅ (绝对 11.67)
 
 无冲突。所有动画在场景窗口内，URL 2 和 URL 3 自动合并无重叠。
 ```
@@ -239,9 +240,11 @@ const rect = await page.$eval('.download-btn', el => {
 
 **自动滚动**：`highlight-area`、`click-highlight`、`text-annotation` 如果目标元素不在当前视口内，`html-composer.mjs` 会自动插入 `scroll-to-text`。`text-overlay` 不参与自动滚动。
 
-### triggerAt 是绝对时间
+### triggerAt 是相对时间
 
-所有 `triggerAt` 都是**相对于视频开始**的绝对秒数，不是相对场景偏移。
+所有 `triggerAt` 都是**相对于当前台词行开始时刻**的偏移秒数，不是视频绝对时间。视频生成时由 `html-composer.mjs` 自动加上 `entries[i].s` 换算为绝对时间。
+
+这样设计的好处：增加/删除/修改一行台词，只影响该行自己的动画时间，无需重算其他行的 `triggerAt`。
 
 ### 示例
 
@@ -253,15 +256,15 @@ const rect = await page.$eval('.download-btn', el => {
     {
       type: 'highlight-area',
       selector: 'Releases sidebar',      // 匹配 marks.json 中的 key
-      triggerAt: 1.5,                     // entries[0].s + 1.0
-      highlightMs: 2.1,                   // entries[0].e - triggerAt
+      triggerAt: 1.0,                     // 台词开始1秒后 = 1.0（相对当前行）
+      highlightMs: 2.1,                   // 绝对结束 = entries[0].s + 1.0 + 2.1 = 3.6
       padding: 60,
     },
     {
       type: 'text-annotation',
       target: 'Releases sidebar',         // 标记位置
       text: '这里下载',
-      triggerAt: 1.5,
+      triggerAt: 1.0,                     // 相对时间，与上面同时触发
       duration: 2.1,
       position: 'top-right',
     },

@@ -10,10 +10,21 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
 
   const totalDuration = imageDurations.reduce((a, b) => a + b, 0)
 
+  // Scene timing from subtitle entries.
+  // Each URL → one subtitle line. Merged groups span from first line's s to last line's e.
+  const entries = segments[0]?.entries
+  if (!entries || entries.length < urls.length) {
+    console.error(`ERROR: entries count (${entries?.length ?? 0}) < urls count (${urls.length})`)
+    process.exit(1)
+  }
+
   // Auto-inject scroll + group. Work on copies to avoid mutating shared urls.
   const groups = []
   for (let i = 0; i < urls.length; i++) {
     const anims = injectAutoScroll([...(urls[i].anim || [])], marks[i] || {}, height)
+    // Tag each step with its own line's start time (for merged scenes, each step
+    // keeps its original line anchor so triggerAt remains self-contained)
+    for (const step of anims) step._baseS = entries[i].s
     const prev = groups[groups.length - 1]
     if (prev && urls[i].url === prev.url) {
       prev.urlIndices.push(i)
@@ -41,13 +52,7 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
     copyFileSync(GSAP_SRC, join(hfDir, 'gsap.min.js'))
   }
 
-  // Scene timing from subtitle entries.
-  // Each URL → one subtitle line. Merged groups span from first line's s to last line's e.
-  const entries = segments[0]?.entries
-  if (!entries || entries.length < urls.length) {
-    console.error(`ERROR: entries count (${entries?.length ?? 0}) < urls count (${urls.length})`)
-    process.exit(1)
-  }
+  // Merged groups span from first line's s to last line's e.
   const sceneStart = groups.map(g => entries[g.urlIndices[0]].s)
   const sceneEnd = groups.map(g => {
     const lastIdx = g.urlIndices[g.urlIndices.length - 1]
@@ -241,7 +246,8 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
 
   for (let ai = 0; ai < anims.length; ai++) {
     const step = anims[ai]
-    const t = step.triggerAt != null ? step.triggerAt : sceneStart
+    const baseS = step._baseS != null ? step._baseS : sceneStart
+    const t = step.triggerAt != null ? baseS + step.triggerAt : baseS
     const dur = step.duration != null ? step.duration : 1
 
     // text-overlay: no mark, viewport-positioned
