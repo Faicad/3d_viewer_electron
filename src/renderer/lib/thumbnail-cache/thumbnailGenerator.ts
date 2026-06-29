@@ -371,8 +371,33 @@ export async function generateThumbnailFromResult(
     if (allMeshes.length > 0) {
       fitCameraToMeshes(allMeshes, camera, upAxis)
     } else {
-      camera.position.set(0, 0, 5)
-      camera.lookAt(0, 0, 0)
+      // Non-mesh objects (G-code LineSegments, PCD Points, etc):
+      // compute bounding box from the scene group and fit camera to it.
+      const box = new THREE.Box3().setFromObject(group)
+      if (!box.isEmpty()) {
+        const center = new THREE.Vector3()
+        box.getCenter(center)
+        const size = new THREE.Vector3()
+        box.getSize(size)
+        const maxDim = Math.max(size.x, size.y, size.z, 0.01)
+        const dist = maxDim * 1.8
+        const camPos = new THREE.Vector3(
+          0,
+          upAxis === 'y' ? dist : -dist * 0.6,
+          upAxis === 'y' ? dist * 0.6 : dist,
+        )
+        camPos.add(center)
+        camera.position.copy(camPos)
+        camera.lookAt(center)
+        if (upAxis === 'z') camera.up.set(0, 0, 1)
+        else camera.up.set(0, 1, 0)
+        camera.near = maxDim * 0.001
+        camera.far = maxDim * 10
+        camera.updateProjectionMatrix()
+      } else {
+        camera.position.set(0, 0, 5)
+        camera.lookAt(0, 0, 0)
+      }
     }
 
     await waitForTextures(group)

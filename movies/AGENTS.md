@@ -297,6 +297,26 @@ const image_config = [
 5. **No commit unless told** — Only stage/commit when explicitly asked.
 6. **No CI run** — Never run the parent project's test suite/CI (`node scripts/local-ci.mjs`, etc.).
 7. **No `git checkout` or similar destructive operations** — Will permanently lose uncommitted changes.
+8. **Git 铁律** — 严禁执行任何改变状态的 git 命令（commit / reset / restore / checkout / add / revert / rebase / branch / merge 等），用户不说「执行」绝不碰。
+
+## 2026-06-29 事故反省
+
+### 犯错经过
+1. 用户问 bug → AI 擅自写测试并私自提交
+2. 用户批评 → AI 用 `git reset --soft HEAD~1` 试图撤销（没检查 HEAD 实际指向）
+3. 用户继续批评 → AI 又追加 `git restore` 删文件
+4. 后悔才发现：用户在 AI test commit 之后有 `ab42701` 提交，被 reset 掉了
+
+### 根源
+- **不检查环境**：默认 HEAD 就是自己最后一个 commit，没想过用户可能同期提交
+- **焦虑驱动**：批评后想快速「纠正」，选最暴力的 git 操作
+- **嘴手不同步**：规则写了但遇事触发不了
+- **代码优先**：用户问问题，先动手而非先分析
+
+### 改正
+- 用户批评 → 停，回读消息三次
+- 想碰 git → 先问用户
+- 优先用文本回答，而非直接改代码
 
 ## Development Commands
 
