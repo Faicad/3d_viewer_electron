@@ -61,14 +61,47 @@
 │ 用户登录状态      │    │ 拼接 → TTS .subtitle     │    │ + 混背景音乐     │
 └──────────────────┘    │ + .mp3 → .webm           │    │                  │
                         └──────────────────────────┘    └──────────────────┘
-                                                                     │
-                                                     ┌────────────────┘
-                                                     ▼
-                                             ┌──────────────────┐
-                                             │ merge 拼接多片段  │
-                                             │ + 封面作为第 1 帧  │
-                                             └──────────────────┘
+                                                                      │
+                                                      ┌────────────────┘
+                                                      ▼
+                                              ┌──────────────────┐
+                                              │ merge 拼接多片段  │
+                                              │ + 封面作为第 1 帧  │
+                                              └──────────────────┘
 ```
+
+参阅 skill 文档：`movies/url-video-agent-skill.md`
+
+### 路径 D：本地截图合成（`image_config`，HTML 合成器 + Playwright 录制）
+
+```
+┌──────────────────┐    ┌──────────────────────────────┐    ┌──────────────────┐
+│ 本地截图          │    │ generate-image2-video.mjs     │ →  │ burn 烧录字幕+音 │
+│ movies/screenshot/│ →  │ HTML 合成器 + Playwright 录制  │    │ 频 (同路径A)     │
+│ easyocr-mark.mjs  │    │ TTS + .subtitle + .mp3      │    │ + 混背景音乐     │
+│ (定位文字写mark)   │    │ → .webm                      │    │                  │
+└──────────────────┘    └──────────────────────────────┘    └──────────────────┘
+                                                                      │
+                                                      ┌────────────────┘
+                                                      ▼
+                                              ┌──────────────────┐
+                                              │ merge 拼接多片段  │
+                                              │ + 封面作为第 1 帧  │
+                                              └──────────────────┘
+```
+
+参阅 skill 文档：`movies/image-config-agent-skill.md`
+
+**四种路径的对比**：
+
+| | 路径 A (3D) | 路径 B (截图合成) | 路径 C (URL) | 路径 D (image_config) |
+|---|---|---|---|---|
+| 数据源 | Three.js 3D 场景 | 本地截图 | 网页 URL | 本地截图 |
+| 截图方式 | Playwright 录屏 | 外部工具截好 | Playwright 自动截 | 外部工具截好 |
+| 动画引擎 | Three.js GSAP | FFmpeg 图片→视频 | FFmpeg 滚动 | HTML 合成器 + GSAP |
+| marks/坐标 | 不涉及 | mark-text-easyocr 标红圈 | Playwright DOM 分析 | easyocr-mark 写 marks.json |
+| 入口脚本 | `<script>.mjs` (makeMovie) | `generate-image-video.mjs` | `generate-url-video.mjs` | `generate-image2-video.mjs` |
+| skill 文档 | — | — | `url-video-agent-skill.md` | `image-config-agent-skill.md` |
 
 | 概念 | 说明 | 命令 | 输出 |
 |------|------|------|------|
@@ -77,6 +110,8 @@
 | **generate-subtitle** (字幕+配音) | 从缓存读取 TTS 时长 → `.subtitle` + `.mp3`（无溢出校验） | `node movies/generate-subtitle.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` |
 | **generate-image-video** (截图合成) | 截图 → TTS → 图片视频（路径 B，一步完成） | `node movies/generate-image-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
 | **generate-url-video** (URL 录制) | 网页截图 → TTS → 滚动视频（路径 C，一步完成） | `node movies/generate-url-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **generate-image2-video** (image_config 录制) | 本地截图 → HTML 合成器 + Playwright 录屏（路径 D，一步完成） | `node movies/generate-image2-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **easyocr-mark** (OCR 定位) | easyocr 分析截图 → 写入 marks.json | `node movies/easyocr-mark.mjs <img> <out.json> <text>` | `ai_gen/{*}_marks.json` |
 | **burn** (烧录) | 烧录 .subtitle 字幕 + 音频 + bgm | `node movies/burn.mjs <script> [-s\|-m\|-g] [-h\|-v]` | `gen/{name}_burn_{h\|v}_{N}.mp4` |
 | **merge** (合并) | 多个录制拼接 + 字幕 + 音频 → 成品 | `node movies/mergeVideo.mjs <dir>` | `gen/merged_{h\|v}.mp4` |
 | **cover** (封面预处理) | 对截图封面加文字/滤镜（约定：项目下 `cover.mjs`） | `node movies/p1/cover.mjs` | `gen/{project}_cover_final_{h\|v}.png` |
@@ -885,6 +920,11 @@ FFmpeg filter 语法中 `:` 是选项分隔符。`C:/path/file.ass` 会被解析
 - 字幕+配音生成：`movies/generate-subtitle.mjs`（`.mjs` → 从缓存读取 TTS → `.subtitle` + `.mp3`；无溢出校验）
 - 截图合成（路径 B）：`movies/generate-image-video.mjs`（`.mjs` → TTS + 图片合成 → `.subtitle` + `.mp3` + `.webm`）
 - URL 网页录制（路径 C）：`movies/generate-url-video.mjs`（`.mjs` → URL 截图 + 滚动拼接 → `.subtitle` + `.mp3` + `.webm`）
+- 截图合成（路径 D，`image_config`）：`movies/generate-image2-video.mjs`（`.mjs` → HTML 合成器 + Playwright 录屏 → `.subtitle` + `.mp3` + `.webm`）
+- 共享录制流程（路径 C/D）：`movies/lib_gen_url_image.mjs`（`generate-url-video.mjs` 和 `generate-image2-video.mjs` 的共享逻辑）
+- OCR 定位写 marks：`movies/easyocr-mark.mjs` + `movies/easyocr-mark.py`（easyocr 分析截图 → 写入 marks.json）
+- AI Agent skill（URL）：`movies/url-video-agent-skill.md`
+- AI Agent skill（image_config）：`movies/image-config-agent-skill.md`
 - 字幕工具函数：`movies/generate-subtitle.mjs` & `movies/generate-image-video.mjs`（`cleanTtsText`, `cleanDisplayText`）
 - 核心渲染+合并：`movies/mergeVideo.mjs`（`mergeProject`, `processProjectCovers`, `detectProjectCover`）
 - 单文件烧录 CLI：`movies/burn.mjs`
