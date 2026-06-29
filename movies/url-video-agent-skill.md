@@ -69,12 +69,16 @@ node movies/pregen-tts.mjs <script.mjs>
 }
 ```
 
-**关键**：根据这个时间轴计算 `triggerAt`。**triggerAt 是相对于当前台词行开始时刻的偏移秒数**。
+**关键**：根据这个时间轴计算 `triggerAt`。**`triggerAt` 是相对于当前画面/场景起始时刻（含静音间隙）的偏移秒数**。每一行字幕对应一个场景，场景时长 = `imageDurations[i]`（TTS 语音 + 尾随静音间隙）：
+
+- 首行：`imageDurations[0] = TTS_0 时长 + INITIAL_GAP(0.5s) + INTER_LINE_GAP(0.15s)`，从 `t=0` 开始
+- 后续行：`imageDurations[i] = TTS_i 时长 + INTER_LINE_GAP(0.15s)`，从 `entries[i].s` 开始（`INTER_LINE_GAP` 归前一个场景，不是当前场景的起始）
+- 最后一行：`imageDurations[last] = TTS_last 时长`，无尾随间隙
 
 | description 中的说法 | 计算公式 |
 |----------------------|---------|
-| "台词开始N秒后" | `N` |
-| "结束前N秒" | `(entries[i].e - entries[i].s) - N` |
+| "台词开始N秒后" / "本页面显示N秒后" | `N` |
+| "结束前N秒" | `imageDurations[i] - N` |
 | "台词开始时" / 未指定 | `0` |
 | "上个动画结束后" | 上一个 anim 步骤的 `triggerAt + duration`（或 `triggerAt + highlightMs/1000`） |
 
@@ -84,12 +88,14 @@ node movies/pregen-tts.mjs <script.mjs>
 
 ### 默认规则
 
-**用户未明确指定时，一行台词对应一个 URL**（`triggerAt` 均为相对当前台词开始的偏移秒数）：
-- 第 i 个 URL 的场景**开始** = `0`（该行台词开始，相对时间）
-- 第 i 个 URL 的场景**结束** = `entries[i].e - entries[i].s`（该行台词持续时长）
-- 第 i 个 URL 的动画**默认结束** = `entries[i].e - entries[i].s`。即用户未指定 `duration` 或 `highlightMs` 时，`duration = (entries[i].e - entries[i].s) - triggerAt`
+**用户未明确指定时，一行台词对应一个 URL**（`triggerAt` 均为相对当前场景起始时刻的偏移秒数）。场景包含 TTS 语音 + 静音间隙：
+
+- **场景起始**：首行从 `t=0` 开始（含 `INITIAL_GAP=0.5s` 片头静音）；后续行从 `entries[i].s` 开始（`INTER_LINE_GAP` 归前一个场景，不计入当前场景起始）
+- **场景时长** = `imageDurations[i]`（非最后一行：TTS 时长 + `INTER_LINE_GAP`；最后一行：仅 TTS 时长；首行额外 + `INITIAL_GAP`）
+- 动画**默认结束** = `imageDurations[i]`，即用户未指定 `duration` 或 `highlightMs` 时，`duration = imageDurations[i] - triggerAt`
+- `imageDurations` 由 `generate-subtitle.mjs` 自动计算，需要参考时可在 `.mjs` 中打印 `imageDurations`
 - 如果 URL 数量少于台词行数，多余的台词行不绑定 URL
-- **「url不变，延续画面内容」**：将 `url` 设为空字符串 `''`，代表延续上一个 URL 的画面。空字符串条目自动合并到前一个场景，共用一个截图，动画合并，场景时间从第一个台词行 s 到最后一行 e，中间不切换场景。各动画的 `triggerAt` 仍然相对于各自台词行的开始。
+- **「url不变，延续画面内容」**：将 `url` 设为空字符串 `''`，代表延续上一个 URL 的画面。空字符串条目自动合并到前一个场景，共用一个截图，动画合并，场景时间从第一个台词行 s 到最后一行 e，中间不切换场景。各动画的 `triggerAt` 仍然相对于各自场景起始时刻（`entries[i].s`）。
 
 ### 必须检查的冲突
 
@@ -97,7 +103,7 @@ node movies/pregen-tts.mjs <script.mjs>
 
 **1. 动画超出场景窗口**
 
-如果 `triggerAt` 或 `triggerAt + duration/highlightMs` 超出该 URL 的场景时间窗口（`0` ~ `entries[i].e - entries[i].s`，即该行台词持续时长），该动画在场景结束后才会触发，视频中看不到。
+如果 `triggerAt` 或 `triggerAt + duration/highlightMs` 超出该 URL 的场景时间窗口（`0` ~ `imageDurations[i]`，含静音间隙），该动画在场景结束后才会触发，视频中看不到。
 
 提示用户：
 - 是否延长场景？（会与下一个场景重叠）
@@ -111,29 +117,35 @@ node movies/pregen-tts.mjs <script.mjs>
 ### 检查示例（m5.mjs）
 
 ```
-台词（从 m5.subtitle）:
-  [0] 0.5 — 3.6   海外用户直接Github获取      窗口 3.1s
-  [1] 3.75 — 6.72  国内用户前往Gitcode下载     窗口 2.97s
-  [2] 6.87 — 9.92  文件名带cn的是中文版       窗口 3.05s
-  [3] 10.07 — 12.47 建议你赶紧收藏自取！       窗口 2.4s
+台词 TTS（从 m5.subtitle）:
+  [0] 0.5 — 3.6   海外用户直接Github获取       TTS 3.1s
+  [1] 3.75 — 6.72  国内用户前往Gitcode下载      TTS 2.97s
+  [2] 6.87 — 9.92  文件名带cn的是中文版        TTS 3.05s
+  [3] 10.07 — 12.47 建议你赶紧收藏自取！        TTS 2.4s
 
-默认场景窗口:
-  URL 0: 0 — 3.1  (GitHub)
-  URL 1: 0 — 2.97 (GitCode)
-  URL 2: 0 — 3.05 (GitCode Releases)
-   URL 3: 0 — 2.4  (空字符串，合并到 URL 2 场景)
+imageDurations（含静音间隙）:
+  imageDurations[0] = 3.1 + 0.5(INITIAL_GAP) + 0.15(INTER_LINE_GAP) = 3.75s
+  imageDurations[1] = 2.97 + 0.15 = 3.12s
+  imageDurations[2] = 3.05 + 0.15 = 3.20s
+  imageDurations[3] = 2.4 (最后一行，无间隙)
 
-动画计算（triggerAt 相对台词开始）:
+场景窗口（triggerAt 相对各场景起始）:
+  URL 0: 场景 0～3.75 (GitHub)                → sceneStart=0
+  URL 1: 场景 3.75～6.87 (GitCode)            → sceneStart=3.75
+  URL 2: 场景 6.87～10.07 (GitCode Releases)   → sceneStart=6.87
+   URL 3: 空字符串，合并到 URL 2 的场景 (6.87～12.47)
+
+动画计算:
   URL 0: "首句台词1秒后" → triggerAt = 1.0
-         highlight-area triggerAt=1.0, end=1.0+2.1=3.1 ≤ 3.1 ✅
-         text-annotation triggerAt=1.0, end=1.0+2.1=3.1 ✅
-  URL 1: "结束前1秒" → triggerAt = (6.72-3.75)-1.0 = 1.97
-         click-highlight triggerAt=1.97, end=1.97+1.0=2.97 ≤ 2.97 ✅
-         (auto-scroll: "All releases" y=957 超出视口，自动插入 scroll-to-text @ 1.47)
-  URL 2: "本页面显示1秒后" → triggerAt = 1.0
-         highlight-area triggerAt=1.0, end=1.0+2.05=3.05 ≤ 3.05 ✅
+         highlight-area triggerAt=1.0, end=1.0+2.1=3.1 ≤ 3.75 ✅
+         text-annotation triggerAt=1.0, end=1.0+2.1=3.1 ≤ 3.75 ✅
+  URL 1: "结束前1秒" → imgDur[1]=3.12, triggerAt=3.12-1.0=2.12
+         click-highlight triggerAt=2.12, end=2.12+1.0=3.12 ≤ 3.12 ✅
+         (auto-scroll: "All releases" y=957 超出视口，自动插入 scroll-to-text @ 1.62)
+  URL 2: "本页面显示1秒后" → triggerAt=1.0
+         highlight-area triggerAt=1.0, end=1.0+2.05=3.05 ≤ 3.20 ✅
    URL 3: url 为空字符串 → 合并到 URL 2 的场景
-         caption triggerAt=0, duration=2.4 ≤ 2.4 ✅
+          caption triggerAt=0（相对 URL3 场景起始 10.07）, duration=2.4 ≤ 2.4 ✅
 
 无冲突。所有动画在场景窗口内，URL 2 和 URL 3 自动合并无重叠。
 ```
@@ -332,7 +344,9 @@ ai_gen/
 
 ### triggerAt 是相对时间
 
-所有 `triggerAt` 都是**相对于当前台词行开始时刻**的偏移秒数。视频生成时由 `html-composer.mjs` 自动换算。
+所有 `triggerAt` 都是**相对于当前画面/场景起始时刻（含静音间隙）**的偏移秒数。视频生成时由 `html-composer.mjs` 自动换算。
+
+首行场景从 `t=0` 开始（含 `INITIAL_GAP=0.5s`），后续行场景从 `entries[i].s` 开始。`triggerAt` 始终以当前行的场景起始为原点。
 
 这样设计的好处：增加/删除/修改一行台词，只影响该行自己的动画时间，无需重算其他行的 `triggerAt`。
 

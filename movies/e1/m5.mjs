@@ -1,10 +1,18 @@
 
 // TTS 生成的字幕时间轴（供参考）:
-//   [0] 0.5 — 3.6   海外用户直接Github获取      窗口 3.1s
-//   [1] 3.75 — 6.72  国内用户前往Gitcode下载     窗口 2.97s
-//   [2] 6.87 — 9.92  文件名带cn的是中文版       窗口 3.05s
-//   [3] 10.07 — 12.47 建议你赶紧收藏自取！       窗口 2.4s
-// triggerAt 均为相对当前台词行开始的偏移秒数
+//   [0] 0.5 — 3.6   海外用户直接Github获取       TTS 3.1s
+//   [1] 3.75 — 6.72  国内用户前往Gitcode下载      TTS 2.97s
+//   [2] 6.87 — 9.92  文件名带cn的是中文版        TTS 3.05s
+//   [3] 10.07 — 12.47 建议你赶紧收藏自取！        TTS 2.4s
+//
+// 场景时长（含静音间隙）:
+//   imageDurations[0] = 3.1+0.5+0.15=3.75s  (t=0～3.75)
+//   imageDurations[1] = 2.97+0.15=3.12s    (t=3.75～6.87)
+//   imageDurations[2] = 3.05+0.15=3.20s    (t=6.87～10.07)
+//   imageDurations[3] = 2.4s               (t=10.07～12.47)
+//
+// triggerAt 均为相对当前场景起始时刻的偏移秒数
+// 首行场景从 t=0 开始（含 0.5s INITIAL_GAP），后续行从 entries[i].s 开始
 
 const subtitle = `
 海外用户直接Github获取
@@ -21,8 +29,8 @@ const urls = [
       {
         type: 'highlight-area',
         selector: 'Releases sidebar',
-        triggerAt: 1.0,          // 台词开始1秒后
-        highlightMs: 2100,       // end = 1.0+2.1=3.1 ≤ 窗口3.1
+        triggerAt: 1.0,          // 场景开始1秒后（t=0+1.0=1.0绝对）
+        highlightMs: 2100,       // end = 1.0+2.1=3.1 ≤ 场景3.75
         padding: 60,
       },
       {
@@ -42,8 +50,8 @@ const urls = [
       {
         type: 'click-highlight',
         selector: 'All releases',
-        triggerAt: 1.97,         // 结束前1秒 = (6.72-3.75)-1.0 = 1.97
-        highlightMs: 1000,       // end = 1.97+1.0=2.97 ≤ 窗口2.97
+        triggerAt: 2.12,         // 结束前1秒 = imageDurations[1]-1.0 = 3.12-1.0 = 2.12
+        highlightMs: 1000,       // end = 2.12+1.0=3.12 ≤ 窗口3.12
         ripple: true,
       },
     ],
@@ -55,8 +63,8 @@ const urls = [
       {
         type: 'highlight-area',
         selector: '3D_Viewer_1.7.2_x64_cn_Setup.exe',
-        triggerAt: 1.0,          // 台词开始1秒后
-        highlightMs: 2050,       // end = 1.0+2.05=3.05 ≤ 窗口3.05
+        triggerAt: 1.0,          // 场景开始1秒后（t=6.87+1.0=7.87绝对）
+        highlightMs: 2050,       // end = 1.0+2.05=3.05 ≤ 场景3.20
         padding: 10,
       },
     ],
@@ -69,7 +77,7 @@ const urls = [
       {
         type: 'caption',
         text: '求关注、求转发、求收藏',
-        triggerAt: 0,            // 台词开始时
+        triggerAt: 0,            // 台词场景开始时（t=10.07绝对）
         duration: 2.4,           // 分段显示耗时
         top: { h: 46, v: 50 },
         fontSize: { h: 68, v: 68 },

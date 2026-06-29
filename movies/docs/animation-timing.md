@@ -43,34 +43,43 @@ entry[3]: s=10.07,e=12.47 求关注、求转发、求收藏       窗口 2.4s
 
 | 字段 | 含义 | 原点 |
 |---|---|---|
-| `triggerAt` | 动画触发的偏移时间 | **视频 t=0**（绝对时间） |
+| `triggerAt` | 动画相对于场景起始的偏移秒数 | **场景起始**（首行`t=0`，后续行`entry[i].s`） |
 | `duration` | 动画持续秒数 | 从 `triggerAt` 开始算 |
 | `highlightMs` | 高亮框持续毫秒数 | 从 `triggerAt` 开始算 |
+
+## triggerAt 的原点
+
+`triggerAt` 始终以当前行的**场景起始时刻**为原点。场景包含 TTS 语音 + 静音间隙：
+
+- **首行** 场景从 `t=0` 开始（含 `INITIAL_GAP=0.5s` 片头静音）。场景时长额外包含 TTS 结束后的 `INTER_LINE_GAP=0.15s`（此间隙画面不变，延用当前场景）
+- **后续行** 场景从 `entry[i].s` 开始。`INTER_LINE_GAP` 属于前一个场景（TTS_i-1 结束后的静音画面），不计入当前场景起始
+
+`triggerAt = 1.0` 表示场景起始后 1 秒（对首行即绝对时间 1.0s，对后续行即 `entries[i].s + 1.0`）。
+
+## 场景时长
+
+每个 URL 对应的场景时长 = `imageDurations[i]`，包含静音间隙：
+
+```
+imageDurations[0] = TTS_0 时长 + INITIAL_GAP + INTER_LINE_GAP
+imageDurations[i] = TTS_i 时长 + INTER_LINE_GAP         (0 < i < 最后一行)
+imageDurations[last] = TTS_last 时长                     (最后一行)
+```
 
 ## 当前动画模型：关联到场景组
 
 每个 URL 对应一个**场景组**（scene group）。相同 URL 的连续行合并为同一组。
 
 ```
-场景0: 海外用户 + 动画 [0.5s 起]
-场景1: Gitcode + 动画 [3.75s 起]
-场景2: Releases + 动画 [6.87s 起]
-场景3: 求关注 + 动画 [10.07s 起]
+场景0: 海外用户 + 动画 [t=0 起，TTS 0.5s 起，持续 3.75s]
+场景1: Gitcode + 动画 [3.75s 起，持续 3.12s]
+场景2: Releases + 动画 [6.87s 起，持续 5.6s]  ← URL 3 合并至此
 ```
 
 场景切换时有 0.3s crossfade。
 
 ## 写动画的原则
 
-1. **动画参考视频绝对时间**。`triggerAt` 的值是视频时间线上的时刻，不是相对于 `entry.s` 的偏移
-2. **动画不受 TTS 窗口限制**。可以跨场景、跨多行、甚至持续到视频结束
-3. `triggerAt` 的取值范围：`[0, totalDuration)`，可以落在任何位置，与 `entry.s/e` 无关
-
-## 限制（TODO）
-
-当前实现中 `triggerAt` 以所在行的 `entry.s` 为原点（即 `triggerAt = 1.0` 表示 `entry.s + 1.0`），而不是视频 t=0。这意味着：
-
-- 动画不能自然跨越当前行窗口之外
-- `type: 'caption'` 等持续型动画会被场景 crossfade 截断
-
-**修复方向**：将 `triggerAt` 改为以视频 t=0 为绝对原点（需要重算所有现有脚本的数值），或增加 `absolute: true` 标志兼容两种模式。
+1. **`triggerAt` 是相对当前场景起始的偏移**。`triggerAt = 1.0` 表示场景起始后 1 秒
+2. **动画受场景窗口限制**。不应超出 `imageDurations[i]`，否则动画在场景结束后才触发
+3. `triggerAt` 的取值范围：`[0, imageDurations[i])`

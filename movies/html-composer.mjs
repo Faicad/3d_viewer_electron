@@ -22,9 +22,10 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
   const groups = []
   for (let i = 0; i < urls.length; i++) {
     const anims = injectAutoScroll([...(urls[i].anim || [])], marks[i] || {}, height)
-    // Tag each step with its own line's start time (for merged scenes, each step
-    // keeps its original line anchor so triggerAt remains self-contained)
-    for (const step of anims) step._baseS = entries[i].s
+    // Tag each step with its own scene's start time.
+    //   i=0: scene starts at t=0 (includes 0.5s INITIAL_GAP before TTS)
+    //   i>0: scene starts at entries[i].s (= previous imageDurations sum)
+    for (const step of anims) step._baseS = i === 0 ? 0 : entries[i].s
     const prev = groups[groups.length - 1]
     if (prev && (urls[i].url === prev.url || !urls[i].url)) {
       prev.urlIndices.push(i)
@@ -52,11 +53,18 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
     copyFileSync(GSAP_SRC, join(hfDir, 'gsap.min.js'))
   }
 
-  // Merged groups span from first line's s to last line's e.
-  const sceneStart = groups.map(g => entries[g.urlIndices[0]].s)
+  // Scene timing: use cumulative imageDurations so silent gaps (INITIAL_GAP,
+  // INTER_LINE_GAP) are included in each scene's window.
+  const cumEnds = []
+  imageDurations.reduce((acc, dur, i) => { cumEnds[i] = acc + dur; return acc + dur }, 0)
+
+  const sceneStart = groups.map(g => {
+    const firstIdx = g.urlIndices[0]
+    return firstIdx === 0 ? 0 : cumEnds[firstIdx - 1]
+  })
   const sceneEnd = groups.map(g => {
     const lastIdx = g.urlIndices[g.urlIndices.length - 1]
-    return lastIdx < urls.length - 1 ? entries[lastIdx].e : totalDuration
+    return cumEnds[lastIdx]
   })
   const sceneDurations = sceneEnd.map((e, i) => e - sceneStart[i])
 
