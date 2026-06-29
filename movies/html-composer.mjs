@@ -275,7 +275,6 @@ function buildSceneHtml(scene, marks, index, width, height) {
       const cy = fy + mark.h / 2
       scrollHtml += `<div class="overlay cursor-pointer" id="s${index}_cursor${ai}" style="left:${cx - 16}px;top:${cy - 16}px;opacity:0"></div>`
       scrollHtml += `<div class="overlay click-ripple" id="s${index}_ripple${ai}" style="left:${cx - 20}px;top:${cy - 20}px"></div>`
-      scrollHtml += `<div class="overlay highlight-box" id="s${index}_hl${ai}" style="left:${mark.x - 4}px;top:${fy - 4}px;width:${mark.w + 8}px;height:${mark.h + 8}px;opacity:0"></div>`
     }
     if (step.type === 'highlight-area') {
       const pad = step.padding || 20
@@ -388,12 +387,10 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
           const cy = fy + mark.h / 2
           const ms = step.highlightMs || 600
           chunks.push(`  tl.set('#s${sceneIndex}_cursor${ai}', {opacity:1,left:${cx - 16},top:${cy - 16}}, ${t.toFixed(3)});`)
-          chunks.push(`  tl.to('#s${sceneIndex}_hl${ai}', {opacity:1,scale:1.05,duration:0.2}, ${(t + 0.1).toFixed(3)});`)
           if (step.ripple !== false) {
             chunks.push(`  tl.to('#s${sceneIndex}_ripple${ai}', {opacity:1,scale:3,duration:0.4,ease:"power2.out"}, ${(t + 0.15).toFixed(3)});`)
             chunks.push(`  tl.to('#s${sceneIndex}_ripple${ai}', {opacity:0,duration:0.3}, ${(t + 0.55).toFixed(3)});`)
           }
-          chunks.push(`  tl.to('#s${sceneIndex}_hl${ai}', {opacity:0,duration:0.3}, ${(t + ms / 1000 - 0.3).toFixed(3)});`)
         }
         break
       }
