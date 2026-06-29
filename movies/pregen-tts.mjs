@@ -13,7 +13,7 @@
  *   node movies/pregen-tts.mjs --tts spark-tts movies/p2/m2.mjs
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, statSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { resolve, dirname, basename, extname, join } from 'path'
 import {
   parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript,
@@ -161,11 +161,17 @@ async function pregenTts(scriptPath, { force = false, ttsProvider } = {}) {
   }
 
   // All cached and not forced → timing unchanged, exit early
+  // But only if source script hasn't changed since timing was generated
+  // (so group structure from --N-- markers is still current)
   if (!hadMiss && !force) {
     const timingExists = existsSync(timingPath)
     if (timingExists) {
-      console.log(`\nAll ${segments.length} segments cached — timing unchanged`)
-      return
+      const srcMtime = statSync(scriptPath).mtimeMs
+      const timingMtime = statSync(timingPath).mtimeMs
+      if (timingMtime >= srcMtime) {
+        console.log(`\nAll ${segments.length} segments cached — timing unchanged`)
+        return
+      }
     }
   }
 

@@ -1,0 +1,75 @@
+我要制作一个视频，核心内容是展示本软件支持的所有文件类型。
+
+我起草的标题：
+微软内置3D查看器，今天结束支持
+
+
+内容：
+Windows自带的3D查看器
+6月30号，也就是今天结束支持
+这里推荐一款替代品，比自带的软件还要强大。
+一次安装，支持查看20多种3D模型文件。
+1. stl
+2. 3mf
+3. gltf/glb
+...
+
+视频内容是逐个展示每种文件格式的例子，每个展示3秒
+我希望的效果是，每个模型加载后，一次性在视频里显示出来，不要显示加载中的过程。
+加载成功后可以有旋转之类的动画效果。
+
+请先整理出所有支持的文件格式和本项目存在的样例文件，如果有多个，写一个即可。
+补充在这个文档的下边。
+
+stp/step,  glb/gltf都算一种。
+
+从src\test\fixtures目录搜索。如果支持的文件格式没找到默认文件，报告出来。
+
+---
+
+## 支持的文件格式与样例文件对照表
+
+> 共 30 种启用格式（不含 disabled: ifc、mdd）。stp/step 归为 STEP，glb/gltf 归为 GLTF。
+> 样例统一从 `src/test/fixtures/` 选取，每个格式列一个代表文件。
+
+| 序号 | 格式 | 扩展名 | 分组 | 样例文件 | 备注 |
+|------|------|--------|------|---------|------|
+| 1 | STL | `.stl` | mesh | `testdata/cube1.stl` | |
+| 2 | GLTF/GLB | `.glb` `.gltf` | mesh | `AnisotropyBarnLamp.glb` | 同格式 |
+| 3 | 3MF | `.3mf` | mesh | `vise.3mf` | |
+| 4 | STEP | `.step` `.stp` | cad | `Mini注塑模具.stp` | 同格式 |
+| 5 | OBJ | `.obj` | mesh | `Cerberus.obj` | |
+| 6 | PLY | `.ply` | mesh | `dolphins_be.ply` | |
+| 7 | FBX | `.fbx` | mesh | `mixamo.fbx` | |
+| 8 | Collada (DAE) | `.dae` | mesh | `elf.dae` | |
+| 9 | 3DS | `.3ds` | mesh | `portalgun.3ds` | |
+| 10 | USDZ | `.usdz` | mesh | `saeukkang.usdz` | |
+| 11 | Draco (DRC) | `.drc` | mesh | `bunny.drc` | |
+| 12 | BVH | `.bvh` | animation | `pirouette.bvh` | |
+| 13 | VTK | `.vtk` `.vtp` | volume | `bunny.vtk` | |
+| 14 | XYZ | `.xyz` | point | `helix_201.xyz` | |
+| 15 | PDB | `.pdb` | point | `Al2O3.pdb` | |
+| 16 | NRRD | `.nrrd` | volume | `I.nrrd` | |
+| 17 | GCode | `.gcode` | gcode | `benchy.gcode` | |
+| 18 | VRML (WRL) | `.wrl` | other | `camera.wrl` | |
+| 19 | VOX | `.vox` | other | `menger.vox` | |
+| 20 | KMZ | `.kmz` | other | `Box.kmz` | |
+| 21 | AMF | `.amf` | mesh | `rook.amf` | |
+| 22 | LWO | `.lwo` | mesh | `Demo.lwo` | |
+| 23 | MD2 | `.md2` | animation | `ogro.md2` | |
+| 24 | PCD | `.pcd` | point | `simple.pcd` | |
+| 25 | 3DM | `.3dm` | mesh | `Rhino_Logo.3dm` | |
+| 26 | SVG | `.svg` | vector | `sample.svg` | |
+| 27 | DXF | `.dxf` | vector | `testdata/gear.dxf` | |
+| 28 | OpenSCAD | `.scad` | cad | `test.scad` | |
+| 29 | IFC | `.ifc` | bim | `rac_advanced_sample_project.ifc` | ⚠️ disabled（需外部依赖） |
+| 30 | HDR | `.hdr` | environment | ❌ **无样例文件** | ⚠️ 仅作为环境贴图 |
+| 31 | EXR | `.exr` | environment | ❌ **无样例文件** | ⚠️ 仅作为环境贴图 |
+| 32 | MODEL | `.model` | other | `vise/3D/3dmodel.model`（内嵌于 3MF 压缩包） | ⚠️ 无独立样例文件 |
+
+### 缺少样例文件的格式
+
+- **HDR** (`.hdr`) — `src/test/fixtures/` 下无任何 `.hdr` 文件
+- **EXR** (`.exr`) — `src/test/fixtures/` 下无任何 `.exr` 文件
+- **MODEL** (`.model`) — 仅有内嵌在 3MF 结构中的 `.model` 文件，无独立样例
+
