@@ -687,10 +687,52 @@ export async function loadFormat(
       const objects: THREE.Object3D[] = []
       if (skeleton.bones.length > 0) {
         const rootBone = skeleton.bones[0]
-        // Force bone matrix updates so SkeletonHelper has valid world transforms
+
+        // Apply first-frame pose.  BVHLoader creates bones in rest pose
+        // (offset positions only); the animation clip holds the actual
+        // pose data.  Evaluate the clip at time 0 so the skeleton appears
+        // in its animated pose rather than the raw T-pose.
+        if (result.clip) {
+          const mixer = new THREE.AnimationMixer(rootBone)
+          const action = mixer.clipAction(result.clip)
+          action.play()
+          // update(0.001) ensures the mixer evaluates keyframes at t=0
+          mixer.update(0.001)
+        }
+
         rootBone.updateMatrixWorld(true)
         const helper = new THREE.SkeletonHelper(rootBone)
+
+        // Default SkeletonHelper material is pure white LineBasicMaterial
+        // (linewidth 1).  On most platforms WebGL clamps lineWidth to 1,
+        // making the skeleton nearly invisible against dark backgrounds and
+        // in thumbnails.  Use a higher-contrast color + increase opacity.
+        if (helper.material instanceof THREE.LineBasicMaterial) {
+          helper.material.color.set(0x5599ff)
+        }
+
         objects.push(helper)
+
+        // Add joint markers (small spheres) at bone world positions.
+        // These remain visible in thumbnails where 1px lines disappear,
+        // and help users see the skeleton structure in the viewport.
+        const jointPositions: number[] = []
+        for (const bone of skeleton.bones) {
+          const pos = bone.matrixWorld.elements
+          jointPositions.push(pos[12], pos[13], pos[14])
+        }
+        const jointGeo = new THREE.BufferGeometry()
+        jointGeo.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(jointPositions, 3),
+        )
+        jointGeo.computeBoundingSphere()
+        const jointRadius = (jointGeo.boundingSphere?.radius ?? 50) * 0.035
+        const jointMat = new THREE.PointsMaterial({
+          size: Math.max(jointRadius, 0.3),
+          color: 0xff6644,
+        })
+        objects.push(new THREE.Points(jointGeo, jointMat))
       }
       return { meshes: [], objects, skeleton }
     }

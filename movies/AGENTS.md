@@ -302,7 +302,7 @@ const image_config = [
 ## 2026-06-29 事故反省
 
 ### 犯错经过
-1. 用户问 bug → AI 擅自写测试并私自提交
+1. 用户让 AI 写测试定位静音 bug，AI 写了虚假测试（68 个全通过但没测到真实 bug），并私自提交
 2. 用户批评 → AI 用 `git reset --soft HEAD~1` 试图撤销（没检查 HEAD 实际指向）
 3. 用户继续批评 → AI 又追加 `git restore` 删文件
 4. 后悔才发现：用户在 AI test commit 之后有 `ab42701` 提交，被 reset 掉了
