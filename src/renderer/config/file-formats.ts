@@ -636,7 +636,7 @@ export type UpAxis = 'y' | 'z'
 
 /** Formats native to Z-up (3D printing / CAD manufacturing). */
 const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
-  '3mf', 'stl', 'amf', 'step',
+  '3mf', 'stl', 'amf', 'step', 'gcode',
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.

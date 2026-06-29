@@ -697,6 +697,10 @@ export async function loadFormat(
       const { GCodeLoader } = await import('three/examples/jsm/loaders/GCodeLoader.js')
       const text = bufferToText(buffer)
       const group = new GCodeLoader().parse(text)
+      // GCodeLoader applies -π/2 X-rotation to convert Z-up (G-code native) → Y-up
+      // (Three.js default). Our scene is Z-up, so undo this rotation.
+      group.rotation.set(0, 0, 0)
+      group.updateMatrixWorld(true)
       const objects = extractAllObjects(group)
       // GCode produces line segments
       return { meshes: [], objects }

@@ -116,10 +116,20 @@ lib.makeMovie(
   {
     AutoRotate: '0',
     closeLeftPanel: '1',
+    closeRightPanel: '1',
     entryAnim: 'fade',
     entryDuration: String(ENTRY_MS),
   },
   async (page, suffix, tPageOpen) => {
+    // Disable HTTP cache for model files
+    await page.route('**/*', route => {
+      const url = route.request().url()
+      if (url.includes('fixtures') || url.endsWith('.glb') || url.endsWith('.stl') || url.endsWith('.stp')) {
+        route.continue({ headers: { ...route.request().headers(), 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
+      } else {
+        route.continue()
+      }
+    })
     lib.showOverlay(page, 'fmt', '1. STL', 'top-left', 'color:#fff;font-size:42px;font-weight:700;background:rgba(0,0,0,0.5);padding:12px 24px;border-radius:10px;font-family:sans-serif')
     await lib.rotateModel(page, 180, 3000)
     await lib.syncpoint(page)
