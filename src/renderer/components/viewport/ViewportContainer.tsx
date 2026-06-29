@@ -248,7 +248,7 @@ export default function ViewportContainer() {
   }, [])
 
   // ---- Camera fit / upAxis transition (replaces CameraAnimator) ----
-  const animateCamera = useCallback((targetPos: THREE.Vector3, targetUp: THREE.Vector3, onDone?: () => void, durationMs?: number) => {
+  const animateCamera = useCallback((targetPos: THREE.Vector3, targetUp: THREE.Vector3, onDone?: () => void, durationMs?: number, centerTarget?: THREE.Vector3) => {
     gsap.killTweensOf(camProxyRef.current)
     setRotating(false)
     setIsCameraAnimating(true)
@@ -264,7 +264,11 @@ export default function ViewportContainer() {
         const cam = controlsRef.current!.object
         cam.position.set(p.x, p.y, p.z)
         cam.up.set(p.upX, p.upY, p.upZ).normalize()
-        controlsRef.current!.target.set(0, 0, 0)
+        if (centerTarget) {
+          controlsRef.current!.target.copy(centerTarget)
+        } else {
+          controlsRef.current!.target.set(0, 0, 0)
+        }
         controlsRef.current!.update()
       },
       onComplete: () => {
@@ -727,7 +731,7 @@ export default function ViewportContainer() {
         if (result) {
           controls.target.copy(result.target)
           controls.update()
-          animateCamera(result.position, targetUp, resolve, duration)
+          animateCamera(result.position, targetUp, resolve, duration, result.target)
         } else {
           resolve()
         }
@@ -842,7 +846,7 @@ export default function ViewportContainer() {
       if (result) {
         controls.target.copy(result.target)
         controls.update()
-        animateCamera(result.position, targetUp, undefined, durationMs ?? 1000)
+        animateCamera(result.position, targetUp, undefined, durationMs ?? 1000, result.target)
         return
       }
       // Fall through to fallback on compute failure
@@ -867,7 +871,7 @@ export default function ViewportContainer() {
 
     controls.target.copy(center)
     controls.update()
-    animateCamera(pos, targetUp)
+    animateCamera(pos, targetUp, undefined, undefined, center)
   }, [activeUpAxis, animateCamera])
 
   /** Compute union bounding box of all plates for multi-plate camera fit. */

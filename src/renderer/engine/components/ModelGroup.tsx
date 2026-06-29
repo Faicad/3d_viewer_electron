@@ -292,32 +292,30 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
           onSceneTreeChangeRef.current(tree)
 
           // Compute bounding box from all objects (Points, Lines, Bones, etc.)
+          // G-code: skip any vertex where XY ≈ (0,0).  The file always starts at
+          // the origin and the first few moves (Z lift, priming extrusion) stay at
+          // XY=(0,0).  These origin-anchored vertices would pull the bounding-box
+          // center toward the bottom-left corner instead of the actual toolpath.
           const box = new THREE.Box3()
           for (const obj of result.objects) {
             obj.updateWorldMatrix(true, false)
-            if (!obj.geometry) continue
-            if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox()
-            if (!obj.geometry.boundingBox) continue
-
             if (format === 'gcode' && obj instanceof THREE.LineSegments) {
-              // G-code always starts at (0,0,0) with initial travel moves.
-              // The first 3 G0/G1 commands create segments from the origin to the
-              // print area, pulling the bounding box center toward the origin.
-              // Read vertex positions directly and skip the first 3 segments
-              // (6 vertices = 18 float values) to compute a box centered on the
-              // actual toolpath instead of the origin.
-              const pos = obj.geometry.getAttribute('position')
+              const pos = obj.geometry?.getAttribute('position')
               if (pos) {
-                const skipVerts = 6
-                const start = Math.min(skipVerts, pos.count)
                 const vec = new THREE.Vector3()
-                for (let i = start; i < pos.count; i++) {
+                const EPS = 0.001
+                for (let i = 0; i < pos.count; i++) {
                   vec.fromBufferAttribute(pos, i)
+                  if (Math.abs(vec.x) < EPS && Math.abs(vec.y) < EPS) continue
+                  vec.applyMatrix4(obj.matrixWorld)
                   box.expandByPoint(vec)
                 }
               }
-            } else {
-              box.expandByObject(obj)
+            } else if (obj.geometry) {
+              if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox()
+              if (obj.geometry.boundingBox) {
+                box.expandByObject(obj)
+              }
             }
           }
           if (!box.isEmpty()) onLoadedRef.current?.(box)

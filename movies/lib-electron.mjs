@@ -1406,19 +1406,21 @@ export async function recordOne(electronApp, page, viewport, suffix, pageFn, rec
         store.setShadowFloorEnabled(val)
       }
     }, viewerParams)
-    // Optional panel control: closeLeftPanel / closeRightPanel (script-controllable, supports ';' syntax)
+    // Optional panel control: closeLeftPanel / closeRightPanel / enablePreview (script-controllable, supports ';' syntax)
     const closeLeft = viewerParams.closeLeftPanel != null &&
       (viewerParams.closeLeftPanel === '1' || viewerParams.closeLeftPanel === 'true' || viewerParams.closeLeftPanel === true)
     const closeRight = viewerParams.closeRightPanel != null &&
       (viewerParams.closeRightPanel === '1' || viewerParams.closeRightPanel === 'true' || viewerParams.closeRightPanel === true)
-    if (closeLeft || closeRight) {
-      await page.evaluate(({ left, right }) => {
-        const ui = window.__uiStore?.getState?.()
-        if (!ui) return
-        if (left && ui.leftPanelOpen) ui.toggleLeftPanel()
-        if (right && ui.rightPanelOpen) ui.toggleRightPanel()
-      }, { left: closeLeft, right: closeRight })
-      if (closeLeft || closeRight) await page.waitForTimeout(300)
+    const noPreview = viewerParams.enablePreview === '0' || viewerParams.enablePreview === 'false' || viewerParams.enablePreview === false
+    const uiPatch = {}
+    if (closeLeft) uiPatch.leftPanelOpen = false
+    if (closeRight) uiPatch.rightPanelOpen = false
+    if (noPreview) uiPatch.enablePreview = false
+    if (Object.keys(uiPatch).length > 0) {
+      await page.evaluate((patch) => {
+        window.__uiStore?.setState?.(patch)
+      }, uiPatch)
+      await page.waitForTimeout(300)
     }
   }
 
