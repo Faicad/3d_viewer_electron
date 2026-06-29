@@ -416,9 +416,15 @@ function concatAudio(parts, outputPath) {
  */
 function computeAudioTotal(segments) {
   if (segments.length === 0) return 0
-  const speechTotal = segments.reduce((sum, s) => sum + s.duration, 0)
-  const gapTotal = INITIAL_GAP + (segments.length - 1) * INTER_LINE_GAP
-  return round2(speechTotal + gapTotal)
+  let total = INITIAL_GAP
+  for (let i = 0; i < segments.length; i++) {
+    total += segments[i].duration
+    // Same-group TTS-to-TTS: INTER_LINE_GAP
+    if (i < segments.length - 1 && !segments[i].isSilence && !segments[i + 1].isSilence && segments[i].group === segments[i + 1].group) {
+      total += INTER_LINE_GAP
+    }
+  }
+  return round2(total)
 }
 
 // ── Main ──
@@ -469,6 +475,13 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
   let syncpoints = []
   if (markerCount > 0) {
     console.log(`Syncpoint groups: ${groups.length} (${markerCount} markers)\n`)
+
+    // Validate each group has at least one TTS line
+    for (let g = 0; g < groups.length; g++) {
+      if (groups[g].every(line => /^---\d+---$/.test(line))) {
+        errors.push(`group ${g} has no TTS line (only ---x--- silence markers)`)
+      }
+    }
 
     // Validate count matches lib.syncpoint() calls in source
     const codeCount = countSyncpointsInScript(scriptPath)
@@ -526,6 +539,19 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
   for (let g = 0; g < groups.length; g++) {
     for (let i = 0; i < groups[g].length; i++) {
       const rawText = groups[g][i]
+
+      // ---x--- insert pure silence segment (milliseconds)
+      const silenceMatch = rawText.match(/^---(\d+)---$/)
+      if (silenceMatch) {
+        const secs = parseInt(silenceMatch[1], 10) / 1000
+        const silencePath = join(segDir, `silence_${silenceMatch[1]}ms_${g}_${i}.mp3`)
+        if (!existsSync(silencePath)) {
+          generateSilence(secs, silencePath)
+        }
+        segments.push({ isSilence: true, group: g, path: silencePath, duration: secs })
+        continue
+      }
+
       const { voice, text } = parseVoicePrefix(rawText)
       const effectiveProvider = voice ? 'edge-tts' : ttsProvider
       const usedVoice = effectiveProvider === 'edge-tts' ? (voice || DEFAULT_VOICE) : effectiveProvider
@@ -574,10 +600,15 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
   const entries = []
   let cursor = INITIAL_GAP
   let prevGroup = 0
-  for (const seg of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
     if (seg.group !== prevGroup) {
       cursor = syncpoints[seg.group - 1]  // group N anchors at syncpoints[N-1]
       prevGroup = seg.group
+    }
+    if (seg.isSilence) {
+      cursor += seg.duration
+      continue
     }
     const e = {
       s: round2(cursor),
@@ -588,7 +619,9 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
       e.words = seg.words
     }
     entries.push(e)
-    cursor += seg.duration + INTER_LINE_GAP
+    const hasFollowingSilence = i < segments.length - 1 && segments[i + 1].isSilence
+    const gap = hasFollowingSilence ? 0 : INTER_LINE_GAP
+    cursor += seg.duration + gap
   }
 
   // 6b. Duration validation per group removed — handled during recording via syncpoint()
@@ -637,20 +670,37 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
     generateSilence(INTER_LINE_GAP, gapSilencePath)
   }
 
+  let entryIdx = -1
   for (let i = 0; i < segments.length; i++) {
     audioParts.push({ path: segments[i].path })
+    if (!segments[i].isSilence) entryIdx++
+
     if (i < segments.length - 1) {
-      const gap = round2(entries[i + 1].s - entries[i].e)
-      if (segments[i].group !== segments[i + 1].group) {
-        // Group boundary: custom-length silence to bridge syncpoint jump
-        if (gap > 0) {
-          const customGapPath = join(segDir, `${scriptName}_silence_gap_${i}.mp3`)
-          if (generateSilence(gap, customGapPath)) {
-            audioParts.push({ path: customGapPath })
-          }
-        }
-      } else if (INTER_LINE_GAP > 0) {
+      const isBoundary = segments[i].group !== segments[i + 1].group
+      const hasAdjSilence = segments[i].isSilence || segments[i + 1].isSilence
+
+      if (!hasAdjSilence && !isBoundary && INTER_LINE_GAP > 0) {
+        // Same-group TTS-to-TTS: standard gap
         audioParts.push({ path: gapSilencePath })
+        continue
+      }
+      if (!isBoundary) continue    // Same-group silence → spacing already in silence segment
+
+      // Group boundary: fill gap between entries
+      if (entryIdx + 1 >= entries.length) continue
+      const gap = round2(entries[entryIdx + 1].s - entries[entryIdx].e)
+      if (gap <= 0) continue
+
+      // Subtract silence segment durations already in audio chain
+      let filledBySilence = 0
+      if (segments[i].isSilence) filledBySilence += segments[i].duration
+      if (segments[i + 1].isSilence) filledBySilence += segments[i + 1].duration
+      const remaining = round2(gap - filledBySilence)
+      if (remaining > 0.001) {
+        const customGapPath = join(segDir, `${scriptName}_silence_gap_${i}.mp3`)
+        if (generateSilence(remaining, customGapPath)) {
+          audioParts.push({ path: customGapPath })
+        }
       }
     }
   }

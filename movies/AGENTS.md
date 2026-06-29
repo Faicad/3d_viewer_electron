@@ -281,7 +281,7 @@ const image_config = [
 
 ## Script Format Conventions
 
-- `const subtitle = \`...\`` — 每行对应一条字幕。`(括号)` TTS 不朗读但显示；`((括号))` 不朗读，显示时剥括号
+- `const subtitle = \`...\`` — 每行对应一条字幕。`(括号)` TTS 不朗读但显示；`((括号))` 不朗读，显示时剥括号；`[[括号]]` 朗读，不显示；`---N---` 插入 N 毫秒静音延时
 - `const image` — Path B 需要的图片基础路径（不含后缀）
 - `const image_config` — Path D2，每项 `{ image, description, anim? }`（`anim` 可由 AI Agent 按 `description` 补全）
 - `const urls` — Path D1，每项 `{ url, description, anim? }`（`anim` 可由 AI Agent 按 `description` 补全）

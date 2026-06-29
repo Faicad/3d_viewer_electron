@@ -29,26 +29,28 @@ function computeGroupDurations(segments) {
   if (segments.length === 0) return { groups: [], ttsTotal: 0 }
 
   const groupMap = new Map()
-  for (const seg of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
     if (!groupMap.has(seg.group)) {
       groupMap.set(seg.group, { index: seg.group, lineCount: 0, totalDuration: 0 })
     }
     const g = groupMap.get(seg.group)
-    g.lineCount++
+    if (!seg.isSilence) g.lineCount++
     g.totalDuration += seg.duration
+
+    // Same-group TTS-to-TTS: add INTER_LINE_GAP
+    if (i < segments.length - 1 && !seg.isSilence && !segments[i + 1].isSilence && segments[i + 1].group === seg.group) {
+      g.totalDuration += INTER_LINE_GAP
+    }
   }
 
   const groups = Array.from(groupMap.values()).sort((a, b) => a.index - b.index)
   for (const g of groups) {
-    g.totalDuration = round2(g.totalDuration + (g.lineCount - 1) * INTER_LINE_GAP)
+    if (g.index === 0) g.totalDuration += INITIAL_GAP
+    g.totalDuration = round2(g.totalDuration)
   }
 
-  if (groups.length > 0 && groups[0].index === 0) {
-    groups[0].totalDuration = round2(groups[0].totalDuration + INITIAL_GAP)
-  }
-
-  const totalSpeech = segments.reduce((sum, s) => sum + s.duration, 0)
-  const ttsTotal = round2(INITIAL_GAP + totalSpeech + (segments.length - 1) * INTER_LINE_GAP)
+  const ttsTotal = round2(groups.reduce((sum, g) => sum + g.totalDuration, 0))
 
   return { groups, ttsTotal }
 }
@@ -71,6 +73,14 @@ async function pregenTts(scriptPath, { force = false, ttsProvider } = {}) {
   const { groups, markerCount } = splitBySyncpoints(lines)
   if (markerCount > 0) {
     console.log(`Syncpoint groups: ${groups.length} (${markerCount} markers)\n`)
+
+    // Validate each group has at least one TTS line
+    for (let g = 0; g < groups.length; g++) {
+      if (groups[g].every(line => /^---\d+---$/.test(line))) {
+        console.error(`ERROR: group ${g} has no TTS line (only ---x--- silence markers)`)
+        process.exit(1)
+      }
+    }
 
     // Validate count matches lib.syncpoint() calls
     const codeCount = countSyncpointsInScript(scriptPath)
@@ -101,6 +111,15 @@ async function pregenTts(scriptPath, { force = false, ttsProvider } = {}) {
   for (let g = 0; g < groups.length; g++) {
     for (let i = 0; i < groups[g].length; i++) {
       const rawText = groups[g][i]
+
+      // ---x--- insert pure silence segment (milliseconds)
+      const silenceMatch = rawText.match(/^---(\d+)---$/)
+      if (silenceMatch) {
+        const secs = parseInt(silenceMatch[1], 10) / 1000
+        segments.push({ isSilence: true, group: g, duration: secs })
+        continue
+      }
+
       const { voice, text } = parseVoicePrefix(rawText)
       const effectiveProvider = voice ? 'edge-tts' : (ttsProvider || DEFAULT_TTS_PROVIDER)
       const usedVoice = effectiveProvider === 'edge-tts' ? (voice || DEFAULT_VOICE) : effectiveProvider
