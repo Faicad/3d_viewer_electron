@@ -2,7 +2,7 @@
 
 ## 整体流水线
 
-视频有两种来源：
+视频有多种来源：
 
 ### 路径 A：Playwright 录制 3D 场景
 
@@ -52,34 +52,15 @@
                                              └──────────────────┘
 ```
 
-### 路径 C：URL 网页录制（自动截图 + 滚动效果）
-
-```
-┌──────────────────┐    ┌──────────────────────────┐    ┌──────────────────┐
-│ Chrome 浏览器     │    │ generate-url-video.mjs    │ →  │ burn 烧录字幕+音 │
-│ (Playwright)     │ →  │ 全页截图 → 滚动片段 →    │    │ 频 (同路径A)     │
-│ 用户登录状态      │    │ 拼接 → TTS .subtitle     │    │ + 混背景音乐     │
-└──────────────────┘    │ + .mp3 → .webm           │    │                  │
-                        └──────────────────────────┘    └──────────────────┘
-                                                                      │
-                                                      ┌────────────────┘
-                                                      ▼
-                                              ┌──────────────────┐
-                                              │ merge 拼接多片段  │
-                                              │ + 封面作为第 1 帧  │
-                                              └──────────────────┘
-```
-
-参阅 skill 文档：`movies/url-video-agent-skill.md`
-
-### 路径 D：本地截图合成（`image_config`，HTML 合成器 + Playwright 录制）
+### 路径 C：HTML 合成 — 直接编写 scene 函数
 
 ```
 ┌──────────────────┐    ┌──────────────────────────────┐    ┌──────────────────┐
-│ 本地截图          │    │ generate-image2-video.mjs     │ →  │ burn 烧录字幕+音 │
-│ movies/screenshot/│ →  │ HTML 合成器 + Playwright 录制  │    │ 频 (同路径A)     │
-│ easyocr-mark.mjs  │    │ TTS + .subtitle + .mp3      │    │ + 混背景音乐     │
-│ (定位文字写mark)   │    │ → .webm                      │    │                  │
+│ 手写 scene 函数   │    │ generate-html-video.mjs       │ →  │ burn 烧录字幕+音 │
+│ export function   │ →  │ 逐段调用 scene()              │    │ 频 (同路径A)     │
+│ scene({imagePath,  │    │ → 组装 HTML + GSAP 动画       │    │ + 混背景音乐     │
+│   width,height,   │    │ → Playwright 录制 → .webm    │    │                  │
+│   duration,...})  │    │                              │    │                  │
 └──────────────────┘    └──────────────────────────────┘    └──────────────────┘
                                                                       │
                                                       ┌────────────────┘
@@ -90,31 +71,58 @@
                                               └──────────────────┘
 ```
 
+### 路径 D：HTML 合成 — 预制动画（`urls` / `image_config`）
+
+由 `html-composer.mjs` 提供预制动画类型（`caption`、`click-highlight`、`highlight-area` 等），通过 `lib_gen_url_image.mjs` 统一驱动录制流程。分为两个子类型：
+
+**D1. URL 源（`urls` 格式）** — AI Agent 用 Playwright 手动截图 + DOM 分析写 marks.json，入口 `generate-url-video.mjs`
+
+参阅 skill 文档：`movies/url-video-agent-skill.md`
+
+**D2. 本地截图源（`image_config` 格式）** — easyocr 在本地截图找文字坐标写 marks.json，入口 `generate-image2-video.mjs`
+
 参阅 skill 文档：`movies/image-config-agent-skill.md`
 
-**四种路径的对比**：
+```
+┌──────────────────┐    ┌──────────────────────────────┐    ┌──────────────────┐
+│ 截图 + marks      │    │ generate-url-video.mjs        │ →  │ burn 烧录字幕+音 │
+│ (D1: AI Agent 截) │ →  │ 或 generate-image2-video.mjs  │    │ 频 (同路径A)     │
+│ (D2: 本地截图)     │    │ → buildHtmlComposition()      │    │ + 混背景音乐     │
+│ easyocr-mark.mjs  │    │ → Playwright 录制 → .webm    │    │                  │
+└──────────────────┘    └──────────────────────────────┘    └──────────────────┘
+                                                                      │
+                                                      ┌────────────────┘
+                                                      ▼
+                                              ┌──────────────────┐
+                                              │ merge 拼接多片段  │
+                                              │ + 封面作为第 1 帧  │
+                                              └──────────────────┘
+```
 
-| | 路径 A (3D) | 路径 B (截图合成) | 路径 C (URL) | 路径 D (image_config) |
-|---|---|---|---|---|
-| 数据源 | Three.js 3D 场景 | 本地截图 | 网页 URL | 本地截图 |
-| 截图方式 | Playwright 录屏 | 外部工具截好 | Playwright 自动截 | 外部工具截好 |
-| 动画引擎 | Three.js GSAP | FFmpeg 图片→视频 | FFmpeg 滚动 | HTML 合成器 + GSAP |
-| marks/坐标 | 不涉及 | mark-text-easyocr 标红圈 | Playwright DOM 分析 | easyocr-mark 写 marks.json |
-| 入口脚本 | `<script>.mjs` (makeMovie) | `generate-image-video.mjs` | `generate-url-video.mjs` | `generate-image2-video.mjs` |
-| skill 文档 | — | — | `url-video-agent-skill.md` | `image-config-agent-skill.md` |
+**五条路径的对比**：
+
+| | 路径 A (3D) | 路径 B (截图 FFmpeg) | 路径 C (手写 scene) | 路径 D1 (URL) | 路径 D2 (image_config) |
+|---|---|---|---|---|---|
+| 数据源 | Three.js 场景 | 本地截图 | 用户自写 HTML | 网页 URL | 本地截图 |
+| 录制方式 | Playwright 录屏 | FFmpeg 图片→视频 | Playwright 录制 HTML | Playwright 录制 HTML | Playwright 录制 HTML |
+| 动画 | Three.js GSAP | 静态图 | 自写 GSAP | html-composer 预制 | html-composer 预制 |
+| marks | 不涉及 | mark-text-easyocr 标红圈 | 自写 | DOM 分析 | easyocr-mark |
+| 入口 | `<script>.mjs` | `generate-image-video.mjs` | `generate-html-video.mjs` | `generate-url-video.mjs` | `generate-image2-video.mjs` |
+| skill | — | — | — | `url-video-agent-skill.md` | `image-config-agent-skill.md` |
 
 | 概念 | 说明 | 命令 | 输出 |
 |------|------|------|------|
 | **pregen-tts** (TTS 预生成) | TTS 预生成 + 分组时长计算（路径 A，`makeMovie` 自动调用） | `node movies/pregen-tts.mjs <script>` | `gen/{name}.tts-timing.json` + `gen/{name}_segments/seg_*.mp3` |
 | **record** (录制) | 录制 3D 画面，syncpoint TTS 感知自动等待（路径 A） | `node <script>.mjs [-s\|-m\|-g] [-h\|-v]` | `gen/{name}_{h\|v}.webm` |
 | **generate-subtitle** (字幕+配音) | 从缓存读取 TTS 时长 → `.subtitle` + `.mp3`（无溢出校验） | `node movies/generate-subtitle.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` |
-| **generate-image-video** (截图合成) | 截图 → TTS → 图片视频（路径 B，一步完成） | `node movies/generate-image-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
-| **generate-url-video** (URL 录制) | 网页截图 → TTS → 滚动视频（路径 C，一步完成） | `node movies/generate-url-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
-| **generate-image2-video** (image_config 录制) | 本地截图 → HTML 合成器 + Playwright 录屏（路径 D，一步完成） | `node movies/generate-image2-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **generate-image-video** (截图 FFmpeg) | 截图 → TTS → FFmpeg 图片视频（路径 B） | `node movies/generate-image-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **generate-html-video** (手写 scene) | scene 函数 → TTS → HTML 录制（路径 C） | `node movies/generate-html-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **generate-url-video** (URL HTML) | URL → AI Agent 截图 → html-composer → 录制（路径 D1） | `node movies/generate-url-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
+| **generate-image2-video** (截图 HTML) | 本地截图 → html-composer → 录制（路径 D2） | `node movies/generate-image2-video.mjs <script>` | `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h\|v}.webm` |
 | **easyocr-mark** (OCR 定位) | easyocr 分析截图 → 写入 marks.json | `node movies/easyocr-mark.mjs <img> <out.json> <text>` | `ai_gen/{*}_marks.json` |
 | **burn** (烧录) | 烧录 .subtitle 字幕 + 音频 + bgm | `node movies/burn.mjs <script> [-s\|-m\|-g] [-h\|-v]` | `gen/{name}_burn_{h\|v}_{N}.mp4` |
 | **merge** (合并) | 多个录制拼接 + 字幕 + 音频 → 成品 | `node movies/mergeVideo.mjs <dir>` | `gen/merged_{h\|v}.mp4` |
-| **cover** (封面预处理) | 对截图封面加文字/滤镜（约定：项目下 `cover.mjs`） | `node movies/p1/cover.mjs` | `gen/{project}_cover_final_{h\|v}.png` |
+| **cover** (封面预处理) | 对截图封面叠加渐变文字（模板见 `e1/cover.mjs`） | `node movies/e1/cover.mjs` | `gen/{project}_cover_final_{h\|v}.png` |
 | **screenshot-window** (窗口截图) | PowerShell 脚本截图指定窗口 | `pwsh -c "& ./movies/screenshot-window.ps1 WorkBuddy"` | `movies/screenshot/{Name}_{h\|v}.png` |
 | **mark-text-easyocr** (OCR 标注) | Python 脚本在截图上标注文字框 | `python movies/mark-text-easyocr.py <img> "text:pos"` | `movies/screenshot/{Name}_{h\|v}_marked_{N}.png` |
 
@@ -246,7 +254,7 @@ makeMovie(
 
 > **路径 B（截图合成）** — 输出分辨率由图片实际尺寸决定，`-s/-m/-g` 不生效。前缀匹配 `_h` 和 `_v` 决定方向。默认竖屏尺寸为 1080×1920。
 >
-> **路径 C（URL 录制）** — 使用固定尺寸 1920×1080（横屏）和 1080×1920（竖屏），不受 `-s/-m/-g` 控制。`-h`/`-v` 方向过滤仍然有效。
+> **路径 C/D（HTML 合成）** — 使用固定尺寸 1920×1080（横屏）和 1080×1920（竖屏），不受 `-s/-m/-g` 控制。`-h`/`-v` 方向过滤仍然有效。
 
 示例：
 
@@ -255,6 +263,7 @@ node movies/p1/m3.mjs -m            # 录制 720p
 node movies/p1/m3.mjs -m -v         # 只录制竖屏 720p
 node movies/burn.mjs p1/m1 -g       # 烧录 1080p
 node movies/burn.mjs p1/m1 -h       # 只烧录横屏
+node movies/generate-html-video.mjs movies/e2/m1.mjs -v  # scene 模式，只录竖屏
 node movies/generate-url-video.mjs movies/e1/m0.mjs -v  # URL 模式，只录竖屏
 ```
 
@@ -415,9 +424,9 @@ pip install edge-tts
 
 ---
 
-## 第二步（备选）：截图合成视频 — `generate-image-video.mjs`
+## 第二步（备选）：截图合成视频（FFmpeg） — `generate-image-video.mjs`
 
-**当视频素材是截图而非 3D 场景时使用。** 与 `generate-subtitle.mjs` 不同，它集成了 TTS 生成 + 图片合成视频一步完成。
+**路径 B。** 适用于简单截图拼接（无复杂动画），用 FFmpeg 将多张图片合成视频。与 `generate-subtitle.mjs` 不同，它集成了 TTS 生成 + 图片合成视频一步完成。
 
 **输出分辨率由图片实际尺寸决定**，脚本按图片原始宽高比缩放 + 黑边填充到目标尺寸。横屏图片统一用 `_h` 后缀（如 `WorkBuddy_h.png`），竖屏用 `_v` 后缀（默认 1080×1920）。`-s/-m/-g` 参数对此路径不生效。
 
@@ -475,40 +484,97 @@ node movies/generate-image-video.mjs movies/p1/m2.mjs
 
 ---
 
-## 第二步（备选）：URL 网页录制 — `generate-url-video.mjs`
+## 第二步（备选）：HTML 合成 — 手写 scene 函数 — `generate-html-video.mjs`
 
-**当视频素材来自网页而非本地截图或 3D 场景时使用。** 自动打开 URL → 全页截图 → FFmpeg 滚动效果 → 拼接 → TTS → 烧录，一步完成。
+**路径 C。** 适用于需要自定义 HTML/GSAP 动画的场景。在 `.mjs` 中导出 `scene()` 函数，逐段返回 HTML + GSAP 动画代码，由 `generate-html-video.mjs` 组装 → Playwright 录制 → 烧录。
 
 ### 脚本格式
 
 ```javascript
-// movies/e1/m0.mjs
+// movies/e2/m1.mjs
 const subtitle = `
-在 MakerWorld 上浏览 3D 模型
-选择一个喜欢的模型下载
+第一句台词
+第二句台词
 `;
 
-const urls = [
-  'https://makerworld.com.cn/zh/3d-models',
-  'https://makerworld.com.cn/zh/models/2649415-ha-lan-de',
-];
-```
+const image = 'movies/screenshot/cover';
 
-- `const urls` — URL 数组，每个台词对应一个 URL
-- subtitle 行数必须等于 `urls.length`，一一对应
-- `const image` 字段不需要
+export function scene({ imagePath, width, height, duration, fps, index, startTime, totalDuration }) {
+  const bg = `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:#d8d8d8 url('${imagePath}') no-repeat center / contain"></div>`;
+  let animation = '';
+  // 手写 GSAP 动画
+  animation += `  tl.from('#title', {opacity:0,y:20,duration:0.5}, ${startTime.toFixed(3)});\n`;
+  return { html: bg + '<div id="title">Hello</div>', animation };
+}
+```
 
 ### 使用
 
 ```bash
-# 一步完成：截图 → 滚动片段 → 拼接 → TTS → 字幕 → 烧录
-node movies/generate-url-video.mjs movies/e1/m0.mjs
+node movies/generate-html-video.mjs movies/e2/m1.mjs
+```
 
-# 仅截图不烧录
-node movies/generate-url-video.mjs movies/e1/m0.mjs --no-burn
+输出 `gen/{name}.subtitle` + `gen/{name}.mp3` + `gen/{name}_{h|v}.webm`。
 
-# 仅竖屏
-node movies/generate-url-video.mjs movies/e1/m0.mjs -v
+---
+
+## 第二步（备选）：HTML 合成 — 预制动画（`urls` / `image_config`）
+
+**路径 D。** 详见对应 skill 文档：
+
+- D1（URL 源）：`movies/url-video-agent-skill.md` — 入口 `generate-url-video.mjs`
+- D2（本地截图源）：`movies/image-config-agent-skill.md` — 入口 `generate-image2-video.mjs`
+
+### 脚本格式
+
+```javascript
+// movies/e1/m5.mjs（参考示例）
+const subtitle = `
+海外用户直接Github获取
+国内用户前往Gitcode下载\n((gitcode.com/Faicad))
+`;
+
+const urls = [
+  {
+    url: 'https://github.com/faicad/3d_viewer_electron/',
+    description: '首句台词1秒后高亮显示右侧Releases区域',
+    anim: [
+      {
+        type: 'highlight-area',
+        selector: 'Releases sidebar',
+        triggerAt: 1.0,
+        highlightMs: 2100,
+        padding: 60,
+      },
+    ],
+  },
+  {
+    url: 'https://gitcode.com/Faicad/3d_viewer_electron',
+    description: '结束前1秒点击"查看全部发行版"',
+    anim: [
+      {
+        type: 'click-highlight',
+        selector: 'All releases',
+        triggerAt: 2.12,
+        highlightMs: 1000,
+      },
+    ],
+  },
+];
+```
+
+- `url` — 网页 URL；空字符串表示延续上一页（不重新截图，背景不变）
+- `description` — AI Agent 理解意图并补全 `anim` 的说明文本
+- `anim` — 动画数组，可选（AI Agent 会根据 `description` 填充）
+- `const image` 字段不需要
+- subtitle 行数必须等于 `urls.length`，一一对应
+
+### 使用
+
+```bash
+node movies/generate-url-video.mjs movies/e1/m5.mjs
+node movies/generate-url-video.mjs movies/e1/m5.mjs --no-burn
+node movies/generate-url-video.mjs movies/e1/m5.mjs -v
 ```
 
 ### 尺寸规格
@@ -516,41 +582,23 @@ node movies/generate-url-video.mjs movies/e1/m0.mjs -v
 | 方向 | 分辨率 | 说明 |
 |------|--------|------|
 | 横屏 `_h` | 1920×1080 | 与路径 A/B 一致 |
-| 竖屏 `_v` | 1080×1920 | 全高清竖屏，9:16 比例 |
-
-竖屏 1080×1920 ≠ 路径 A/B 的 1080×1440，因网页通常纵向滚动，更高画幅能展示更多内容。
+| 竖屏 `_v` | 1080×1920 | 全高清竖屏 |
 
 ### 工作流程
 
 1. **解析**：从 `.mjs` 提取 `const urls = [...]` 和 `const subtitle = \`...\``，校验行数
 2. **TTS 预生成**：调用 `pregen-tts.mjs` 生成语音缓存
 3. **字幕生成**：从缓存读取 TTS 实测时长 → `.subtitle` + `.mp3`
-4. **截图**：Playwright 启动系统 Chrome（带用户登录信息），每个 URL 截取完整网页（`fullPage: true`）
-5. **滚动片段**：每张截图生成一段 FFmpeg 视频，首屏停留 1 秒后缓慢向下滚动
-   - 横屏滚动速度：页面高度 × 5%/秒
-   - 竖屏滚动速度：页面高度 × 3%/秒
-6. **拼接**：所有片段用 concat demuxer 无损拼接 → `_{h|v}.webm`
+4. **截图**：Playwright 打开每个 `url`（非空字符串的），截图保存为 `{name}_{NNNN}_{h|v}_full.png`
+5. **HTML 合成**：`html-composer.mjs` 按 `anim` 定义生成 GSAP 动画 HTML
+6. **录制**：Playwright 录制 HTML 页面 → 视频
 7. **烧录**：烧录字幕 + 混音 → `_burn_{h|v}.mp4`
-
-### 滚动效果
-
-```
-第一秒     → 显示网页首屏（scrollY = 0）
-一秒后     → 开始缓慢向下滚动
-滚动速度   → 横屏 5% 页高/秒，竖屏 3% 页高/秒
-到底后     → 静止（不会超出页面底部）
-```
-
-FFmpeg 实现：`pad`（补黑边）→ `crop`（时变 y 表达滚动）→ `format`。
-
-由于截图可能比 viewport 窄（例如 1905px vs 1920px，因滚动条宽度导致），先 `pad` 补黑边再 `crop`。
 
 ### 浏览器要求
 
 - 使用系统安装的 **Chrome**，Playwright 通过 `chromium.launch({ channel: 'chrome' })` 启动
 - 有头模式（`headless: false`），自动携带用户浏览器 Profile 和登录 Cookie
 - **运行前需关闭 Chrome**（Playwright 需独占用户数据目录）
-- 脚本启动时会检测并提示
 
 ### 输出文件
 
@@ -558,10 +606,9 @@ FFmpeg 实现：`pad`（补黑边）→ `crop`（时变 y 表达滚动）→ `fo
 |------|------|
 | `gen/{name}.subtitle` | 字幕 JSON |
 | `gen/{name}.mp3` | TTS 配音 |
-| `gen/{name}_{h\|v}.webm` | 拼接后的完整视频 |
+| `gen/{name}_{h\|v}.webm` | HTML 录制视频 |
 | `gen/{name}_burn_{h\|v}.mp4` | 烧录字幕后的最终成品 |
-| `gen/{name}_{NNNN}_{h\|v}_full.png` | 各 URL 全页截图（中间产物，可删除） |
-| `gen/{name}_{NNNN}_{h\|v}.webm` | 各 URL 独立滚动片段（中间产物，可删除） |
+| `gen/{name}_{NNNN}_{h\|v}_full.png` | 各 URL 截图（中间产物，可删除） |
 
 ---
 
@@ -599,63 +646,28 @@ await captureCover(page)
 
 ### 第二步：封面预处理（可选）
 
-每个项目可在目录下放 `cover.mjs`，对原始截图做进一步处理（加文字、滤镜等）。
-约定：读取 `gen/{project}_cover_{h|v}.png`，输出 `gen/{project}_cover_final_{h|v}.png`。
+每个项目可在目录下放 `cover.mjs`，对封面叠加文字、滤镜等。
+约定：
+1. **优先**使用本目录下 `cover.png`（叠加在灰色渐变背景上，以 `mix-blend-mode: multiply` 合成）
+2. **回退**到 `gen/{project}_cover_{h|v}.png`（来自录制时 `captureCover`）
+3. 输出 `gen/{project}_cover_final_{h|v}.png`
 
-示例（`movies/p1/cover.mjs`）：在截图正中央添加白色文字，宽度占画面 80%：
+模板参考 `movies/e1/cover.mjs`，支持的功能：
 
-示例（`movies/p1/cover.mjs`）：原图为背景，HTML/CSS 叠加文字，Playwright 截图导出：
+- **双行文字叠加**，每行独立配置颜色渐变（多组预设可选）
+- **横竖屏独立布局**（`LAYOUT.h` / `LAYOUT.v`），支持 `top`、`align`、`pad`、`fontSize`
+- **自动字体大小**：按文字宽度比计算，确保不溢出（横屏 auto 时自动折半）
+- **安全区检测**：Playwright 运行时自动检查文字是否在 4:3（横屏）或 3:4（竖屏）安全区内
+- **颜色预设**：`gold-blue`、`rose-teal`、`amber-violet`、`coral-navy`、`emerald-peach`、`platinum-slate`、`neon-cyan`、`copper-sage`、`ruby-ice`、`lavender-mint` 等
 
-```javascript
-import { existsSync, writeFileSync, unlinkSync } from 'fs'
-import { join, dirname, basename } from 'path'
-import { fileURLToPath } from 'url'
-import { spawnSync } from 'child_process'
-import { chromium } from 'playwright'
-
-const projectDir = dirname(fileURLToPath(import.meta.url))
-const projectName = basename(projectDir)
-const genDir = join(projectDir, 'gen')
-const browser = await chromium.launch()
-
-for (const orient of ['h', 'v']) {
-  const raw = join(genDir, `${projectName}_cover_${orient}.png`)
-  if (!existsSync(raw)) continue
-  const out = join(genDir, `${projectName}_cover_final_${orient}.png`)
-
-  const r = spawnSync('ffprobe', ['-v','error','-select_streams','v:0',
-    '-show_entries','stream=width,height','-of','csv=p=0', raw])
-  const [w, h] = r.stdout.toString().trim().split(',').map(Number)
-
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{width:${w}px;height:${h}px;
-  background:url('file://${raw}') no-repeat center/cover;
-  display:flex;align-items:center;justify-content:center}
-.t{color:#fff;font-size:${Math.floor(w*0.8/5.2)}px;font-weight:bold;
-  font-family:'Microsoft YaHei','PingFang SC','Noto Sans CJK',sans-serif;
-  text-shadow:0 0 12px rgba(0,0,0,.9)}
-</style></head><body><div class="t">3D模型查看</div></body></html>`
-
-  const tmp = join(genDir, `_tmp_${orient}.html`)
-  writeFileSync(tmp, html)
-  const p = await browser.newPage({ viewport: { width: w, height: h } })
-  await p.goto('file://' + tmp, { waitUntil: 'networkidle' })
-  await p.screenshot({ path: out })
-  await p.close(); unlinkSync(tmp)
-}
-await browser.close()
-```
-
-可独立运行：
+使用方式：
 
 ```bash
-node movies/p1/cover.mjs
+# 编辑 cover.mjs 中的文案（text1/text2）和布局参数后运行
+node movies/e1/cover.mjs
 ```
 
-核心技术：**原图作为 CSS `background-image`，HTML/CSS 做叠加层，Playwright 截图导出**。无需任何图片处理库。
+核心技术：**原图作为 CSS `background-image`，HTML/CSS 做叠加层 + Playwright 截图导出**。无需任何图片处理库。
 
 ### 第三步：merge 阶段自动插入
 
@@ -762,7 +774,7 @@ movies/
 ├── generate-url-video.mjs     ← .mjs → URL 网页截图 + 滚动拼接 → .subtitle + .mp3 + .webm（路径 C）
 ├── screenshot-window.ps1       ← PowerShell 窗口截图脚本
 ├── mark-text-easyocr.py        ← Python OCR 标注脚本
-├── cover-process.py            ← 封面图片文字叠加工具（Python Pillow）
+├── e1/cover.mjs                ← 封面文字叠加模板（Playwright + HTML/CSS）
 ├── SKILL.md
 ├── screenshot/                 ← 截图存放目录
 │   ├── WorkBuddy_h.png
@@ -824,14 +836,29 @@ movies/
 - [ ] 6. **合并**：`node movies/mergeVideo.mjs movies/p2`（自动全流程）
 - [ ] 7. 检查输出的 `_burn_h.mp4` 等时长、字幕、音频
 
-### 路径 C：URL 网页录制
+### 路径 C：HTML 合成 — 手写 scene 函数
 
-- [ ] 1. 在 `movies/` 下新建项目目录（如 `e2/`）
-- [ ] 2. 写 `.mjs` 脚本，声明 `const subtitle = \`...\`` + `const urls = [...]`
-- [ ] 3. 关闭 Chrome 浏览器
-- [ ] 4. 运行 `node movies/generate-url-video.mjs movies/e2/m0.mjs` 一步完成截图 + 视频 + TTS + 字幕 + 烧录
-- [ ] 5. 也可分步：先 `--no-burn` 只生成视频，再用 `burn.mjs` 烧录
-- [ ] 6. 检查输出的 `_burn_h.mp4` / `_burn_v.mp4` 时长、字幕、音频、滚动效果
+- [ ] 1. 写 `.mjs` 脚本，声明 `const subtitle` + `export function scene()`
+- [ ] 2. 运行 `node movies/generate-html-video.mjs movies/e2/m1.mjs` 生成视频
+- [ ] 3. 检查输出的 `_burn_h.mp4` / `_burn_v.mp4` 时长、字幕、音频
+
+### 路径 D：HTML 合成 — 预制动画
+
+#### D1. URL 源（`urls` 格式）
+
+- [ ] 1. 写 `.mjs` 脚本，声明 `const subtitle` + `const urls = [...]`（只写 description，不写 anim）
+- [ ] 2. 运行 `node movies/url-video-agent-skill.md` 的 AI Agent 流程：TTS → 截图 + DOM 分析 → 写 marks.json + 补全 anim
+- [ ] 3. 运行 `node movies/generate-url-video.mjs movies/e2/m0.mjs` 生成视频
+- [ ] 4. 检查输出的 `_burn_h.mp4` / `_burn_v.mp4` 时长、字幕、音频、动画
+
+#### D2. 本地截图源（`image_config` 格式）
+
+- [ ] 1. 准备截图：本地 PNG 文件，按 `_h` / `_v` 方向命名
+- [ ] 2. 如只有单张原图，运行 `node scripts/gen-orient-images.mjs <图>` 生成横竖屏
+- [ ] 3. 写 `.mjs` 脚本，声明 `const subtitle` + `const image_config = [...]`（只写 description，不写 anim）
+- [ ] 4. 运行 `node movies/image-config-agent-skill.md` 的 AI Agent 流程：TTS → easyocr 找坐标 → 写 marks.json + 补全 anim
+- [ ] 5. 运行 `node movies/generate-image2-video.mjs movies/e1/m0_refactor.mjs` 生成视频
+- [ ] 6. 检查输出的 `_burn_h.mp4` / `_burn_v.mp4` 时长、字幕、音频、动画
 
 ---
 
@@ -880,7 +907,7 @@ FFmpeg filter 语法中 `:` 是选项分隔符。`C:/path/file.ass` 会被解析
 
 **严禁估算。** 用 `generate-subtitle.mjs` 逐行生成 TTS → ffprobe 实测每段音频时长 → 以实测值作为字幕时间轴。只有这样字幕才能和语音精确同步。
 
-**严禁对语音进行变速。** 如果 TTS 语音总时长超过视频时长，脚本会直接报错 —— 此时应该缩短字幕文本，而不是用 `atempo` 加速语音。
+**严禁对语音进行变速。** 时长自动匹配：音频短了补静音，视频短了延长帧。无需手动缩短字幕文本或加速语音。
 
 ---
 
@@ -919,16 +946,17 @@ FFmpeg filter 语法中 `:` 是选项分隔符。`C:/path/file.ass` 会被解析
 - TTS 预生成：`movies/pregen-tts.mjs`（`.mjs` → TTS 预生成 → `.tts-timing.json` + 音频缓存；`makeMovie` 自动调用）
 - 字幕+配音生成：`movies/generate-subtitle.mjs`（`.mjs` → 从缓存读取 TTS → `.subtitle` + `.mp3`；无溢出校验）
 - 截图合成（路径 B）：`movies/generate-image-video.mjs`（`.mjs` → TTS + 图片合成 → `.subtitle` + `.mp3` + `.webm`）
-- URL 网页录制（路径 C）：`movies/generate-url-video.mjs`（`.mjs` → URL 截图 + 滚动拼接 → `.subtitle` + `.mp3` + `.webm`）
-- 截图合成（路径 D，`image_config`）：`movies/generate-image2-video.mjs`（`.mjs` → HTML 合成器 + Playwright 录屏 → `.subtitle` + `.mp3` + `.webm`）
-- 共享录制流程（路径 C/D）：`movies/lib_gen_url_image.mjs`（`generate-url-video.mjs` 和 `generate-image2-video.mjs` 的共享逻辑）
+- HTML 合成 — 手写 scene（路径 C）：`movies/generate-html-video.mjs`（`.mjs` → scene 函数 → HTML + GSAP 录制 → `.subtitle` + `.mp3` + `.webm`）
+- HTML 合成 — URL 源（路径 D1）：`movies/generate-url-video.mjs`（`.mjs` → AI Agent 截图 + DOM 分析 → html-composer 预制动画录制 → `.subtitle` + `.mp3` + `.webm`）
+- HTML 合成 — 本地截图（路径 D2）：`movies/generate-image2-video.mjs`（`.mjs` → easyocr 写 marks → html-composer 预制动画录制 → `.subtitle` + `.mp3` + `.webm`）
+- 共享录制流程（路径 D1/D2）：`movies/lib_gen_url_image.mjs`（`generate-url-video.mjs` 和 `generate-image2-video.mjs` 的共享逻辑）
 - OCR 定位写 marks：`movies/easyocr-mark.mjs` + `movies/easyocr-mark.py`（easyocr 分析截图 → 写入 marks.json）
 - AI Agent skill（URL）：`movies/url-video-agent-skill.md`
 - AI Agent skill（image_config）：`movies/image-config-agent-skill.md`
 - 字幕工具函数：`movies/generate-subtitle.mjs` & `movies/generate-image-video.mjs`（`cleanTtsText`, `cleanDisplayText`）
 - 核心渲染+合并：`movies/mergeVideo.mjs`（`mergeProject`, `processProjectCovers`, `detectProjectCover`）
 - 单文件烧录 CLI：`movies/burn.mjs`
-- 封面图片文字处理：`movies/cover-process.py`（Python Pillow，CJK 自适应字体）
+- 封面文字叠加：`movies/e1/cover.mjs`（参考模板，Playwright + HTML/CSS 叠加渐变文字）
 - 背景音乐：`movies/alex-productions-acoustic-folk-friends.wav`
 - 窗口截图：`movies/screenshot-window.ps1`（PowerShell 脚本）
 - OCR 标注：`movies/mark-text-easyocr.py`（Python 脚本）
