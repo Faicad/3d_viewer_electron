@@ -665,6 +665,14 @@ export async function loadFormat(
       const points = new PCDLoader().parse(buffer)
       // PCDLoader returns THREE.Points — render directly as point cloud
       if (points instanceof THREE.Points) {
+        // PCDLoader hardcodes size: 0.005, which is far too small for many
+        // real-world point clouds.  Compute an adaptive size from the bounding
+        // sphere so points are always a few pixels across regardless of scale.
+        if (points.geometry.boundingSphere) {
+          const radius = points.geometry.boundingSphere.radius || 1
+          const adaptiveSize = Math.max(radius * 0.02, 0.002)
+          ;(points.material as THREE.PointsMaterial).size = adaptiveSize
+        }
         return { meshes: [], objects: [points] }
       }
       return { meshes: [], objects: [] }
