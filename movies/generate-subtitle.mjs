@@ -229,6 +229,11 @@ function scriptHasUrls(scriptPath) {
   return /(?:^|\n)const\s+urls\s*=/.test(src)
 }
 
+function scriptHasImageConfig(scriptPath) {
+  const src = readFileSync(scriptPath, 'utf-8')
+  return /(?:^|\n)const\s+image_config\s*=/.test(src)
+}
+
 async function generateTtsSegment(text, outPath, voice = DEFAULT_VOICE, ttsProvider = DEFAULT_TTS_PROVIDER) {
   let ttsText = cleanTtsText(text)
   if (ttsProvider === 'spark-tts') {
@@ -469,7 +474,7 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
   }
 
   // 2. Detect script type
-  const isSlideScript = scriptHasImage(scriptPath) || scriptHasUrls(scriptPath)
+  const isSlideScript = scriptHasImage(scriptPath) || scriptHasUrls(scriptPath) || scriptHasImageConfig(scriptPath)
   if (isSlideScript) {
     console.log('Slide script detected (image/urls) — skipping video duration check')
   }
@@ -667,7 +672,7 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
 }
 
 // ── Exports ──
-export { generateSubtitle, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE, parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript, probeDuration, generateTtsSegment, cleanTtsText, normalizeSparkTtsText, parseVoicePrefix, loadDotEnv, generateSilence, ttsCacheKey, scriptHasImage, scriptHasUrls }
+export { generateSubtitle, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE, parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript, probeDuration, generateTtsSegment, cleanTtsText, normalizeSparkTtsText, parseVoicePrefix, loadDotEnv, generateSilence, ttsCacheKey, scriptHasImage, scriptHasUrls, scriptHasImageConfig }
 
 // ── CLI ──
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
