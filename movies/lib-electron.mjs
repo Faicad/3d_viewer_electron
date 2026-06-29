@@ -1502,8 +1502,9 @@ function getElectronExePath() {
 }
 
 export async function makeMovie(scriptUrl, modelPath, viewerParams, pageFn, outputDir) {
-  const scriptName = basename(fileURLToPath(scriptUrl), '.mjs')
-  const outDir = outputDir || join(dirname(fileURLToPath(scriptUrl)), 'gen')
+  const scriptPath = fileURLToPath(scriptUrl)
+  const scriptName = basename(scriptPath, extname(scriptPath))
+  const outDir = outputDir || join(dirname(scriptPath), 'gen')
   _genDir = outDir
   _scriptName = scriptName
   mkdirSync(outDir, { recursive: true })
@@ -1512,7 +1513,6 @@ export async function makeMovie(scriptUrl, modelPath, viewerParams, pageFn, outp
   const absModelPath = resolve(modelPath)
 
   // ── Pre-generate TTS timing before recording ──
-  const scriptPath = fileURLToPath(scriptUrl)
   const ttsTimingPath = join(outDir, `${scriptName}.tts-timing.json`)
   const forceTts = process.argv.slice(2).includes('-f') || process.argv.slice(2).includes('--force')
   const ttsProvider = resolveTtsProvider()

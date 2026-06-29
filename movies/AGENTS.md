@@ -47,30 +47,138 @@ Each project is a subdirectory under `movies/` (e.g., `p1/`, `e1/`, `e2/`). Sour
 
 ### Script Template (Path A)
 
-```js
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
-import { makeMovie, startRecording, rotateModel, translateModel } from '../lib.mjs'
+参考设计文档：[syncpoint-design](./docs/syncpoint-design.md) · [subtitle-syntax](./docs/subtitle-syntax.md) 
 
-const projectDir = join(dirname(fileURLToPath(import.meta.url)), 'gen')
+```js
+import * as lib from '../lib-electron.mjs'
 
 const subtitle = `
-第一句台词
-第二句台词
+第一段完整台词
+--1--
+第二段台词
 `;
 
-makeMovie(
+lib.makeMovie(
   import.meta.url,
-  'model.glb',
-  {},
+  '/absolute/path/to/model.glb',
+  { AutoRotate: '0', entryAnim: 'zoom', entryDuration: '2000' },
   async (page, suffix, tPageOpen) => {
-    await startRecording(page, tPageOpen, 2000)
-    await page.waitForTimeout(2000)
-    // GSAP animations here...
+    // startRecording 已由 lib.makeMovie 自动完成
+    // 模型已加载，直接编写动画
+
+    // 第一段字幕对应的动画
+    await lib.rotateModel(page, 360, 3000)
+    await lib.syncpoint(page)           // ← 对应字幕中的 --1--
+
+    // 第二段字幕对应的动画
+    await lib.animateCamera(page, { rotate: 'y', angle: -90, duration: 3000 })
+    await page.waitForTimeout(1500)
   },
-  projectDir,
 )
 ```
+
+### Path A 函数清单（`lib-electron.mjs`）
+
+所有函数同时从 `../lib-electron.mjs` 导出。参数中 `'h;v'` 表示支持横竖屏方向语法（`;` 前为横屏值，后为竖屏值）。
+
+#### 录制入口
+
+| 函数 | 简介 |
+|------|------|
+| `makeMovie(scriptUrl, modelPath, viewerParams, pageFn, outputDir)` | 录制入口：TTS 预生成 → 启动 Electron → 录制各方向 → FFmpeg 裁剪 |
+| `startRecording(page, tPageOpen, entryDuration)` | 标准开场：zoomUI → 等待模型加载 → 入场动画等待（由 `makeMovie` 自动调用，用户 pageFn 中无需重复调用） |
+| `syncpoint(page)` | 记录字幕同步点；若 TTS timing 已注入，自动等待当前组 TTS 播完；偏差 >1s 打印双向诊断（详见 [syncpoint-design](./docs/syncpoint-design.md) · [subtitle-syntax](./docs/subtitle-syntax.md)） |
+| `captureCover(page)` | 截图保存为封面（自动命名 `{project}_cover_{h\|v}.png`） |
+| `recordOne(electronApp, page, viewport, suffix, pageFn, recordDir, entryDuration, modelPath, ttsTiming, viewerParams)` | 录制单个方向的完整流程 |
+
+#### 模型加载/卸载
+
+| 函数 | 简介 |
+|------|------|
+| `loadModel(page, modelPath, opts, timeout)` | 清除场景并加载新模型（支持 entryAnim 入场动画参数） |
+| `unloadModel(page, target, opts)` | 卸载模型（支持按文件路径单个卸载或全部清除，带淡出动画） |
+| `waitForModel(page)` | 等待模型加载完成（轮询 store 的 loadingPhase 字段） |
+| `exportModel(page, format)` | 导出当前场景为 GLB 或 STL，返回 base64 |
+| `saveExportedModel(page, format, outPath)` | 导出模型并直接保存到磁盘文件 |
+
+#### 模型动画（GSAP）
+
+| 函数 | 简介 |
+|------|------|
+| `translateModel(page, dx, dy, dz, duration, ease)` | 平移模型位置，参数支持 `'h;v'` 方向语法 |
+| `rotateModel(page, degrees, duration, opts)` | 绕中心旋转模型（自动检测模型 up-axis），参数支持 `'h;v'` |
+| `moveModelToScreenNdc(page, ndcX, ndcY, duration, target)` | 按 NDC 屏幕坐标移动模型（-1..1），支持 `'h:v'` 方向语法 |
+
+#### 相机控制
+
+| 函数 | 简介 |
+|------|------|
+| `animateCamera(page, opts)` | 相机动画（平移/旋转/缩放），所有参数支持 `'h;v'` 方向语法 |
+| `fitCameraToHeatbed(page, duration, margin)` | 适配相机视角到热床（OrcaSlicer 算法），支持 `'h;v'` |
+| `setEnv(page, name, timeout)` | 设置 HDR 环境贴图（-g 用 4K，其余用 2K） |
+
+#### UI 操作
+
+| 函数 | 简介 |
+|------|------|
+| `zoomUI(page, factor)` | 缩放 header 和 overlay 的 CSS zoom，支持 `'h;v'` |
+| `clickById(page, id)` | 通过 DOM id 点击元素 |
+| `setSelectValue(page, id, value)` | 设置 `<select>` 值并触发 change 事件，支持 `'h;v'` |
+| `postMessage(page, msg)` | 发送 3d-viewer 命令（fire-and-forget），params 支持 `'h;v'` |
+| `postMessageAndWait(page, msg)` | 发送 3d-viewer 命令并等待响应，支持 `'h;v'` |
+| `dispatchEvent(page, name)` | 在 window 上派发 CustomEvent |
+
+#### 工具栏放大 & 点击高亮
+
+| 函数 | 简介 |
+|------|------|
+| `magnifyToolbar(page, opts)` | 放大工具栏（DOM 克隆 + CSS zoom），可选居中到目标按钮 |
+| `removeMagnifyToolbar(page)` | 移除放大工具栏（淡出动画后删除） |
+| `clickWithHighlight(page, selector, label, duration, opts)` | 红色脉冲圆高亮 + 鼠标光标上升点击动画（自动放大工具栏） |
+| `animateCursorClick(page, selector, opts)` | 鼠标光标从按钮下方上升并点击的动画 |
+
+#### 叠加标签
+
+| 函数 | 简介 |
+|------|------|
+| `showOverlay(page, id, content, position, extraStyle)` | 在固定位置显示文本叠加标签（top-left/right, bottom-center, center） |
+| `hideOverlay(page, id)` | 移除指定 id 的叠加标签 |
+| `clearOverlays(page)` | 移除所有叠加标签及容器 |
+
+#### 截图
+
+| 函数 | 简介 |
+|------|------|
+| `screenshot(page, prefix)` | 截图当前方向，保存为 `{prefix}_{h\|v}.png` |
+
+#### 浏览器端功能
+
+| 函数 | 简介 |
+|------|------|
+| `callDemo(page, name, params)` | 调用浏览器端的 `__demo{Name}()` 函数（如 GSAPExplode 等） |
+| `interceptProtocolWithDialog(page, opts)` | 拦截外部协议 URL（如 bambustudio://），显示自定义对话框代替 Chrome 原生提示 |
+
+#### 烧录/渲染
+
+| 函数 | 简介 |
+|------|------|
+| `burnVideo(scriptUrl, genDir)` | 按约定路径烧录字幕 + 音频 + BGM → `_burn_{h\|v}.mp4` |
+| `renderVideo(opts)` | 核心渲染：scale+pad + ASS 卡拉OK 字幕 + 混音 |
+
+#### 辅助/常量
+
+| 函数/常量 | 简介 |
+|-----------|------|
+| `resolveSizePreset()` | 从 CLI 解析尺寸预设（-s 540p / -m 720p / -g 1080p） |
+| `resolveOrientationFilter()` | 从 CLI 解析方向过滤（-h / -v） |
+| `resolve30fps()` | 检测 `-30` 标志（输出 30fps） |
+| `resolveTtsProvider()` | 提取 `--tts <provider>` |
+| `resolveNoWarm()` | 检测 `--no-warm` 标志 |
+| `resolveOrientParam(value, isLandscape)` | 解析 `'h;v'` 方向语法字符串 |
+| `hdrUrl(name)` | 根据尺寸预设构建 HDR 环境贴图 URL |
+| `SIZE_PRESETS` | 尺寸预设常量（`.s/.m/.g.orientations[{width,height,suffix}]`） |
+| `MODEL_PORT` | 模型静态服务器端口 (4179) |
+| `DEFAULT_BGM` | 默认背景音乐 WAV 路径 |
 
 ### Scene Script (Path C)
 

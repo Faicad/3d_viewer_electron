@@ -57,7 +57,7 @@ if (isSceneScript) {
   if (r.status !== 0) process.exit(r.status ?? 1)
 } else {
   console.log(`\n=== Recording 3D video: ${scriptName} ===`)
-  const r = spawnSync('node', [absPath, ...childFlags], { stdio: 'inherit', timeout: 600000 })
+  const r = spawnSync('node', [absPath, ...childFlags], { stdio: 'inherit', timeout: 3600000 })
   if (r.status !== 0) process.exit(r.status ?? 1)
 }
 

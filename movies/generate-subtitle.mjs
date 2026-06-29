@@ -164,11 +164,29 @@ function splitBySyncpoints(lines) {
 
 /**
  * Count lib.syncpoint() calls in the .mjs script source.
+ * Handles the common pattern where syncpoint is conditionally called
+ * inside a for loop: if (i < MODELS.length - 1) await lib.syncpoint(
  */
 function countSyncpointsInScript(scriptPath) {
   const src = readFileSync(scriptPath, 'utf-8')
   const matches = src.match(/lib\.syncpoint\(/g)
-  return matches ? matches.length : 0
+  const rawCount = matches ? matches.length : 0
+
+  // Detect conditional pattern: if (i < MODELS.length[-1]) await lib.syncpoint(
+  const condMatch = src.match(
+    /if\s*\(\s*\w+\s*<\s*MODELS\.length(\s*-\s*\d+)?\s*\)\s*await\s+lib\.syncpoint\s*\(/
+  )
+  if (condMatch) {
+    const modelCount = (src.match(/\{\s*path\s*:/g) || []).length
+    if (modelCount > 0) {
+      const hasOffset = condMatch[1] !== undefined // e.g. " - 1"
+      const condCalls = hasOffset ? modelCount - 2 : modelCount - 1
+      // Replace the 1 matched conditional call with actual runtime count
+      return rawCount - 1 + Math.max(0, condCalls)
+    }
+  }
+
+  return rawCount
 }
 
 /**
