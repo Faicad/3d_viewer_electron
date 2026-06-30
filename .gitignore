@@ -49,3 +49,4 @@ scripts/time_ci.sh.txt
 ci-logs/
 benchmark/snapshots/*
 .npmrc
+movies
