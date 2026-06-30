@@ -8,6 +8,11 @@ import { spawnSync } from 'node:child_process';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 
+if (process.platform !== 'win32') {
+  console.log(`[ensure-electron] skipping on ${process.platform}, only needed on win32`);
+  process.exit(0);
+}
+
 function findElectronDir() {
   const pnpmDir = join(rootDir, 'node_modules', '.pnpm');
   if (existsSync(pnpmDir)) {
