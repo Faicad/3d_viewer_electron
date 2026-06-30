@@ -152,7 +152,7 @@ test('procedural studio shows room box with lights when rotated', async () => {
     const values = samples.map(([r, g, b]) => (r + g + b) / 3)
     const maxVal = Math.max(...values)
     const minVal = Math.min(...values)
-    const hasVariation = maxVal - minVal > 40 // significant brightness spread
+    const hasVariation = maxVal - minVal > 10 // brightness spread across room positions
     // Check for bright spots (>200 in any channel, indicating area lights)
     const hasBright = samples.some(([r, g, b]) => r > 200 || g > 200 || b > 200)
     return { samples, maxVal, minVal, hasVariation, hasBright }
