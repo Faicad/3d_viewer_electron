@@ -283,7 +283,8 @@ function buildSceneHtml(scene, marks, index, width, height) {
     }
     if (step.type === 'highlight-area') {
       const pad = step.padding || 20
-      scrollHtml += `<div class="overlay highlight-box" id="s${index}_area${ai}" style="left:${mark.x - pad}px;top:${fy - pad}px;width:${mark.w + pad * 2}px;height:${mark.h + pad * 2}px;opacity:0"></div>`
+      const color = step.color || '#ff6b35'
+      scrollHtml += `<div class="overlay highlight-box" id="s${index}_area${ai}" style="left:${mark.x - pad}px;top:${fy - pad}px;width:${mark.w + pad * 2}px;height:${mark.h + pad * 2}px;opacity:0;border:3px solid ${color};box-shadow:0 0 20px ${color}80"></div>`
     }
     if (step.type === 'text-annotation') {
       const pos = step.position || 'top-right'
