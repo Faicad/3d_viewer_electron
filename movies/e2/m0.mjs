@@ -1,28 +1,26 @@
 
 const subtitle = `
-Windows自带的3D查看器
+Windows((自带的3D查看器))
+((Windows))自带的3D查看器
 今天寿命到期了，结束支持了
-我推荐一款更好的
+我推荐一款更好的开源版
 支持25种3D文件格式，来看看吧
 `;
 
 const image_config = [
   {
     image: 'movies/screenshot/win2',
-    description: '开始1秒后高亮"3D查看器"图标，结束前1秒显示鼠标点击动画',
+    description: '',
+  },
+  {
+    image: 'movies/screenshot/win3',
+    description: '0,5秒后显示鼠标点击动画',
     anim: [
-      {
-        type: 'highlight-area',
-        selector: '3D查看器',
-        triggerAt: 1.0,
-        highlightMs: 2650,
-        padding: 10,
-      },
       {
         type: 'move-click',
         selector: '3D查看器',
-        triggerAt: 2.65,
-        moveMs: 500,
+        triggerAt: 0.5,
+        moveMs: 800,
       },
     ],
   },

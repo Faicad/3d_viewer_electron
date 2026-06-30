@@ -18,9 +18,10 @@ import { resolve, dirname, basename, extname, join } from 'path'
 import {
   parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript,
   generateTtsSegment, probeDuration, cleanTtsText, normalizeSparkTtsText,
-  parseVoicePrefix, loadDotEnv, ttsCacheKey,
+  parseVoicePrefix, ttsCacheKey,
   INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE,
 } from './generate-subtitle.mjs'
+import { loadProjectEnv } from './env.mjs'
 
 function round2(v) { return Math.round(v * 100) / 100 }
 
@@ -106,7 +107,7 @@ async function pregenTts(scriptPath, { force = false, ttsProvider } = {}) {
   const segments = []
   let ttsIndex = 0
   let hadMiss = false
-  const env = loadDotEnv()
+  loadProjectEnv(scriptPath)
 
   for (let g = 0; g < groups.length; g++) {
     for (let i = 0; i < groups[g].length; i++) {
@@ -128,10 +129,10 @@ async function pregenTts(scriptPath, { force = false, ttsProvider } = {}) {
       if (voice) {
         configStr = `voice=${voice}`
       } else if (effectiveProvider === 'spark-tts') {
-        if (env.SPARKTTS_VOICE) {
-          configStr = `voice=${basename(env.SPARKTTS_VOICE)}`
+        if (process.env.SPARKTTS_VOICE) {
+          configStr = `voice=${basename(process.env.SPARKTTS_VOICE)}`
         } else {
-          configStr = `gender=${env.SPARKTTS_GENDER || 'male'} pitch=${env.SPARKTTS_PITCH || 'moderate'} speed=${env.SPARKTTS_SPEED || 'moderate'}`
+          configStr = `gender=${process.env.SPARKTTS_GENDER || 'male'} pitch=${process.env.SPARKTTS_PITCH || 'moderate'} speed=${process.env.SPARKTTS_SPEED || 'moderate'}`
         }
       } else if (effectiveProvider === 'edge-tts') {
         configStr = `voice=${usedVoice}`

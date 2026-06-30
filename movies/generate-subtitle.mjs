@@ -4,32 +4,15 @@ import { spawnSync } from 'child_process'
 import { fileURLToPath } from 'url'
 import { createHash } from 'crypto'
 import { generateTencentTts } from './tencent-tts.mjs'
+import { loadProjectEnv } from './env.mjs'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
-
-function loadDotEnv() {
-  const envPath = join(__dir, '.env')
-  if (!existsSync(envPath)) return {}
-  const vars = {}
-  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const eq = trimmed.indexOf('=')
-    if (eq === -1) continue
-    let value = trimmed.slice(eq + 1).trim()
-    // Strip inline comment (e.g. "foo # bar" → "foo")
-    const hash = value.indexOf('#')
-    if (hash !== -1) value = value.slice(0, hash).trim()
-    vars[trimmed.slice(0, eq).trim()] = value
-  }
-  return vars
-}
 
 // ── Timing constants ──
 const INITIAL_GAP = 0.5     // silence before first line (s)
 const INTER_LINE_GAP = 0.15 // silence between lines (s) — both audio gap and subtitle gap
 const DEFAULT_VOICE = 'zh-CN-XiaoxiaoNeural'
-const DEFAULT_TTS_PROVIDER = 'spark-tts'
+const DEFAULT_TTS_PROVIDER = process.env.DEFAULT_TTS || 'spark-tts'
 
 
 // edge-tts --list-voices | rg zh-CN
@@ -274,8 +257,7 @@ async function generateTtsSegment(text, outPath, voice = DEFAULT_VOICE, ttsProvi
   }
 
   if (ttsProvider === 'indextts') {
-    const env = loadDotEnv()
-    const voicePath = env.INDEXTTS_VOICE || join(__dir, 'voice.wav')
+    const voicePath = process.env.INDEXTTS_VOICE || join(__dir, 'voice.wav')
     const scriptPath = join(__dir, 'indextts_tts.py')
     const r = spawnSync('python3', [
       scriptPath, '--voice', voicePath, '--text', ttsText, '--output', outPath,
@@ -298,15 +280,14 @@ async function generateTtsSegment(text, outPath, voice = DEFAULT_VOICE, ttsProvi
   }
 
   if (ttsProvider === 'spark-tts') {
-    const env = loadDotEnv()
     const scriptPath = join(__dir, 'sparktts_tts.py')
     const args = [scriptPath, '--text', ttsText, '--output', outPath]
-    if (env.SPARKTTS_VOICE) {
-      args.push('--voice', env.SPARKTTS_VOICE)
+    if (process.env.SPARKTTS_VOICE) {
+      args.push('--voice', process.env.SPARKTTS_VOICE)
     } else {
-      args.push('--gender', env.SPARKTTS_GENDER || 'male')
-      args.push('--pitch', env.SPARKTTS_PITCH || 'moderate')
-      args.push('--speed', env.SPARKTTS_SPEED || 'moderate')
+      args.push('--gender', process.env.SPARKTTS_GENDER || 'male')
+      args.push('--pitch', process.env.SPARKTTS_PITCH || 'moderate')
+      args.push('--speed', process.env.SPARKTTS_SPEED || 'moderate')
     }
     const r = spawnSync('python3', args, { stdio: 'pipe', timeout: 300000 })
     if (r.status !== 0) {
@@ -443,6 +424,8 @@ function computeAudioTotal(segments) {
  * @returns {{ segments, entries, videoDuration, imageDurations }}
  */
 async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER, force = false } = {}) {
+  loadProjectEnv(scriptPath)
+
   const scriptDir = dirname(scriptPath)
   const scriptName = basename(scriptPath, extname(scriptPath))
   const genDir = join(scriptDir, 'gen')
@@ -740,7 +723,7 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
 }
 
 // ── Exports ──
-export { generateSubtitle, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE, parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript, probeDuration, generateTtsSegment, cleanTtsText, normalizeSparkTtsText, parseVoicePrefix, loadDotEnv, generateSilence, ttsCacheKey, scriptHasImage, scriptHasUrls, scriptHasImageConfig }
+export { generateSubtitle, INITIAL_GAP, INTER_LINE_GAP, DEFAULT_TTS_PROVIDER, DEFAULT_VOICE, parseSubtitleLines, splitBySyncpoints, countSyncpointsInScript, probeDuration, generateTtsSegment, cleanTtsText, normalizeSparkTtsText, parseVoicePrefix, generateSilence, ttsCacheKey, scriptHasImage, scriptHasUrls, scriptHasImageConfig }
 
 // ── CLI ──
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
