@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mark Editor</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#0f0f1a;color:#e0e0e0;height:100vh;display:flex;flex-direction:column;overflow:hidden
+}
+#toolbar{
+  display:flex;align-items:center;gap:8px;padding:8px 16px;
+  background:#1a1a2e;border-bottom:1px solid #2a2a4a;flex-shrink:0;flex-wrap:wrap
+}
+#toolbar .lbl{color:#888;font-size:12px}
+#toolbar button{
+  background:#2a2a4a;color:#e0e0e0;border:1px solid #3a3a5a;
+  padding:4px 12px;border-radius:4px;cursor:pointer;font-size:13px
+}
+#toolbar button:hover{background:#3a3a5a}
+#toolbar button.active{background:#3b82f6;border-color:#60a5fa;color:#fff}
+#toolbar button.primary{background:#22c55e;border-color:#4ade80;color:#fff}
+#toolbar button.danger{background:#ef4444;border-color:#f87171;color:#fff}
+#toolbar button:disabled{opacity:0.4;cursor:default}
+#toolbar .spacer{flex:1}
+#toolbar .info{font-size:13px;color:#aaa}
+#toolbar .scene-nav{display:flex;align-items:center;gap:4px}
+#script-nav select{
+  background:#0f0f1a;color:#e0e0e0;border:1px solid #2a2a4a;
+  padding:3px 8px;border-radius:3px;font-size:13px
+}
+#main{display:flex;flex:1;overflow:hidden}
+#editor-area{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:16px;overflow:auto;background:#0a0a14;position:relative
+}
+#image-container{position:relative;display:inline-block;box-shadow:0 0 30px rgba(0,0,0,.5)}
+#bg-image{display:block;max-width:75vw;max-height:calc(100vh - 80px);object-fit:contain;user-select:none;-webkit-user-drag:none}
+#marks-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.mark{position:absolute;pointer-events:all;cursor:move;z-index:1}
+.mark .box{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  border:2px solid #ef4444;background:rgba(239,68,68,.08);border-radius:2px
+}
+.mark.selected .box{border-color:#3b82f6;background:rgba(59,130,246,.12)}
+.mark:hover .box{border-color:#fbbf24;background:rgba(251,191,36,.08)}
+.mark .lbl{
+  position:absolute;top:-24px;left:-1px;background:#ef4444;color:#fff;
+  padding:1px 6px;font-size:11px;white-space:nowrap;border-radius:3px 3px 0 0;
+  line-height:18px;pointer-events:none;z-index:3;max-width:200px;overflow:hidden;text-overflow:ellipsis
+}
+.mark.selected .lbl{background:#3b82f6}
+.mark .h{
+  position:absolute;width:10px;height:10px;background:#fff;
+  border:2px solid #ef4444;border-radius:2px;pointer-events:all;z-index:5;opacity:0
+}
+.mark.selected .h,.mark:hover .h{opacity:1}
+.mark.selected .h{border-color:#3b82f6}
+.h.nw{top:-5px;left:-5px;cursor:nw-resize}
+.h.ne{top:-5px;right:-5px;cursor:ne-resize}
+.h.sw{bottom:-5px;left:-5px;cursor:sw-resize}
+.h.se{bottom:-5px;right:-5px;cursor:se-resize}
+.h.n{top:-5px;left:50%;margin-left:-5px;cursor:n-resize}
+.h.s{bottom:-5px;left:50%;margin-left:-5px;cursor:s-resize}
+.h.w{top:50%;left:-5px;margin-top:-5px;cursor:w-resize}
+.h.e{top:50%;right:-5px;margin-top:-5px;cursor:e-resize}
+#side-panel{width:300px;background:#1a1a2e;border-left:1px solid #2a2a4a;display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+#side-panel h3{font-size:13px;color:#888;padding:12px 16px 8px;border-bottom:1px solid #2a2a4a}
+.sec{padding:12px 16px;border-bottom:1px solid #2a2a4a}
+.sec label{display:block;font-size:11px;color:#888;margin-bottom:2px}
+.pr{display:flex;gap:8px;margin-bottom:8px}
+.pf{flex:1}
+.pf input{width:100%;background:#0f0f1a;border:1px solid #2a2a4a;color:#e0e0e0;padding:4px 8px;border-radius:3px;font-size:13px;font-family:Consolas,'Courier New',monospace}
+.pf input:focus{outline:none;border-color:#3b82f6}
+.mli{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 12px;cursor:pointer;border-left:3px solid transparent;font-size:13px
+}
+.mli:hover{background:rgba(255,255,255,.05)}
+.mli.on{background:rgba(59,130,246,.15);border-left-color:#3b82f6}
+.mli .k{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.mli .db{background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;padding:0 4px;opacity:.5}
+.mli .db:hover{opacity:1}
+.emp{padding:24px 16px;text-align:center;color:#555;font-size:13px;line-height:1.6}
+#af{display:flex;gap:6px;padding:8px 16px}
+#af input{flex:1;background:#0f0f1a;border:1px solid #2a2a4a;color:#e0e0e0;padding:4px 8px;border-radius:3px;font-size:13px}
+#af input:focus{outline:none;border-color:#3b82f6}
+#af button{background:#22c55e;border:none;color:#fff;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:13px}
+#af button:hover{background:#16a34a}
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#22c55e;color:#fff;padding:8px 20px;border-radius:6px;font-size:14px;
+  opacity:0;transition:opacity .3s;pointer-events:none;z-index:100
+}
+#toast.show{opacity:1}
+#toast.err{background:#ef4444}
+.sd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.sd.ok{background:#22c55e}
+.sd.chg{background:#fbbf24;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="lbl">File:</span>
+  <span id="fileLabel" style="color:#f0c040;font-size:14px">--</span>
+  <div class="spacer"></div>
+  <div class="scene-nav">
+    <button id="btnPrev" disabled>&#9664;</button>
+    <span class="info" id="posInfo">-- / --</span>
+    <button id="btnNext" disabled>&#9654;</button>
+  </div>
+  <div id="scriptNav" style="display:none"><select id="scriptSelect"></select></div>
+  <div class="spacer"></div>
+  <span id="saveDot" class="sd ok"></span>
+  <button id="btnSave" class="primary">Save</button>
+</div>
+
+<div id="main">
+  <div id="editor-area">
+    <div id="image-container">
+      <img id="bg-image" src="" alt="screenshot">
+      <div id="marks-layer"></div>
+    </div>
+    <div class="emp" id="noMsg" style="display:none">
+      <div style="font-size:20px;margin-bottom:12px">No marks files found</div>
+      <div style="font-size:11px">Look for <code>*_NNNN_h_marks.json</code> / <code>*_NNNN_v_marks.json</code></div>
+    </div>
+  </div>
+  <div id="side-panel">
+    <h3>Marks</h3>
+    <div id="marksList"></div>
+    <div id="af">
+      <input id="newKey" placeholder="New mark name..." disabled>
+      <button id="btnAdd" disabled>+ Add</button>
+    </div>
+    <h3 id="ph" style="display:none">Properties</h3>
+    <div id="pp" class="sec" style="display:none">
+      <div class="pr">
+        <div class="pf"><label>X</label><input id="pX" type="number"></div>
+        <div class="pf"><label>Y</label><input id="pY" type="number"></div>
+      </div>
+      <div class="pr">
+        <div class="pf"><label>W</label><input id="pW" type="number"></div>
+        <div class="pf"><label>H</label><input id="pH" type="number"></div>
+      </div>
+      <div class="pr">
+        <div class="pf"><label>fullY</label><input id="pFY" type="number"></div>
+      </div>
+      <div style="margin-top:8px"><button id="btnDel" class="danger">Delete</button></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const S = {
+  items:[], idx:0, marks:{}, sel:null,
+  imgOk:false, iNat:{w:0,h:0}, dsp:{w:0,h:0}, chg:false
+};
+const $ = id=>document.getElementById(id);
+const img=$('bg-image'), ml=$('marks-layer'), mk=$('marksList');
+const pos=$('posInfo'), lbl=$('fileLabel'), no=$('noMsg'), dot=$('saveDot');
+const pp=$('pp'), ph=$('ph');
+
+function scl(){return S.iNat.w?S.dsp.w/S.iNat.w:1}
+function td(v){return Math.round(v*scl())}
+
+function tst(m,e){const t=$('toast');t.textContent=m;t.className=e?'show err':'show';clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2000)}
+
+function setChg(c){S.chg=c;dot.className=c?'sd chg':'sd ok';$('btnSave').textContent=c?'Save *':'Save'}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+async function load(){
+  const r=await fetch('/api/scenes');S.items=await r.json();
+  if(!S.items.length){no.style.display='block';return}
+  const scripts=[...new Set(S.items.map(s=>s.scriptName))];
+  const sel=$('scriptSelect');
+  sel.innerHTML=scripts.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
+  sel.onchange=()=>{
+    const si=S.items.findIndex(x=>x.scriptName===sel.value);
+    if(si>=0)go(si);
+  };
+  if(scripts.length>1)$('scriptNav').style.display='flex';
+  const first=scripts[0];S.items=S.items.filter(s=>s.scriptName===first);
+  if(S.items.length)await go(0);
+}
+
+async function go(i){
+  if(i<0||i>=S.items.length)return;
+  S.idx=i;S.sel=null;
+  const it=S.items[i];
+  lbl.textContent=it.id;
+  const orientLabel=it.orient==='h'?'H':(it.orient==='v'?'V':it.orient);
+  pos.textContent=(i+1)+' / '+S.items.length+'  '+orientLabel+'  ('+it.prefix+')';
+  $('btnPrev').disabled=i===0;$('btnNext').disabled=i>=S.items.length-1;
+  await loadData();
+}
+
+async function loadData(){
+  const it=S.items[S.idx];if(!it)return;
+  const r=await fetch('/api/scene/'+it.id);
+  if(!r.ok){tst('Failed to load',1);return}
+  const d=await r.json();S.marks=d.marks||{};
+  img.src=d.imageBase64||'';S.imgOk=false;S.iNat={w:0,h:0};
+  img.onload=()=>{S.imgOk=true;S.iNat={w:img.naturalWidth,h:img.naturalHeight};updSz();ren()};
+}
+
+function updSz(){if(!S.imgOk)return;S.dsp={w:img.clientWidth,h:img.clientHeight}}
+
+function ren(){
+  ml.innerHTML='';mk.innerHTML='';pp.style.display='none';ph.style.display='none';
+  const ks=Object.keys(S.marks);
+  if(!ks.length)mk.innerHTML='<div class="emp">No marks yet.<br>Click "+ Add" to create one.</div>';
+
+  for(const key of ks){
+    const m=S.marks[key],sel=S.sel===key;
+    const el=document.createElement('div');
+    el.className='mark'+(sel?' selected':'');
+    el.style.left=td(m.x)+'px';el.style.top=td(m.y)+'px';
+    el.style.width=Math.max(10,td(m.w))+'px';el.style.height=Math.max(10,td(m.h))+'px';
+    const lb=document.createElement('div');lb.className='lbl';lb.textContent=key;el.appendChild(lb);
+    const bx=document.createElement('div');bx.className='box';el.appendChild(bx);
+    for(const p of['nw','ne','sw','se','n','s','w','e']){
+      const h=document.createElement('div');h.className='h '+p;el.appendChild(h);
+    }
+    bx.onmousedown=e=>drg(e,key);
+    lb.onmousedown=e=>drg(e,key);
+    el.onmousedown=e=>{if(!e.target.classList.contains('h'))selKey(key)};
+    for(const h of el.querySelectorAll('.h')){
+      const p=[...h.classList].filter(c=>['nw','ne','sw','se','n','s','w','e'].includes(c))[0];
+      h.onmousedown=e=>{e.stopPropagation();e.preventDefault();rsz(e,key,p)};
+    }
+    ml.appendChild(el);
+
+    const li=document.createElement('div');
+    li.className='mli'+(sel?' on':'');
+    li.innerHTML='<span class="k">'+esc(key)+'</span><button class="db">&#10005;</button>';
+    li.querySelector('.k').onclick=()=>selKey(key);
+    li.querySelector('.db').onclick=e=>{e.stopPropagation();del(key)};
+    mk.appendChild(li);
+  }
+  updProp();
+}
+
+function selKey(k){S.sel=k;ren()}
+function updMS(k,u){if(!S.marks[k])return;Object.assign(S.marks[k],u);setChg(1)}
+
+function updProp(){
+  const k=S.sel;if(!k||!S.marks[k]){pp.style.display='none';ph.style.display='none';return}
+  pp.style.display='block';ph.style.display='block';
+  const m=S.marks[k];$('pX').value=m.x;$('pY').value=m.y;$('pW').value=m.w;$('pH').value=m.h;$('pFY').value=m.fullY??m.y
+}
+
+function onPC(){
+  const k=S.sel;if(!k||!S.marks[k])return;
+  updMS(k,{x:parseInt($('pX').value)||0,y:parseInt($('pY').value)||0,w:parseInt($('pW').value)||1,h:parseInt($('pH').value)||1,fullY:parseInt($('pFY').value)||parseInt($('pY').value)||0})
+}
+function onPC2(){onPC();ren()}
+['pX','pY','pW','pH','pFY'].forEach(id=>{$(id).oninput=onPC;$(id).onchange=onPC2})
+
+function drg(e,key){
+  if(e.button)return;e.preventDefault();
+  const m=S.marks[key];if(!m)return;
+  const f=scl(),sx=e.clientX,sy=e.clientY,ix=m.x,iy=m.y;
+  selKey(key);
+  function mv(e){updMS(key,{x:Math.round(ix+(e.clientX-sx)/f),y:Math.round(iy+(e.clientY-sy)/f),fullY:Math.round(iy+(e.clientY-sy)/f)});ren()}
+  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up)}
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up)
+}
+
+function rsz(e,key,hp){
+  e.preventDefault();const m=S.marks[key];if(!m)return;selKey(key);
+  const f=scl(),sx=e.clientX,sy=e.clientY,init={x:m.x,y:m.y,w:m.w,h:m.h};
+  function mv(e){
+    const dx=(e.clientX-sx)/f,dy=(e.clientY-sy)/f;let{x,y,w,h}=init;
+    if(hp.includes('w')){x+=dx;w-=dx}if(hp.includes('e')){w+=dx}
+    if(hp.includes('n')){y+=dy;h-=dy}if(hp.includes('s')){h+=dy}
+    if(w<5){w=5;if(hp.includes('w'))x=init.x+init.w-5}
+    if(h<5){h=5;if(hp.includes('n'))y=init.y+init.h-5}
+    updMS(key,{x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),fullY:Math.round(y)});ren()
+  }
+  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up)}
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up)
+}
+
+function add(key){
+  if(!key||S.marks[key])return;
+  const iw=S.iNat.w||1920,ih=S.iNat.h||1080;
+  S.marks[key]={x:Math.round(iw/2-50),y:Math.round(ih/2-25),w:100,h:50,fullY:Math.round(ih/2-25)};
+  setChg(1);selKey(key);ren();tst('Added: '+key)
+}
+function del(key){
+  if(!S.marks[key])return;delete S.marks[key];if(S.sel===key)S.sel=null;
+  setChg(1);ren();tst('Deleted: '+key)
+}
+
+async function save(){
+  const it=S.items[S.idx];if(!it)return;
+  const r=await fetch('/api/scene/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({marks:S.marks})});
+  if(r.ok){setChg(0);tst('Saved')}else tst('Save failed!',1)
+}
+
+document.onkeydown=e=>{
+  if(e.target.tagName==='INPUT')return;
+  if((e.key==='Delete'||e.key==='Backspace')&&S.sel){e.preventDefault();del(S.sel)}
+  if(e.key==='ArrowLeft'&&e.ctrlKey){e.preventDefault();go(S.idx-1)}
+  if(e.key==='ArrowRight'&&e.ctrlKey){e.preventDefault();go(S.idx+1)}
+  if((e.key==='s'||e.key==='S')&&(e.metaKey||e.ctrlKey)){e.preventDefault();save()}
+};
+
+window.onresize=()=>{if(S.imgOk){updSz();ren()}};
+img.onload=()=>{S.imgOk=true;S.iNat={w:img.naturalWidth,h:img.naturalHeight};updSz();ren()};
+$('btnPrev').onclick=()=>go(S.idx-1);
+$('btnNext').onclick=()=>go(S.idx+1);
+$('btnSave').onclick=save;
+$('btnAdd').onclick=()=>{const v=$('newKey').value.trim();if(!v){tst('Enter a name',1);return}add(v);$('newKey').value=''};
+$('newKey').onkeydown=e=>{if(e.key==='Enter')$('btnAdd').click()};
+$('btnDel').onclick=()=>{if(S.sel)del(S.sel)};
+load();
+</script>
+</body>
+</html>
