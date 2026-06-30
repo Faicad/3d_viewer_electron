@@ -1787,9 +1787,13 @@ function buildAss(subtitlePath, targetW, targetH) {
   const karaokeStyle = `Style: Karaoke,${BASE_STYLE.fontName},${s(BASE_STYLE.fontSize)},&H0000FFFF,${BASE_STYLE.primaryColour},${BASE_STYLE.outlineColour},${BASE_STYLE.backColour},0,0,0,0,100,100,0,0,1,${s(BASE_STYLE.outline)},${s(BASE_STYLE.shadow)},2,${s(BASE_STYLE.marginL)},${s(BASE_STYLE.marginR)},${s(BASE_STYLE.marginV)},1`
   const normalStyle = `Style: Default,${BASE_STYLE.fontName},${s(BASE_STYLE.fontSize)},${BASE_STYLE.primaryColour},${BASE_STYLE.secondaryColour},${BASE_STYLE.outlineColour},${BASE_STYLE.backColour},0,0,0,0,100,100,0,0,1,${s(BASE_STYLE.outline)},${s(BASE_STYLE.shadow)},2,${s(BASE_STYLE.marginL)},${s(BASE_STYLE.marginR)},${s(BASE_STYLE.marginV)},1`
 
+  // KARAOKE_TTS_PROVIDERS env var: empty → force-disable all karaoke
+  // (safety net for old subtitle files that may have words data)
+  const karaokeDisabled = process.env.KARAOKE_TTS_PROVIDERS === ''
+
   const dialogueLines = seg.entries.map(e => {
     const text = e.t.replace(/\\n/g, '\\N')
-    if (e.words && e.words.length > 0) {
+    if (!karaokeDisabled && e.words && e.words.length > 0) {
       const karaokeText = buildKaraokeAssText(text, e.words, e.e - e.s)
       return `Dialogue: 0,${toAssTime(e.s)},${toAssTime(e.e)},Karaoke,,0,0,0,,${karaokeText}`
     }

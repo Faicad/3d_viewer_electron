@@ -58,7 +58,7 @@ function mergeSubtitles(genDir, baseNames, totalDuration) {
         e: Math.round((e.e + offset) * 100) / 100,
         t: e.t,
       }
-      if (e.words) {
+      if (e.words && process.env.KARAOKE_TTS_PROVIDERS !== '') {
         entry.words = e.words
       }
       allEntries.push(entry)

@@ -14,6 +14,14 @@ const INTER_LINE_GAP = 0.15 // silence between lines (s) — both audio gap and 
 const DEFAULT_VOICE = 'zh-CN-XiaoxiaoNeural'
 const DEFAULT_TTS_PROVIDER = process.env.DEFAULT_TTS || 'spark-tts'
 
+// Comma-separated list of TTS providers that get karaoke word-highlight subtitles.
+// Not set or empty → no karaoke. Example: KARAOKE_TTS_PROVIDERS=edge-tts
+const KARAOKE_PROVIDERS = (() => {
+  const raw = process.env.KARAOKE_TTS_PROVIDERS
+  if (!raw) return []
+  return raw.split(',').map(s => s.trim()).filter(Boolean)
+})()
+
 
 // edge-tts --list-voices | rg zh-CN
 // zh-CN-XiaoxiaoNeural               Female    News, Novel            Warm
@@ -549,7 +557,7 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
         const dur = probeDuration(outPath)
         if (dur > 0) {
           process.stdout.write(`[${String(ttsIndex + 1).padStart(2)}/${totalNonMarker}] "${text.length > 50 ? text.slice(0, 47) + '...' : text}" cached ${dur.toFixed(2)}s\n`)
-          segments.push({ text, group: g, voice, path: outPath, duration: dur, words: cached.words })
+          segments.push({ text, group: g, voice, provider: effectiveProvider, path: outPath, duration: dur, words: cached.words })
           ttsIndex++
           continue
         }
@@ -598,7 +606,8 @@ async function generateSubtitle(scriptPath, { ttsProvider = DEFAULT_TTS_PROVIDER
       e: round2(cursor + seg.duration),
       t: cleanDisplayText(seg.text),
     }
-    if (seg.words && seg.words.length > 0) {
+    const segProvider = seg.provider || 'edge-tts'  // fallback for legacy cache
+    if (seg.words && seg.words.length > 0 && KARAOKE_PROVIDERS.includes(segProvider)) {
       e.words = seg.words
     }
     entries.push(e)
