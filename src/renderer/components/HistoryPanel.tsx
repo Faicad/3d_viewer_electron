@@ -7,8 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { stepToGlbCached } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS, isStepFile } from '@/config/file-formats'
+import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -162,6 +162,16 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
 
       // ── 3D: STEP / STL / GLB / 3MF / etc. ─────────────────────
       const isStep = isStepFile(entry.fileName)
+
+      // Decompress STPZ before parsing header and converting
+      if (isStep && entry.fileName.toLowerCase().endsWith('.stpz')) {
+        const decompressed = decompressStpz(buffer)
+        if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+          toast.error('STPZ decompressed size exceeds 100MB limit')
+          return
+        }
+        buffer = decompressed
+      }
 
       let fileMeta: FileMeta | undefined
       if (isStep) {

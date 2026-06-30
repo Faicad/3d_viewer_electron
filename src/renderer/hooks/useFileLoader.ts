@@ -4,7 +4,7 @@ import { useModelStore } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
 import { toast } from 'sonner'
-import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
+import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -90,8 +90,18 @@ export function useFileLoader() {
       let buffer = fileResult.data
 
       if (isStepFile(name) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-        toast.error('不支持超过100MB的STEP/STP文件')
+        toast.error('不支持超过100MB的STEP/STP/STPZ文件')
         return
+      }
+
+      // Decompress STPZ before parsing header and converting
+      if (isStepFile(name) && name.toLowerCase().endsWith('.stpz')) {
+        const decompressed = decompressStpz(buffer)
+        if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+          toast.error('STPZ decompressed size exceeds 100MB limit')
+          return
+        }
+        buffer = decompressed
       }
 
       // Parse STEP header metadata before conversion

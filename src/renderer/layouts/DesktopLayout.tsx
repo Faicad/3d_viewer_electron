@@ -9,8 +9,8 @@ import { useEngineStore } from '@/stores/engine-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { hasViewData, type ViewMode } from '@/lib/bambu-3mf/viewTransforms'
-import { stepToGlbCached } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
+import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -731,6 +731,16 @@ export default function DesktopLayout() {
             if (fileResult.success && fileResult.data) {
               let buffer = fileResult.data
               const isStep = isStepFile(file.name)
+              // Decompress STPZ before conversion
+              if (isStep && file.name.toLowerCase().endsWith('.stpz')) {
+                const decompressed = decompressStpz(buffer)
+                if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+                  toast.error('STPZ decompressed size exceeds 100MB limit')
+                  useModelStore.getState().hideProgress()
+                  return
+                }
+                buffer = decompressed
+              }
               let format = detectFormat(file.name)
               if (isStep) {
                 try {

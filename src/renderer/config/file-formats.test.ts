@@ -75,6 +75,7 @@ describe('detectFormat', () => {
     expect(detectFormat('model.glb')).toBe('glb')
     expect(detectFormat('part.step')).toBe('step')
     expect(detectFormat('part.stp')).toBe('step')
+    expect(detectFormat('part.stpz')).toBe('step')
     expect(detectFormat('model.obj')).toBe('obj')
     expect(detectFormat('model.fbx')).toBe('fbx')
     expect(detectFormat('model.ply')).toBe('ply')
@@ -106,6 +107,7 @@ describe('detectFormat', () => {
     expect(detectFormat('MODEL.STL')).toBe('stl')
     expect(detectFormat('Model.Glb')).toBe('glb')
     expect(detectFormat('Part.StEp')).toBe('step')
+    expect(detectFormat('Part.STPZ')).toBe('step')
   })
 
   it('does not detect disabled formats', () => {
@@ -130,6 +132,7 @@ describe('detectFormat', () => {
     // .step matches step, .stp also matches step
     expect(detectFormat('model.step')).toBe('step')
     expect(detectFormat('model.stp')).toBe('step')
+    expect(detectFormat('model.stpz')).toBe('step')
   })
 })
 
@@ -143,6 +146,7 @@ describe('getGroupAccept', () => {
     const cad = getGroupAccept('cad')
     expect(cad).toContain('.step')
     expect(cad).toContain('.stp')
+    expect(cad).toContain('.stpz')
   })
 
   it('returns empty for group with no enabled formats', () => {

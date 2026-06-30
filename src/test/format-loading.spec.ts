@@ -1,7 +1,7 @@
 /**
  * E2E format loading tests — Playwright + Electron.
- * Only tests the 4 key formats that need full rendering pipeline:
- * STL, GLB, 3MF, STEP.
+ * Only tests the 5 key formats that need full rendering pipeline:
+ * STL, GLB, 3MF, STEP, STPZ.
  *
  * All other 17+ formats are tested via Vitest in
  * src/renderer/engine/__tests__/format-loaders.test.ts
@@ -20,6 +20,7 @@ const KEY_FIXTURES: { name: string; file: string; format: string }[] = [
   { name: 'test-box.glb', file: 'test-box.glb', format: 'GLB' },
   { name: 'vise.3mf', file: 'vise.3mf', format: '3MF' },
   { name: 'test-model.step', file: 'test-model.step', format: 'STEP' },
+  { name: 'box_boss.stpz', file: 'box_boss.stpz', format: 'STPZ' },
 ]
 
 /** Collect page errors and return an assertion helper that fails on any error. */
@@ -270,6 +271,43 @@ test.describe('3D Viewer - Key Format E2E', () => {
   // Regression: glTF files with morph targets (like AnimatedMorphSphere)
   // must not trigger "Cannot read properties of undefined (reading 'length')"
   // in Three.js WebGLMorphtargets.update during rendering.
+  test('loads STPZ file, decompresses, and converts to GLB', async () => {
+    test.setTimeout(60000)
+    const window = await electronApp.firstWindow()
+    test.skip(_isSwGpu, 'STPZ loading may time out on software GPU')
+    const { assertNoErrors } = trackErrors(window)
+    const fixture = KEY_FIXTURES[3]
+
+    await window.evaluate(() => {
+      window.__modelStore?.getState().reset()
+    })
+
+    const fileBuffer = readFileSync(path.join(__dirname, 'fixtures', fixture.file))
+    await window.locator('input[type="file"]').setInputFiles({
+      name: fixture.file,
+      mimeType: 'application/octet-stream',
+      buffer: fileBuffer,
+    })
+
+    await waitForLoadDone(window, 50000)
+    await assertNoErrors()
+
+    const topologyBuilt = await window.evaluate(() => window.__sceneHasFaceIds())
+    console.log(`[test] STPZ topology built: ${topologyBuilt}`)
+    expect(topologyBuilt).toBe(true)
+
+    const sceneHasContent = await window.evaluate(() => {
+      const dev = window.__r3f_dev
+      if (!dev?.scene) return false
+      let count = 0
+      dev.scene.traverse((obj: any) => {
+        if (obj?.isMesh) count++
+      })
+      return count > 0
+    })
+    expect(sceneHasContent).toBe(true)
+  })
+
   test('loads glTF with morph targets and renders without errors', async () => {
     test.setTimeout(30000)
     const window = await electronApp.firstWindow()

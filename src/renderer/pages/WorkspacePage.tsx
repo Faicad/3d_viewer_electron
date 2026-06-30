@@ -11,7 +11,7 @@ import ViewportContainer from '@/components/viewport/ViewportContainer'
 import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
-import { stepToGlbCached } from '@/lib/step-converter'
+import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
 import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -82,7 +82,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     }
 
     if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {
-      toast.error('不支持超过100MB的STEP/STP文件')
+      toast.error('不支持超过100MB的STEP/STP/STPZ文件')
       return
     }
 
@@ -104,9 +104,18 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
     if (isStepFile(file.name)) {
       try {
+        // Decompress STPZ before conversion
+        let stepBuffer = rawBuffer
+        if (file.name.toLowerCase().endsWith('.stpz')) {
+          stepBuffer = decompressStpz(rawBuffer)
+          if (stepBuffer.byteLength > MAX_STEP_FILE_SIZE) {
+            toast.error('STPZ decompressed size exceeds 100MB limit')
+            return
+          }
+        }
         useModelStore.getState().showProgress('Converting STEP geometry...')
         const filePath = window.electronAPI?.getFilePath(file) ?? file.name
-        const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
+        const { buffer: glbBuffer } = await stepToGlbCached(stepBuffer,
           { filePath, mtimeMs: file.lastModified },
           { wasmPath: '/wasm/occt-import-js.wasm' },
         )

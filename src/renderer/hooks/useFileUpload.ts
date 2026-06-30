@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
-import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
+import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
 import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -29,7 +29,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
       }
 
       if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {
-        toast.error('不支持超过100MB的STEP/STP文件')
+        toast.error('不支持超过100MB的STEP/STP/STPZ文件')
         return
       }
 
@@ -110,7 +110,17 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         let fileMeta: FileMeta | undefined
         const isStep = isStepFile(file.name)
         if (isStep) {
-          const stepHeader = parseStepHeader(rawBuffer)
+          // Decompress STPZ before parsing header and converting
+          let stepBuffer = rawBuffer
+          if (file.name.toLowerCase().endsWith('.stpz')) {
+            stepBuffer = decompressStpz(rawBuffer)
+            if (stepBuffer.byteLength > MAX_STEP_FILE_SIZE) {
+              toast.error('STPZ decompressed size exceeds 100MB limit')
+              setIsUploading(false)
+              return
+            }
+          }
+          const stepHeader = parseStepHeader(stepBuffer)
           if (stepHeader) fileMeta = { step: stepHeader }
         }
 
@@ -121,7 +131,11 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
           const filePath = window.electronAPI?.getFilePath(file) ?? file.name
 
-          const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
+          let stepBuffer = rawBuffer
+          if (file.name.toLowerCase().endsWith('.stpz')) {
+            stepBuffer = decompressStpz(rawBuffer)
+          }
+          const { buffer: glbBuffer } = await stepToGlbCached(stepBuffer,
             { filePath, mtimeMs: file.lastModified },
             { wasmPath: '/wasm/occt-import-js.wasm' },
           )

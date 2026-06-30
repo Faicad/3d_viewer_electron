@@ -164,7 +164,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
   {
     id: 'step',
     label: 'STEP',
-    extensions: ['.step', '.stp'],
+    extensions: ['.step', '.stp', '.stpz'],
     loaderModule: '', // special: converted via occt-import-js.wasm
     group: 'cad',
     sampleFile: 'step/...',
@@ -761,13 +761,14 @@ export function detectFormat(filename: string): FormatId | null {
   return null
 }
 
-/** 100 MB – STEP/STP files larger than this are rejected. */
+/** 100 MB – STEP/STP/STPZ files larger than this are rejected.
+ *  For STPZ, the check applies to the decompressed size. */
 export const MAX_STEP_FILE_SIZE = 100 * 1024 * 1024
 
 /** Check if a filename (or format id) refers to the STEP format
- *  (covers both '.step' and '.stp' extensions). */
+ *  (covers '.step', '.stp', and '.stpz' extensions). */
 export function isStepFile(filenameOrFormat: string | null | undefined): boolean {
   if (!filenameOrFormat) return false
   const f = filenameOrFormat.toLowerCase()
-  return f.endsWith('.step') || f.endsWith('.stp') || f === 'step' || f === 'stp'
+  return f.endsWith('.step') || f.endsWith('.stp') || f.endsWith('.stpz') || f === 'step' || f === 'stp' || f === 'stpz'
 }

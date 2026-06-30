@@ -6,8 +6,8 @@ import { useUIStore } from '@/stores/ui-store'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { stepToGlbCached, startPreCache } from '@/lib/step-converter'
-import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile } from '@/config/file-formats'
+import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
+import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -815,8 +815,16 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
     }
     let buffer = result.data
 
-    // Parse STEP header from original buffer before conversion
+    // Decompress STPZ before parsing header and converting
     const isStep = isStepFile(file.name)
+    if (isStep && file.name.toLowerCase().endsWith('.stpz')) {
+      const decompressed = decompressStpz(buffer)
+      if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+        toast.error('STPZ decompressed size exceeds 100MB limit')
+        return
+      }
+      buffer = decompressed
+    }
 
     let fileMeta: FileMeta | undefined
     if (isStep) {

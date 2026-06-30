@@ -21,7 +21,7 @@ import { initTelemetry, trackEvent, redactTelemetryString } from '@/telemetry'
 import { detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
-import { stepToGlbCached } from '@/lib/step-converter'
+import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
 import { scadToStl } from '@/lib/scad-converter'
 import { meshesToGlb } from '@/engine/exporters'
 import { collectPartKeys, findNodeInTree } from '@/lib/scene-tree-utils'
@@ -689,8 +689,18 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
 
             if (isStepFile(fileName) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-              throw new Error('不支持超过100MB的STEP/STP文件')
+              throw new Error('不支持超过100MB的STEP/STP/STPZ文件')
             }
+
+            // Decompress STPZ before parsing header and converting
+            if (isStepFile(fileName) && fileName.toLowerCase().endsWith('.stpz')) {
+              const decompressed = decompressStpz(buffer)
+              if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+                throw new Error('STPZ decompressed size exceeds 100MB limit')
+              }
+              buffer = decompressed
+            }
+
             let fileMeta: { step: ReturnType<typeof parseStepHeader> } | undefined
             if (isStepFile(fileName)) {
               const stepHeader = parseStepHeader(buffer)
@@ -766,8 +776,18 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
 
             if (isStepFile(fileName) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-              throw new Error('不支持超过100MB的STEP/STP文件')
+              throw new Error('不支持超过100MB的STEP/STP/STPZ文件')
             }
+
+            // Decompress STPZ before parsing header and converting
+            if (isStepFile(fileName) && fileName.toLowerCase().endsWith('.stpz')) {
+              const decompressed = decompressStpz(buffer)
+              if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+                throw new Error('STPZ decompressed size exceeds 100MB limit')
+              }
+              buffer = decompressed
+            }
+
             let fileMeta: { step: ReturnType<typeof parseStepHeader> } | undefined
             if (isStepFile(fileName)) {
               const stepHeader = parseStepHeader(buffer)

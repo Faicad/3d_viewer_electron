@@ -1,7 +1,8 @@
 import { buildGlbFromResult, type StepToGlbOptions } from './stepToGlb'
 import { convertInWorker } from './stepWorkerPool'
 import { getCached, putCached } from './stepCache'
-import { isStepFile } from '@/config/file-formats'
+import { decompressStpz } from './stepCompress'
+import { isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 
 const memCache = new Map<string, ArrayBuffer>()
 
@@ -64,8 +65,19 @@ export async function startPreCache(
 
       if (preCacheAbort) break
 
+      let buffer = result.data
+      // Decompress STPZ before caching
+      if (file.name.toLowerCase().endsWith('.stpz')) {
+        const decompressed = decompressStpz(buffer)
+        if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
+          console.warn('[preCache] STPZ decompressed size exceeds limit:', file.name)
+          continue
+        }
+        buffer = decompressed
+      }
+
       console.log('[preCache] converting:', file.name)
-      const importResult = await convertInWorker(key, result.data, null, 'precache')
+      const importResult = await convertInWorker(key, buffer, null, 'precache')
 
       const glbBuffer = buildGlbFromResult(importResult, {
         wasmPath,
