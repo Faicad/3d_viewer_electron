@@ -9,12 +9,13 @@ const projectName = basename(projectDir)
 const genDir = join(projectDir, 'gen')
 
 // ===== 文案 =====
-const text1 = '微软内置3D查看器'
+const text0 = 'windows'
+const text1 = '3D查看器'
 const text2 = '今天结束支持'
 
 // ===== 预设 =====
 // 改这一行即可切换：gold-blue | rose-teal | amber-violet | coral-navy | emerald-peach | platinum-slate | neon-cyan | copper-sage | ruby-ice | lavender-mint
-const PRESET = 'gold-ruby'
+const PRESET = 'gold-gold'
 const SWAP = false  // true → text1/text2 颜色互换
 
 // ===== 布局 =====
@@ -22,12 +23,14 @@ const SWAP = false  // true → text1/text2 颜色互换
 // fontSize 不设则 auto（按行宽计算），横屏 auto 时自动减半
 const LAYOUT = {
   h: {
-    text1: { top: 20, align: 'center', pad:15, fontSize: 120 },
-    text2: { top: 33, align: 'right', pad:15 },
+    text0: { top: 26, align: 'left', pad:15, fontSize: 120 },
+    text1: { top: 26, align: 'right', pad:20, fontSize: 120 },
+    text2: { top: 66, align: 'center', pad:15 },
   },
   v: {
-    text1: { top: 23, align: 'center', fontSize: 120 },
-    text2: { top: 75, align: 'center' },
+    text0: { top: 16, align: 'center', fontSize: 120 },
+    text1: { top: 24, align: 'center', fontSize: 120 },
+    text2: { top: 68, align: 'center' },
   },
 }
 
@@ -40,7 +43,7 @@ const PRESETS = {
   },
   'gold-gold': { 
     text1: ['#F8ECD0', '#F0D898', '#E4C878'],
-    text2: ['#F8ECD0', '#F0D898', '#E4C878'],
+    text2: ['#F0C8D0', '#E06078', '#C83050'],
   },
   'rose-teal': {       // 玫青 · 温柔互补
     text1: ['#F5D5E0', '#E8A0B8', '#D07890'],
@@ -82,9 +85,7 @@ const PRESETS = {
 
 // ===== cover.png 叠加 =====
 const coverPngPath = join(projectDir, 'cover.png')
-const hasCoverOverlay = existsSync(coverPngPath)
-const coverImgUrl = hasCoverOverlay ? pathToFileURL(coverPngPath).href : null
-if (hasCoverOverlay) console.log(`[cover] Found cover.png, overlaying on base`)
+const coverImgUrl = existsSync(coverPngPath) ? pathToFileURL(coverPngPath).href : null
 
 function gradientStyle(stops) {
   return `color:${stops[1]};background-image:linear-gradient(180deg,${stops.join(',')});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`
@@ -95,7 +96,7 @@ function positionCss({ top, align, pad = 20 }) {
     case 'left':   return `top:${top}%;left:${pad}%;text-align:left;`
     case 'right':  return `top:${top}%;right:${pad}%;text-align:right;`
     case 'center':
-    default:       return `top:${top}%;left:50%;text-align:center;transform:translate(-50%,-50%);`
+    default:       return `top:${top}%;left:50%;text-align:center;transform:translate(-50%,0);`
   }
 }
 
@@ -128,15 +129,31 @@ const browser = await chromium.launch()
 try {
   for (const orient of orientations) {
     const isH = orient === 'h'
-    let w, h, imgUrl, rawPath
+    const size = COVER_SIZE[orient]
+    const w = size.w, h = size.h
+    let imgUrl, rawPath, useOverlay
 
-    if (hasCoverOverlay) {
-      // 有 cover.png → 忽略 gen 图片，用灰色底图
-      const size = COVER_SIZE[orient]
-      w = size.w; h = size.h
-      imgUrl = null
-      rawPath = null
-    } else {
+    // Tier 1: cover_h.png / cover_v.png（本目录，居中缩放在灰色底图上）
+    const localCoverPath = join(projectDir, `cover_${orient}.png`)
+    if (existsSync(localCoverPath)) {
+      const dims = probePng(localCoverPath)
+      if (dims) {
+        imgUrl = pathToFileURL(localCoverPath).href
+        rawPath = localCoverPath
+      }
+    }
+
+    // Tier 2: cover.png（本目录，叠加灰色底图）
+    if (!imgUrl) {
+      if (coverImgUrl) {
+        rawPath = null
+        useOverlay = true
+        if (orient === orientations[0]) console.log(`[cover] Found cover.png, overlaying on base`)
+      }
+    }
+
+    // Tier 3: gen/ 目录
+    if (!imgUrl && !useOverlay) {
       rawPath = join(genDir, `${projectName}_cover_${orient}.png`)
       if (!existsSync(rawPath)) {
         console.log(`[cover] ${basename(rawPath)} not found, skipping`)
@@ -144,7 +161,6 @@ try {
       }
       const dims = probePng(rawPath)
       if (!dims) { console.error(`[cover] Cannot probe ${basename(rawPath)}`); continue }
-      w = dims.w; h = dims.h
       imgUrl = pathToFileURL(rawPath).href
     }
 
@@ -152,19 +168,24 @@ try {
     const autoFs = t => isH
       ? Math.round(fontSizeForWidth(w, t) * 0.5)
       : fontSizeForWidth(w, t)
+    const fs0 = layout.text0.fontSize ?? autoFs(text0)
     const fs1 = layout.text1.fontSize ?? autoFs(text1)
     const fs2 = layout.text2.fontSize ?? autoFs(text2)
     const finalPath = join(genDir, `${projectName}_cover_final_${orient}.png`)
 
     const raw = PRESETS[PRESET] ?? PRESETS['gold-blue']
-    const p = SWAP ? { text1: raw.text2, text2: raw.text1 } : raw
+    const p0 = raw.text0 ?? raw.text1
+    const p = SWAP
+      ? { text0: p0, text1: raw.text2, text2: raw.text1 }
+      : { text0: p0, text1: raw.text1, text2: raw.text2 }
+    const text0Css = positionCss(layout.text0) + `font-size:${fs0}px;` + gradientStyle(p.text0)
     const text1Css = positionCss(layout.text1) + `font-size:${fs1}px;` + gradientStyle(p.text1)
     const text2Css = positionCss(layout.text2) + `font-size:${fs2}px;` + gradientStyle(p.text2)
 
     const targetRatio = isH ? 4 / 3 : 3 / 4
-    const bgStyle = hasCoverOverlay
+    const bgStyle = useOverlay
       ? `background:radial-gradient(ellipse at 50% 30%,#d8d8d8 0%,#b0b0b0 100%)`
-      : `background:url('${imgUrl}') no-repeat center/cover`
+      : `background:url('${imgUrl}') no-repeat center/contain, radial-gradient(ellipse at 50% 30%,#d8d8d8 0%,#b0b0b0 100%)`
 
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -172,14 +193,16 @@ try {
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:${w}px;height:${h}px;${bgStyle};position:relative}
 .t{font-weight:bold;font-family:'Microsoft YaHei','PingFang SC','Noto Sans CJK SC','Noto Sans CJK',sans-serif;filter:drop-shadow(0 2px 4px rgba(0,0,0,.85)) drop-shadow(0 6px 28px rgba(0,0,0,.45));line-height:1.2;position:absolute;word-break:keep-all;z-index:2}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;z-index:1;mix-blend-mode:multiply}
+.text0{${text0Css}}
 .text1{${text1Css}}
 .text2{${text2Css}}
 </style></head><body>
-${hasCoverOverlay ? `<img class="overlay" src="${coverImgUrl}">` : ''}
+${useOverlay ? `<img class="overlay" src="${coverImgUrl}">` : ''}
+<div class="t text0" id="text0El">${text0}</div>
 <div class="t text1" id="text1El">${text1}</div>
 <div class="t text2" id="text2El">${text2}</div>
 <script>
-console.log('__CV__ viewport w='+document.documentElement.clientWidth+' h='+document.documentElement.clientHeight);var r=document.getElementById.bind(document),R=Math.round,W=${w},H=${h},tr=${targetRatio},tx={text1El:'${text1}',text2El:'${text2}'};var sl=0,st=0,sw=W,sh=H;if(W/H>tr){sw=R(H*tr);sl=R((W-sw)/2)}else{sh=R(W/tr);st=R((H-sh)/2)};['text1El','text2El'].forEach(function(id){var e=r(id);if(!e)return;var b=e.getBoundingClientRect(),ok=b.left>=sl&&b.top>=st&&b.right<=sl+sw&&b.bottom<=st+sh;console.log('__CV__ '+id+' text="'+tx[id]+'" b=['+R(b.left)+','+R(b.top)+','+R(b.right)+','+R(b.bottom)+'] safe=['+sl+','+st+','+R(sl+sw)+','+R(st+sh)+'] ok='+ok)})
+console.log('__CV__ viewport w='+document.documentElement.clientWidth+' h='+document.documentElement.clientHeight);var r=document.getElementById.bind(document),R=Math.round,W=${w},H=${h},tr=${targetRatio},tx={text0El:'${text0}',text1El:'${text1}',text2El:'${text2}'};var sl=0,st=0,sw=W,sh=H;if(W/H>tr){sw=R(H*tr);sl=R((W-sw)/2)}else{sh=R(W/tr);st=R((H-sh)/2)};['text0El','text1El','text2El'].forEach(function(id){var e=r(id);if(!e)return;var b=e.getBoundingClientRect(),ok=b.left>=sl&&b.top>=st&&b.right<=sl+sw&&b.bottom<=st+sh;console.log('__CV__ '+id+' text="'+tx[id]+'" b=['+R(b.left)+','+R(b.top)+','+R(b.right)+','+R(b.bottom)+'] safe=['+sl+','+st+','+R(sl+sw)+','+R(st+sh)+'] ok='+ok)})
 </script>
 </body></html>`
 
@@ -210,8 +233,8 @@ console.log('__CV__ viewport w='+document.documentElement.clientWidth+' h='+docu
     await page.close()
     unlinkSync(htmlTmp)
 
-    const srcLabel = hasCoverOverlay ? 'cover.png + gray bg' : basename(rawPath)
-    console.log(`[cover] ${srcLabel} → ${basename(finalPath)} (${w}×${h}, "${text1}"=${fs1}px, "${text2}"=${fs2}px)`)
+    const srcLabel = useOverlay ? 'cover.png + gray bg' : basename(rawPath)
+    console.log(`[cover] ${srcLabel} → ${finalPath} (${w}×${h}, "${text0}"=${fs0}px, "${text1}"=${fs1}px, "${text2}"=${fs2}px)`)
     anyWork = true
   }
 } finally {

@@ -355,9 +355,6 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
 
     // caption: ONE div (full text = layout anchor), spans control progressive reveal
     if (step.type === 'caption') {
-      if (step.hideAt != null) {
-        console.warn(`WARNING: hideAt is deprecated, use duration instead (scene ${sceneIndex}, ai ${ai})`)
-      }
       const splitParts = splitCaptionText(step.text)
       const absT = t.toFixed(3)
       chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:1,duration:0.3}, ${absT});`)
@@ -368,9 +365,11 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
           chunks.push(`  tl.to('#s${sceneIndex}_c${ai}_p${si}', {opacity:1,duration:0.3}, ${segT});`)
         }
       }
-      // Caption hides at t + dur (progressive reveal completes at same time)
-      const hideT = (t + dur).toFixed(3)
-      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${hideT});`)
+      // Only hide if hideAt is explicitly set; otherwise caption persists indefinitely
+      if (step.hideAt != null) {
+        const hideAtRel = typeof step.hideAt === 'number' ? baseS + step.hideAt : baseS + parseFloat(step.hideAt)
+        chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${hideAtRel.toFixed(3)});`)
+      }
       continue
     }
 
@@ -467,8 +466,8 @@ function hv(value, isLandscape) {
 //   "正在处理...请稍候" → ["正在处理", ".", ".", ".", "请稍候"]
 //   "提示：注意，开始" → ["提示", "：注意", "，开始"]
 function splitCaptionText(text) {
-  const raw = text.split(/[、，,：:]|\.{3,}/)
-  const seps = text.match(/[、，,：:]|\.{3,}/g) || []
+  const raw = text.split(/\.{3,}|[/.]|[、，,：:]/)
+  const seps = text.match(/\.{3,}|[/.]|[、，,：:]/g) || []
   const result = [raw[0]]
   for (let i = 1; i < raw.length; i++) {
     const sep = seps[i - 1]

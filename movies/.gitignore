@@ -5,6 +5,7 @@ old
 *.mp3
 *.step
 *.stl
+*.dae
 skip*.mjs
 **/gen/*
 **/ai_gen/*.png

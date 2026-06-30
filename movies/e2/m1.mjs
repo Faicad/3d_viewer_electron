@@ -5,79 +5,79 @@ import * as lib from '../lib.mjs'
 
 
 const subtitle = `
----3000---
+---2000---
 1、STL文件——最常见的3D打印格式
 --1--
----3000---
+---2000---
 2、STEP文件——工业级CAD数据交换标准
 --2--
----3000---
+---2000---
 3、[[三]]((3))MF文件——专为3D打印设计的完整格式
 --3--
----3000---
+---2000---
 4、OBJ文件——最广泛支持的3D网格格式
 --4--
----3000---
+---2000---
 5、GLB文件——通用的3D模型交换格式
 --5--
----3000---
+---2000---
 6、PLY文件——3D扫描生成的顶点数据格式
 --6--
----3000---
+---2000---
 7、FBX文件——动画和游戏行业的通用格式
 --7--
----3000---
+---2000---
 8、DAE文件——基于XML的3D交互格式
 --8--
----3000---
-9、[[三]]((3))DS文件——经典3D建模软件的标准格式
+---2000---
+9、[[三]]((3))DS文件——经典3D建模软件格式
 --9--
----3000---
+---2000---
 10、USDZ文件——苹果AR生态的3D格式
 --10--
----3000---
+---2000---
 11、DRC文件—— Google Draco高压缩率3D格式
 --11--
----3000---
+---2000---
 12、BVH文件——人体骨骼动画数据格式
 --12--
----3000---
+---2000---
 13、VTK文件——科学可视化的体积数据格式
 --13--
----3000---
+---2000---
 14、XYZ文件——纯文本格式的点云数据
 --14--
----3000---
+---2000---
 15、PDB文件——蛋白质分子三维结构格式
 --15--
----3000---
+---2000---
 16、NRRD文件——医学影像的体素数据格式
 --16--
----3000---
+---2000---
 17、GCode文件——3D打印机的运动指令格式
 --17--
----3000---
+---2000---
 18、WRL文件——早期Web3D的虚拟现实格式
 --18--
----3000---
+---2000---
 19、VOX文件——体素风格的立体像素格式
 --19--
----3000---
+---2000---
 20、KMZ文件——Google Earth的地理3D格式
 --20--
----3000---
+---2000---
 21、AMF文件——学院派3D打印格式
 --21--
----3000---
+---2000---
 22、LWO文件——影视特效行业的建模格式
 --22--
----3000---
+---2000---
 23、MD2文件——经典3D游戏的角色模型格式
 --23--
----3000---
+---2000---
 24、PCD文件——点云库标准数据格式
 --24--
----3000---
+---2000---
 25、[[三]]((3))DM文件——Rhino的工业设计模型格式
 `
 
@@ -89,12 +89,12 @@ const MODELS = [
   { path: 'movies/IridescentDishWithOlives.glb', label: 'GLB/GLTF' },
   { path: 'src/test/fixtures/dolphins_be.ply', label: 'PLY' },
   { path: 'src/test/fixtures/mixamo.fbx', label: 'FBX' },
-  { path: 'src/test/fixtures/elf.dae', label: 'DAE' },
+  { path: 'movies/abb_irb52_7_120.dae', label: 'DAE' },
   { path: 'src/test/fixtures/portalgun.3ds', label: '3DS' },
   { path: 'src/test/fixtures/saeukkang.usdz', label: 'USDZ' },
   { path: 'src/test/fixtures/bunny.drc', label: 'DRC' },
   { path: 'src/test/fixtures/pirouette.bvh', label: 'BVH' },
-  { path: 'src/test/fixtures/bunny.vtk', label: 'VTK' },
+  { path: 'movies/liver.vtk.glb', label: 'VTK' },
   { path: 'src/test/fixtures/helix_201.xyz', label: 'XYZ' },
   { path: 'src/test/fixtures/Al2O3.pdb', label: 'PDB' },
   { path: 'src/test/fixtures/I.nrrd', label: 'NRRD' },
@@ -119,7 +119,9 @@ lib.makeMovie(
     closeLeftPanel: '1',
     closeRightPanel: '1',
     enablePreview: '0',
-    entryAnim: 'fade',
+    entryZoomDist: '5;10',
+    entryZoomEndDist: '1.1;1.3',
+    entryAnim: 'zoom',
     entryDuration: String(ENTRY_MS),
   },
   async (page, suffix, tPageOpen) => {
@@ -139,8 +141,10 @@ lib.makeMovie(
     for (let i = 1; i < MODELS.length; i++) {
       try {
         await lib.loadModel(page, join(lib.rootDir, MODELS[i].path), {
-          entryAnim: 'fade',
+          entryAnim: 'zoom',
           entryDuration: ENTRY_MS,
+          entryZoomDist: '5;10',
+          entryZoomEndDist: '1.1;1.3',
         })
         lib.showOverlay(page, 'fmt', `${i + 1}. ${MODELS[i].label}`, 'top-left', 'color:#fff;font-size:42px;font-weight:700;background:rgba(0,0,0,0.5);padding:12px 24px;border-radius:10px;font-family:sans-serif')
         await page.waitForTimeout(500)
@@ -152,6 +156,9 @@ lib.makeMovie(
       }
       if (i < MODELS.length - 1) await lib.syncpoint(page)
     }
+
+    // await lib.screenshot(page, "end")
+    await page.waitForTimeout(500)
   },
 )
 
