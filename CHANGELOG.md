@@ -2,6 +2,102 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.7.2...v2.0.0) (2026-06-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **movie:** triggerAt is now relative to each line's subtitle
+start (entries[i].s), not video-absolute seconds. Each anim step
+carries _baseS so merged scenes use the correct line anchor.
+
+- html-composer.mjs: add _baseS tagging per step, convert via baseS
+- m5.mjs: update all triggerAt values to relative offsets
+- url-video-agent-skill.md: update formulas, examples, and docs
+
+### Features
+
+* add --no-fetch flag to skip URL screenshot capture ([abde9eb](https://github.com/YOUR_ORG/3d_viewer_electron/commits/abde9eb6e33e01061a52116175aa0e02e7dc9ce3))
+* add 4th video type — HyperFrames animation ([a3d8c8c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a3d8c8cef134c8784d1a8303894b84363349f324))
+* add image-config skill and easyocr-mark tool ([69b91ea](https://github.com/YOUR_ORG/3d_viewer_electron/commits/69b91ea55d32441d9716199efe1ee9b8f38810e9))
+* add KARAOKE_TTS_PROVIDERS env var to control karaoke word highlighting ([4012a1c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4012a1c3d7600b2ecf085e585bf2719a32e97d3d))
+* add mouse cursor click animation to e1/m0 video ([ed46ddf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ed46ddfb7d856a893a072e7f3e50ed89aad528c4))
+* add per-segment config (animation/zoom/pre_image) and first-video entrance skip ([b2e7299](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b2e729983a3fa3b85379a19963eea726c2276a9e))
+* add screenshot-burst.ps1 script for timed fullscreen capture ([a7bb924](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a7bb924461c55886534fa5d897ff5f6621e26440))
+* add URL-based video recording with full-page screenshot and scroll effect ([bb36435](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bb36435f47db4a377c38dc85f1c10b1583b3b001))
+* add visual marks.json editor with image overlay ([639469a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/639469a4c52fe1a305b51ea742b3cb61dbba7cdb))
+* ai_gen directory for AI Agent marks + analysis scripts; disable auto-screenshot in generate-url-video.mjs ([e807970](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e807970dd7759d0eb07e0b6a87278268ce490bac))
+* **e2/m0:** add blue border highlight on '2026年6月30日' text in 3D查看器 screenshot ([cfb179b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cfb179bdf8ea2a9c3ab13c54688f1a6fcba9760d)), closes [#2196F3](https://github.com/Faicad/3d_viewer_electron/issues/2196F3)
+* **e2/m0:** complete image_config video with hideAt, split caption, and empty anim support ([b847ef4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b847ef4378989e792bc7bae7dc5f9e55f9694769))
+* **export:** convert mesh axis when exporting between Z-up and Y-up formats ([c46fc6c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c46fc6cbbf4d2594662d838f57776dc62dc40837))
+* extract .env loading to shared env.mjs, add DEFAULT_TTS env var support ([8c24e71](https://github.com/YOUR_ORG/3d_viewer_electron/commits/8c24e710a43feb4556f1aefac4b0fdd2ad8d40a0))
+* implement ---x--- silence syntax with syncpoint integration ([e7e360d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e7e360d36a8371b8c253b212ac00dab7f883cd05))
+* **movie:** add move-click animation type with mouse cursor ([fbc1610](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fbc1610c29050b642c0875e8b73399c5e447a16e))
+* **movie:** implement text-annotation position variants, captions stay until scene end ([18b0837](https://github.com/YOUR_ORG/3d_viewer_electron/commits/18b08372fd42be2d5c646e1fe43533198191de2d))
+* **movie:** refactor URL video to AI Agent pipeline ([d8afbbd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d8afbbd8a6b80827c892a8f82c381f4b49060c53))
+* **movies:** port movie recording pipeline from Web to Electron ([d9c8981](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d9c8981471197cf163eda7d82f4629fbf77ce6f2))
+* url片段最后0.5秒停止滚动，为过渡准备稳定末帧 ([198a0a4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/198a0a4f9077b32d0363598637db8aba811c6ed2))
+* **viewer:** auto-scroll scene tree to reveal selected node ([994ba10](https://github.com/YOUR_ORG/3d_viewer_electron/commits/994ba10fbf35e1d48f93a8f44a73b48009d3191c))
+
+
+### Bug Fixes
+
+* adaptive PCD point size based on bounding sphere ([0dd4b90](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0dd4b90b6bdee05397b714fa6b004bdb2a05c275))
+* add image_config detection to burn.mjs ([30d472e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/30d472ecb34da58499d72802666d5757b61bfeda))
+* **bvh:** apply first-frame pose, improve line visibility, add joint markers ([ae81a84](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ae81a840f775be0af76bf91b802bc8be14cd7700)), closes [#5599](https://github.com/Faicad/3d_viewer_electron/issues/5599)
+* correct G-code camera centering by passing box center to animateCamera ([ab42701](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ab42701efcf06ca283336f20861767a1f591d28d))
+* **e2/m1:** disable right panel and HTTP cache for model loading ([f9da313](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f9da313b9933c7dcd8cc0eb6b9faf55d91b1f218))
+* ensure electron binary is always present after pnpm install ([7b726e5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7b726e5bf42fe53905d1fa02f61e080838545de3))
+* expose OrbitControls to window.__r3f_dev.controls for animateCamera ([511b04f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/511b04f5c5aeae33c9965cfe6642821911557f06))
+* fall back to process name matching when window title not found ([fbb8b76](https://github.com/YOUR_ORG/3d_viewer_electron/commits/fbb8b76148679807dc1650e257551f8f41176cf1))
+* filter out empty meshes in STEP->GLB conversion to prevent GLTFLoader crash ([d7cd38c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d7cd38c213199ef91c668b2fbad43a9d4d60b554))
+* getCacheDir crashes on non-Windows platforms ([a04d6a4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a04d6a407a6a4af13e70409bffce2afb59c862b7))
+* guard CSS.escape in jsdom, fix file-list selector for list mode, fix Radix ScrollArea scrollIntoView ([e6a6afd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e6a6afdd878f5ee5292dc26ee07565bd58d63ab8))
+* handle subtitle cache hit when images are updated in generate-image-video ([ae2f127](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ae2f12782ed6ada1168636f485a767ceed4e847b))
+* HyperFrames — fix viewport, image path, centering, and text layout ([7320377](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7320377c6cc6472083439da5b7192e4869db8154))
+* keep window visible during movie recording, add MOVIE_MODE env var ([4821ca3](https://github.com/YOUR_ORG/3d_viewer_electron/commits/4821ca359cb5f6bb5e957d0d45b1caf356cff5bd))
+* **movie:** cache for html/url generated movie ([71e478e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/71e478e36497ffd69dca610608a831bfb342228b))
+* **movie:** correct scene timing, highlight positioning, and animation types ([bf9af08](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bf9af0884b94592d694260cc8cb846206b626e03))
+* **movie:** remove config from generate-image-video.mjs ([c8a1cb7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c8a1cb72ee708ceea236fddec2cc4d1d12b79bdd))
+* **movie:** replace inset:0 to fix vertical video bg initial positioning ([c03d5bf](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c03d5bfb3aad65e6b2b4926ac1e1ffc017ff10a5))
+* **movies:** propagate viewerParams (movie_mode, entry anim) to engine store in Electron recording ([bd021dd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bd021dd83aa99bba1d89cf68afdf8fb49d91f95c))
+* **movies:** return promise from GSAP demo fns, fix animateCamera rotate/ease dispatch ([9bf11ad](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9bf11ad702fee1bb025a333f3f19b86f06285bf0))
+* **movie:** use result.entries instead of result.segments for url-video composition ([d2b44df](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d2b44df092a7edcaa8f83fbc3a351b27c2f2dbf6))
+* populate folderFiles in loadFile command so right-panel thumbnails render in movie mode ([c0d99b4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c0d99b42664ae89902778b97688c3404a8f5a8f0))
+* pregen-tts.mjs 提前返回时校验源码 mtime，确保 --N-- 结构变更后重算 tts-timing.json ([d5dea3c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d5dea3c59721255d2834f215bc523fdc61ae9216))
+* resize Electron BrowserWindow for correct portrait recording, add optional panel control ([7cee845](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7cee845eb9bba1042f345822f8c6efb65adb212c))
+* scene window includes silent gaps (INITIAL_GAP, INTER_LINE_GAP) ([74abdad](https://github.com/YOUR_ORG/3d_viewer_electron/commits/74abdad42fad420562df77c1556f59aab8ca9a6d))
+* screenshot-window.ps1 capture 4:3/3:4 with max height and reliable compilation ([d35320e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d35320e47976470dcf7426b7a4b6aac244cb2051))
+* screenshot-window.ps1 FindHandle space-insensitive fallback and CaptureWindow DWM bounds ([d9cff5a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d9cff5a966b6eef24bc6f897de2879063e720ea3))
+* scrollRatio 基于视口高度而非页面高度 ([5c4ae3f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/5c4ae3fe3611787a43cfd8874961ffdd97e10817))
+* set --force-device-scale-factor=1 in hyper-video Playwright launch for 1:1 pixel ratio ([1ee4e42](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1ee4e42ae5217287c71bc3c97b36f6211c394b2a))
+* show loading progress immediately before file read ([a881b03](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a881b03b725d4735167fd3541beeccd0471f86e2))
+* skip ensure-electron-binary on non-Windows platforms ([60af182](https://github.com/YOUR_ORG/3d_viewer_electron/commits/60af1829c8c20a45cbc0ffa459d91e706049a766))
+* support empty url string to continue previous scene ([2082363](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2082363f7111e86d6701bb44ba9da9a5b5cf639e))
+* syncpoint — countSyncpointsInScript 支持条件调用模式，makeMovie、burn 等配套 ([dd00cac](https://github.com/YOUR_ORG/3d_viewer_electron/commits/dd00cac8079b9369c826b38bbd9482abbe5a083d))
+* **test:** sync brightness variation threshold with reduced room light intensities ([73eea05](https://github.com/YOUR_ORG/3d_viewer_electron/commits/73eea05d343bdb7084d1936b08e1e245663764ce))
+* thumbnail camera now fits to non-mesh objects (G-code LineSegments etc) ([ad9c44b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ad9c44b441f88c029476b87527e4fdb219af5b49))
+* update camera.up in zoom/slide entry animation to match activeUpAxis ([e141aad](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e141aad6e1a4bcc137cd12250453843a4d69cfc1))
+* use 3:4 portrait resolution for movie recording, force 1:1 device scale ([9d7a394](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9d7a394351f0d618d5c0d96a2f238de1c30fb9a9))
+* use getElectronPath() instead of hardcoded Windows path in recordvideo test ([7a4ec8a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7a4ec8a566d4dc8ce88a3b299aac10921ad009e1))
+
+
+### Code Refactoring
+
+* extract shared video generation flow into lib_gen_url_image.mjs ([2d636c9](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2d636c97b9ae1cd829bc780234610a4ede16e2a5))
+* **movie:** change triggerAt from absolute to relative time ([b47b4f5](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b47b4f5ea1ad51b1da0bddb90ec6713fe0d04558))
+* **movie:** rename text-overlay to caption, separate mark vs caption logic ([64b3250](https://github.com/YOUR_ORG/3d_viewer_electron/commits/64b3250868da86ba345b85e91d13c7a5076d133d))
+* rename hyperframes -> scene throughout ([6f99982](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6f99982ccdd9b10ca8fd878c6a69425eac4b45b7))
+* rename to html-video ([7d4e4f7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7d4e4f7a309614dc19e574879f433cf76c03c8f8))
+* unify loading progress message to 'Loading {filename}...' ([09da854](https://github.com/YOUR_ORG/3d_viewer_electron/commits/09da854281062f0efa6d5e5afa3a34b6f7eff9cc))
+
+
+### Documentation
+
+* add AGENTS.md ([c39c22a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c39c22a0f73aa9f9d805b20f820eeec7256772f3))
+* add URL video recording (Path C) to SKILL.md ([4309308](https://github.com/YOUR_ORG/3d_viewer_electron/commits/43093087b722116c0d862c9f4235afe450d8eff9))
+* update SKILL.md with Path D (image_config) and skill doc links ([a50ddd0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a50ddd099656a18fe33b597f09ba724a145fc782))
+
 ### [1.7.2](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.7.1...v1.7.2) (2026-06-25)
 
 
