@@ -2,41 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as fs from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync, statSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { readDirectory } from './readDirectory'
+import type { FileEntry } from './readDirectory'
 
-const SUPPORTED_EXTENSIONS = new Set([
-  '.stl', '.glb', '.gltf', '.3mf', '.model',
-  '.step', '.stp', '.obj', '.ply', '.fbx',
-  '.dae', '.3ds', '.usdz', '.drc', '.bvh',
-  '.vtk', '.vtp', '.xyz', '.pdb', '.nrrd',
-  '.gcode', '.wrl', '.vox', '.kmz', '.amf',
-  '.lwo', '.md2', '.pcd', '.svg', '.dxf',
-])
-
-type FileEntry = { name: string; path: string; mtimeMs: number }
-
-/** Replicates the IPC handler logic from electron/main/index.ts */
-function readDirectory(dirPath: string): { success: boolean; files?: FileEntry[]; error?: string } {
-  try {
-    const entries = readdirSync(dirPath, { withFileTypes: true })
-    const files: FileEntry[] = []
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        const ext = entry.name.slice(entry.name.lastIndexOf('.')).toLowerCase()
-        if (SUPPORTED_EXTENSIONS.has(ext)) {
-          const fullPath = join(dirPath, entry.name)
-          const stat = statSync(fullPath)
-          files.push({ name: entry.name, path: fullPath, mtimeMs: stat.mtimeMs })
-        }
-      }
-    }
-    return { success: true, files }
-  } catch (e) {
-    return { success: false, error: (e as Error).message }
-  }
-}
-
-/** Replicates setFolderFiles comparison logic from model-store.ts */
 function areFolderFilesEqual(
   currentFolderPath: string | null,
   folderFiles: FileEntry[],
@@ -61,7 +30,7 @@ describe('readDirectory with special character paths', () => {
     rmSync(tmpRoot, { recursive: true, force: true })
   })
 
-  it('handles paths with Chinese characters, spaces, and parentheses', () => {
+  it('handles paths with Chinese characters, spaces, and parentheses', async () => {
     const subDir = join(
       tmpRoot,
       '机械相关开源项目',
@@ -76,7 +45,7 @@ describe('readDirectory with special character paths', () => {
     writeFileSync(join(subDir, '另一个零件.stl'), '')
     writeFileSync(join(subDir, 'component (test).stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
 
     expect(result.success).toBe(true)
     expect(result.files).toBeDefined()
@@ -98,12 +67,12 @@ describe('readDirectory with special character paths', () => {
     }
   })
 
-  it('preserves path separators correctly (join with special dir names)', () => {
+  it('preserves path separators correctly (join with special dir names)', async () => {
     const subDir = join(tmpRoot, 'Folder (测试) with spaces')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'model.stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
 
@@ -112,53 +81,47 @@ describe('readDirectory with special character paths', () => {
     expect(fs.existsSync(file.path)).toBe(true)
   })
 
-  it('preserves EXACT path characters through join round-trip', () => {
-    // Simulate what happens when a path from dialog.showOpenDialog
-    // (backslash-separated) is passed to the readDirectory IPC handler
-    // which uses path.join(dirPath, entry.name).
+  it('preserves EXACT path characters through join round-trip', async () => {
     const dirName = 'Electronic (EL)  测试  '
     const subDir = join(tmpRoot, dirName)
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'part.stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
     expect(result.files![0].path).toBe(join(subDir, 'part.stl'))
   })
 
-  it('store comparison handles special character paths correctly', () => {
+  it('store comparison handles special character paths correctly', async () => {
     const subDir = join(tmpRoot, '测试 (test) dir')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'a.stl'), '')
     writeFileSync(join(subDir, 'b.stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
 
-    // First call should be "not equal" (no previous state)
     expect(areFolderFilesEqual(null, [], subDir, result.files!)).toBe(false)
 
-    // Same path and files should be "equal"
-    const sameResult = readDirectory(subDir)
+    const sameResult = await readDirectory(subDir)
     expect(areFolderFilesEqual(subDir, result.files!, subDir, sameResult.files!)).toBe(true)
 
-    // Different path should be "not equal"
     expect(areFolderFilesEqual('/other/path', result.files!, subDir, sameResult.files!)).toBe(false)
   })
 
-  it('path with only spaces and special characters works', () => {
+  it('path with only spaces and special characters works', async () => {
     const subDir = join(tmpRoot, '   folder with leading space')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'test.stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
     expect(result.files![0].name).toBe('test.stl')
   })
 
-  it('deep nested path with mixed special characters', () => {
+  it('deep nested path with mixed special characters', async () => {
     const deepDir = join(
       tmpRoot,
       'level-1 (测试)',
@@ -169,64 +132,62 @@ describe('readDirectory with special character paths', () => {
     mkdirSync(deepDir, { recursive: true })
     writeFileSync(join(deepDir, 'model.stl'), '')
 
-    const result = readDirectory(deepDir)
+    const result = await readDirectory(deepDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
     expect(result.files![0].name).toBe('model.stl')
 
-    // Verify the path round-trips correctly: readDirectory result paths
-    // can be used directly with fs operations
     expect(fs.existsSync(result.files![0].path)).toBe(true)
   })
 
-  it('Japanese and Korean characters in path', () => {
+  it('Japanese and Korean characters in path', async () => {
     const subDir = join(tmpRoot, '日本語テスト', '한국어테스트')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'model.stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
     expect(fs.existsSync(result.files![0].path)).toBe(true)
   })
 
-  it('emoji in directory name', () => {
+  it('emoji in directory name', async () => {
     const subDir = join(tmpRoot, 'models 📁 test')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'part.stl'), '')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(1)
     expect(fs.existsSync(result.files![0].path)).toBe(true)
   })
 
-  it('returns error for nonexistent directory', () => {
-    const result = readDirectory(join(tmpRoot, 'nonexistent-folder'))
+  it('returns error for nonexistent directory', async () => {
+    const result = await readDirectory(join(tmpRoot, 'nonexistent-folder'))
     expect(result.success).toBe(false)
     expect(result.error).toBeDefined()
   })
 
-  it('directory with only non-model files returns empty list', () => {
+  it('directory with only non-model files returns empty list', async () => {
     const subDir = join(tmpRoot, 'text-only')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'readme.txt'), 'hello')
     writeFileSync(join(subDir, 'data.csv'), 'a,b,c')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files).toBeDefined()
     expect(result.files!.length).toBe(0)
   })
 
-  it('handles files with multiple dots in name', () => {
+  it('handles files with multiple dots in name', async () => {
     const subDir = join(tmpRoot, 'multi-dot')
     mkdirSync(subDir, { recursive: true })
     writeFileSync(join(subDir, 'test.model.stl'), '')
     writeFileSync(join(subDir, 'backup.2024.step'), '')
     writeFileSync(join(subDir, 'file.stl.bak'), 'not a model')
 
-    const result = readDirectory(subDir)
+    const result = await readDirectory(subDir)
     expect(result.success).toBe(true)
     expect(result.files!.length).toBe(2)
     const names = result.files!.map(f => f.name).sort()

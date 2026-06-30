@@ -5,6 +5,7 @@ import http from 'http'
 import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 import { startServer } from './server'
 import { registerAIHandlers } from './ipc-handlers'
+import { readDirectory } from './readDirectory'
 
 const GIT_COMMIT = process.env.VITE_GIT_COMMIT || 'unknown'
 
@@ -253,27 +254,8 @@ ipcMain.handle('dialog:saveFile', async (_event, { data, defaultName }: { data: 
 })
 
 // File system IPC handlers
-const SUPPORTED_EXTENSIONS = new Set(ALL_MODEL_EXTENSIONS)
-
 ipcMain.handle('fs:readDirectory', async (_event, dirPath: string) => {
-  try {
-    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true })
-    const files: { name: string; path: string; mtimeMs: number }[] = []
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        const ext = extname(entry.name).toLowerCase()
-        if (SUPPORTED_EXTENSIONS.has(ext)) {
-          const fullPath = join(dirPath, entry.name)
-          const stat = await fs.promises.stat(fullPath)
-          files.push({ name: entry.name, path: fullPath, mtimeMs: stat.mtimeMs })
-        }
-      }
-    }
-    return { success: true, files }
-  } catch (e) {
-    const err = e as Error
-    return { success: false, error: err.message }
-  }
+  return readDirectory(dirPath)
 })
 
 ipcMain.handle('fs:readFile', async (_event, filePath: string) => {
