@@ -46,8 +46,14 @@ function getPlatformPath() {
 }
 
 function getCacheDir() {
-  const localAppData = process.env.LOCALAPPDATA || join(process.env.USERPROFILE, 'AppData', 'Local');
-  return join(localAppData, 'electron', 'Cache');
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || join(process.env.USERPROFILE, 'AppData', 'Local');
+    return join(localAppData, 'electron', 'Cache');
+  }
+  if (process.platform === 'darwin') {
+    return join(process.env.HOME, 'Library', 'Caches', 'electron');
+  }
+  return join(process.env.XDG_CACHE_HOME || join(process.env.HOME, '.cache'), 'electron');
 }
 
 function getCacheZipPath(version) {
