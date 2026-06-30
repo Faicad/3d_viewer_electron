@@ -348,8 +348,10 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
 
     // caption: ONE div (full text = layout anchor), spans control progressive reveal
     if (step.type === 'caption') {
+      if (step.hideAt != null) {
+        console.warn(`WARNING: hideAt is deprecated, use duration instead (scene ${sceneIndex}, ai ${ai})`)
+      }
       const splitParts = splitCaptionText(step.text)
-      // Caption fades in; scene crossfade handles fade-out at scene end
       const absT = t.toFixed(3)
       chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:1,duration:0.3}, ${absT});`)
       if (splitParts.length > 1) {
@@ -359,11 +361,9 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
           chunks.push(`  tl.to('#s${sceneIndex}_c${ai}_p${si}', {opacity:1,duration:0.3}, ${segT});`)
         }
       }
-      // hideAt: relative to scene start (same as triggerAt), fade out caption
-      if (step.hideAt != null) {
-        const hideT = (baseS + step.hideAt).toFixed(3)
-        chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${hideT});`)
-      }
+      // Caption hides at t + dur (progressive reveal completes at same time)
+      const hideT = (t + dur).toFixed(3)
+      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${hideT});`)
       continue
     }
 
@@ -441,15 +441,26 @@ function hv(value, isLandscape) {
   return value
 }
 
-// Split caption text by punctuation (、，,) into segments with delimiters preserved.
+// Split caption text by punctuation (、，,：:) into segments with delimiters preserved.
+// 3+ consecutive dots are each split into individual dot segments.
 // Each segment (except first) includes its leading delimiter.
-// Example: "25种3D文件格式，加载中..." → ["25种3D文件格式", "，加载中..."]
+// Examples:
+//   "正在处理...请稍候" → ["正在处理", ".", ".", ".", "请稍候"]
+//   "提示：注意，开始" → ["提示", "：注意", "，开始"]
 function splitCaptionText(text) {
-  const raw = text.split(/[、，,]/)
-  const seps = text.match(/[、，,]/g) || []
+  const raw = text.split(/[、，,：:]|\.{3,}/)
+  const seps = text.match(/[、，,：:]|\.{3,}/g) || []
   const result = [raw[0]]
   for (let i = 1; i < raw.length; i++) {
-    result.push(seps[i - 1] + raw[i])
+    const sep = seps[i - 1]
+    if (/^\.{3,}$/.test(sep)) {
+      for (let j = 0; j < sep.length; j++) {
+        result.push('.')
+      }
+      result.push(raw[i])
+    } else {
+      result.push(sep + raw[i])
+    }
   }
   return result
 }
