@@ -79,12 +79,12 @@ export async function generateVideo(scriptPath, { urls, mode, onBeforeRecord }) 
     }
   }
 
-  // 3. Validate anim
+  // 3. Validate anim (warn but allow empty — some scenes have no visuals, e.g. hideAt on prior item)
   for (let i = 0; i < urls.length; i++) {
     if (!urls[i].anim || urls[i].anim.length === 0) {
       const label = mode === 'image' ? `image_config[${i}]` : `URL ${i}`
-      console.error(`\nERROR: ${label} has no anim array`)
-      process.exit(1)
+      console.warn(`  ${label} has no anim array — skipping`)
+      urls[i].anim = []
     }
   }
 

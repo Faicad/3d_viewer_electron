@@ -246,14 +246,13 @@ function buildSceneHtml(scene, marks, index, width, height) {
     // Non-mark types: no mark lookup needed
     if (!isMarkType(step.type)) {
       if (step.type === 'caption') {
-        const parts = step.text.split('、')
+        const splitParts = splitCaptionText(step.text)
         const style = captionStyle(step, width, height)
-        if (parts.length > 1) {
+        if (splitParts.length > 1) {
           // One div, full text as layout anchor. Spans for progressive reveal — layout never shifts.
           let html = `<div class="caption" id="s${index}_c${ai}" style="${style};opacity:0">`
-          for (let si = 0; si < parts.length; si++) {
-            const sep = si > 0 ? '、' : ''
-            html += `<span id="s${index}_c${ai}_p${si}" style="opacity:0">${sep}${parts[si]}</span>`
+          for (let si = 0; si < splitParts.length; si++) {
+            html += `<span id="s${index}_c${ai}_p${si}" style="opacity:0">${splitParts[si]}</span>`
           }
           html += '</div>'
           sceneExtras += html
@@ -349,15 +348,21 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
 
     // caption: ONE div (full text = layout anchor), spans control progressive reveal
     if (step.type === 'caption') {
-      const parts = step.text.split('、')
+      const splitParts = splitCaptionText(step.text)
       // Caption fades in; scene crossfade handles fade-out at scene end
-      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:1,duration:0.3}, ${t.toFixed(3)});`)
-      if (parts.length > 1) {
-        const subDur = dur / parts.length
-        for (let si = 0; si < parts.length; si++) {
+      const absT = t.toFixed(3)
+      chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:1,duration:0.3}, ${absT});`)
+      if (splitParts.length > 1) {
+        const subDur = dur / splitParts.length
+        for (let si = 0; si < splitParts.length; si++) {
           const segT = (t + si * subDur).toFixed(3)
           chunks.push(`  tl.to('#s${sceneIndex}_c${ai}_p${si}', {opacity:1,duration:0.3}, ${segT});`)
         }
+      }
+      // hideAt: relative to scene start (same as triggerAt), fade out caption
+      if (step.hideAt != null) {
+        const hideT = (baseS + step.hideAt).toFixed(3)
+        chunks.push(`  tl.to('#s${sceneIndex}_c${ai}', {opacity:0,duration:0.3}, ${hideT});`)
       }
       continue
     }
@@ -434,6 +439,19 @@ function hv(value, isLandscape) {
     return isLandscape ? (value.h != null ? value.h : value.v) : (value.v != null ? value.v : value.h)
   }
   return value
+}
+
+// Split caption text by punctuation (、，,) into segments with delimiters preserved.
+// Each segment (except first) includes its leading delimiter.
+// Example: "25种3D文件格式，加载中..." → ["25种3D文件格式", "，加载中..."]
+function splitCaptionText(text) {
+  const raw = text.split(/[、，,]/)
+  const seps = text.match(/[、，,]/g) || []
+  const result = [raw[0]]
+  for (let i = 1; i < raw.length; i++) {
+    result.push(seps[i - 1] + raw[i])
+  }
+  return result
 }
 
 function captionStyle(step, width, height) {

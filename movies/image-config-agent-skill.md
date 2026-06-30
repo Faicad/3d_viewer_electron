@@ -176,6 +176,10 @@ node movies/easyocr-mark.mjs \
 | `scroll-to-text` | **Mark** | 滚动到文字可见 | `text`, `triggerAt`, `duration`, `offset` |
 | `caption` | **Caption** | 视口居中文字 | `text`, `triggerAt`, `duration`, `top`, `fontSize`, `color`, `align`, `pad` |
 
+**禁止把 subtitle 文字放入 caption 动画** — `subtitle` 是旁白文本，由后期字幕系统自动烧录到视频中。`anim` 数组只负责 `description` 中指定的标注/高亮/点击等视觉效果。caption 的 `text` 只能来自 `description` 中明确提到的文字标注内容。
+
+**"分成N段显示" 用一条 caption 加完整文字** — 当 description 要求一段文字"分成N段显示"时，不要拆成多个 caption 条目。用一条 caption，text 放完整文字，html-composer 内部会处理分段动画效果。参见 `movies/e1/m5.mjs` 的 caption `"求关注、求转发、求收藏"` 写法（第75-88行）。
+
 `caption` 样式参数（`top`/`fontSize`/`color`/`align`/`pad`）**必须全部显式提供**。每个参数支持标量（横竖屏通用）或 `{h, v}` 对象（区分方向）。
 
 `click-highlight` 的 `selector` = marks.json 的 key（即 easyocr 的查找目标文字）。
