@@ -4,10 +4,11 @@ import { spawnSync } from 'child_process'
 import { mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getElectronPath } from './utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..')
-const EXE_PATH = path.join(PROJECT_ROOT, 'dist', 'win-unpacked', '3D_Viewer.exe')
+const EXE_PATH = getElectronPath()
 const RECORD_DIR = path.join(PROJECT_ROOT, 'test-results', 'poc-recordvideo')
 
 test.describe('Phase 0: recordVideo POC', () => {
