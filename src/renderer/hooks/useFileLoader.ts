@@ -5,7 +5,7 @@ import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import {
@@ -89,8 +89,8 @@ export function useFileLoader() {
       }
       let buffer = fileResult.data
 
-      if (isStepFile(name) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-        toast.error('不支持超过100MB的STEP/STP/STPZ文件')
+      if ((isStepFile(name) || isIgesFile(name) || isBrepFile(name)) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+        toast.error('不支持超过100MB的STEP/STP/IGES/BREP文件')
         return
       }
 
@@ -111,18 +111,20 @@ export function useFileLoader() {
         if (stepHeader) fileMeta = { step: stepHeader }
       }
 
-      if (isStepFile(name)) {
+      const isCadConvert = isStepFile(name) || isIgesFile(name) || isBrepFile(name)
+      if (isCadConvert) {
+        const cadFormat = isIgesFile(name) ? 'iges' : isBrepFile(name) ? 'brep' : 'step'
         try {
-          useModelStore.getState().showProgress('Converting STEP geometry...')
+          useModelStore.getState().showProgress(`Converting ${name}...`)
           const { buffer: glbBuffer } = await stepToGlbCached(buffer,
             { filePath, mtimeMs },
-            { wasmPath: '/wasm/occt-import-js.wasm' },
+            { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
           )
           buffer = glbBuffer
           format = 'glb'
         } catch (e) {
-          console.error('[useFileLoader] STEP conversion failed:', e)
-          toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+          console.error('[useFileLoader] CAD conversion failed:', e)
+          toast.error('CAD conversion failed: ' + (e instanceof Error ? e.message : String(e)))
           return
         } finally {
           useModelStore.getState().hideProgress()

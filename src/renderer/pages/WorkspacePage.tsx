@@ -12,7 +12,7 @@ import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
-import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
@@ -81,8 +81,8 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
     }
 
-    if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {
-      toast.error('不支持超过100MB的STEP/STP/STPZ文件')
+    if ((isStepFile(file.name) || isIgesFile(file.name) || isBrepFile(file.name)) && file.size > MAX_STEP_FILE_SIZE) {
+      toast.error('不支持超过100MB的STEP/IGES/BREP文件')
       return
     }
 
@@ -102,22 +102,23 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
 
     const rawBuffer = await file.arrayBuffer()
 
-    if (isStepFile(file.name)) {
+    if (isStepFile(file.name) || isIgesFile(file.name) || isBrepFile(file.name)) {
       try {
-        // Decompress STPZ before conversion
+        // Decompress STPZ before conversion (STEP only)
         let stepBuffer = rawBuffer
-        if (file.name.toLowerCase().endsWith('.stpz')) {
+        if (isStepFile(file.name) && file.name.toLowerCase().endsWith('.stpz')) {
           stepBuffer = decompressStpz(rawBuffer)
           if (stepBuffer.byteLength > MAX_STEP_FILE_SIZE) {
             toast.error('STPZ decompressed size exceeds 100MB limit')
             return
           }
         }
-        useModelStore.getState().showProgress('Converting STEP geometry...')
+        const cadFormat = isIgesFile(file.name) ? 'iges' : isBrepFile(file.name) ? 'brep' : 'step'
+        useModelStore.getState().showProgress(`Converting ${file.name}...`)
         const filePath = window.electronAPI?.getFilePath(file) ?? file.name
         const { buffer: glbBuffer } = await stepToGlbCached(stepBuffer,
           { filePath, mtimeMs: file.lastModified },
-          { wasmPath: '/wasm/occt-import-js.wasm' },
+          { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
         )
         const fileId = crypto.randomUUID()
         useModelStore.getState().addLoadedFile({
@@ -135,8 +136,8 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
           loadingPhase: 'loading',
         })
       } catch (e) {
-        console.error('[WorkspacePage] STEP conversion failed:', e)
-        toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+        console.error('[WorkspacePage] CAD conversion failed:', e)
+        toast.error('CAD conversion failed: ' + (e instanceof Error ? e.message : String(e)))
         return
       } finally {
         useModelStore.getState().hideProgress()

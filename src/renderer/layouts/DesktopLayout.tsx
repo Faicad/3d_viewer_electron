@@ -10,7 +10,7 @@ import { useSelectionStore } from '@/stores/selection-store'
 import { cn } from '@/lib/utils'
 import { hasViewData, type ViewMode } from '@/lib/bambu-3mf/viewTransforms'
 import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -731,6 +731,7 @@ export default function DesktopLayout() {
             if (fileResult.success && fileResult.data) {
               let buffer = fileResult.data
               const isStep = isStepFile(file.name)
+              const isCadConvert = isStep || isIgesFile(file.name) || isBrepFile(file.name)
               // Decompress STPZ before conversion
               if (isStep && file.name.toLowerCase().endsWith('.stpz')) {
                 const decompressed = decompressStpz(buffer)
@@ -742,25 +743,26 @@ export default function DesktopLayout() {
                 buffer = decompressed
               }
               let format = detectFormat(file.name)
-              if (isStep) {
+              if (isCadConvert) {
+                const cadFormat = isIgesFile(file.name) ? 'iges' : isBrepFile(file.name) ? 'brep' : 'step'
                 try {
-                  useModelStore.getState().showProgress('Converting STEP geometry...')
+                  useModelStore.getState().showProgress(`Converting ${file.name}...`)
                   const { buffer: glbBuffer } = await stepToGlbCached(buffer,
                     { filePath: file.path, mtimeMs: file.mtimeMs },
-                    { wasmPath: '/wasm/occt-import-js.wasm' },
+                    { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
                   )
                   buffer = glbBuffer
                   format = 'glb'
                 } catch (e) {
-                  console.error('[DesktopLayout] STEP conversion failed:', e)
-                  toast.error('STEP conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+                  console.error('[DesktopLayout] CAD conversion failed:', e)
+                  toast.error('CAD conversion failed: ' + (e instanceof Error ? e.message : String(e)))
                   useModelStore.getState().hideProgress()
                   return
                 }
               }
               if (!format) return
               try {
-                if (!isStep) useModelStore.getState().showProgress(`Loading ${file.name}...`)
+                if (!isCadConvert) useModelStore.getState().showProgress(`Loading ${file.name}...`)
                 const loadResult = await loadFormat(buffer, format, file.path)
                 const fileId = crypto.randomUUID()
                 setCachedResult(fileId, loadResult)

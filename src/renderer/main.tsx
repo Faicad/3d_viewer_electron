@@ -18,7 +18,7 @@ import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
 import { initLogger } from '@/lib/logger'
 import { initTelemetry, trackEvent, redactTelemetryString } from '@/telemetry'
-import { detectFormat, FORMAT_MAP, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
@@ -688,8 +688,9 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             let format = detectFormat(fileName)
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
 
-            if (isStepFile(fileName) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-              throw new Error('不支持超过100MB的STEP/STP/STPZ文件')
+            const isCadFile = isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName)
+            if (isCadFile && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+              throw new Error('不支持超过100MB的CAD文件')
             }
 
             // Decompress STPZ before parsing header and converting
@@ -706,10 +707,12 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
               const stepHeader = parseStepHeader(buffer)
               if (stepHeader) fileMeta = { step: stepHeader }
             }
-            if (isStepFile(fileName)) {
+            // CAD→GLB: convert to GLB first (STEP, IGES, BREP)
+            if (isCadFile) {
+              const cadFormat = isIgesFile(fileName) ? 'iges' : isBrepFile(fileName) ? 'brep' : 'step'
               const { buffer: glbBuffer } = await stepToGlbCached(buffer,
                 { filePath: fileName, mtimeMs: Date.now() },
-                { wasmPath: '/wasm/occt-import-js.wasm' },
+                { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
               )
               buffer = glbBuffer
               format = 'glb'
@@ -775,8 +778,9 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             let format = detectFormat(fileName)
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
 
-            if (isStepFile(fileName) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-              throw new Error('不支持超过100MB的STEP/STP/STPZ文件')
+            const isCadFile = isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName)
+            if (isCadFile && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+              throw new Error('不支持超过100MB的CAD文件')
             }
 
             // Decompress STPZ before parsing header and converting
@@ -793,10 +797,12 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
               const stepHeader = parseStepHeader(buffer)
               if (stepHeader) fileMeta = { step: stepHeader }
             }
-            if (isStepFile(fileName)) {
+            // CAD→GLB: convert to GLB first (STEP, IGES, BREP)
+            if (isCadFile) {
+              const cadFormat = isIgesFile(fileName) ? 'iges' : isBrepFile(fileName) ? 'brep' : 'step'
               const { buffer: glbBuffer } = await stepToGlbCached(buffer,
                 { filePath: String(filePath), mtimeMs: Date.now() },
-                { wasmPath: '/wasm/occt-import-js.wasm' },
+                { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
               )
               buffer = glbBuffer
               format = 'glb'

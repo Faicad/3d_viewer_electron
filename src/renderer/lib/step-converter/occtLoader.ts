@@ -1,5 +1,17 @@
+export type CadFormat = 'step' | 'iges' | 'brep'
+
 export interface OcctModule {
   ReadStepFile(buffer: Uint8Array, params: Record<string, unknown>): {
+    success: boolean;
+    root: OcctNode;
+    meshes: OcctMesh[];
+  };
+  ReadIgesFile(buffer: Uint8Array, params: Record<string, unknown>): {
+    success: boolean;
+    root: OcctNode;
+    meshes: OcctMesh[];
+  };
+  ReadBrepFile(buffer: Uint8Array, params: Record<string, unknown>): {
     success: boolean;
     root: OcctNode;
     meshes: OcctMesh[];

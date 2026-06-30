@@ -29,6 +29,8 @@ const mockReadFile = vi.fn()
 vi.mock('@/config/file-formats', () => ({
   detectFormat: (...args: unknown[]) => mockDetectFormat(...args),
   isStepFile: (...args: unknown[]) => mockDetectFormat(...args) === 'step',
+  isIgesFile: (...args: unknown[]) => mockDetectFormat(...args) === 'iges',
+  isBrepFile: (...args: unknown[]) => mockDetectFormat(...args) === 'brep',
 }))
 
 vi.mock('./thumbnailCache', () => ({

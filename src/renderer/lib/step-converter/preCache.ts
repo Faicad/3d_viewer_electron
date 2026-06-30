@@ -2,7 +2,8 @@ import { buildGlbFromResult, type StepToGlbOptions } from './stepToGlb'
 import { convertInWorker } from './stepWorkerPool'
 import { getCached, putCached } from './stepCache'
 import { decompressStpz } from './stepCompress'
-import { isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import type { CadFormat } from './occtLoader'
 
 const memCache = new Map<string, ArrayBuffer>()
 
@@ -35,11 +36,11 @@ export async function startPreCache(
   preCacheRunning = true
   preCacheAbort = false
 
-  const stepFiles = files.filter(f => isStepFile(f.name))
+  const cadFiles = files.filter(f => isStepFile(f.name) || isIgesFile(f.name) || isBrepFile(f.name))
 
-  console.log('[preCache] scanning', stepFiles.length, 'STEP file(s) for pre-caching')
+  console.log('[preCache] scanning', cadFiles.length, 'CAD file(s) for pre-caching')
 
-  for (const file of stepFiles) {
+  for (const file of cadFiles) {
     if (preCacheAbort) break
 
     const key = cacheKey(file.path, file.mtimeMs)
@@ -76,8 +77,9 @@ export async function startPreCache(
         buffer = decompressed
       }
 
+      const cadFormat: CadFormat = isIgesFile(file.name) ? 'iges' : isBrepFile(file.name) ? 'brep' : 'step'
       console.log('[preCache] converting:', file.name)
-      const importResult = await convertInWorker(key, buffer, null, 'precache')
+      const importResult = await convertInWorker(key, buffer, null, 'precache', cadFormat)
 
       const glbBuffer = buildGlbFromResult(importResult, {
         wasmPath,

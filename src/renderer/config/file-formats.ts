@@ -29,6 +29,8 @@ export type FormatId =
   | '3mf'
   | 'model'
   | 'step'
+  | 'iges'
+  | 'brep'
   | 'obj'
   | 'ply'
   | 'fbx'
@@ -174,6 +176,36 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'mesh',
     defaultUnit: 'millimeter',
     color: 'text-purple-500',
+  },
+  {
+    id: 'iges',
+    label: 'IGES',
+    extensions: ['.iges', '.igs'],
+    mime: 'application/iges',
+    loaderModule: '', // special: converted via occt-import-js.wasm
+    group: 'cad',
+    sampleFile: '',
+    textBased: false,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'mesh',
+    defaultUnit: 'millimeter',
+    color: 'text-orange-600',
+  },
+  {
+    id: 'brep',
+    label: 'BREP',
+    extensions: ['.brep'],
+    mime: 'application/brep',
+    loaderModule: '', // special: converted via occt-import-js.wasm
+    group: 'cad',
+    sampleFile: '',
+    textBased: false,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'mesh',
+    defaultUnit: 'millimeter',
+    color: 'text-red-600',
   },
   // ---- 5-29: New formats ----
   {
@@ -636,7 +668,7 @@ export type UpAxis = 'y' | 'z'
 
 /** Formats native to Z-up (3D printing / CAD manufacturing). */
 const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
-  '3mf', 'stl', 'amf', 'step', 'gcode',
+  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'gcode',
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.
@@ -649,8 +681,8 @@ export function getDefaultUpAxis(
   fileName?: string,
 ): UpAxis {
   if (format === 'glb') {
-    // STEP→GLB: if we know the source was STEP, always Z-up — no need to scan buffer
-    if (fileName && isStepFile(fileName)) return 'z'
+    // CAD→GLB: if we know the source was CAD format, always Z-up
+    if (fileName && (isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName))) return 'z'
     // Fallback: detect CAD origin from STEP_T extension in GLB binary
     if (buffer && isCadSkillGlb(buffer)) return 'z'
     return 'y'
@@ -771,4 +803,16 @@ export function isStepFile(filenameOrFormat: string | null | undefined): boolean
   if (!filenameOrFormat) return false
   const f = filenameOrFormat.toLowerCase()
   return f.endsWith('.step') || f.endsWith('.stp') || f.endsWith('.stpz') || f === 'step' || f === 'stp' || f === 'stpz'
+}
+
+export function isIgesFile(filenameOrFormat: string | null | undefined): boolean {
+  if (!filenameOrFormat) return false
+  const f = filenameOrFormat.toLowerCase()
+  return f.endsWith('.iges') || f.endsWith('.igs') || f === 'iges' || f === 'igs'
+}
+
+export function isBrepFile(filenameOrFormat: string | null | undefined): boolean {
+  if (!filenameOrFormat) return false
+  const f = filenameOrFormat.toLowerCase()
+  return f.endsWith('.brep') || f === 'brep'
 }

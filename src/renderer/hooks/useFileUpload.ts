@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { generateThumbnailFromResult, generateSvgThumbnail, processEmbeddedThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
@@ -28,8 +28,8 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
         return
       }
 
-      if (isStepFile(file.name) && file.size > MAX_STEP_FILE_SIZE) {
-        toast.error('不支持超过100MB的STEP/STP/STPZ文件')
+      if ((isStepFile(file.name) || isIgesFile(file.name) || isBrepFile(file.name)) && file.size > MAX_STEP_FILE_SIZE) {
+        toast.error('不支持超过100MB的STEP/STP/IGES/BREP文件')
         return
       }
 
@@ -144,6 +144,22 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
           buffer = glbBuffer
           format = 'glb'
+        } else if (isIgesFile(file.name) || isBrepFile(file.name)) {
+          const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+          const cadFormat = isIgesFile(file.name) ? 'iges' : 'brep'
+          const { showProgress, updateProgress } = useModelStore.getState()
+          showProgress(`Reading ${file.name}...`, 0)
+          resetYieldTimer()
+
+          const { buffer: glbBuffer } = await stepToGlbCached(rawBuffer,
+            { filePath, mtimeMs: file.lastModified },
+            { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
+          )
+          updateProgress('Building 3D scene...', 85)
+          await yieldToUI(true)
+
+          buffer = glbBuffer
+          format = 'glb'
         } else if (!format) {
           toast.error(`Unsupported file format: ${file.name}`)
           setIsUploading(false)
@@ -152,7 +168,7 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
 
         const filePath = window.electronAPI?.getFilePath(file) ?? file.name
 
-        // Show progress for non-STEP formats (STEP already has progress from above)
+        // Show progress for non-CAD formats (CAD already has progress from conversion above)
         if (format !== 'glb' || buffer === rawBuffer) {
           const formatLabel = FORMAT_MAP[format]?.label ?? format.toUpperCase()
           useModelStore.getState().showProgress(`Loading ${formatLabel}...`)

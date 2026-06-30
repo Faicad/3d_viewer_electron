@@ -7,7 +7,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
-import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { EXT_COLORS, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -817,6 +817,7 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
 
     // Decompress STPZ before parsing header and converting
     const isStep = isStepFile(file.name)
+    const isCadConvert = isStep || isIgesFile(file.name) || isBrepFile(file.name)
     if (isStep && file.name.toLowerCase().endsWith('.stpz')) {
       const decompressed = decompressStpz(buffer)
       if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
@@ -832,12 +833,13 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       if (stepHeader) fileMeta = { step: stepHeader }
     }
 
-    if (isStep) {
-      store.showProgress('Converting STEP geometry...')
+    if (isCadConvert) {
+      const cadFormat = isIgesFile(file.name) ? 'iges' : isBrepFile(file.name) ? 'brep' : 'step'
+      store.showProgress(`Converting ${file.name}...`)
       try {
         const { buffer: glbBuffer } = await stepToGlbCached(buffer,
           { filePath: file.path, mtimeMs: file.mtimeMs },
-          { wasmPath: '/wasm/occt-import-js.wasm' },
+          { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
         )
         buffer = glbBuffer
         format = 'glb'
@@ -853,8 +855,8 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       return
     }
 
-    // Show progress for formats that weren't STEP-converted (STEP already has progress from above)
-    if (!isStep) store.showProgress(`Loading ${file.name}...`)
+    // Show progress for formats that weren't CAD-converted (CAD already has progress from above)
+    if (!isCadConvert) store.showProgress(`Loading ${file.name}...`)
 
     // Parse once
     const loadResult = await loadFormat(buffer, format, file.path)

@@ -1,6 +1,7 @@
 import { buildGlbFromResult, type StepToGlbOptions } from './stepToGlb'
 import { convertInWorker } from './stepWorkerPool'
 import { getCached, putCached, memCache } from './stepCache'
+import type { CadFormat } from './occtLoader'
 export { clearStepCache } from './stepCache'
 
 function cacheKey(filePath: string, mtimeMs: number): string {
@@ -17,12 +18,22 @@ function cacheKey(filePath: string, mtimeMs: number): string {
   return key
 }
 
+function cadProgressLabel(cadFormat: CadFormat): string {
+  switch (cadFormat) {
+    case 'iges': return 'IGES'
+    case 'brep': return 'BREP'
+    default: return 'STEP'
+  }
+}
+
 export async function stepToGlbCached(
   stepData: ArrayBuffer | Uint8Array,
   fileInfo: { filePath: string; mtimeMs: number },
   options: StepToGlbOptions = {},
   onProgress?: (msg: string, pct: number) => void,
 ): Promise<{ buffer: ArrayBuffer; cached: boolean }> {
+  const cadFormat = options.cadFormat || 'step'
+  const fmtLabel = cadProgressLabel(cadFormat)
   const key = cacheKey(fileInfo.filePath, fileInfo.mtimeMs)
   const startTime = performance.now()
 
@@ -47,11 +58,11 @@ export async function stepToGlbCached(
     console.warn('[stepToGlbCached] IndexedDB lookup failed:', err)
   }
 
-  // 3. Worker conversion: ReadStepFile in worker → buildGlb on main thread
+  // 3. Worker conversion: CAD → mesh in worker → buildGlb on main thread
   console.log('[stepToGlbCached] miss, starting worker conversion:', key)
-  onProgress?.('Converting STEP geometry...', 5)
+  onProgress?.(`Converting ${fmtLabel} geometry...`, 5)
   const stepBuffer = stepData instanceof ArrayBuffer ? stepData : stepData.buffer.slice(0)
-  const importResult = await convertInWorker(key, stepBuffer, null)
+  const importResult = await convertInWorker(key, stepBuffer, null, 'user', cadFormat)
 
   onProgress?.('Building GLB geometry...', 60)
   const buffer = buildGlbFromResult(importResult, options, onProgress)

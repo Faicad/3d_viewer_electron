@@ -10,7 +10,7 @@ import type { DisplayMode } from './DisplayModeDropdown'
 import { loadFormat } from '@/engine/formatLoaders'
 import type { FormatId } from '@/config/file-formats'
 import { FORMAT_MAP } from '@/config/file-formats'
-import { getDefaultUpAxis, isStepFile } from '@/config/file-formats'
+import { getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile } from '@/config/file-formats'
 import { parse3mfUnit, parseAmfUnit, guessStlUnit, UNIT_TO_MM } from '@/config/file-formats'
 import { getCachedResult, setCachedResult, markLoaded, clearLoaded } from '@/engine/loaderResultCache'
 import { setActiveFileIdForTexCache } from '@/engine/formatLoaders'
@@ -232,9 +232,9 @@ const ModelGroup = forwardRef<THREE.Group, ModelGroupProps>(function ModelGroup(
 
     async function load() {
       try {
-        // STEP is special — should have been converted to GLB already
-        if (isStepFile(format)) {
-          console.warn('[ModelGroup] STEP received without prior conversion -- should be GLB by now')
+        // STEP/IGES/BREP are special — should have been converted to GLB already
+        if (isStepFile(format) || isIgesFile(format) || isBrepFile(format)) {
+          console.warn('[ModelGroup] CAD format received without prior conversion -- should be GLB by now')
           return
         }
 

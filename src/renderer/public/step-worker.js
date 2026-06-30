@@ -1,4 +1,5 @@
-// Classic Web Worker for STEP→mesh conversion via OCCT WASM.
+// Classic Web Worker for CAD→mesh conversion via OCCT WASM.
+// Supports STEP (ReadStepFile), IGES (ReadIgesFile), and BREP (ReadBrepFile).
 // Uses fetch()+eval() to load the OCCT script because importScripts()
 // doesn't route through Electron's protocol.handle for custom schemes.
 
@@ -45,8 +46,24 @@ function collectTransferables(result) {
   return list;
 }
 
+function readCadFile(m, data, cadFormat) {
+  switch (cadFormat) {
+    case 'iges': return m.ReadIgesFile(data, null);
+    case 'brep': return m.ReadBrepFile(data, null);
+    default:     return m.ReadStepFile(data, null);
+  }
+}
+
+function formatLabel(cadFormat) {
+  switch (cadFormat) {
+    case 'iges': return 'IGES';
+    case 'brep': return 'BREP';
+    default:     return 'STEP';
+  }
+}
+
 self.onmessage = async (e) => {
-  const { type, id, stepData, params } = e.data;
+  const { type, id, stepData, params, cadFormat } = e.data;
 
   if (type === 'init') {
     init().catch(err => console.error('[step-worker] init failed:', err));
@@ -57,13 +74,15 @@ self.onmessage = async (e) => {
     try {
       const m = await init();
       const t0 = performance.now();
+      const fmt = cadFormat || 'step';
+      const label = formatLabel(fmt);
 
-      const result = m.ReadStepFile(new Uint8Array(stepData), params);
+      const result = readCadFile(m, new Uint8Array(stepData), fmt);
       const ms = (performance.now() - t0).toFixed(0);
-      console.log('[step-worker] ReadStepFile done in ' + ms + 'ms, meshes=' + (result.meshes?.length || 0));
+      console.log('[step-worker] ' + label + ' done in ' + ms + 'ms, meshes=' + (result.meshes?.length || 0));
 
       if (!result.success) {
-        self.postMessage({ type: 'result', id, success: false, error: 'STEP import failed' });
+        self.postMessage({ type: 'result', id, success: false, error: label + ' import failed' });
         return;
       }
 

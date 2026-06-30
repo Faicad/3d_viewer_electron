@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS, isStepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, EXT_COLORS, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import type { FileMeta } from '@/lib/file-meta'
 import { setCachedResult } from '@/engine/loaderResultCache'
@@ -160,8 +160,9 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         return
       }
 
-      // ── 3D: STEP / STL / GLB / 3MF / etc. ─────────────────────
+      // ── 3D: CAD / STL / GLB / 3MF / etc. ─────────────────────
       const isStep = isStepFile(entry.fileName)
+      const isCadConvert = isStep || isIgesFile(entry.fileName) || isBrepFile(entry.fileName)
 
       // Decompress STPZ before parsing header and converting
       if (isStep && entry.fileName.toLowerCase().endsWith('.stpz')) {
@@ -179,12 +180,13 @@ export default function HistoryPanel({ onClose }: { onClose: () => void }) {
         if (stepHeader) fileMeta = { step: stepHeader }
       }
 
-      if (isStep) {
+      if (isCadConvert) {
+        const cadFormat = isIgesFile(entry.fileName) ? 'iges' : isBrepFile(entry.fileName) ? 'brep' : 'step'
         store.setIsConverting(true)
         try {
           const { buffer: glbBuffer } = await stepToGlbCached(buffer,
             { filePath: entry.filePath, mtimeMs: entry.mtimeMs ?? Date.now() },
-            { wasmPath: '/wasm/occt-import-js.wasm' },
+            { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
           )
           buffer = glbBuffer
           format = 'glb'

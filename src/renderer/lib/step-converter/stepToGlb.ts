@@ -1,4 +1,4 @@
-import { loadOcct, type OcctMesh, type OcctNode } from './occtLoader';
+import { loadOcct, type OcctModule, type OcctMesh, type OcctNode, type CadFormat } from './occtLoader';
 import { GlbBuilder } from './GlbBuilder';
 import { addStepTopology } from './topologyExt';
 import { DEFAULT_MATERIAL_SRGB } from '@/engine/components/cloneMaterial';
@@ -14,12 +14,24 @@ export interface StepToGlbOptions {
   wasmPath?: string;
   stepHash?: string;
   cadPath?: string;
+  cadFormat?: CadFormat;
 }
 
 interface OcctImportResult {
   success: boolean;
   root: OcctNode;
   meshes: OcctMesh[];
+}
+
+function readCadFile(occt: Pick<OcctModule, 'ReadStepFile' | 'ReadIgesFile' | 'ReadBrepFile'>, buffer: Uint8Array, format: CadFormat): OcctImportResult {
+  switch (format) {
+    case 'iges':
+      return occt.ReadIgesFile(buffer, null) as OcctImportResult;
+    case 'brep':
+      return occt.ReadBrepFile(buffer, null) as OcctImportResult;
+    default:
+      return occt.ReadStepFile(buffer, null) as OcctImportResult;
+  }
 }
 
 export async function stepToGlb(
@@ -29,10 +41,11 @@ export async function stepToGlb(
   const occt = await loadOcct({ wasmPath: options.wasmPath });
 
   const buffer = stepData instanceof Uint8Array ? stepData : new Uint8Array(stepData);
-  const result = occt.ReadStepFile(buffer, null) as OcctImportResult;
+  const cadFormat = options.cadFormat || 'step';
+  const result = readCadFile(occt, buffer, cadFormat);
 
   if (!result.success) {
-    throw new Error('STEP import failed');
+    throw new Error(`${cadFormat.toUpperCase()} import failed`);
   }
 
   return buildGlbFromResult(result, options);

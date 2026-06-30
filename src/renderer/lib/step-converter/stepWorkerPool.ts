@@ -1,4 +1,4 @@
-import type { OcctNode, OcctMesh } from './occtLoader'
+import type { OcctNode, OcctMesh, CadFormat } from './occtLoader'
 
 const POOL_SIZE = 3
 const MAX_PRECACHE_WORKERS = 1
@@ -104,6 +104,7 @@ export function convertInWorker(
   stepData: ArrayBuffer,
   params: Record<string, unknown> | null,
   priority: TaskType = 'user',
+  cadFormat: CadFormat = 'step',
 ): Promise<OcctImportResult> {
   // Dedup: if this file is already being converted, wait for that same Promise
   const existing = pendingPromises.get(cacheKey)
@@ -125,7 +126,7 @@ export function convertInWorker(
     slot.cacheKey = cacheKey
     pending.set(id, { resolve, reject })
     slot.worker.postMessage(
-      { type: 'convert', id, stepData, params },
+      { type: 'convert', id, stepData, params, cadFormat },
       [stepData],
     )
   })
