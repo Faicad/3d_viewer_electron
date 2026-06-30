@@ -139,6 +139,7 @@ export function buildHtmlComposition({ urls, marks, segments, imageDurations, ge
     .caption{position:absolute;font-weight:bold;font-family:'Microsoft YaHei','PingFang SC',sans-serif;text-shadow:0 4px 20px rgba(0,0,0,.95);white-space:nowrap;pointer-events:none}
     .cursor-overlay{position:absolute;pointer-events:none;z-index:100}
     .cursor-pointer{width:32px;height:32px;background:radial-gradient(circle,#fff 2px,#000 2px,#000 4px,transparent 4px);border-radius:50%;position:absolute}
+    .move-cursor{width:48px;height:60px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'%3E%3Cpath d='M0 0 L0 32 L8 24 L16 36 L20 34 L12 22 L28 22 Z' fill='white' stroke='%23222' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat;position:absolute;pointer-events:none;filter:drop-shadow(1px 2px 3px rgba(0,0,0,0.5))}
     .click-ripple{position:absolute;border:3px solid #ff6b35;border-radius:50%;width:40px;height:40px;opacity:0}
   </style>
 </head>
@@ -164,7 +165,7 @@ ${gsapCode}
 // Caption: screen-positioned (viewport coords), no mark lookup.
 //          Must provide explicit style/size/position in .mjs.
 //
-const MARK_TYPES = new Set(['highlight-area', 'click-highlight', 'text-annotation', 'scroll-to-text'])
+const MARK_TYPES = new Set(['highlight-area', 'click-highlight', 'move-click', 'text-annotation', 'scroll-to-text'])
 
 function isMarkType(type) {
   return MARK_TYPES.has(type)
@@ -274,6 +275,11 @@ function buildSceneHtml(scene, marks, index, width, height) {
       const cy = fy + mark.h / 2
       scrollHtml += `<div class="overlay cursor-pointer" id="s${index}_cursor${ai}" style="left:${cx - 16}px;top:${cy - 16}px;opacity:0"></div>`
       scrollHtml += `<div class="overlay click-ripple" id="s${index}_ripple${ai}" style="left:${cx - 20}px;top:${cy - 20}px"></div>`
+    }
+    if (step.type === 'move-click') {
+      const cx = mark.x + mark.w / 2
+      const cy = fy + mark.h / 2
+      scrollHtml += `<div class="overlay move-cursor" id="s${index}_cursor${ai}" style="left:${cx}px;top:${cy + 80}px;opacity:0"></div>`
     }
     if (step.type === 'highlight-area') {
       const pad = step.padding || 20
@@ -392,10 +398,22 @@ function buildSceneGsap(scene, marks, sceneIndex, sceneStart, sceneDuration, wid
           const cy = fy + mark.h / 2
           const ms = step.highlightMs || 600
           chunks.push(`  tl.set('#s${sceneIndex}_cursor${ai}', {opacity:1,left:${cx - 16},top:${cy - 16}}, ${t.toFixed(3)});`)
-          if (step.ripple !== false) {
-            chunks.push(`  tl.to('#s${sceneIndex}_ripple${ai}', {opacity:1,scale:3,duration:0.4,ease:"power2.out"}, ${(t + 0.15).toFixed(3)});`)
-            chunks.push(`  tl.to('#s${sceneIndex}_ripple${ai}', {opacity:0,duration:0.3}, ${(t + 0.55).toFixed(3)});`)
-          }
+          chunks.push(`  tl.to('#s${sceneIndex}_ripple${ai}', {opacity:1,scale:3,duration:0.4,ease:"power2.out"}, ${(t + 0.15).toFixed(3)});`)
+          chunks.push(`  tl.to('#s${sceneIndex}_ripple${ai}', {opacity:0,duration:0.3}, ${(t + 0.55).toFixed(3)});`)
+        }
+        break
+      }
+      case 'move-click': {
+        if (mark) {
+          const fy = mark.fullY != null ? mark.fullY : mark.y
+          const cx = mark.x + mark.w / 2
+          const cy = fy + mark.h / 2
+          const moveMs = step.moveMs || 500
+          const moveSec = moveMs / 1000
+          const arriveT = t + moveSec
+          chunks.push(`  tl.to('#s${sceneIndex}_cursor${ai}', {opacity:1,top:${cy},duration:${moveSec.toFixed(3)},ease:"power2.out"}, ${t.toFixed(3)});`)
+          chunks.push(`  tl.to('#s${sceneIndex}_cursor${ai}', {y:6,duration:0.15,ease:"power1.in"}, ${arriveT.toFixed(3)});`)
+          chunks.push(`  tl.to('#s${sceneIndex}_cursor${ai}', {y:0,duration:0.15,ease:"power1.out"}, ${(arriveT + 0.15).toFixed(3)});`)
         }
         break
       }
