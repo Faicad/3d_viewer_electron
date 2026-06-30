@@ -581,9 +581,22 @@ export default function DesktopLayout() {
     if (!leftPanelOpen) return
 
     const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-node-id="${CSS.escape(targetId)}"]`)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      const idAttr = typeof CSS !== 'undefined' ? CSS.escape(targetId) : targetId
+      const el = document.querySelector(`[data-node-id="${idAttr}"]`)
+      if (!el) return
+      const viewport = el.closest('[data-radix-scroll-area-viewport]')
+      if (viewport) {
+        const vpRect = viewport.getBoundingClientRect()
+        const elRect = el.getBoundingClientRect()
+        const topOffset = elRect.top - vpRect.top
+        const bottomOffset = elRect.bottom - vpRect.bottom
+        if (topOffset < 0) {
+          viewport.scrollTop += topOffset
+        } else if (bottomOffset > 0) {
+          viewport.scrollTop += bottomOffset
+        }
+      } else {
+        el.scrollIntoView({ behavior: 'auto', block: 'nearest' })
       }
     }, 0)
     return () => clearTimeout(timer)

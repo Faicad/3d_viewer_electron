@@ -157,8 +157,8 @@ test.describe('3D Viewer Electron - File List Panel', () => {
     })
     expect(testBoxPath).toBeTruthy()
 
-    // Wait for the test-box.glb card to appear in the right panel grid
-    const firstCard = window.locator('.grid > div').filter({ hasText: 'test-box.glb' }).first()
+    // Wait for the test-box.glb card to appear in the right panel (grid or list mode)
+    const firstCard = window.locator('[data-index]').filter({ hasText: 'test-box.glb' }).first()
     await firstCard.waitFor({ state: 'attached', timeout: 10000 })
 
     // First click: load the file
