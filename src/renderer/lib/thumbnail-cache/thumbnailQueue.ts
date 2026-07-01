@@ -1,6 +1,6 @@
-import { detectFormat, isStepFile, isIgesFile, isBrepFile } from '@/config/file-formats'
+import { detectFormat, isStepFile, isIgesFile, isBrepFile, isFcstdFile } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
-import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail } from './thumbnailGenerator'
+import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail, extractFcstdThumbnail } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
 
 export interface QueueFile {
@@ -24,7 +24,7 @@ const CACHE_BATCH_SIZE = 20
  *  STEP needs OCCT WASM conversion; other 3D formats fall in between. */
 function timeoutForFormat(format: string | null): number {
   if (format === 'svg' || format === 'dxf') return 3_000
-  if (isStepFile(format) || isIgesFile(format) || isBrepFile(format)) return 60_000
+  if (isStepFile(format) || isIgesFile(format) || isBrepFile(format) || isFcstdFile(format)) return 60_000
   return 15_000 // stl, glb, 3mf, stp, unknown, …
 }
 
@@ -164,6 +164,20 @@ async function processNext(): Promise<void> {
             }
           }
           onReady?.(file.path, '')
+          return 'done'
+        }
+        if (isFcstdFile(file.name)) {
+          const result = await window.electronAPI.readFile(file.path)
+          if (result.success && result.data) {
+            const embeddedBlob = await extractFcstdThumbnail(result.data)
+            if (embeddedBlob && onReady) {
+              await putThumbnail(key, embeddedBlob)
+              const url = URL.createObjectURL(embeddedBlob)
+              onReady(file.path, url)
+              return 'done'
+            }
+          }
+          onReady?.(file.path, '') // no embedded thumbnail → placeholder, will be filled on file open
           return 'done'
         }
         if (format === '3mf') {

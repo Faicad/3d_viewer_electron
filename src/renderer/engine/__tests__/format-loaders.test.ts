@@ -18,7 +18,7 @@ const FIXTURES_DIR = path.resolve('src/test/fixtures')
 
 // Formats that require special runtime setup (WASM paths, external packages)
 // and are either covered by Playwright E2E or not currently testable in Node.
-const PLAYWRIGHT_ONLY: Set<FormatId> = new Set(['stl', 'glb', '3mf', 'step', 'scad', 'iges', 'brep'])
+const PLAYWRIGHT_ONLY: Set<FormatId> = new Set(['stl', 'glb', '3mf', 'step', 'scad', 'iges', 'brep', 'fcstd'])
 const SKIP_FORMATS: Set<FormatId> = new Set([
   'mdd',   // disabled: morph data only, no standalone render
   'ifc',   // disabled: needs web-ifc-three npm package

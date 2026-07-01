@@ -31,6 +31,7 @@ export type FormatId =
   | 'step'
   | 'iges'
   | 'brep'
+  | 'fcstd'
   | 'obj'
   | 'ply'
   | 'fbx'
@@ -206,6 +207,21 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'mesh',
     defaultUnit: 'millimeter',
     color: 'text-red-600',
+  },
+  {
+    id: 'fcstd',
+    label: 'FreeCAD',
+    extensions: ['.fcstd'],
+    mime: 'application/x-freecad',
+    loaderModule: '', // special: ZIP → XML → BREP → GLB
+    group: 'cad',
+    sampleFile: '',
+    textBased: false,
+    needsDracoWasm: false,
+    needsExternalDep: false,
+    renderHint: 'mesh',
+    defaultUnit: 'millimeter',
+    color: 'text-yellow-600',
   },
   // ---- 5-29: New formats ----
   {
@@ -668,7 +684,7 @@ export type UpAxis = 'y' | 'z'
 
 /** Formats native to Z-up (3D printing / CAD manufacturing). */
 const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
-  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'gcode',
+  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'fcstd', 'gcode',
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.
@@ -682,7 +698,7 @@ export function getDefaultUpAxis(
 ): UpAxis {
   if (format === 'glb') {
     // CAD→GLB: if we know the source was CAD format, always Z-up
-    if (fileName && (isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName))) return 'z'
+    if (fileName && (isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName) || isFcstdFile(fileName))) return 'z'
     // Fallback: detect CAD origin from STEP_T extension in GLB binary
     if (buffer && isCadSkillGlb(buffer)) return 'z'
     return 'y'
@@ -815,4 +831,10 @@ export function isBrepFile(filenameOrFormat: string | null | undefined): boolean
   if (!filenameOrFormat) return false
   const f = filenameOrFormat.toLowerCase()
   return f.endsWith('.brep') || f === 'brep'
+}
+
+export function isFcstdFile(filenameOrFormat: string | null | undefined): boolean {
+  if (!filenameOrFormat) return false
+  const f = filenameOrFormat.toLowerCase()
+  return f.endsWith('.fcstd') || f === 'fcstd'
 }

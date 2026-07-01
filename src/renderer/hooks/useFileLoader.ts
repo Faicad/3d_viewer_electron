@@ -5,7 +5,8 @@ import { useEngineStore } from '@/stores/engine-store'
 import { useUIStore } from '@/stores/ui-store'
 import { toast } from 'sonner'
 import { stepToGlbCached, startPreCache, decompressStpz } from '@/lib/step-converter'
-import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { fcstdToGlbCached } from '@/lib/fcstd-converter'
+import { detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, isFcstdFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, ModelEmptyError, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import {
@@ -89,8 +90,8 @@ export function useFileLoader() {
       }
       let buffer = fileResult.data
 
-      if ((isStepFile(name) || isIgesFile(name) || isBrepFile(name)) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
-        toast.error('不支持超过100MB的STEP/STP/IGES/BREP文件')
+      if ((isStepFile(name) || isIgesFile(name) || isBrepFile(name) || isFcstdFile(name)) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+        toast.error('不支持超过100MB的STEP/STP/IGES/BREP/FCStd文件')
         return
       }
 
@@ -125,6 +126,21 @@ export function useFileLoader() {
         } catch (e) {
           console.error('[useFileLoader] CAD conversion failed:', e)
           toast.error('CAD conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+          return
+        } finally {
+          useModelStore.getState().hideProgress()
+        }
+      } else if (isFcstdFile(name)) {
+        try {
+          useModelStore.getState().showProgress(`Converting ${name}...`)
+          const { buffer: glbBuffer } = await fcstdToGlbCached(buffer,
+            { filePath, mtimeMs },
+          )
+          buffer = glbBuffer
+          format = 'glb'
+        } catch (e) {
+          console.error('[useFileLoader] FCStd conversion failed:', e)
+          toast.error('FCStd conversion failed: ' + (e instanceof Error ? e.message : String(e)))
           return
         } finally {
           useModelStore.getState().hideProgress()

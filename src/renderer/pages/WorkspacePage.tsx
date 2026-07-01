@@ -12,9 +12,11 @@ import SvgWorkspace from '@/components/viewport/SvgWorkspace'
 import OpenFileDialog from '@/components/OpenFileDialog'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
-import { ALL_ACCEPT, detectFormat, FORMAT_MAP, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
-import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
-import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { fcstdToGlbCached } from '@/lib/fcstd-converter'
+import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isIgesFile, isBrepFile, isFcstdFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { generateSvgThumbnail, generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
+import { cacheKey, putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
+import { loadFormat } from '@/engine/formatLoaders'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 
 interface WorkspacePageProps {
@@ -81,8 +83,8 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       useSvgWorkspaceStore.setState({ files: [], selectedFileId: null })
     }
 
-    if ((isStepFile(file.name) || isIgesFile(file.name) || isBrepFile(file.name)) && file.size > MAX_STEP_FILE_SIZE) {
-      toast.error('不支持超过100MB的STEP/IGES/BREP文件')
+    if ((isStepFile(file.name) || isIgesFile(file.name) || isBrepFile(file.name) || isFcstdFile(file.name)) && file.size > MAX_STEP_FILE_SIZE) {
+      toast.error('不支持超过100MB的STEP/IGES/BREP/FCStd文件')
       return
     }
 
@@ -138,6 +140,45 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       } catch (e) {
         console.error('[WorkspacePage] CAD conversion failed:', e)
         toast.error('CAD conversion failed: ' + (e instanceof Error ? e.message : String(e)))
+        return
+      } finally {
+        useModelStore.getState().hideProgress()
+      }
+    } else if (isFcstdFile(file.name)) {
+      try {
+        useModelStore.getState().showProgress(`Converting ${file.name}...`)
+        const filePath = window.electronAPI?.getFilePath(file) ?? file.name
+        const { buffer: glbBuffer } = await fcstdToGlbCached(rawBuffer,
+          { filePath, mtimeMs: file.lastModified },
+        )
+
+        // Parse GLB and generate thumbnail
+        const loadResult = await loadFormat(glbBuffer, 'glb', filePath)
+        const fileId = crypto.randomUUID()
+
+        const upAxis = getDefaultUpAxis('glb', glbBuffer, file.name)
+        generateThumbnailFromResult(loadResult.meshes, loadResult.objects, upAxis)
+          .then(blob => {
+            if (blob) putThumbnail(cacheKey(filePath, file.lastModified), blob)
+          })
+
+        useModelStore.getState().addLoadedFile({
+          id: fileId,
+          fileName: file.name,
+          filePath,
+          mtimeMs: file.lastModified,
+          buffer: glbBuffer,
+          format: 'glb',
+          sceneTree: [],
+          glbPartInfos: [],
+          modelCenteringOffset: null,
+          sourceUnit: loadResult.sourceUnit ?? 'meter',
+          fileGroup: FORMAT_MAP.glb.group,
+          loadingPhase: 'loading',
+        })
+      } catch (e) {
+        console.error('[WorkspacePage] FCStd conversion failed:', e)
+        toast.error('FCStd conversion failed: ' + (e instanceof Error ? e.message : String(e)))
         return
       } finally {
         useModelStore.getState().hideProgress()

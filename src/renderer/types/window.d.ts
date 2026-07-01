@@ -82,6 +82,8 @@ declare global {
     __selectionStore: typeof import('@/stores/selection-store').useSelectionStore
     __uiStore: typeof import('@/stores/ui-store').useUIStore
     __fitCameraToHeatbed: (duration: number, margin: string) => void
+    /** E2E test helper: check if a thumbnail exists in cache for a given file path + mtime */
+    __getThumbnail: (filePath: string, mtimeMs: number) => Promise<boolean>
 
     /** Electron preload API */
     electronAPI: {

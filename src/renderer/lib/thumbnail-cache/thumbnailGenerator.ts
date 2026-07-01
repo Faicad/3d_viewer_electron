@@ -111,6 +111,27 @@ export async function extractAndProcess3mfThumbnail(
   }
 }
 
+/**
+ * Extract embedded thumbnail from FCStd (FreeCAD) files.
+ *
+ * FCStd files are ZIP archives. FreeCAD stores a PNG thumbnail either at
+ * `thumbnails/Thumbnail.png` (newer FreeCAD ≥0.21) or `Thumbnail.png` (older).
+ */
+export async function extractFcstdThumbnail(
+  buffer: ArrayBuffer,
+): Promise<Blob | null> {
+  try {
+    const data = new Uint8Array(buffer)
+    const unzipped: Record<string, Uint8Array> = unzipSync(data)
+    const thumbnailData = unzipped['thumbnails/Thumbnail.png'] ?? unzipped['Thumbnail.png']
+    if (!thumbnailData) return null
+    const rawBlob = new Blob([thumbnailData], { type: 'image/png' })
+    return processEmbeddedThumbnail(rawBlob)
+  } catch {
+    return null
+  }
+}
+
 let renderer: THREE.WebGLRenderer | null = null
 let canvas: HTMLCanvasElement | null = null
 /** Cached studio PMREM environment map — baked once, reused across all thumbnails. */

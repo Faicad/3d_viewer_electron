@@ -18,10 +18,11 @@ import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
 import { initLogger } from '@/lib/logger'
 import { initTelemetry, trackEvent, redactTelemetryString } from '@/telemetry'
-import { detectFormat, FORMAT_MAP, isStepFile, isIgesFile, isBrepFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
+import { detectFormat, FORMAT_MAP, isStepFile, isIgesFile, isBrepFile, isFcstdFile, MAX_STEP_FILE_SIZE } from '@/config/file-formats'
 import { loadFormat, parseStepHeader } from '@/engine/formatLoaders'
 import { setCachedResult } from '@/engine/loaderResultCache'
 import { stepToGlbCached, decompressStpz } from '@/lib/step-converter'
+import { fcstdToGlbCached } from '@/lib/fcstd-converter'
 import { scadToStl } from '@/lib/scad-converter'
 import { meshesToGlb } from '@/engine/exporters'
 import { collectPartKeys, findNodeInTree } from '@/lib/scene-tree-utils'
@@ -283,6 +284,12 @@ window.__clearStepCache = clearStepCache
 window.__stepMemCacheHas = (filePath: string, mtimeMs: number) => {
   const key = `${filePath.replace(/\\/g, '/')}|${Math.trunc(mtimeMs)}`
   return memCache.has(key)
+}
+window.__getThumbnail = async (filePath: string, mtimeMs: number) => {
+  const { cacheKey, getThumbnail } = await import('@/lib/thumbnail-cache/thumbnailCache')
+  const key = cacheKey(filePath, mtimeMs)
+  const blob = await getThumbnail(key)
+  return blob !== null
 }
 window.__sceneHasFaceIds = () => {
   const dev = window.__r3f_dev
@@ -689,7 +696,8 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
 
             const isCadFile = isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName)
-            if (isCadFile && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+            const isFcstd = isFcstdFile(fileName)
+            if ((isCadFile || isFcstd) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
               throw new Error('不支持超过100MB的CAD文件')
             }
 
@@ -707,12 +715,18 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
               const stepHeader = parseStepHeader(buffer)
               if (stepHeader) fileMeta = { step: stepHeader }
             }
-            // CAD→GLB: convert to GLB first (STEP, IGES, BREP)
+            // CAD→GLB: convert to GLB first (STEP, IGES, BREP, FCStd)
             if (isCadFile) {
               const cadFormat = isIgesFile(fileName) ? 'iges' : isBrepFile(fileName) ? 'brep' : 'step'
               const { buffer: glbBuffer } = await stepToGlbCached(buffer,
                 { filePath: fileName, mtimeMs: Date.now() },
                 { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
+              )
+              buffer = glbBuffer
+              format = 'glb'
+            } else if (isFcstd) {
+              const { buffer: glbBuffer } = await fcstdToGlbCached(buffer,
+                { filePath: fileName, mtimeMs: Date.now() },
               )
               buffer = glbBuffer
               format = 'glb'
@@ -779,7 +793,8 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)
 
             const isCadFile = isStepFile(fileName) || isIgesFile(fileName) || isBrepFile(fileName)
-            if (isCadFile && buffer.byteLength > MAX_STEP_FILE_SIZE) {
+            const isFcstd = isFcstdFile(fileName)
+            if ((isCadFile || isFcstd) && buffer.byteLength > MAX_STEP_FILE_SIZE) {
               throw new Error('不支持超过100MB的CAD文件')
             }
 
@@ -797,12 +812,18 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
               const stepHeader = parseStepHeader(buffer)
               if (stepHeader) fileMeta = { step: stepHeader }
             }
-            // CAD→GLB: convert to GLB first (STEP, IGES, BREP)
+            // CAD→GLB: convert to GLB first (STEP, IGES, BREP, FCStd)
             if (isCadFile) {
               const cadFormat = isIgesFile(fileName) ? 'iges' : isBrepFile(fileName) ? 'brep' : 'step'
               const { buffer: glbBuffer } = await stepToGlbCached(buffer,
                 { filePath: String(filePath), mtimeMs: Date.now() },
                 { wasmPath: '/wasm/occt-import-js.wasm', cadFormat },
+              )
+              buffer = glbBuffer
+              format = 'glb'
+            } else if (isFcstd) {
+              const { buffer: glbBuffer } = await fcstdToGlbCached(buffer,
+                { filePath: String(filePath), mtimeMs: Date.now() },
               )
               buffer = glbBuffer
               format = 'glb'

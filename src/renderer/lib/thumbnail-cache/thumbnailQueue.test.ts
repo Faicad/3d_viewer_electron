@@ -31,6 +31,7 @@ vi.mock('@/config/file-formats', () => ({
   isStepFile: (...args: unknown[]) => mockDetectFormat(...args) === 'step',
   isIgesFile: (...args: unknown[]) => mockDetectFormat(...args) === 'iges',
   isBrepFile: (...args: unknown[]) => mockDetectFormat(...args) === 'brep',
+  isFcstdFile: (...args: unknown[]) => mockDetectFormat(...args) === 'fcstd',
 }))
 
 vi.mock('./thumbnailCache', () => ({
@@ -44,6 +45,7 @@ vi.mock('./thumbnailGenerator', () => ({
   generateSvgThumbnail: (...args: unknown[]) => mockGenerateSvgThumbnail(...args),
   extractAndProcess3mfThumbnail: (...args: unknown[]) =>
     mockExtractAndProcess3mfThumbnail(...args),
+  extractFcstdThumbnail: vi.fn().mockResolvedValue(null),
 }))
 
 vi.mock('@/lib/step-converter/stepCache', () => ({

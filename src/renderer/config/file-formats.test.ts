@@ -16,8 +16,8 @@ import {
 } from './file-formats'
 
 describe('file-formats config', () => {
-  it('all 36 formats defined', () => {
-    expect(FILE_FORMATS.length).toBe(36)
+  it('all 37 formats defined', () => {
+    expect(FILE_FORMATS.length).toBe(37)
   })
 
   it('no duplicate format ids', () => {
@@ -79,6 +79,7 @@ describe('detectFormat', () => {
     expect(detectFormat('model.obj')).toBe('obj')
     expect(detectFormat('model.fbx')).toBe('fbx')
     expect(detectFormat('model.ply')).toBe('ply')
+    expect(detectFormat('model.fcstd')).toBe('fcstd')
     expect(detectFormat('icons.svg')).toBe('svg')
   })
 
@@ -147,6 +148,7 @@ describe('getGroupAccept', () => {
     expect(cad).toContain('.step')
     expect(cad).toContain('.stp')
     expect(cad).toContain('.stpz')
+    expect(cad).toContain('.fcstd')
   })
 
   it('returns empty for group with no enabled formats', () => {
