@@ -123,6 +123,58 @@
     ],
     "win": {
       "executableName": "3D_Viewer",
+      "fileAssociations": [
+        {
+          "ext": [
+            "stl",
+            "glb",
+            "gltf",
+            "3mf",
+            "step",
+            "stp",
+            "stpz",
+            "obj",
+            "ply",
+            "fbx",
+            "dae",
+            "3ds",
+            "usdz",
+            "drc",
+            "bvh",
+            "vtk",
+            "vtp",
+            "xyz",
+            "pdb",
+            "nrrd",
+            "gcode",
+            "wrl",
+            "vox",
+            "kmz",
+            "amf",
+            "lwo",
+            "md2",
+            "pcd",
+            "3dm",
+            "iges",
+            "igs",
+            "brep",
+            "brp",
+            "fcstd"
+          ],
+          "name": "3D Model File",
+          "description": "3D Model File",
+          "icon": "resources/icon.ico"
+        },
+        {
+          "ext": [
+            "hdr",
+            "exr"
+          ],
+          "name": "HDR/EXR Environment Map",
+          "description": "HDR/EXR Environment Map",
+          "icon": "resources/icon.ico"
+        }
+      ],
       "target": [
         {
           "target": "nsis",
@@ -155,7 +207,7 @@
       ],
       "fileAssociations": [
         {
-          "ext": "stl,glb,gltf,3mf,step,stp,obj,ply,fbx,dae,3ds,usdz,drc,bvh,vtk,vtp,xyz,pdb,nrrd,gcode,wrl,vox,kmz,amf,lwo,md2,pcd,3dm",
+          "ext": "stl,glb,gltf,3mf,step,stp,stpz,obj,ply,fbx,dae,3ds,usdz,drc,bvh,vtk,vtp,xyz,pdb,nrrd,gcode,wrl,vox,kmz,amf,lwo,md2,pcd,3dm,iges,igs,brep,brp,fcstd",
           "name": "3D Model File",
           "description": "3D Model File",
           "icon": "resources/icon.ico"
@@ -209,7 +261,13 @@
           "lwo",
           "md2",
           "pcd",
-          "3dm"
+          "3dm",
+          "stpz",
+          "iges",
+          "igs",
+          "brep",
+          "brp",
+          "fcstd"
         ],
         "name": "3D Model File",
         "description": "3D Model File",

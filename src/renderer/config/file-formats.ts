@@ -196,7 +196,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
   {
     id: 'brep',
     label: 'BREP',
-    extensions: ['.brep'],
+    extensions: ['.brep', '.brp'],
     mime: 'application/brep',
     loaderModule: '', // special: converted via occt-import-js.wasm
     group: 'cad',
@@ -830,7 +830,7 @@ export function isIgesFile(filenameOrFormat: string | null | undefined): boolean
 export function isBrepFile(filenameOrFormat: string | null | undefined): boolean {
   if (!filenameOrFormat) return false
   const f = filenameOrFormat.toLowerCase()
-  return f.endsWith('.brep') || f === 'brep'
+  return f.endsWith('.brep') || f.endsWith('.brp') || f === 'brep' || f === 'brp'
 }
 
 export function isFcstdFile(filenameOrFormat: string | null | undefined): boolean {
