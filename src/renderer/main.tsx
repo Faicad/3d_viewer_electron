@@ -683,7 +683,7 @@ function executeCommand(msg: { type?: string; id?: string; command?: string; par
             } else {
               const resp = await fetch(data!)
               buffer = await resp.arrayBuffer()
-              fileName = 'model.glb'
+              fileName = (params.fileName as string) || 'model.glb'
             }
             let format = detectFormat(fileName)
             if (!format) throw new Error(`Unsupported file format: ${fileName}`)

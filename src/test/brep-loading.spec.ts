@@ -51,7 +51,7 @@ test.describe('3D Viewer Electron - BREP Loading', () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      try { await electronApp.close() } catch { }
+      try { await electronApp.close() } catch { /* may hang on CI */ }
     }
     cleanupUserDataDir(_userDataDir)
   })
@@ -114,7 +114,7 @@ test.describe('3D Viewer Electron - BREP Loading', () => {
     const BREP_DATA_URL = `data:application/brep;base64,${BREP_FIXTURE.toString('base64')}`
 
     const result = await window.evaluate(async (dataUrl) => {
-      const resp = await window.__executeCommand('loadModel', { data: dataUrl })
+      const resp = await window.__executeCommand('loadModel', { data: dataUrl, fileName: 'Motor-c.brep' })
       await new Promise(r => setTimeout(r, 3000))
       const info = await window.__executeCommand('getModelInfo', {})
       return { loadResult: resp, info }

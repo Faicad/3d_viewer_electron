@@ -125,10 +125,18 @@ export function convertInWorker(
     const id = ++requestId
     slot.cacheKey = cacheKey
     pending.set(id, { resolve, reject })
-    slot.worker.postMessage(
-      { type: 'convert', id, stepData, params, cadFormat },
-      [stepData],
-    )
+    try {
+      slot.worker.postMessage(
+        { type: 'convert', id, stepData, params, cadFormat },
+        [stepData],
+      )
+    } catch (e) {
+      pending.delete(id)
+      slot.busy = false
+      slot.taskType = null
+      slot.cacheKey = null
+      reject(e instanceof Error ? e : new Error(String(e)))
+    }
   })
 
   // Register the promise so other callers can await it
