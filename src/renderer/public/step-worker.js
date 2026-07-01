@@ -31,17 +31,15 @@ function init() {
 }
 
 function collectTransferables(result) {
+  const seen = new Set();
   const list = [];
   for (const mesh of (result.meshes || [])) {
-    if (mesh.attributes?.position?.array?.buffer) {
-      list.push(mesh.attributes.position.array.buffer);
+    for (const key of ['position', 'normal']) {
+      const buf = mesh.attributes?.[key]?.array?.buffer;
+      if (buf && !seen.has(buf)) { seen.add(buf); list.push(buf); }
     }
-    if (mesh.attributes?.normal?.array?.buffer) {
-      list.push(mesh.attributes.normal.array.buffer);
-    }
-    if (mesh.index?.array?.buffer) {
-      list.push(mesh.index.array.buffer);
-    }
+    const idxBuf = mesh.index?.array?.buffer;
+    if (idxBuf && !seen.has(idxBuf)) { seen.add(idxBuf); list.push(idxBuf); }
   }
   return list;
 }
