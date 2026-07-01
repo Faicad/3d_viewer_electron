@@ -1,5 +1,5 @@
 import { buildGlbFromResult, type StepToGlbOptions } from './stepToGlb'
-import { convertInWorker } from './stepWorkerPool'
+import { convertInWorker, type OcctImportResult } from './stepWorkerPool'
 import { getCached, putCached, memCache } from './stepCache'
 import type { CadFormat } from './occtLoader'
 export { clearStepCache } from './stepCache'
@@ -62,7 +62,13 @@ export async function stepToGlbCached(
   console.log('[stepToGlbCached] miss, starting worker conversion:', key)
   onProgress?.(`Converting ${fmtLabel} geometry...`, 5)
   const stepBuffer = stepData instanceof ArrayBuffer ? stepData : stepData.buffer.slice(0)
-  const importResult = await convertInWorker(key, stepBuffer, null, 'user', cadFormat)
+  let importResult: OcctImportResult
+  try {
+    importResult = await convertInWorker(key, stepBuffer, null, 'user', cadFormat)
+  } catch (e) {
+    console.error('[stepToGlbCached] worker conversion failed:', e)
+    throw e
+  }
 
   onProgress?.('Building GLB geometry...', 60)
   const buffer = buildGlbFromResult(importResult, options, onProgress)

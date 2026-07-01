@@ -126,9 +126,10 @@ export function convertInWorker(
     slot.cacheKey = cacheKey
     pending.set(id, { resolve, reject })
     try {
+      const transferables: Transferable[] = stepData instanceof ArrayBuffer ? [stepData] : []
       slot.worker.postMessage(
         { type: 'convert', id, stepData, params, cadFormat },
-        [stepData],
+        transferables,
       )
     } catch (e) {
       pending.delete(id)

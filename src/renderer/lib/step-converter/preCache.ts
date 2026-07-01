@@ -67,14 +67,19 @@ export async function startPreCache(
       if (preCacheAbort) break
 
       let buffer = result.data
+      // IPC can return Uint8Array instead of ArrayBuffer depending on Electron version.
+      // Ensure we pass a real ArrayBuffer to convertInWorker (needed for postMessage transfer).
+      const rawBuffer = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(0)
       // Decompress STPZ before caching
       if (file.name.toLowerCase().endsWith('.stpz')) {
-        const decompressed = decompressStpz(buffer)
+        const decompressed = decompressStpz(rawBuffer)
         if (decompressed.byteLength > MAX_STEP_FILE_SIZE) {
           console.warn('[preCache] STPZ decompressed size exceeds limit:', file.name)
           continue
         }
         buffer = decompressed
+      } else {
+        buffer = rawBuffer
       }
 
       const cadFormat: CadFormat = isIgesFile(file.name) ? 'iges' : isBrepFile(file.name) ? 'brep' : 'step'
