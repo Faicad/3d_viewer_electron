@@ -2,7 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-> **Note:** This changelog only covers functional changes in the `src/` directory (the 3D viewer application). Changes to auxiliary tools (e.g., `movies/`, `scripts/`, `docs/`) are excluded. When releasing, run `git log v<previous>..HEAD -- 'src/*'` to collect the entries.
+## [1.8.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.7.3...v1.8.0) (2026-07-01)
+
+
+### Features
+
+* **fcstd:** add FreeCAD FCStd file format support ([7db5161](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7db51611442450474e6ec8ab15b4a5ab21e80b3e))
+* **formats:** support IGES (.iges/.igs) and BREP (.brep) file formats ([c161200](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c161200564a570a83a00fc114449823a4f5fa7b7))
+* **formats:** support IGES (.iges/.igs) and BREP (.brep) file formats ([9569d3c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9569d3cdcd552ae7dc1e974cd083f10d5bb042aa))
+* register new CAD formats (stpz/brep/brp/iges/igs/fcstd) in OS file associations ([bcc5f37](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bcc5f37fa2a17ea91ee5173a7dadc6febecccbaa))
+* **step:** add .stpz (ZIP-compressed STEP) file format support ([1237141](https://github.com/YOUR_ORG/3d_viewer_electron/commits/12371411c00be15e1ceb5cb316f46f83c92f62fd))
+
+
+### Bug Fixes
+
+* deduplicate transfer list in collectTransferables ([585b1db](https://github.com/YOUR_ORG/3d_viewer_electron/commits/585b1dbdc67f06369ba87ec3f37da8255160a417))
+* guard postMessage transfer list against non-ArrayBuffer IPC data ([513e1f3](https://github.com/YOUR_ORG/3d_viewer_electron/commits/513e1f3a75ea64e640a88f10cbf4e71453a20505))
+* pass filePath correctly in FCStd thumbnail test and add defensive guard in cacheKey ([6a93e8a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6a93e8a0a110aee326f6df32469fb311f72aa8a7))
+* resolve CI failures for IGES/BREP format support ([cb77982](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cb7798250937c173005800fe67298d9f05c260c3))
+
+
+### Code Refactoring
+
+* extract readDirectory module and relocate misplaced test files ([ae3e45a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ae3e45a15499fc8e46dd945d794f9de0d411d68a))
 
 ### [1.7.3](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.7.2...v1.7.3) (2026-06-30)
 
