@@ -25,7 +25,7 @@
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
-    "postinstall": "node scripts/ensure-electron-binary.mjs && electron-builder install-app-deps && node scripts/copy-draco-wasm.mjs",
+    "postinstall": "node scripts/ensure-electron-binary.mjs && electron-builder install-app-deps && node scripts/copy-draco-wasm.mjs && node scripts/copy-ifc-wasm.mjs",
     "build:win": "electron-vite build && electron-builder --win",
     "build:win:cn": "node scripts/build-edition.mjs --cn",
     "build:win:release": "pnpm run build:win && pnpm run build:win:cn",
@@ -73,6 +73,7 @@
     "three": "^0.184.0",
     "three-stdlib": "^2.36.1",
     "tslib": "^2.8.1",
+    "web-ifc": "^0.0.77",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
@@ -159,7 +160,8 @@
             "igs",
             "brep",
             "brp",
-            "fcstd"
+            "fcstd",
+            "ifc"
           ],
           "name": "3D Model File",
           "description": "3D Model File",
@@ -207,7 +209,7 @@
       ],
       "fileAssociations": [
         {
-          "ext": "stl,glb,gltf,3mf,step,stp,stpz,obj,ply,fbx,dae,3ds,usdz,drc,bvh,vtk,vtp,xyz,pdb,nrrd,gcode,wrl,vox,kmz,amf,lwo,md2,pcd,3dm,iges,igs,brep,brp,fcstd",
+          "ext": "stl,glb,gltf,3mf,step,stp,stpz,obj,ply,fbx,dae,3ds,usdz,drc,bvh,vtk,vtp,xyz,pdb,nrrd,gcode,wrl,vox,kmz,amf,lwo,md2,pcd,3dm,iges,igs,brep,brp,fcstd,ifc",
           "name": "3D Model File",
           "description": "3D Model File",
           "icon": "resources/icon.ico"
@@ -267,7 +269,8 @@
           "igs",
           "brep",
           "brp",
-          "fcstd"
+          "fcstd",
+          "ifc"
         ],
         "name": "3D Model File",
         "description": "3D Model File",

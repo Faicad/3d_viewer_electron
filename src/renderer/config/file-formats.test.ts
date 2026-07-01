@@ -112,7 +112,6 @@ describe('detectFormat', () => {
   })
 
   it('does not detect disabled formats', () => {
-    expect(detectFormat('model.ifc')).toBeNull() // disabled
     expect(detectFormat('model.mdd')).toBeNull() // disabled
     expect(detectFormat('model.mpd')).toBeNull() // disabled (ldraw)
   })

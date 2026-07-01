@@ -24,6 +24,7 @@ const CACHE_BATCH_SIZE = 20
  *  STEP needs OCCT WASM conversion; other 3D formats fall in between. */
 function timeoutForFormat(format: string | null): number {
   if (format === 'svg' || format === 'dxf') return 3_000
+  if (format === 'ifc') return 30_000
   if (isStepFile(format) || isIgesFile(format) || isBrepFile(format) || isFcstdFile(format)) return 60_000
   return 15_000 // stl, glb, 3mf, stp, unknown, …
 }
@@ -192,6 +193,20 @@ async function processNext(): Promise<void> {
             }
             // Fall back to WebGL render
             const blob = await generateThumbnail(result.data, format)
+            if (blob && onReady) {
+              await putThumbnail(key, blob)
+              const url = URL.createObjectURL(blob)
+              onReady(file.path, url)
+              return 'done'
+            }
+          }
+          onReady?.(file.path, '')
+          return 'done'
+        }
+        if (format === 'ifc') {
+          const result = await window.electronAPI.readFile(file.path)
+          if (result.success && result.data) {
+            const blob = await generateThumbnail(result.data, format, file.path)
             if (blob && onReady) {
               await putThumbnail(key, blob)
               const url = URL.createObjectURL(blob)

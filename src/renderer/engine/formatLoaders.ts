@@ -11,6 +11,7 @@ import type { FileMeta } from '@/lib/file-meta'
 import { useModelStore } from '@/stores/model-store'
 import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 import { scadToStl } from '@/lib/scad-converter'
+import { loadIfcAsMeshes } from '@/lib/ifc-loader'
 
 /** Parse ISO 10303-21 HEADER section from a STEP file buffer. */
 export function parseStepHeader(buffer: ArrayBuffer): FileMeta['step'] | undefined {
@@ -766,10 +767,8 @@ export async function loadFormat(
     }
 
     // ---- IFC (BIM) ----
-    // IFC requires web-ifc-three (external package): npm install web-ifc-three web-ifc
     case 'ifc': {
-      console.warn('[formatLoaders] IFC requires web-ifc-three package — not yet installed')
-      return { meshes: [], objects: [] }
+      return loadIfcAsMeshes(buffer)
     }
 
     // ---- OpenSCAD (CDN/local WASM) ----

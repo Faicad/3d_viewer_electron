@@ -21,7 +21,7 @@ const FIXTURES_DIR = path.resolve('src/test/fixtures')
 const PLAYWRIGHT_ONLY: Set<FormatId> = new Set(['stl', 'glb', '3mf', 'step', 'scad', 'iges', 'brep', 'fcstd'])
 const SKIP_FORMATS: Set<FormatId> = new Set([
   'mdd',   // disabled: morph data only, no standalone render
-  'ifc',   // disabled: needs web-ifc-three npm package
+  'ifc',   // tested separately in ifc-loader/loadIfc.test.ts
   'drc',   // needs DRACOLoader WASM decoder path
   '3dm',   // needs Rhino3dmLoader WASM library path
   'kmz',   // fixture appears corrupted (fflate: invalid zip data)

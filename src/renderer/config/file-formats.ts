@@ -529,7 +529,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     textBased: false,
     needsDracoWasm: false,
     needsExternalDep: true,
-    disabled: true, // needs npm install web-ifc-three web-ifc
+    disabled: false, // uses web-ifc (npm package)
     renderHint: 'mesh',
     defaultUnit: 'millimeter',
     color: 'text-yellow-600',

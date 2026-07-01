@@ -104,6 +104,9 @@ importers:
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
+      web-ifc:
+        specifier: ^0.0.77
+        version: 0.0.77
       zustand:
         specifier: ^5.0.13
         version: 5.0.14(@types/react@18.3.30)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
@@ -4246,6 +4249,9 @@ packages:
   w3c-xmlserializer@5.0.0:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
+
+  web-ifc@0.0.77:
+    resolution: {integrity: sha512-VzQ0W/Iiqbidxn1ECUvz6qJ6p2sXBVNcOsUOBCETzy77psAH6yFLKQm74aXabkx3JH4OvFVHe8k1qS6+Z2zl1w==}
 
   webgl-constants@1.1.1:
     resolution: {integrity: sha512-LkBXKjU5r9vAW7Gcu3T5u+5cvSvh5WwINdr0C+9jpzVB41cjQAP5ePArDtk/WHYdVj0GefCgM73BA7FlIiNtdg==}
@@ -8412,6 +8418,8 @@ snapshots:
   w3c-xmlserializer@5.0.0:
     dependencies:
       xml-name-validator: 5.0.0
+
+  web-ifc@0.0.77: {}
 
   webgl-constants@1.1.1: {}
 
