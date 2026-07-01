@@ -23,7 +23,7 @@ function openCache(): Promise<IDBDatabase> {
 }
 
 export function cacheKey(filePath: string, mtimeMs: number): string {
-  return `${filePath.replace(/\\/g, '/')}|${Math.trunc(mtimeMs)}`
+  return `${(filePath ?? '').replace(/\\/g, '/')}|${Math.trunc(mtimeMs)}`
 }
 
 export async function getThumbnail(key: string): Promise<Blob | null> {

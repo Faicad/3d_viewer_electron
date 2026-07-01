@@ -91,8 +91,10 @@ test.describe('3D Viewer Electron - FCStd Loading', () => {
     // Bug: after loading, a thumbnail should exist in the cache
     // The thumbnail may be generated from the 3D render (if no embedded thumbnail)
     // or extracted from the ZIP (if embedded thumbnail exists)
-    const hasThumb = await window.evaluate((fp) =>
-      window.__getThumbnail(fp, Date.now()),
+    const hasThumb = await window.evaluate(
+      ({ filePath, mtimeMs }: { filePath: string; mtimeMs?: number }) =>
+        window.__getThumbnail(filePath, mtimeMs ?? Date.now()),
+      file,
     )
     // For now this is expected to fail — the bug is that no thumbnail is generated
     expect(hasThumb).toBe(true)
