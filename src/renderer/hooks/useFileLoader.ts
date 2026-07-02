@@ -79,7 +79,7 @@ export function useFileLoader() {
     const mtimeMs = Date.now()
 
     try {
-      if (format !== 'svg' && format !== 'dxf') {
+      if (format !== 'svg' && format !== 'dxf' && format !== 'dwg') {
         useModelStore.getState().showProgress(`Loading ${name}...`)
       }
 
@@ -147,23 +147,29 @@ export function useFileLoader() {
         }
       }
 
-      if (format === 'svg' || format === 'dxf') {
-        // SVG / DXF: decode text + convert to SVG, then add to workspace
-        const text = new TextDecoder().decode(buffer)
-
+      if (format === 'svg' || format === 'dxf' || format === 'dwg') {
         let svgText: string
         let layers: ReturnType<typeof parseSvgLayers>
         let naturalWidth: number
         let naturalHeight: number
 
         if (format === 'dxf') {
+          const text = new TextDecoder().decode(buffer)
           const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
           const result = await convertDxfToSvg(text)
           svgText = result.svgText
           layers = result.layers
           naturalWidth = result.naturalWidth
           naturalHeight = result.naturalHeight
+        } else if (format === 'dwg') {
+          const { dwgToSvg } = await import('@/lib/dwg-parser')
+          svgText = await dwgToSvg(buffer)
+          layers = parseSvgLayers(svgText)
+          const vb = parseSvgViewBox(svgText)
+          naturalWidth = vb.naturalWidth
+          naturalHeight = vb.naturalHeight
         } else {
+          const text = new TextDecoder().decode(buffer)
           svgText = text
           layers = parseSvgLayers(text)
           const vb = parseSvgViewBox(text)
@@ -276,7 +282,7 @@ export function useFileLoader() {
     for (const p of result.filePaths) {
       const name = p.split(/[/\\]/).pop() || p
       const fmt = detectFormat(name)
-      if (fmt === 'svg' || fmt === 'dxf') {
+      if (fmt === 'svg' || fmt === 'dxf' || fmt === 'dwg') {
         svgPaths.push(p)
       } else if (fmt === 'hdr' || fmt === 'exr') {
         envPaths.push(p)

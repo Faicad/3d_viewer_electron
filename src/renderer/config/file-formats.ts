@@ -57,6 +57,7 @@ export type FormatId =
   | '3dm'
   | 'svg'
   | 'dxf'
+  | 'dwg'
   | 'hdr'
   | 'exr'
   | 'scad'
@@ -575,6 +576,20 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'svg',            // renders via the SVG workspace
     defaultUnit: 'millimeter',
     color: 'text-orange-400',
+  },
+  {
+    id: 'dwg',
+    label: 'DWG',
+    extensions: ['.dwg'],
+    loaderModule: '',             // no Three.js loader — converted to SVG via LibreDWG WASM
+    group: 'vector',              // same group as SVG/DXF, reuses vector pipeline
+    sampleFile: '',
+    textBased: false,             // DWG is binary
+    needsDracoWasm: false,
+    needsExternalDep: false,      // WASM loaded from CDN at runtime, not bundled
+    renderHint: 'svg',            // renders via the SVG workspace
+    defaultUnit: 'millimeter',
+    color: 'text-orange-500',
   },
   {
     id: 'hdr',

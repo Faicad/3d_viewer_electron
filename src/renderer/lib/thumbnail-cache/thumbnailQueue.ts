@@ -1,6 +1,6 @@
 import { detectFormat, isStepFile, isIgesFile, isBrepFile, isFcstdFile } from '@/config/file-formats'
 import { cacheKey, getThumbnail, putThumbnail } from './thumbnailCache'
-import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail, extractFcstdThumbnail } from './thumbnailGenerator'
+import { generateThumbnail, generateSvgThumbnail, extractAndProcess3mfThumbnail, extractFcstdThumbnail, generateDwgPlaceholder } from './thumbnailGenerator'
 import { getCached as getStepCached } from '@/lib/step-converter/stepCache'
 
 export interface QueueFile {
@@ -23,7 +23,7 @@ const CACHE_BATCH_SIZE = 20
 /** Per-format work timeout. SVG/DXF thumbnails are fast (pure Canvas 2D);
  *  STEP needs OCCT WASM conversion; other 3D formats fall in between. */
 function timeoutForFormat(format: string | null): number {
-  if (format === 'svg' || format === 'dxf') return 3_000
+  if (format === 'svg' || format === 'dxf' || format === 'dwg') return 3_000
   if (format === 'ifc') return 30_000
   if (isStepFile(format) || isIgesFile(format) || isBrepFile(format) || isFcstdFile(format)) return 60_000
   return 15_000 // stl, glb, 3mf, stp, unknown, …
@@ -34,7 +34,7 @@ function timeoutForFormat(format: string | null): number {
  *  a quick SVG conversion step so 50ms is safer. 3D formats keep
  *  the original 200ms to avoid jank during WebGL renders. */
 function gapForFormat(format: string | null): number {
-  if (format === 'svg') return GAP_MS_2D
+  if (format === 'svg' || format === 'dwg') return GAP_MS_2D
   if (format === 'dxf') return GAP_MS_DXF
   return GAP_MS
 }
@@ -151,6 +151,17 @@ async function processNext(): Promise<void> {
             }
           }
           onReady?.(file.path, '')
+          return 'done'
+        }
+        if (format === 'dwg') {
+          const blob = await generateDwgPlaceholder(file.name)
+          if (blob && onReady) {
+            await putThumbnail(key, blob)
+            const url = URL.createObjectURL(blob)
+            onReady(file.path, url)
+          } else {
+            onReady?.(file.path, '')
+          }
           return 'done'
         }
         if (isStepFile(file.name) || isIgesFile(file.name) || isBrepFile(file.name)) {

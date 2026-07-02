@@ -37,33 +37,38 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
       setIsUploading(true)
 
       try {
-        if (format !== 'svg' && format !== 'dxf') {
+        if (format !== 'svg' && format !== 'dxf' && format !== 'dwg') {
           useModelStore.getState().showProgress(`Loading ${file.name}...`)
         }
 
         const rawBuffer = await file.arrayBuffer()
         let buffer = rawBuffer
 
-        if (format === 'svg' || format === 'dxf') {
+        if (format === 'svg' || format === 'dxf' || format === 'dwg') {
           useModelStore.getState().reset()
 
-          // Decode text (both SVG and DXF are text-based)
-          const text = new TextDecoder().decode(rawBuffer)
-
-          // DXF: convert to SVG first; SVG: use text directly
           let svgText: string
           let layers: ReturnType<typeof parseSvgLayers>
           let naturalWidth: number
           let naturalHeight: number
 
           if (format === 'dxf') {
+            const text = new TextDecoder().decode(rawBuffer)
             const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
             const result = await convertDxfToSvg(text)
             svgText = result.svgText
             layers = result.layers
             naturalWidth = result.naturalWidth
             naturalHeight = result.naturalHeight
+          } else if (format === 'dwg') {
+            const { dwgToSvg } = await import('@/lib/dwg-parser')
+            svgText = await dwgToSvg(rawBuffer)
+            layers = parseSvgLayers(svgText)
+            const vb = parseSvgViewBox(svgText)
+            naturalWidth = vb.naturalWidth
+            naturalHeight = vb.naturalHeight
           } else {
+            const text = new TextDecoder().decode(rawBuffer)
             svgText = text
             layers = parseSvgLayers(text)
             const vb = parseSvgViewBox(text)

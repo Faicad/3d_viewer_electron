@@ -706,14 +706,14 @@ function FullscreenGrid({
 }
 
 /** Double-click (toggle): add this file to scene, or remove it if already loaded. */
-async function toggleFileInScene(file: { name: string; path: string; mtimeMs: number }, index: number) {
+export async function toggleFileInScene(file: { name: string; path: string; mtimeMs: number }, index: number) {
   const store = useModelStore.getState()
   store.setSelectedFileIndex(index)
 
   let format = detectFormat(file.name)
 
-  // SVG/DXF toggle: add/remove from workspace without touching 3D pipeline
-  if (format === 'svg' || format === 'dxf') {
+  // SVG/DXF/DWG toggle: add/remove from workspace without touching 3D pipeline
+  if (format === 'svg' || format === 'dxf' || format === 'dwg') {
     const existing = store.loadedFiles.find(f => f.filePath === file.path)
     if (existing && existing.svgText) {
       // Toggle workspace visibility (toggleFile syncs with model store)
@@ -729,19 +729,18 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       return
     }
 
-    // First SVG/DXF load: switch to SVG mode — clear 3D state
+    // First load: switch to SVG mode — clear 3D state
     if (useSvgWorkspaceStore.getState().files.length === 0) {
       store.reset()
     }
 
-    // Load SVG/DXF first, then toggle
+    // Load file first, then toggle
     try {
       const result = await window.electronAPI.readFile(file.path)
       if (!result.success || !result.data) {
         toast.error('Load failed: ' + (result.error || 'unknown error'))
         return
       }
-      const text = new TextDecoder().decode(result.data)
 
       let svgText: string
       let layers: ReturnType<typeof parseSvgLayers>
@@ -749,13 +748,22 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       let naturalHeight: number
 
       if (format === 'dxf') {
+        const text = new TextDecoder().decode(result.data)
         const { convertDxfToSvg } = await import('@/lib/dxf-to-svg')
         const converted = await convertDxfToSvg(text)
         svgText = converted.svgText
         layers = converted.layers
         naturalWidth = converted.naturalWidth
         naturalHeight = converted.naturalHeight
+      } else if (format === 'dwg') {
+        const { dwgToSvg } = await import('@/lib/dwg-parser')
+        svgText = await dwgToSvg(result.data)
+        layers = parseSvgLayers(svgText)
+        const vb = parseSvgViewBox(svgText)
+        naturalWidth = vb.naturalWidth
+        naturalHeight = vb.naturalHeight
       } else {
+        const text = new TextDecoder().decode(result.data)
         svgText = text
         layers = parseSvgLayers(text)
         const vb = parseSvgViewBox(text)
@@ -790,7 +798,7 @@ async function toggleFileInScene(file: { name: string; path: string; mtimeMs: nu
       // Toggle on
       useSvgWorkspaceStore.getState().toggleFile(fileId, file.name, file.path, svgText, layers, naturalWidth, naturalHeight)
     } catch (e) {
-      console.error('[toggleFileInScene] SVG/DXF load exception:', e)
+      console.error('[toggleFileInScene] load exception:', e)
       toast.error('Load failed: ' + String(e))
     }
     return

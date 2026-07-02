@@ -15,7 +15,7 @@
 // In dev mode Vite processes the worker and tries to resolve import('/wasm/...'),
 // but public/ files are not part of the module graph.
 const LOCAL_URL = self.location.origin + '/wasm/openscad.js'
-const CDN_URL = 'https://cdn.jsdelivr.net/npm/openscad-wasm-prebuilt@1.2.0/dist/openscad.js'
+const SCAD_CDN_URL = 'https://cdn.jsdelivr.net/npm/openscad-wasm-prebuilt@1.2.0/dist/openscad.js'
 
 // ---- Types (self-contained, no imports) ----
 
@@ -62,7 +62,7 @@ async function handleRender(req: WorkerRequest): Promise<void> {
       factory = mod.default as typeof factory
     } catch {
       // Local not available — try CDN (openscad-wasm-prebuilt has createOpenSCAD)
-      const mod = await import(CDN_URL)
+      const mod = await import(/* @vite-ignore */ SCAD_CDN_URL)
       if (typeof mod.createOpenSCAD === 'function') {
         const wrapped = await mod.createOpenSCAD({
           noInitialRun: true,
