@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import * as THREE from 'three'
 import { useMaterialStore, makeOverrideKey, parseOverrideKey } from './material-store'
 import type { MaterialAppearance, AlphaMode } from '@/engine/material/types'
 import { materialToAppearance, createDefaultMaterial, DEFAULT_MATERIAL_HEX, DEFAULT_MATERIAL_ROUGHNESS, DEFAULT_MATERIAL_METALNESS } from '@/engine/components/cloneMaterial'
 import { MaterialFactory } from '@/engine/material/MaterialFactory'
+
+beforeAll(() => {
+  vi.spyOn(console, 'log').mockImplementation(() => {})
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+})
 
 function reset() {
   useMaterialStore.setState({
