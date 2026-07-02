@@ -50,7 +50,7 @@ function shouldUseStdin(argv: string[]): boolean {
 }
 
 /** Read all lines from stdin until EOF. */
-function readStdinLines(delimiter: string = '\n'): Promise<string[]> {
+function readStdinLines(_delimiter: string = '\n'): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const lines: string[] = []
     const rl = readline.createInterface({

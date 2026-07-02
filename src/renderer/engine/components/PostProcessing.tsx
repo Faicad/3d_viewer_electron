@@ -48,5 +48,15 @@ export default function PostProcessing() {
     return unsub
   }, [])
 
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      const c = composerRef.current
+      if (!c) return
+      if (state.toneMappingMode === prevState.toneMappingMode) return
+      c.setToneMappingMode(state.toneMappingMode)
+    })
+    return unsub
+  }, [])
+
   return null
 }

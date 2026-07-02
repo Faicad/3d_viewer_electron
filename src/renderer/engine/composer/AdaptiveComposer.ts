@@ -70,25 +70,15 @@ export class AdaptiveComposer {
   setToneMappingMode(mode: 'neutral' | 'aces' | 'linear'): void {
     switch (mode) {
       case 'neutral':
-        this._toneMapping.setMode(ToneMappingMode.NEUTRAL)
+        this._toneMapping.mode = ToneMappingMode.NEUTRAL
         break
       case 'aces':
-        this._toneMapping.setMode(ToneMappingMode.ACES_FILMIC)
+        this._toneMapping.mode = ToneMappingMode.ACES_FILMIC
         break
       case 'linear':
-        this._toneMapping.setMode(ToneMappingMode.LINEAR)
+        this._toneMapping.mode = ToneMappingMode.LINEAR
         break
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Exposure
-  // ---------------------------------------------------------------------------
-
-  /** Direct exposure control (maps to renderer.toneMappingExposure). */
-  setExposure(value: number): void {
-    const renderer = this._composer.getRenderer()
-    if (renderer) renderer.toneMappingExposure = value
   }
 
   // ---------------------------------------------------------------------------

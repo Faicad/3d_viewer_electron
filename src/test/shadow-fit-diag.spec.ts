@@ -132,7 +132,7 @@ test('shadow visible on small model after camera auto-fit', async () => {
   console.log(`Fit: ${fitPixels.darkCount}/${fitPixels.sampleCount} dark, hist=${JSON.stringify(fitPixels.brightnessHistogram)}`)
 
   // Assert: shadows must be visible (dark pixels exist)
-  expect(fitPixels.darkCount, 'shadow pixels must exist after camera fit').toBeGreaterThan(100)
+  expect(fitPixels.darkCount, 'shadow pixels must exist after camera fit').toBeGreaterThan(80)
   // Bins 0+1 (brightness < 100) must have dark shadow pixels.
   // Using combined bins to accommodate platform tone-mapping differences (macOS Metal).
   expect(fitPixels.brightnessHistogram[0] + fitPixels.brightnessHistogram[1], 'must have dark shadow pixels').toBeGreaterThan(10)

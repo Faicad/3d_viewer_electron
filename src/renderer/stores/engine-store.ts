@@ -146,6 +146,8 @@ interface EngineStore {
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
+  toneMappingMode: 'neutral' | 'aces' | 'linear'
+  setToneMappingMode: (v: 'neutral' | 'aces' | 'linear') => void
   smaaEnabled: boolean
   setSmaaEnabled: (v: boolean) => void
   shadowIntensity: number
@@ -177,7 +179,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setModelGroup: (g) => set({ modelGroup: g }),
 
   // Environment defaults
-  envIntensity: 1.0,
+  envIntensity: 0.25,
   setEnvIntensity: (v) => set({ envIntensity: v }),
   envRotation: 0,
   setEnvRotation: (v) => set({ envRotation: v }),
@@ -259,6 +261,8 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   bumpHighlightVersion: () => set((s) => ({ highlightVersion: s.highlightVersion + 1 })),
 
   // Post-processing defaults
+  toneMappingMode: 'neutral',
+  setToneMappingMode: (v) => set({ toneMappingMode: v }),
   smaaEnabled: true,
   setSmaaEnabled: (v) => set({ smaaEnabled: v }),
   shadowIntensity: 80,

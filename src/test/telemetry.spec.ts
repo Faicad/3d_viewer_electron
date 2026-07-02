@@ -51,10 +51,11 @@ test.describe('Telemetry', () => {
 
   test('sends app_start event with correct PostHog format', async () => {
     const window = await electronApp.firstWindow()
+    // Spy must be registered BEFORE the JS bundle executes so it catches
+    // the app_start flush before the PostHog request leaves the process.
+    const collector = await spyPostHog(window)
     await window.waitForLoadState('domcontentloaded')
     await window.locator('canvas').first().waitFor({ state: 'attached', timeout: 20000 })
-
-    const collector = await spyPostHog(window)
 
     // Wait for app_start to flush (1s debounce)
     await window.waitForTimeout(2000)
@@ -89,18 +90,19 @@ test.describe('Telemetry', () => {
 
   test('does not send events when telemetry is turned off', async () => {
     const window = await electronApp.firstWindow()
-    await window.waitForLoadState('domcontentloaded')
-
+    // Spy must be registered immediately to catch any early flush.
     const collector = await spyPostHog(window)
+    await window.waitForLoadState('domcontentloaded')
 
     // Disable telemetry via localStorage (what the Settings toggle does)
     await window.evaluate(() => {
       localStorage.setItem('3d_viewer_electron-ty:optedOut', '1')
     })
 
-    await window.waitForTimeout(1000)
+    // Wait for any in-flight events (e.g. app_start) to flush before counting.
+    await window.waitForTimeout(3000)
     const countBefore = collector.batches.reduce((s, b) => s + b.length, 0)
-    await window.waitForTimeout(2000)
+    await window.waitForTimeout(3000)
     const countAfter = collector.batches.reduce((s, b) => s + b.length, 0)
     expect(countAfter, 'no new events after opt-out').toBe(countBefore)
 

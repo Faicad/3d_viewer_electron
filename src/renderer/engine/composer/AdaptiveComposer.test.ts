@@ -7,6 +7,7 @@ const mockComposerRender = vi.fn()
 const mockComposerSetSize = vi.fn()
 const mockGetRenderer = vi.fn()
 const mockSmaaSetEnabled = vi.fn()
+let mockToneMappingMode: number = 0
 const mockToneMappingSetMode = vi.fn()
 
 // Postprocessing mocks must be constructors
@@ -41,8 +42,18 @@ vi.mock('postprocessing', () => ({
   SMAAEffect: vi.fn().mockImplementation(function (this: MockSMAAEffect) {
     Object.assign(this, new MockSMAAEffect())
   }),
-  ToneMappingEffect: vi.fn().mockImplementation(function (this: MockToneMappingEffect) {
-    Object.assign(this, new MockToneMappingEffect())
+  ToneMappingEffect: vi.fn().mockImplementation(function (opts?: { mode?: number }) {
+    const inst = new MockToneMappingEffect()
+    if (opts?.mode !== undefined) {
+      mockToneMappingMode = opts.mode
+      mockToneMappingSetMode(opts.mode)
+    }
+    Object.defineProperty(inst, 'mode', {
+      get: () => mockToneMappingMode,
+      set: (v: number) => { mockToneMappingMode = v; mockToneMappingSetMode(v) },
+      enumerable: true,
+    })
+    return inst
   }),
   ToneMappingMode: { NEUTRAL: 0, ACES_FILMIC: 1, LINEAR: 2 },
   Effect: vi.fn(),
@@ -125,6 +136,10 @@ describe('AdaptiveComposer', () => {
   it('setToneMappingMode maps linear→LINEAR', () => {
     composer.setToneMappingMode('linear')
     expect(mockToneMappingSetMode).toHaveBeenCalledWith(2)
+  })
+
+  it('constructor uses NEUTRAL mode', () => {
+    expect(mockToneMappingSetMode).toHaveBeenCalledWith(0)
   })
 
   // ---------------------------------------------------------------------------
