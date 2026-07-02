@@ -61,8 +61,16 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
             naturalWidth = result.naturalWidth
             naturalHeight = result.naturalHeight
           } else if (format === 'dwg') {
-            const { dwgToSvg } = await import('@/lib/dwg-parser')
-            svgText = await dwgToSvg(rawBuffer)
+            const { showProgress, updateProgress, hideProgress } = useModelStore.getState()
+            try {
+              showProgress('Loading DWG file...', 0)
+              const { dwgToSvg } = await import('@/lib/dwg-parser')
+              svgText = await dwgToSvg(rawBuffer, (msg, pct) => {
+                updateProgress(msg, pct)
+              })
+            } finally {
+              hideProgress()
+            }
             layers = parseSvgLayers(svgText)
             const vb = parseSvgViewBox(svgText)
             naturalWidth = vb.naturalWidth
