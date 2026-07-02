@@ -196,6 +196,7 @@ export default function ViewportContainer() {
   const [isCameraAnimating, setIsCameraAnimating] = useState(false)
   const [cameraAnimDoneTick, setCameraAnimDoneTick] = useState(0)
   const modelLoadCompletedRef = useRef(false)
+  const firstLoadStartedRef = useRef(false)
 
   // camProxy initial sync
   useEffect(() => {
@@ -208,6 +209,8 @@ export default function ViewportContainer() {
 
   // ---- Rotation ----
   const startRotation = useCallback(() => {
+    if (firstLoadStartedRef.current) return
+    firstLoadStartedRef.current = true
     gsap.killTweensOf(camProxyRef.current)
     if (tweenRef.current?.isActive()) return
     const controls = controlsRef.current
