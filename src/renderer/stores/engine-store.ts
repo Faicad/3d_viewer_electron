@@ -168,6 +168,8 @@ interface EngineStore {
   clearEngineObjects: () => void
 }
 
+export const DEFAULT_ENV_INTENSITY = 0.45
+
 export const useEngineStore = create<EngineStore>((set, get) => ({
   camera: null,
   scene: null,
@@ -179,7 +181,7 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   setModelGroup: (g) => set({ modelGroup: g }),
 
   // Environment defaults
-  envIntensity: 0.25,
+  envIntensity: DEFAULT_ENV_INTENSITY,
   setEnvIntensity: (v) => set({ envIntensity: v }),
   envRotation: 0,
   setEnvRotation: (v) => set({ envRotation: v }),

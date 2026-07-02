@@ -5,6 +5,7 @@ import { getDefaultUpAxis } from '@/config/file-formats'
 import { extractThumbnailBlob } from '@/lib/bambu-3mf/bambu-3mf'
 import { useMaterialStore } from '@/stores/material-store'
 import { getSharedMaterialFactory } from '@/engine/material/MaterialFactory'
+import { DEFAULT_ENV_INTENSITY } from '@/stores/engine-store'
 import { CleanRoomEnvironment } from '@/engine/environment/CleanRoomEnvironment'
 import { createDefaultMaterial } from '@/engine/components/cloneMaterial'
 import { unzipSync } from 'three/examples/jsm/libs/fflate.module.js'
@@ -191,7 +192,7 @@ function setupLighting(scene: THREE.Scene, r: THREE.WebGLRenderer): void {
   // CleanRoomEnvironment has bright white walls + area lights — much more
   // natural than a handful of point lights and eliminates harsh black shadows.
   scene.environment = getOrCreateEnvMap(r)
-  scene.environmentIntensity = 0.85
+  scene.environmentIntensity = DEFAULT_ENV_INTENSITY
 
   // Bare-minimum ambient as fallback for non-PBR materials (e.g. the
   // MeshBasicMaterial Three.js auto-assigns when a format has no materials).
