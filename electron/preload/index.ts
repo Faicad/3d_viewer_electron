@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   postAIResult: (payload: { id: string; data?: unknown; error?: string }) => {
     ipcRenderer.send('ai:commandResult', payload)
   },
+  getPipedFiles: () => ipcRenderer.invoke('fs:getPipedFiles'),
+  isStdinMode: () => ipcRenderer.invoke('fs:isStdinMode'),
 })
 
 // Expose build info to renderer

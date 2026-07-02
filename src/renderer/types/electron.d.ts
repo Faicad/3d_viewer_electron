@@ -45,6 +45,8 @@ declare global {
       showItemInFolder: (filePath: string) => Promise<void>
       onAIAction: (callback: (command: any) => void) => () => void
       postAIResult: (payload: { id: string; data?: unknown; error?: string }) => void
+      getPipedFiles: () => Promise<{ name: string; path: string; mtimeMs: number }[] | null>
+      isStdinMode: () => Promise<boolean>
     }
     env: {
       DEV: boolean

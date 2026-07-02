@@ -17,6 +17,7 @@ import { ALL_ACCEPT, detectFormat, FORMAT_MAP, getDefaultUpAxis, isStepFile, isI
 import { generateSvgThumbnail, generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { cacheKey, putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { loadFormat } from '@/engine/formatLoaders'
+import { replaceSceneWithFile } from '@/lib/scene-file-loader'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
 
 interface WorkspacePageProps {
@@ -58,6 +59,19 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
     window.electronAPI.getPendingFilePath().then((filePath) => {
       if (filePath) {
         loadFilePath(filePath)
+      }
+    })
+
+    // Stdin pipe mode: collect piped file paths, show as virtual folder
+    window.electronAPI.isStdinMode().then((isStdin) => {
+      if (isStdin) {
+        window.electronAPI.getPipedFiles().then((files) => {
+          if (files && files.length > 0) {
+            const store = useModelStore.getState()
+            store.setFolderFiles(null, files)
+            replaceSceneWithFile(files[0], 0)
+          }
+        })
       }
     })
 

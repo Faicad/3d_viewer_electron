@@ -1,7 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, dialog, Menu } from 'electron'
-import { join, extname } from 'path'
+import { join, extname, basename } from 'path'
 import * as fs from 'fs'
 import http from 'http'
+import * as readline from 'readline'
 import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 import { startServer } from './server'
 import { registerAIHandlers } from './ipc-handlers'
@@ -37,6 +38,43 @@ function extractFilePath(argv: string[]): string | null {
   return null
 }
 
+/**
+ * Whether the app should enter stdin pipe mode.
+ * In dev mode, only when --stdin is explicitly passed (npm may pipe stdin).
+ * In production, auto-detect when stdin is not a TTY and no file CLI arg given.
+ */
+function shouldUseStdin(argv: string[]): boolean {
+  if (import.meta.env.DEV) return argv.includes('--stdin')
+  const hasFileArg = extractFilePath(argv) !== null
+  return !hasFileArg && !process.stdin.isTTY
+}
+
+/** Read all lines from stdin until EOF. */
+function readStdinLines(delimiter: string = '\n'): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const lines: string[] = []
+    const rl = readline.createInterface({
+      input: process.stdin,
+      crlfDelay: Infinity,
+    })
+    rl.on('line', (line) => {
+      const trimmed = line.trim()
+      if (trimmed) lines.push(trimmed)
+    })
+    rl.on('close', () => resolve(lines))
+    rl.on('error', reject)
+  })
+}
+
+/** Filter paths to only supported 3D model extensions. */
+function filterSupportedFiles(paths: string[]): string[] {
+  const supported = new Set(ALL_EXTENSIONS)
+  return paths.filter((p) => {
+    const ext = extname(p).toLowerCase()
+    return supported.has(ext)
+  })
+}
+
 // Must be called before app.whenReady() to grant the custom protocol access to
 // IndexedDB, fetch, and other standard web APIs.
 protocol.registerSchemesAsPrivileged([
@@ -46,6 +84,10 @@ protocol.registerSchemesAsPrivileged([
 let mainWindow: BrowserWindow | null = null
 let aiServer: http.Server | null = null
 const AI_SERVER_PORT = parseInt(process.env.AI_PORT || '4274', 10)
+
+// Stdin pipe mode state
+let pendingPipedFiles: { name: string; path: string; mtimeMs: number }[] | null = null
+let didUseStdin = false
 
 function setupProtocol(): void {
   protocol.handle('faicad-viewer', (request) => {
@@ -313,6 +355,27 @@ app.whenReady().then(async () => {
   if (cliPath) {
     pendingFilePath = cliPath
   }
+
+  // Stdin pipe mode: read file paths from stdin, show as virtual folder
+  const useStdin = shouldUseStdin(process.argv)
+  if (useStdin) {
+    didUseStdin = true
+    console.log('[Main] stdin pipe mode detected, reading file paths from stdin')
+    readStdinLines().then((rawPaths) => {
+      if (rawPaths.length === 0) {
+        console.log('[Main] stdin pipe mode: no input lines received')
+        pendingPipedFiles = []
+        return
+      }
+      const validPaths = filterSupportedFiles(rawPaths)
+      console.log(`[Main] stdin pipe mode: ${validPaths.length}/${rawPaths.length} valid file paths`)
+      pendingPipedFiles = validPaths.map((p) => ({
+        name: basename(p),
+        path: p,
+        mtimeMs: Date.now(),
+      }))
+    })
+  }
 })
 
 // Deliver pending file path once the window is ready to receive IPC
@@ -321,6 +384,15 @@ ipcMain.handle('get-pending-file-path', () => {
   pendingFilePath = null
   return path
 })
+
+// Stdin pipe mode: deliver piped file list (one-shot, cleared after read)
+ipcMain.handle('fs:getPipedFiles', () => {
+  const files = pendingPipedFiles
+  pendingPipedFiles = null
+  return files
+})
+
+ipcMain.handle('fs:isStdinMode', () => didUseStdin)
 
 app.on('will-quit', () => {
   if (aiServer) {

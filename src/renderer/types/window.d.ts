@@ -105,6 +105,8 @@ declare global {
       onOpenExternalFile: (callback: (filePath: string) => void) => () => void
       onAIAction: (callback: (command: any) => void) => () => void
       postAIResult: (payload: { id: string; data?: unknown; error?: string }) => void
+      getPipedFiles: () => Promise<{ name: string; path: string; mtimeMs: number }[] | null>
+      isStdinMode: () => Promise<boolean>
     }
 
     /** Build-time injected env */

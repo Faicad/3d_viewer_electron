@@ -336,6 +336,12 @@ export default function FileListPanel() {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       )}
+      {currentFolderPath === null && folderFiles.length > 0 && (
+        <div className="px-3 py-1.5 text-xs text-muted-foreground border-b flex items-center gap-1.5">
+          <Folder className="h-3.5 w-3.5 shrink-0" />
+          <span>{t('fileList.stdinTitle', 'Piped Input')}</span>
+        </div>
+      )}
 
       {folderFiles.length === 0 ? (
         <ScrollArea className="flex-1 p-4">
