@@ -20,7 +20,7 @@ vi.hoisted(() => {
   }
 })
 
-import { toggleFileInScene } from '../FileListPanel'
+import { toggleFileInScene } from '@/lib/scene-file-loader'
 
 const mockDwgToSvg = vi.fn()
 const mockAddLoadedFile = vi.fn()
