@@ -194,9 +194,7 @@ export default function ViewportContainer() {
   const tweenRef = useRef<gsap.core.Tween | null>(null)
   const [rotating, setRotating] = useState(false)
   const [isCameraAnimating, setIsCameraAnimating] = useState(false)
-  const [cameraAnimDoneTick, setCameraAnimDoneTick] = useState(0)
   const modelLoadCompletedRef = useRef(false)
-  const firstLoadStartedRef = useRef(false)
 
   // camProxy initial sync
   useEffect(() => {
@@ -209,19 +207,22 @@ export default function ViewportContainer() {
 
   // ---- Rotation ----
   const startRotation = useCallback(() => {
-    if (firstLoadStartedRef.current) return
-    firstLoadStartedRef.current = true
     gsap.killTweensOf(camProxyRef.current)
     if (tweenRef.current?.isActive()) return
     const controls = controlsRef.current
     if (!controls) return
     const camera = controls.object
     const center = controls.target.clone()
-    const radius = camera.position.distanceTo(center)
+    // Sync proxy with current camera position to avoid jump on first onUpdate
+    const p = camProxyRef.current
+    p.x = camera.position.x
+    p.y = camera.position.y
+    p.z = camera.position.z
     const upAxis = useModelStore.getState().activeUpAxis
     const dx = camera.position.x - center.x
     const dy = upAxis === 'z' ? camera.position.y - center.y : camera.position.z - center.z
     const initialAngle = Math.atan2(dy, dx)
+    const radius = Math.sqrt(dx * dx + dy * dy)
 
     const proxy = { angle: initialAngle }
     tweenRef.current = gsap.to(proxy, {
@@ -229,7 +230,6 @@ export default function ViewportContainer() {
       duration: 30, repeat: -1, ease: 'none',
       onUpdate: () => {
         const { angle } = proxy
-        const p = camProxyRef.current
         if (upAxis === 'z') {
           p.x = center.x + radius * Math.cos(angle)
           p.y = center.y + radius * Math.sin(angle)
@@ -249,6 +249,26 @@ export default function ViewportContainer() {
     tweenRef.current = null
     setRotating(false)
   }, [])
+
+  // Keyboard shortcut: Alt+R to toggle rotation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      if (e.altKey && e.key === 'r') {
+        e.preventDefault()
+        if (tweenRef.current?.isActive()) {
+          stopRotation()
+          toast.info('旋转已停止')
+        } else {
+          startRotation()
+          toast.info('旋转已开始')
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [startRotation, stopRotation])
 
   // ---- Camera fit / upAxis transition (replaces CameraAnimator) ----
   const animateCamera = useCallback((targetPos: THREE.Vector3, targetUp: THREE.Vector3, onDone?: () => void, durationMs?: number, centerTarget?: THREE.Vector3) => {
@@ -277,7 +297,6 @@ export default function ViewportContainer() {
       onComplete: () => {
         setIsCameraAnimating(false)
         useEngineStore.getState().set__animActive(false)
-        setCameraAnimDoneTick((v) => v + 1)
         onDone?.()
       },
     })
@@ -821,7 +840,6 @@ export default function ViewportContainer() {
           }
           setIsCameraAnimating(false)
           useEngineStore.getState().set__animActive(false)
-          setCameraAnimDoneTick((v) => v + 1)
           resolve()
         },
       })
@@ -1023,19 +1041,7 @@ export default function ViewportContainer() {
     modelLoadCompletedRef.current = true
   }, [applyCameraFit])
 
-  // Auto-rotation after model load: triggered by cameraAnimDoneTick
-  // (animateCamera bumps this on complete, so rotation only starts after fit finishes)
-  useEffect(() => {
-    if (modelLoadCompletedRef.current) {
-      modelLoadCompletedRef.current = false
-      if (useEngineStore.getState().AutoRotate) {
-        const timer = setTimeout(startRotation, 800)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [cameraAnimDoneTick, startRotation])
-
-  // Stop auto-rotation when all files are removed (resetViewer).
+  // Stop rotation when all files are removed (resetViewer).
   useEffect(() => {
     const unsub = useModelStore.subscribe((state, prevState) => {
       if (state.loadedFiles.length === 0 && prevState.loadedFiles.length > 0) {
@@ -1045,7 +1051,8 @@ export default function ViewportContainer() {
     return unsub
   }, [stopRotation])
 
-  // Input detection: stop auto-rotation on any user interaction
+  // User interaction stops rotation: pointer drag and scroll only (not keydown,
+  // so Alt+R / Alt+P and other shortcuts aren't accidentally intercepted).
   useEffect(() => {
     if (!rotating) return
 
@@ -1059,12 +1066,10 @@ export default function ViewportContainer() {
 
     canvas.addEventListener('pointerdown', stop)
     canvas.addEventListener('wheel', stop)
-    window.addEventListener('keydown', stop)
 
     return () => {
       canvas.removeEventListener('pointerdown', stop)
       canvas.removeEventListener('wheel', stop)
-      window.removeEventListener('keydown', stop)
     }
   }, [rotating, stopRotation])
 
