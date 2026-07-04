@@ -146,6 +146,8 @@ interface EngineStore {
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
+  postProcessingEnabled: boolean
+  setPostProcessingEnabled: (v: boolean) => void
   toneMappingMode: 'neutral' | 'aces' | 'linear'
   setToneMappingMode: (v: 'neutral' | 'aces' | 'linear') => void
   smaaEnabled: boolean
@@ -263,6 +265,8 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
   bumpHighlightVersion: () => set((s) => ({ highlightVersion: s.highlightVersion + 1 })),
 
   // Post-processing defaults
+  postProcessingEnabled: true,
+  setPostProcessingEnabled: (v) => set({ postProcessingEnabled: v }),
   toneMappingMode: 'neutral',
   setToneMappingMode: (v) => set({ toneMappingMode: v }),
   smaaEnabled: true,
