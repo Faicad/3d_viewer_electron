@@ -23,7 +23,17 @@
 
 | Format | Extension | Description |
 |--------|-----------|-------------|
-| STEP | `.step` `.stp` | Industrial CAD standard, auto-imported for rendering |
+| STEP | `.step` `.stp` | Industrial CAD standard, auto-imported via OCCT |
+| STPZ | `.stpz` | ZIP-compressed STEP, decompressed then imported via OCCT |
+| IGES | `.iges` `.igs` | Initial Graphics Exchange Specification, auto-imported via OCCT |
+| BREP | `.brep` `.brp` | OpenCASCADE BREP format, auto-imported via OCCT |
+| FreeCAD | `.fcstd` | FreeCAD native format (ZIP with embedded BREP geometry) |
+
+## BIM
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| IFC | `.ifc` | Industry Foundation Classes, BIM data loaded via web-ifc |
 
 ## Animation
 
@@ -53,6 +63,13 @@
 |--------|-----------|-------------|
 | GCode | `.gcode` | 3D printing toolpath data |
 
+## Vector
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| SVG | `.svg` | 2D vector graphics, rendered in Canvas 2D workspace |
+| DXF | `.dxf` | AutoCAD Drawing Exchange Format, converted to SVG then rendered |
+
 ## Other
 
 | Format | Extension | Description |
@@ -61,4 +78,4 @@
 | VOX | `.vox` | MagicaVoxel voxel format |
 | KMZ | `.kmz` | Compressed KML with 3D models |
 
-> **Total: 27+ formats**. SVG (`.svg`) and DXF (`.dxf`) support coming soon.
+> **Total: 34+ formats**.

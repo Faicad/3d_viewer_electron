@@ -23,7 +23,17 @@
 
 | 格式 | 扩展名 | 说明 |
 |------|--------|------|
-| STEP | `.step` `.stp` | 工业 CAD 标准格式，自动导入渲染 |
+| STEP | `.step` `.stp` | 工业 CAD 标准格式，通过 OCCT 自动导入 |
+| STPZ | `.stpz` | ZIP 压缩的 STEP，解压后通过 OCCT 导入 |
+| IGES | `.iges` `.igs` | 初始图形交换规范，通过 OCCT 自动导入 |
+| BREP | `.brep` `.brp` | OpenCASCADE BREP 格式，通过 OCCT 自动导入 |
+| FreeCAD | `.fcstd` | FreeCAD 原生格式（含嵌入式 BREP 几何的 ZIP 包） |
+
+## BIM
+
+| 格式 | 扩展名 | 说明 |
+|------|--------|------|
+| IFC | `.ifc` | 工业基础类 BIM 数据，通过 web-ifc 加载 |
 
 ## 动画 (Animation)
 
@@ -53,6 +63,13 @@
 |------|--------|------|
 | GCode | `.gcode` | 3D 打印刀具路径，渲染为线段 |
 
+## 矢量 (Vector)
+
+| 格式 | 扩展名 | 说明 |
+|------|--------|------|
+| SVG | `.svg` | 2D 矢量图形，在 Canvas 2D 工作区中渲染 |
+| DXF | `.dxf` | AutoCAD 图形交换格式，转换为 SVG 后渲染 |
+
 ## 其他
 
 | 格式 | 扩展名 | 说明 |
@@ -61,9 +78,7 @@
 | VOX | `.vox` | MagicaVoxel 体素格式 |
 | KMZ | `.kmz` | 压缩的 KML，含 3D 模型 |
 
-> **总计支持 27+ 种格式**。另有 IFC (`.ifc`) 和 MDD (`.mdd`) 格式已预留但默认未启用。
->
-> **矢量格式**：SVG (`.svg`) 和 DXF (`.dxf`) 格式支持正在开发中。
+> **总计支持 34+ 种格式**。
 
 ## 格式分组
 
@@ -72,7 +87,8 @@
 | 分组 | 包含格式 |
 |------|----------|
 | Mesh | STL, GLB, GLTF, 3MF, OBJ, PLY, FBX, DAE, 3DS, USDZ, DRC, AMF, LWO, 3DM |
-| CAD | STEP/STP |
+| CAD | STEP/STP, STPZ, IGES/IGS, BREP/BRP, FreeCAD/FCStd |
+| BIM | IFC |
 | Animation | BVH, MD2 |
 | Point Cloud | XYZ, PDB, PCD |
 | Volume | VTK, VTP, NRRD |

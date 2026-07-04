@@ -2,7 +2,7 @@
 
 > [中文版](README.zh.md)
 
-A standalone local 3D model file viewer desktop application supporting browsing and rendering of 24 3D file formats.
+A standalone local 3D model file viewer desktop application supporting browsing and rendering of 31 3D file formats.
 
 ## Features
 
@@ -57,10 +57,19 @@ A standalone local 3D model file viewer desktop application supporting browsing 
 | LWO | `.lwo` | LightWave 3D object format |
 | 3DM | `.3dm` | Rhinoceros 3D format (requires rhino3dm WASM) |
 
-### CAD — 1 Format
+### CAD — 5 Formats
 | Format | Extension | Description |
 |--------|-----------|-------------|
 | STEP | `.step` `.stp` | Converted to GLB for rendering via Open CASCADE engine |
+| STPZ | `.stpz` | ZIP-compressed STEP, decompressed then converted via OCCT |
+| IGES | `.iges` `.igs` | Initial Graphics Exchange Specification, converted via OCCT |
+| BREP | `.brep` `.brp` | OpenCASCADE BREP format, converted via OCCT |
+| FreeCAD | `.fcstd` | FreeCAD native format (ZIP with embedded BREP geometry), converted via OCCT |
+
+### BIM — 1 Format
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| IFC | `.ifc` | Industry Foundation Classes, BIM data loaded via web-ifc |
 
 ### Animation — 2 Formats
 | Format | Extension | Description |
@@ -93,7 +102,7 @@ A standalone local 3D model file viewer desktop application supporting browsing 
 | VOX | `.vox` | MagicaVoxel voxel format |
 | KMZ | `.kmz` | Compressed KML with 3D models |
 
-> **Total: 25 formats**. Additionally, formats with limited use cases not enabled: IFC (`.ifc`), MDD (`.mdd`).
+> **Total: 31 formats**. Additional formats with limited use cases not enabled: MDD (`.mdd`).
 
 ## Prerequisites
 

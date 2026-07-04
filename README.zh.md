@@ -2,7 +2,7 @@
 
 > [English](README.md)
 
-独立的本地 3D 模型文件查看器桌面应用，支持 24 种 3D 文件格式的浏览和渲染。
+独立的本地 3D 模型文件查看器桌面应用，支持 31 种 3D 文件格式的浏览和渲染。
 
 ## 功能
 
@@ -57,10 +57,19 @@
 | LWO | `.lwo` | LightWave 3D 对象格式 |
 | 3DM | `.3dm` | Rhinoceros 3D 格式（需 rhino3dm WASM） |
 
-### CAD — 1 种
+### CAD — 5 种
 | 格式 | 扩展名 | 说明 |
 |------|--------|------|
-| STEP | `.step` `.stp` | 通过 Open CASCADE 引擎转换为 GLB 渲染 |
+| STEP | `.step` `.stp` | 通过 OCCT 引擎转换为 GLB 渲染 |
+| STPZ | `.stpz` | ZIP 压缩的 STEP，解压后通过 OCCT 转换 |
+| IGES | `.iges` `.igs` | 初始图形交换规范，通过 OCCT 转换 |
+| BREP | `.brep` `.brp` | OpenCASCADE BREP 格式，通过 OCCT 转换 |
+| FreeCAD | `.fcstd` | FreeCAD 原生格式（含嵌入式 BREP 几何的 ZIP 包），通过 OCCT 转换 |
+
+### BIM — 1 种
+| 格式 | 扩展名 | 说明 |
+|------|--------|------|
+| IFC | `.ifc` | 工业基础类 BIM 数据，通过 web-ifc 加载 |
 
 ### 动画 (Animation) — 2 种
 | 格式 | 扩展名 | 说明 |
@@ -93,7 +102,7 @@
 | VOX | `.vox` | MagicaVoxel 体素格式 |
 | KMZ | `.kmz` | 压缩的 KML，含 3D 模型 |
 
-> **总计：25 种格式**。另有用例受限未启用的格式：IFC (`.ifc`)、MDD (`.mdd`)。
+> **总计：31 种格式**。另有用例受限未启用的格式：MDD (`.mdd`)。
 
 ## 环境要求
 
