@@ -197,7 +197,7 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
       } finally {
         useModelStore.getState().hideProgress()
       }
-    } else if (format === 'svg' || format === 'dxf' || format === 'dwg') {
+    } else if (format === 'svg' || format === 'dxf') {
       let svgText: string
       let layers: ReturnType<typeof parseSvgLayers>
       let naturalWidth: number
@@ -211,21 +211,6 @@ export default function WorkspacePage({ projectId }: WorkspacePageProps) {
         layers = result.layers
         naturalWidth = result.naturalWidth
         naturalHeight = result.naturalHeight
-      } else if (format === 'dwg') {
-        const { showProgress, updateProgress, hideProgress } = useModelStore.getState()
-        try {
-          showProgress('Loading DWG file...', 0)
-          const { dwgToSvg } = await import('@/lib/dwg-parser')
-          svgText = await dwgToSvg(rawBuffer, (msg, pct) => {
-            updateProgress(msg, pct)
-          })
-        } finally {
-          hideProgress()
-        }
-        layers = parseSvgLayers(svgText)
-        const vb = parseSvgViewBox(svgText)
-        naturalWidth = vb.naturalWidth
-        naturalHeight = vb.naturalHeight
       } else {
         const text = new TextDecoder().decode(rawBuffer)
         svgText = text

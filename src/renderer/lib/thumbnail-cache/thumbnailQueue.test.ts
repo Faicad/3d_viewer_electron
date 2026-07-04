@@ -22,7 +22,6 @@ const mockPutThumbnail = vi.fn()
 const mockGenerateThumbnail = vi.fn()
 const mockGenerateSvgThumbnail = vi.fn()
 const mockExtractAndProcess3mfThumbnail = vi.fn()
-const mockGenerateDwgPlaceholder = vi.fn()
 const mockGetStepCached = vi.fn()
 const mockConvertDxfToSvg = vi.fn()
 const mockReadFile = vi.fn()
@@ -47,7 +46,6 @@ vi.mock('./thumbnailGenerator', () => ({
   extractAndProcess3mfThumbnail: (...args: unknown[]) =>
     mockExtractAndProcess3mfThumbnail(...args),
   extractFcstdThumbnail: vi.fn().mockResolvedValue(null),
-  generateDwgPlaceholder: (...args: unknown[]) => mockGenerateDwgPlaceholder(...args),
 }))
 
 vi.mock('@/lib/step-converter/stepCache', () => ({
@@ -248,56 +246,6 @@ describe('thumbnailQueue error retry', () => {
       expect(successCalls).toHaveLength(1)
       expect(successCalls[0][0]).toBe('C:/test/good.glb')
       expect(successCalls[0][1]).toMatch(/^blob:/)
-    })
-  })
-
-  // -----------------------------------------------------------------------
-  // DWG placeholder thumbnail
-  // -----------------------------------------------------------------------
-  describe('dwg placeholder', () => {
-    it('generates placeholder and calls onReady with object URL', async () => {
-      mockDetectFormat.mockReturnValue('dwg')
-      const placeholderBlob = new Blob(['dwg-placeholder'])
-      mockGenerateDwgPlaceholder.mockResolvedValue(placeholderBlob)
-
-      const onReady = vi.fn()
-
-      startThumbnailQueue([makeFile('test.dwg', 'C:/test/test.dwg')], onReady)
-
-      await runFirstProcess()
-
-      expect(mockGenerateDwgPlaceholder).toHaveBeenCalledWith('test.dwg')
-
-      expect(mockPutThumbnail).toHaveBeenCalledWith(
-        'C:/test/test.dwg|1000',
-        placeholderBlob,
-      )
-
-      const successCalls = onReady.mock.calls.filter(
-        ([, url]: [string, string]) => url !== '',
-      )
-      expect(successCalls).toHaveLength(1)
-      expect(successCalls[0][0]).toBe('C:/test/test.dwg')
-      expect(successCalls[0][1]).toMatch(/^blob:/)
-    })
-
-    it('calls onReady with empty string when placeholder fails', async () => {
-      mockDetectFormat.mockReturnValue('dwg')
-      mockGenerateDwgPlaceholder.mockResolvedValue(null)
-
-      const onReady = vi.fn()
-
-      startThumbnailQueue([makeFile('fail.dwg')], onReady)
-
-      await runFirstProcess()
-
-      expect(mockGenerateDwgPlaceholder).toHaveBeenCalledWith('fail.dwg')
-
-      const emptyCalls = onReady.mock.calls.filter(
-        ([, url]: [string, string]) => url === '',
-      )
-      expect(emptyCalls).toHaveLength(1)
-      expect(emptyCalls[0][0]).toBe('C:/test/fail.dwg')
     })
   })
 

@@ -16,8 +16,8 @@ export async function toggleFileInScene(file: { name: string; path: string; mtim
 
   let format = detectFormat(file.name)
 
-  // SVG/DXF/DWG toggle: add/remove from workspace without touching 3D pipeline
-  if (format === 'svg' || format === 'dxf' || format === 'dwg') {
+  // SVG/DXF toggle: add/remove from workspace without touching 3D pipeline
+  if (format === 'svg' || format === 'dxf') {
     const existing = store.loadedFiles.find(f => f.filePath === file.path)
     if (existing && existing.svgText) {
       // Toggle workspace visibility (toggleFile syncs with model store)
@@ -59,13 +59,6 @@ export async function toggleFileInScene(file: { name: string; path: string; mtim
         layers = converted.layers
         naturalWidth = converted.naturalWidth
         naturalHeight = converted.naturalHeight
-      } else if (format === 'dwg') {
-        const { dwgToSvg } = await import('@/lib/dwg-parser')
-        svgText = await dwgToSvg(result.data)
-        layers = parseSvgLayers(svgText)
-        const vb = parseSvgViewBox(svgText)
-        naturalWidth = vb.naturalWidth
-        naturalHeight = vb.naturalHeight
       } else {
         const text = new TextDecoder().decode(result.data)
         svgText = text

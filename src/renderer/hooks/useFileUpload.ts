@@ -37,14 +37,14 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
       setIsUploading(true)
 
       try {
-        if (format !== 'svg' && format !== 'dxf' && format !== 'dwg') {
+        if (format !== 'svg' && format !== 'dxf') {
           useModelStore.getState().showProgress(`Loading ${file.name}...`)
         }
 
         const rawBuffer = await file.arrayBuffer()
         let buffer = rawBuffer
 
-        if (format === 'svg' || format === 'dxf' || format === 'dwg') {
+        if (format === 'svg' || format === 'dxf') {
           useModelStore.getState().reset()
 
           let svgText: string
@@ -60,21 +60,6 @@ export function useFileUpload({ projectId }: UseFileUploadOptions = {}) {
             layers = result.layers
             naturalWidth = result.naturalWidth
             naturalHeight = result.naturalHeight
-          } else if (format === 'dwg') {
-            const { showProgress, updateProgress, hideProgress } = useModelStore.getState()
-            try {
-              showProgress('Loading DWG file...', 0)
-              const { dwgToSvg } = await import('@/lib/dwg-parser')
-              svgText = await dwgToSvg(rawBuffer, (msg, pct) => {
-                updateProgress(msg, pct)
-              })
-            } finally {
-              hideProgress()
-            }
-            layers = parseSvgLayers(svgText)
-            const vb = parseSvgViewBox(svgText)
-            naturalWidth = vb.naturalWidth
-            naturalHeight = vb.naturalHeight
           } else {
             const text = new TextDecoder().decode(rawBuffer)
             svgText = text

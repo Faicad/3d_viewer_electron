@@ -79,7 +79,7 @@ export function useFileLoader() {
     const mtimeMs = Date.now()
 
     try {
-      if (format !== 'svg' && format !== 'dxf' && format !== 'dwg') {
+      if (format !== 'svg' && format !== 'dxf') {
         useModelStore.getState().showProgress(`Loading ${name}...`)
       }
 
@@ -147,7 +147,7 @@ export function useFileLoader() {
         }
       }
 
-      if (format === 'svg' || format === 'dxf' || format === 'dwg') {
+      if (format === 'svg' || format === 'dxf') {
         let svgText: string
         let layers: ReturnType<typeof parseSvgLayers>
         let naturalWidth: number
@@ -161,21 +161,6 @@ export function useFileLoader() {
           layers = result.layers
           naturalWidth = result.naturalWidth
           naturalHeight = result.naturalHeight
-        } else if (format === 'dwg') {
-          const { showProgress, updateProgress, hideProgress } = useModelStore.getState()
-          try {
-            showProgress('Loading DWG file...', 0)
-            const { dwgToSvg } = await import('@/lib/dwg-parser')
-            svgText = await dwgToSvg(buffer, (msg, pct) => {
-              updateProgress(msg, pct)
-            })
-          } finally {
-            hideProgress()
-          }
-          layers = parseSvgLayers(svgText)
-          const vb = parseSvgViewBox(svgText)
-          naturalWidth = vb.naturalWidth
-          naturalHeight = vb.naturalHeight
         } else {
           const text = new TextDecoder().decode(buffer)
           svgText = text
@@ -290,7 +275,7 @@ export function useFileLoader() {
     for (const p of result.filePaths) {
       const name = p.split(/[/\\]/).pop() || p
       const fmt = detectFormat(name)
-      if (fmt === 'svg' || fmt === 'dxf' || fmt === 'dwg') {
+      if (fmt === 'svg' || fmt === 'dxf') {
         svgPaths.push(p)
       } else if (fmt === 'hdr' || fmt === 'exr') {
         envPaths.push(p)

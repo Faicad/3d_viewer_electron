@@ -16,8 +16,8 @@ import {
 } from './file-formats'
 
 describe('file-formats config', () => {
-  it('all 38 formats defined', () => {
-    expect(FILE_FORMATS.length).toBe(38)
+  it('all 37 formats defined', () => {
+    expect(FILE_FORMATS.length).toBe(37)
   })
 
   it('no duplicate format ids', () => {
@@ -81,7 +81,6 @@ describe('detectFormat', () => {
     expect(detectFormat('model.ply')).toBe('ply')
     expect(detectFormat('model.fcstd')).toBe('fcstd')
     expect(detectFormat('icons.svg')).toBe('svg')
-    expect(detectFormat('drawing.dwg')).toBe('dwg')
   })
 
   it('svg is detectable and included in ALL_EXTENSIONS', () => {
@@ -89,13 +88,6 @@ describe('detectFormat', () => {
     expect(EXT_TO_FORMAT['.svg']).toBe('svg')
     expect(ALL_EXTENSIONS).toContain('.svg')
     expect(ALL_ACCEPT).toContain('.svg')
-  })
-
-  it('dwg is detectable and included in ALL_EXTENSIONS', () => {
-    expect(detectFormat('test.dwg')).toBe('dwg')
-    expect(EXT_TO_FORMAT['.dwg']).toBe('dwg')
-    expect(ALL_EXTENSIONS).toContain('.dwg')
-    expect(ALL_ACCEPT).toContain('.dwg')
   })
 
   it('hdr and exr are detectable and in ALL_EXTENSIONS but excluded from model lists', () => {
