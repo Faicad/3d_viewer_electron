@@ -18,6 +18,14 @@ export default function PostProcessing() {
     const s = useEngineStore.getState()
     composer.setSmaaEnabled(s.smaaEnabled)
     composerRef.current = composer
+    // EffectComposer's constructor always sets autoClear=false, but when
+    // post-processing is disabled we need autoClear=true for gl.render().
+    // Sync state here because the store subscribe (see below) only fires
+    // on *changes* — it won't run after a camera-triggered re-init.
+    if (!s.postProcessingEnabled) {
+      gl.autoClear = true
+      gl.toneMapping = THREE.NeutralToneMapping
+    }
     return () => {
       gl.toneMapping = THREE.NeutralToneMapping
       gl.autoClear = true
