@@ -116,6 +116,7 @@ export default function CrossSectionRenderer() {
     syncPlanes(objsRef.current, currentDirs, positions)
 
     for (const vis of objsRef.current.clipPlaneVisuals) {
+      // eslint-disable-next-line react-hooks/immutability
       if (vis) vis.visible = store.showClipPlane
     }
     if (store.useObjectColor) {
