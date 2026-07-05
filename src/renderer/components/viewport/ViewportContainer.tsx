@@ -28,6 +28,8 @@ import DisplayModeDropdown from '@/engine/components/DisplayModeDropdown'
 import DebugTopologyOverlay from '@/engine/components/DebugTopologyOverlay'
 import type { DisplayMode } from '@/engine/components/DisplayModeDropdown'
 import SelectionInfoOverlay from '@/engine/components/SelectionInfoOverlay'
+import CrossSectionRenderer from '@/engine/components/CrossSectionRenderer'
+import CrossSectionPanel from '@/engine/components/CrossSectionPanel'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -363,7 +365,8 @@ export default function ViewportContainer() {
   const [snapCandidate, setSnapCandidate] = useState<SnapCandidate | null>(null)
   const [rawClickWorldPoint, setRawClickWorldPoint] = useState<THREE.Vector3 | null>(null)
   const clickWorldPoint = activeToolMode === 'view' && selectionMode === 'face' ? rawClickWorldPoint : null
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('solid')
+  const displayMode = useUIStore((s) => s.displayMode)
+  const setDisplayMode = useUIStore((s) => s.setDisplayMode)
   const [debugSelectedFaceRow, setDebugSelectedFaceRow] = useState<number | null>(null)
   const [debugSelectedEdgeRow, setDebugSelectedEdgeRow] = useState<number | null>(null)
   const savedShadowFloorRef = useRef<boolean | null>(null)
@@ -1175,7 +1178,7 @@ export default function ViewportContainer() {
         scene={{ up: [0, 0, 1] as unknown as THREE.Vector3 }}
         camera={{ fov: 50, near: 0.001, far: 10000, position: DEFAULT_CAM_POS, up: [0, 0, 1] as [number, number, number] }}
         shadows="accumulative"
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
+        gl={{ antialias: true, alpha: true, stencil: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true, outputColorSpace: THREE.SRGBColorSpace, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         onCreated={({ camera, scene, gl }) => {
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFShadowMap
@@ -1208,6 +1211,7 @@ export default function ViewportContainer() {
         <CameraModeSwitcher />
         <SceneSetup />
         <PostProcessing />
+        <CrossSectionRenderer />
         <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
@@ -1422,6 +1426,7 @@ export default function ViewportContainer() {
       </div>
       <SelectionInfoOverlay reference={selectedReference} />
 
+      <CrossSectionPanel />
       <AxesIndicator mainCamera={mainCamera} />
 
       {/* Texture Preview Dialog */}

@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Zap,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Zap, Scissors,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -37,6 +37,7 @@ import GlbExtensionPanel from '@/components/panels/GlbExtensionPanel'
 import SvgLayerTree from '@/components/panels/SvgLayerTree'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { useMaterialStore } from '@/stores/material-store'
+import { tryToggleCrossSection } from '@/stores/cross-section-store'
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 
@@ -1003,6 +1004,21 @@ export default function DesktopLayout() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.heatbed')}</TooltipContent>
+        </Tooltip>
+        </>)}
+        {!isSvgMode && (<>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={tryToggleCrossSection}
+              aria-label={t('toolbar.crossSection', '剖面')}
+            >
+              <Scissors className="toolbar-icon h-4 w-4 text-cyan-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.crossSection', '剖面')}</TooltipContent>
         </Tooltip>
         </>)}
 

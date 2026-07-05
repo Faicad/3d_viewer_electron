@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { SupportedLanguage } from '@/i18n'
 import { setTelemetryEnabled as setTelemetryModuleEnabled } from '@/telemetry'
+import type { DisplayMode } from '@/engine/components/DisplayModeDropdown'
 
 const isLocalStorageAvailable = typeof localStorage !== 'undefined'
 const safeLocalStorage = {
@@ -34,8 +35,10 @@ interface UIStore {
   isFullscreen: boolean
   headerVisible: boolean
   bottomVisible: boolean
+  displayMode: DisplayMode
 
   setFullscreen: (v: boolean) => void
+  setDisplayMode: (v: DisplayMode) => void
   setHeaderVisible: (v: boolean) => void
   setBottomVisible: (v: boolean) => void
   toggleLeftPanel: () => void
@@ -74,10 +77,12 @@ export const useUIStore = create<UIStore>()(
       isFullscreen: false,
       headerVisible: true,
       bottomVisible: true,
+      displayMode: 'solid',
 
       setFullscreen: (v) => set({ isFullscreen: v }),
       setHeaderVisible: (v) => set({ headerVisible: v }),
       setBottomVisible: (v) => set({ bottomVisible: v }),
+      setDisplayMode: (v) => set({ displayMode: v }),
       toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen })),
       toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
       toggleModelInfo: () => set((s) => ({ modelInfoOpen: !s.modelInfoOpen })),
