@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.2](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.9.1...v1.9.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* download update button now triggers actual download via electron-updater ([3d8f6fc](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3d8f6fcd82ff371011228d88a4192b5d2bda9365))
+
 ### [1.9.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.9.0...v1.9.1) (2026-07-05)
 
 
