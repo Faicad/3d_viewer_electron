@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.9.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.8.0...v1.9.0) (2026-07-05)
+
+
+### Features
+
+* add auto-update via electron-updater with GitHub Releases ([543a295](https://github.com/YOUR_ORG/3d_viewer_electron/commits/543a295f98cc7722dc635d5e1c93a24da122acd3))
+* **dwg:** add progress indicators for DWG file loading ([be30d87](https://github.com/YOUR_ORG/3d_viewer_electron/commits/be30d87467ccfac606281b3c0f76e6edc76f3888))
+* **electron:** add IFC file format support via web-ifc ([20ff4d0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/20ff4d0e969e1f17cbfef86203744204d340329c))
+* support stdin pipe mode for virtual folder browsing ([7c79506](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7c7950651450c8da06fb566325d38320f1b43a06))
+* **viewer:** add post-processing toggle via Alt+P shortcut ([1c8b59e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/1c8b59edd57e9c80be9c51105365ef902523a35f))
+* **viewer:** DWG file format support with placeholder thumbnails ([e64da0d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e64da0d969b69332610fe20e26ecd0b8426eb11c))
+
+
+### Bug Fixes
+
+* **config:** disable DWG format which is buggy ([41e58d1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/41e58d1826221b42a7f71fd4ae9d393e0aa955ea))
+* EnvironmentTeardownError ([74ac989](https://github.com/YOUR_ORG/3d_viewer_electron/commits/74ac989eb552d9d958881c435e290ab9235f342c))
+* extract toggleFileInScene to separate file to fix Fast Refresh lint warning ([f187c8c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f187c8c3cec22e6b8ac59d89089155ba2093124a))
+* **studio-env:** set FBO color space to linear to prevent double sRGB encoding of background ([d323060](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d323060d0fb91a0cf042edea2202cfe2136f341c))
+* **thumbnail:** sync envIntensity with DEFAULT_ENV_INTENSITY constant ([9a4b03c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/9a4b03cb9709dd7d74f0b04f9a91f9ed2e2399cc))
+* **updater:** skip auto-update in E2E mode, fix CJS import, add repository field ([6b84e37](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6b84e37b7ffa358d70c258d296f802f7d86d4427))
+* **viewer:** Alt+R toggle rotation, start from current camera position without jump ([3e06190](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3e06190958e31ff3447373d7e2825896ebf6594c))
+* **viewer:** auto-rotate only on first file load ([89188a2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/89188a277d3e7b2aa5cc0b3fb2ae497cdff80510))
+* **viewer:** reduce default envIntensity to 0.25, remove setExposure(), fix E2E tests ([f039ea6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f039ea65c0a6e8f4b97f3cff7f38a462b016c52d))
+* **viewer:** restore gl.autoClear and toneMapping after camera-triggered composer re-init ([6078871](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6078871ed44c2e6b3219ff9fd1bae4a13853133a))
+
+
+### Documentation
+
+* update supported formats documentation with new CAD/BIM/Vector formats ([19a70f7](https://github.com/YOUR_ORG/3d_viewer_electron/commits/19a70f7ae174f855c16fcd72d4557851a18abfe9))
+
 ## [1.8.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.7.3...v1.8.0) (2026-07-01)
 
 
