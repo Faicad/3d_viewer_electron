@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockOn = vi.fn()
 const mockCheckForUpdates = vi.fn()
+const mockDownloadUpdate = vi.fn()
 const mockQuitAndInstall = vi.fn()
 const mockSend = vi.fn()
 
@@ -10,6 +11,7 @@ vi.mock('electron-updater', () => ({
     autoUpdater: {
       on: mockOn,
       checkForUpdates: mockCheckForUpdates,
+      downloadUpdate: mockDownloadUpdate,
       quitAndInstall: mockQuitAndInstall,
       autoDownload: true,
       autoInstallOnAppQuit: false,
@@ -141,6 +143,47 @@ describe('checkForUpdates', () => {
     const { initUpdater, checkForUpdates } = await import('./updater')
     initUpdater(undefined, mockGetWindow)
     checkForUpdates(true)
+    expect(mockSend).toHaveBeenCalledWith('update:error', {
+      message: 'Auto-update is not available in development mode.',
+    })
+    vi.unstubAllEnvs()
+  })
+})
+
+describe('downloadUpdate', () => {
+  it('calls autoUpdater.downloadUpdate in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const { initUpdater, downloadUpdate } = await import('./updater')
+    initUpdater(undefined, mockGetWindow)
+    downloadUpdate()
+    expect(mockDownloadUpdate).toHaveBeenCalled()
+    vi.unstubAllEnvs()
+  })
+
+  it('sets autoDownload true before downloading', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const { initUpdater, downloadUpdate } = await import('./updater')
+    initUpdater(undefined, mockGetWindow)
+    downloadUpdate()
+    const { default: electronUpdaterModule } = await import('electron-updater')
+    expect(electronUpdaterModule.autoUpdater.autoDownload).toBe(true)
+    vi.unstubAllEnvs()
+  })
+
+  it('does not call downloadUpdate in dev mode', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    const { initUpdater, downloadUpdate } = await import('./updater')
+    initUpdater(undefined, mockGetWindow)
+    downloadUpdate()
+    expect(mockDownloadUpdate).not.toHaveBeenCalled()
+    vi.unstubAllEnvs()
+  })
+
+  it('sends error in dev mode', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    const { initUpdater, downloadUpdate } = await import('./updater')
+    initUpdater(undefined, mockGetWindow)
+    downloadUpdate()
     expect(mockSend).toHaveBeenCalledWith('update:error', {
       message: 'Auto-update is not available in development mode.',
     })

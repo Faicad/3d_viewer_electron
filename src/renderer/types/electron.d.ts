@@ -49,6 +49,7 @@ declare global {
       isStdinMode: () => Promise<boolean>
 
       checkForUpdates: (manual: boolean) => Promise<void>
+      downloadUpdate: () => Promise<void>
       quitAndInstall: () => Promise<void>
       onUpdateEvent: (callback: (event: string, payload: any) => void) => () => void
     }

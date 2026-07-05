@@ -65,6 +65,17 @@ export function checkForUpdates(manual: boolean): void {
   autoUpdater.checkForUpdates()
 }
 
+export function downloadUpdate(): void {
+  if (isDev()) {
+    mainWindow?.webContents.send('update:error', {
+      message: 'Auto-update is not available in development mode.',
+    })
+    return
+  }
+  autoUpdater.autoDownload = true
+  autoUpdater.downloadUpdate()
+}
+
 export function quitAndInstall(): void {
   autoUpdater.quitAndInstall()
 }

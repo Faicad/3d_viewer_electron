@@ -51,7 +51,7 @@ export function UpdateDialog() {
   function handleUpdate() {
     if (status === 'available') {
       useUpdateStore.setState({ status: 'downloading', downloadProgress: 0 })
-      window.electronAPI.checkForUpdates(true)
+      window.electronAPI.downloadUpdate()
     } else if (status === 'downloaded') {
       quitAndInstall()
     }

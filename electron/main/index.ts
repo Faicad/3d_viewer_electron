@@ -7,7 +7,7 @@ import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/re
 import { startServer } from './server'
 import { registerAIHandlers } from './ipc-handlers'
 import { readDirectory } from './readDirectory'
-import { initUpdater, checkForUpdates, quitAndInstall } from './updater'
+import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 
 const GIT_COMMIT = process.env.VITE_GIT_COMMIT || 'unknown'
 
@@ -274,6 +274,10 @@ ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExter
 
 ipcMain.handle('update:check', (_event, manual: boolean) => {
   checkForUpdates(manual)
+})
+
+ipcMain.handle('update:download', () => {
+  downloadUpdate()
 })
 
 ipcMain.handle('update:quit-and-install', () => {

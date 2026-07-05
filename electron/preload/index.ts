@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isStdinMode: () => ipcRenderer.invoke('fs:isStdinMode'),
 
   checkForUpdates: (manual: boolean) => ipcRenderer.invoke('update:check', manual),
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
   quitAndInstall: () => ipcRenderer.invoke('update:quit-and-install'),
   onUpdateEvent: (callback: (event: string, payload: any) => void) => {
     const channels = [
