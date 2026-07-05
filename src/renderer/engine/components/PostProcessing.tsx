@@ -129,33 +129,5 @@ export default function PostProcessing() {
     return unsub
   }, [gl])
 
-  // Keyboard shortcut: Alt+p (lowercase) toggles post-processing only.
-  // Keyboard shortcut: Alt+P (uppercase, with Shift) toggles Studio/CAD mode.
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
-
-      if (e.altKey && e.key === 'p') {
-        // Alt+p (lowercase) — toggle post-processing only
-        e.preventDefault()
-        const s = useEngineStore.getState()
-        const next = !s.postProcessingEnabled
-        s.setPostProcessingEnabled(next)
-        return
-      }
-
-      if (e.altKey && e.key === 'P') {
-        // Alt+P (uppercase, with Shift) — toggle Studio/CAD mode
-        e.preventDefault()
-        const s = useEngineStore.getState()
-        const next = !s.studioMode
-        s.setStudioMode(next)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
   return null
 }

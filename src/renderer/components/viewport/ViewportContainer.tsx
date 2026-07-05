@@ -38,6 +38,7 @@ import SurfaceAnalysisRenderer from '@/engine/components/SurfaceAnalysisRenderer
 import SurfaceAnalysisPanel from '@/engine/components/SurfaceAnalysisPanel'
 import CurvatureCombRenderer from '@/engine/components/CurvatureCombRenderer'
 import CurvatureCombPanel from '@/engine/components/CurvatureCombPanel'
+import HotkeyManager from '@/components/common/HotkeyManager'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -1224,6 +1225,7 @@ export default function ViewportContainer() {
         <DraftAnalysisRenderer />
         <SurfaceAnalysisRenderer />
         <CurvatureCombRenderer selectorRuntime={selectorRuntime} modelGroupMapRef={modelGroupMapRef} />
+        <HotkeyManager />
         <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
