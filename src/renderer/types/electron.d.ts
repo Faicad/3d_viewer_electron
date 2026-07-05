@@ -47,6 +47,10 @@ declare global {
       postAIResult: (payload: { id: string; data?: unknown; error?: string }) => void
       getPipedFiles: () => Promise<{ name: string; path: string; mtimeMs: number }[] | null>
       isStdinMode: () => Promise<boolean>
+
+      checkForUpdates: (manual: boolean) => Promise<void>
+      quitAndInstall: () => Promise<void>
+      onUpdateEvent: (callback: (event: string, payload: any) => void) => () => void
     }
     env: {
       DEV: boolean

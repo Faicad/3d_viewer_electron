@@ -13,6 +13,7 @@ import { useToolStore } from '@/stores/tool-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { useUIStore } from '@/stores/ui-store'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { bindUpdateEvents } from '@/stores/update-store'
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 import { clearStepCache, memCache } from '@/lib/step-converter/stepCache'
@@ -1003,6 +1004,11 @@ try {
       })
     }
   })
+} catch { /* electronAPI not available */ }
+
+// ---- Auto-update event binding ----
+try {
+  bindUpdateEvents()
 } catch { /* electronAPI not available */ }
 
 // ---- Embed event subscriptions (animation state, selection) ----

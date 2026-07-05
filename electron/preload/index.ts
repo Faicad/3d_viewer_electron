@@ -35,6 +35,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getPipedFiles: () => ipcRenderer.invoke('fs:getPipedFiles'),
   isStdinMode: () => ipcRenderer.invoke('fs:isStdinMode'),
+
+  checkForUpdates: (manual: boolean) => ipcRenderer.invoke('update:check', manual),
+  quitAndInstall: () => ipcRenderer.invoke('update:quit-and-install'),
+  onUpdateEvent: (callback: (event: string, payload: any) => void) => {
+    const channels = [
+      'update:checking',
+      'update:available',
+      'update:not-available',
+      'update:download-progress',
+      'update:downloaded',
+      'update:error',
+    ]
+    const listeners = channels.map((channel) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: any) => callback(channel, payload)
+      ipcRenderer.on(channel, listener)
+      return { channel, listener }
+    })
+    return () => {
+      for (const { channel, listener } of listeners) {
+        ipcRenderer.removeListener(channel, listener)
+      }
+    }
+  },
 })
 
 // Expose build info to renderer

@@ -222,5 +222,16 @@
   "environment.loadHdr": "+ Load HDR / EXR…",
   "environment.presets.default": "Default",
   "environment.presets.smallStudio": "Small Studio",
-  "environment.presets.emptyWarehouse": "Empty Warehouse"
+  "environment.presets.emptyWarehouse": "Empty Warehouse",
+
+  "update.title": "Update",
+  "update.checking": "Checking for updates…",
+  "update.available": "Version {{version}} is available",
+  "update.notAvailable": "You're up to date",
+  "update.download": "Download Update",
+  "update.downloading": "Downloading…",
+  "update.downloaded": "Update {{version}} downloaded",
+  "update.install": "Install & Restart",
+  "update.error": "Update check failed",
+  "update.retry": "Retry"
 }

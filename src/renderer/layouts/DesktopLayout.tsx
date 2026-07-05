@@ -43,6 +43,7 @@ import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 import { hasExportableModel, isPureScad, exportSceneToGlb, exportFileToStl, exportFileToGlb, exportFileTo3mf, isFormatExportable } from '@/engine/exporters'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { CacheManager } from '@/components/CacheManager'
+import { UpdateDialog } from '@/components/update-dialog'
 import { findFileIdForNode, findNodeAncestors, collectFileIdsFromSelection } from '@/lib/scene-tree-utils'
 
 /** Find the first part node (meshIndex !== undefined) in a scene tree recursively */
@@ -1142,6 +1143,7 @@ export default function DesktopLayout() {
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.settings')}</TooltipContent>
         </Tooltip>
+        <UpdateDialog />
       </header>
 
       {/* Main Content */}

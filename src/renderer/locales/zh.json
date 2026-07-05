@@ -221,5 +221,16 @@
   "environment.loadHdr": "+ 加载 HDR / EXR…",
   "environment.presets.default": "默认",
   "environment.presets.smallStudio": "小型工作室",
-  "environment.presets.emptyWarehouse": "空置仓库"
+  "environment.presets.emptyWarehouse": "空置仓库",
+
+  "update.title": "更新",
+  "update.checking": "正在检查更新…",
+  "update.available": "新版本 {{version}} 可用",
+  "update.notAvailable": "已是最新版本",
+  "update.download": "下载更新",
+  "update.downloading": "正在下载…",
+  "update.downloaded": "更新 {{version}} 已下载",
+  "update.install": "立即安装",
+  "update.error": "检查更新失败",
+  "update.retry": "重试"
 }

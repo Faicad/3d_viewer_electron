@@ -7,6 +7,7 @@ import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/re
 import { startServer } from './server'
 import { registerAIHandlers } from './ipc-handlers'
 import { readDirectory } from './readDirectory'
+import { initUpdater, checkForUpdates, quitAndInstall } from './updater'
 
 const GIT_COMMIT = process.env.VITE_GIT_COMMIT || 'unknown'
 
@@ -270,6 +271,14 @@ ipcMain.handle('window:toggleFullscreen', () => {
 
 ipcMain.handle('electron:getAppVersion', () => `${app.getVersion()} (${GIT_COMMIT})`)
 ipcMain.handle('electron:openExternal', (_event, url: string) => shell.openExternal(url))
+
+ipcMain.handle('update:check', (_event, manual: boolean) => {
+  checkForUpdates(manual)
+})
+
+ipcMain.handle('update:quit-and-install', () => {
+  quitAndInstall()
+})
 ipcMain.handle('shell:showItemInFolder', (_event, filePath: string) => shell.showItemInFolder(filePath))
 
 ipcMain.handle('dialog:saveFile', async (_event, { data, defaultName }: { data: string; defaultName: string }) => {
@@ -347,6 +356,10 @@ app.whenReady().then(async () => {
   createWindow()
 
   registerAIHandlers()
+
+  const edition = process.env.EDITION === 'cn' ? 'cn' : undefined
+  initUpdater(edition, getMainWindow)
+
   const { server, port } = await startServer(AI_SERVER_PORT, getMainWindow)
   aiServer = server
   console.log(`[Main] AI server started on port ${port}`)
@@ -354,6 +367,11 @@ app.whenReady().then(async () => {
   const cliPath = extractFilePath(process.argv)
   if (cliPath) {
     pendingFilePath = cliPath
+  }
+
+  // Auto-check for updates 10 seconds after startup (production only)
+  if (!import.meta.env.DEV) {
+    setTimeout(() => checkForUpdates(false), 10000)
   }
 
   // Stdin pipe mode: read file paths from stdin, show as virtual folder
