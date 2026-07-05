@@ -13,6 +13,10 @@ export default function PostProcessing() {
 
   // Create composer on mount
   useEffect(() => {
+    // Set outputColorSpace BEFORE composer creation so its FBOs use linear
+    // color space, preventing the background shader from premature sRGB
+    // encoding (which would clash with ToneMappingEffect's linear input).
+    gl.outputColorSpace = THREE.LinearSRGBColorSpace
     const composer = new AdaptiveComposer(gl, scene, camera as THREE.PerspectiveCamera)
     gl.toneMapping = THREE.NoToneMapping
     const s = useEngineStore.getState()
@@ -25,9 +29,11 @@ export default function PostProcessing() {
     if (!s.postProcessingEnabled) {
       gl.autoClear = true
       gl.toneMapping = THREE.NeutralToneMapping
+      gl.outputColorSpace = THREE.SRGBColorSpace
     }
     return () => {
       gl.toneMapping = THREE.NeutralToneMapping
+      gl.outputColorSpace = THREE.SRGBColorSpace
       gl.autoClear = true
       composer.dispose()
       composerRef.current = null
@@ -88,9 +94,11 @@ export default function PostProcessing() {
       if (state.postProcessingEnabled === prevState.postProcessingEnabled) return
       if (state.postProcessingEnabled) {
         gl.toneMapping = THREE.NoToneMapping
+        gl.outputColorSpace = THREE.LinearSRGBColorSpace
         gl.autoClear = false
       } else {
         gl.toneMapping = THREE.NeutralToneMapping
+        gl.outputColorSpace = THREE.SRGBColorSpace
         gl.autoClear = true
       }
     })

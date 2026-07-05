@@ -31,11 +31,21 @@ export class AdaptiveComposer {
     scene: THREE.Scene,
     camera: THREE.Camera,
   ) {
+    // Use linear FBO color space so scene background renders in linear space
+    // (preventing double sRGB encoding via the background shader's colorspace_fragment
+    // before the ToneMappingEffect processes it).
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace
+
     // Composer with HalfFloat FBO
     this._composer = new EffectComposer(renderer, {
       frameBufferType: THREE.HalfFloatType,
       multisampling: 0,
     })
+
+    // Force linear color space on all composer buffers as a safety net.
+    for (const buf of [this._composer.readBuffer, this._composer.writeBuffer]) {
+      if (buf) buf.texture.colorSpace = THREE.LinearSRGBColorSpace
+    }
 
     this._renderPass = new RenderPass(scene, camera)
     this._composer.addPass(this._renderPass)
