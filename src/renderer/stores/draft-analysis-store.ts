@@ -3,6 +3,7 @@ import { useEngineStore } from './engine-store'
 import { useModelStore } from './model-store'
 import { useZebraStore } from './zebra-store'
 import { useCrossSectionStore } from './cross-section-store'
+import { useSurfaceAnalysisStore } from './surface-analysis-store'
 import { toast } from 'sonner'
 
 export type DraftColorZone =
@@ -87,6 +88,7 @@ export function tryToggleDraftAnalysis(): boolean {
   if (next) {
     useZebraStore.getState().setEnabled(false)
     useCrossSectionStore.getState().setPanelOpen(false)
+    useSurfaceAnalysisStore.getState().setEnabled(false)
   }
   useDraftAnalysisStore.getState().setEnabled(next)
   return true

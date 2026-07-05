@@ -34,6 +34,8 @@ import ZebraRenderer from '@/engine/components/ZebraRenderer'
 import ZebraPanel from '@/engine/components/ZebraPanel'
 import DraftAnalysisRenderer from '@/engine/components/DraftAnalysisRenderer'
 import DraftAnalysisPanel from '@/engine/components/DraftAnalysisPanel'
+import SurfaceAnalysisRenderer from '@/engine/components/SurfaceAnalysisRenderer'
+import SurfaceAnalysisPanel from '@/engine/components/SurfaceAnalysisPanel'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -1218,6 +1220,7 @@ export default function ViewportContainer() {
         <CrossSectionRenderer />
         <ZebraRenderer />
         <DraftAnalysisRenderer />
+        <SurfaceAnalysisRenderer />
         <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
@@ -1435,6 +1438,7 @@ export default function ViewportContainer() {
       <CrossSectionPanel />
       <ZebraPanel />
       <DraftAnalysisPanel />
+      <SurfaceAnalysisPanel />
       <AxesIndicator mainCamera={mainCamera} />
 
       {/* Texture Preview Dialog */}
