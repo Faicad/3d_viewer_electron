@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.9.0...v1.9.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* suppress update dialog on auto-check when up-to-date; add manual check button in settings ([c821259](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c82125907a3ddbeeab7c893180f06f1097cb2dc4))
+
 ## [1.9.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.8.0...v1.9.0) (2026-07-05)
 
 
