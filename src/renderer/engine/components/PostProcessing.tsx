@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { toast } from 'sonner'
 import { AdaptiveComposer } from '../composer/AdaptiveComposer'
 import { useEngineStore } from '@/stores/engine-store'
 
@@ -48,11 +47,15 @@ export default function PostProcessing() {
   // Render loop — priority > 0 disables R3F's internal gl.render() so
   // the composer is the sole renderer. State is still flushed each frame.
   useFrame((_, delta) => {
-    const composer = composerRef.current
-    if (!composer) return
-    if (useEngineStore.getState().postProcessingEnabled) {
+    const s = useEngineStore.getState()
+    if (s.postProcessingEnabled) {
+      const composer = composerRef.current
+      if (!composer) return
       composer.render(delta)
     } else {
+      // CAD mode guard: R3F Canvas <shadows> prop or other internals may
+      // re-enable shadowMap during interaction cycles. Force off each frame.
+      if (!s.studioMode) gl.shadowMap.enabled = false
       gl.render(scene, camera)
     }
   }, 1)
@@ -105,17 +108,49 @@ export default function PostProcessing() {
     return unsub
   }, [gl])
 
-  // Keyboard shortcut: Alt+P to toggle post-processing
+  // Sync renderer state when Studio/CAD mode is toggled (Alt+P uppercase).
+  // Studio → post-processing on,  localClipping off, shadows on
+  // CAD    → post-processing off, localClipping on,  shadows off
+  useEffect(() => {
+    const unsub = useEngineStore.subscribe((state, prevState) => {
+      if (state.studioMode === prevState.studioMode) return
+      if (state.studioMode) {
+        gl.toneMapping = THREE.NoToneMapping
+        gl.autoClear = false
+        gl.localClippingEnabled = false
+        gl.shadowMap.enabled = true
+      } else {
+        gl.toneMapping = THREE.NeutralToneMapping
+        gl.autoClear = true
+        gl.localClippingEnabled = true
+        gl.shadowMap.enabled = false
+      }
+    })
+    return unsub
+  }, [gl])
+
+  // Keyboard shortcut: Alt+p (lowercase) toggles post-processing only.
+  // Keyboard shortcut: Alt+P (uppercase, with Shift) toggles Studio/CAD mode.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+
       if (e.altKey && e.key === 'p') {
+        // Alt+p (lowercase) — toggle post-processing only
         e.preventDefault()
         const s = useEngineStore.getState()
         const next = !s.postProcessingEnabled
         s.setPostProcessingEnabled(next)
-        toast.info(next ? '后处理已开启' : '后处理已关闭')
+        return
+      }
+
+      if (e.altKey && e.key === 'P') {
+        // Alt+P (uppercase, with Shift) — toggle Studio/CAD mode
+        e.preventDefault()
+        const s = useEngineStore.getState()
+        const next = !s.studioMode
+        s.setStudioMode(next)
       }
     }
     window.addEventListener('keydown', handleKeyDown)

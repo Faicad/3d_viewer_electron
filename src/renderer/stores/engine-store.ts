@@ -144,10 +144,16 @@ interface EngineStore {
   bumpHighlightVersion: () => void
 
   // ---------------------------------------------------------------------------
-  // Post-processing
+  // Post-processing & Studio / CAD mode
   // ---------------------------------------------------------------------------
   postProcessingEnabled: boolean
   setPostProcessingEnabled: (v: boolean) => void
+  /** true = Studio mode (post-processing on, localClipping off, shadows on).
+   *  false = CAD mode (post-processing off, localClipping on, shadows off).
+   *  Toggled by Alt+P (uppercase) shortcut. */
+  studioMode: boolean
+  /** Set Studio/CAD mode. Also syncs postProcessingEnabled to match. */
+  setStudioMode: (v: boolean) => void
   toneMappingMode: 'neutral' | 'aces' | 'linear'
   setToneMappingMode: (v: 'neutral' | 'aces' | 'linear') => void
   smaaEnabled: boolean
@@ -266,7 +272,13 @@ export const useEngineStore = create<EngineStore>((set, get) => ({
 
   // Post-processing defaults
   postProcessingEnabled: true,
-  setPostProcessingEnabled: (v) => set({ postProcessingEnabled: v }),
+  setPostProcessingEnabled: (v) => {
+    const s = get()
+    if (v && !s.studioMode) return  // forbid enabling post-processing in CAD mode
+    set({ postProcessingEnabled: v })
+  },
+  studioMode: true,
+  setStudioMode: (v) => set({ studioMode: v, postProcessingEnabled: v }),
   toneMappingMode: 'neutral',
   setToneMappingMode: (v) => set({ toneMappingMode: v }),
   smaaEnabled: true,
