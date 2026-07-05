@@ -36,6 +36,8 @@ import DraftAnalysisRenderer from '@/engine/components/DraftAnalysisRenderer'
 import DraftAnalysisPanel from '@/engine/components/DraftAnalysisPanel'
 import SurfaceAnalysisRenderer from '@/engine/components/SurfaceAnalysisRenderer'
 import SurfaceAnalysisPanel from '@/engine/components/SurfaceAnalysisPanel'
+import CurvatureCombRenderer from '@/engine/components/CurvatureCombRenderer'
+import CurvatureCombPanel from '@/engine/components/CurvatureCombPanel'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -1221,6 +1223,7 @@ export default function ViewportContainer() {
         <ZebraRenderer />
         <DraftAnalysisRenderer />
         <SurfaceAnalysisRenderer />
+        <CurvatureCombRenderer selectorRuntime={selectorRuntime} modelGroupMapRef={modelGroupMapRef} />
         <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
@@ -1439,6 +1442,7 @@ export default function ViewportContainer() {
       <ZebraPanel />
       <DraftAnalysisPanel />
       <SurfaceAnalysisPanel />
+      <CurvatureCombPanel />
       <AxesIndicator mainCamera={mainCamera} />
 
       {/* Texture Preview Dialog */}

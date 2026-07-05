@@ -39,6 +39,7 @@ import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { useMaterialStore } from '@/stores/material-store'
 import { tryToggleCrossSection } from '@/stores/cross-section-store'
 import { tryToggleSurfaceAnalysis } from '@/stores/surface-analysis-store'
+import { tryToggleCurvatureComb } from '@/stores/curvature-comb-store'
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 
@@ -1033,6 +1034,19 @@ export default function DesktopLayout() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('toolbar.surfaceAnalysis', 'Curves 曲面分析')}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={tryToggleCurvatureComb}
+              aria-label={t('toolbar.curvatureComb', '曲率梳')}
+            >
+              <Zap className="toolbar-icon h-4 w-4 text-green-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('toolbar.curvatureComb', '曲率梳')}</TooltipContent>
         </Tooltip>
         </>)}
 
