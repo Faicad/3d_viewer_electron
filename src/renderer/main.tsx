@@ -1006,10 +1006,12 @@ try {
   })
 } catch { /* electronAPI not available */ }
 
-// ---- Auto-update event binding ----
-try {
-  bindUpdateEvents()
-} catch { /* electronAPI not available */ }
+// ---- Auto-update event binding (skip in E2E to avoid modal popup errors) ----
+if (!window.env.E2E) {
+  try {
+    bindUpdateEvents()
+  } catch { /* electronAPI not available */ }
+}
 
 // ---- Embed event subscriptions (animation state, selection) ----
 try {

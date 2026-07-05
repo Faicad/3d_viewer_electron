@@ -1,4 +1,5 @@
-import { autoUpdater } from 'electron-updater'
+import electronUpdater from 'electron-updater'
+const autoUpdater = electronUpdater.autoUpdater
 import { BrowserWindow } from 'electron'
 
 let mainWindow: BrowserWindow | null = null

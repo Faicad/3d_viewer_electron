@@ -6,13 +6,15 @@ const mockQuitAndInstall = vi.fn()
 const mockSend = vi.fn()
 
 vi.mock('electron-updater', () => ({
-  autoUpdater: {
-    on: mockOn,
-    checkForUpdates: mockCheckForUpdates,
-    quitAndInstall: mockQuitAndInstall,
-    autoDownload: true,
-    autoInstallOnAppQuit: false,
-    channel: 'latest',
+  default: {
+    autoUpdater: {
+      on: mockOn,
+      checkForUpdates: mockCheckForUpdates,
+      quitAndInstall: mockQuitAndInstall,
+      autoDownload: true,
+      autoInstallOnAppQuit: false,
+      channel: 'latest',
+    },
   },
 }))
 
@@ -33,16 +35,16 @@ describe('initUpdater', () => {
   it('sets autoDownload false and autoInstallOnAppQuit true', async () => {
     const { initUpdater } = await import('./updater')
     initUpdater(undefined, mockGetWindow)
-    const { autoUpdater } = await import('electron-updater')
-    expect(autoUpdater.autoDownload).toBe(false)
-    expect(autoUpdater.autoInstallOnAppQuit).toBe(true)
+    const { default: electronUpdaterModule } = await import('electron-updater')
+    expect(electronUpdaterModule.autoUpdater.autoDownload).toBe(false)
+    expect(electronUpdaterModule.autoUpdater.autoInstallOnAppQuit).toBe(true)
   })
 
   it('sets channel to cn for CN edition', async () => {
     const { initUpdater } = await import('./updater')
     initUpdater('cn', mockGetWindow)
-    const { autoUpdater } = await import('electron-updater')
-    expect(autoUpdater.channel).toBe('cn')
+    const { default: electronUpdaterModule } = await import('electron-updater')
+    expect(electronUpdaterModule.autoUpdater.channel).toBe('cn')
   })
 
   it('registers all event listeners', async () => {
@@ -158,7 +160,7 @@ describe('setAutoDownload', () => {
   it('sets autoDownload on autoUpdater', async () => {
     const { setAutoDownload } = await import('./updater')
     setAutoDownload(true)
-    const { autoUpdater } = await import('electron-updater')
-    expect(autoUpdater.autoDownload).toBe(true)
+    const { default: electronUpdaterModule } = await import('electron-updater')
+    expect(electronUpdaterModule.autoUpdater.autoDownload).toBe(true)
   })
 })

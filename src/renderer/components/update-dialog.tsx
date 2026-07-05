@@ -14,7 +14,6 @@ const SHOW_DIALOG: UpdateStatus[] = ['available', 'downloaded', 'error', 'not-av
 
 export function UpdateDialog() {
   const { t } = useTranslation()
-
   const status = useUpdateStore((s) => s.status)
   const version = useUpdateStore((s) => s.version)
   const downloadProgress = useUpdateStore((s) => s.downloadProgress)
@@ -32,6 +31,10 @@ export function UpdateDialog() {
       setOpen(true)
     }
   }, [status])
+
+  if (window.env.E2E) {
+    return null
+  }
 
   function handleClose() {
     setOpen(false)

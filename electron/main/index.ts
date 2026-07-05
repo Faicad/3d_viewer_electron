@@ -358,7 +358,9 @@ app.whenReady().then(async () => {
   registerAIHandlers()
 
   const edition = process.env.EDITION === 'cn' ? 'cn' : undefined
-  initUpdater(edition, getMainWindow)
+  if (!process.env.E2E) {
+    initUpdater(edition, getMainWindow)
+  }
 
   const { server, port } = await startServer(AI_SERVER_PORT, getMainWindow)
   aiServer = server
@@ -369,8 +371,8 @@ app.whenReady().then(async () => {
     pendingFilePath = cliPath
   }
 
-  // Auto-check for updates 10 seconds after startup (production only)
-  if (!import.meta.env.DEV) {
+  // Auto-check for updates 10 seconds after startup (production only, skip in E2E)
+  if (!import.meta.env.DEV && !process.env.E2E) {
     setTimeout(() => checkForUpdates(false), 10000)
   }
 
