@@ -1015,12 +1015,12 @@ export default function DesktopLayout() {
               variant="ghost"
               size="icon"
               onClick={tryToggleCrossSection}
-              aria-label={t('toolbar.crossSection', '剖面')}
+              aria-label={t('toolbar.crossSection', '剖面 (Alt+S)')}
             >
               <Scissors className="toolbar-icon h-4 w-4 text-cyan-500" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('toolbar.crossSection', '剖面')}</TooltipContent>
+          <TooltipContent>{t('toolbar.crossSection', '剖面 (Alt+S)')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
