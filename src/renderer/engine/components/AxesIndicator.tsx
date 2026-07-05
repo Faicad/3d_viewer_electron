@@ -8,7 +8,13 @@ import { useUIStore } from '@/stores/ui-store'
 
 const AXIS_LENGTH = 0.6
 const LABEL_OFFSET = 0.2
+const SPHERE_RADIUS = 0.06
+const SPRITE_SCALE = 0.28
 const CAMERA_DISTANCE = 2
+
+const maxExtent = AXIS_LENGTH + LABEL_OFFSET + SPRITE_SCALE / 2
+const minExtent = -SPHERE_RADIUS
+const BBOX_CENTER = (maxExtent + minExtent) / 2
 
 interface AxesIndicatorOverlayProps {
   mainCamera?: THREE.Camera | null
@@ -56,7 +62,7 @@ function AxesArrows({ mainCamera }: AxesIndicatorOverlayProps) {
   )
 
   return (
-    <group>
+    <group position={[-BBOX_CENTER, -BBOX_CENTER, -BBOX_CENTER]}>
       {/* Origin sphere */}
       <mesh>
         <sphereGeometry args={[0.06, 8, 8]} />
@@ -95,8 +101,8 @@ export default function AxesIndicator({ mainCamera }: AxesIndicatorOverlayProps)
         position: 'absolute',
         right: 1,
         bottom: 1,
-        width: 120,
-        height: 120,
+        width: 80,
+        height: 80,
         pointerEvents: 'none',
         zIndex: 1,
         transform: isFullscreen && !bottomVisible ? 'translateY(100%)' : 'translateY(0)',
