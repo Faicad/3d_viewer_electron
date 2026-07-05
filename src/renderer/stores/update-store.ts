@@ -16,6 +16,7 @@ interface UpdateState {
   downloadProgress: number
   bytesPerSecond: number
   errorMessage: string | null
+  manualCheck: boolean
 }
 
 interface UpdateActions {
@@ -31,6 +32,7 @@ const initialState: UpdateState = {
   downloadProgress: 0,
   bytesPerSecond: 0,
   errorMessage: null,
+  manualCheck: false,
 }
 
 export const useUpdateStore = create<UpdateState & UpdateActions>()((set) => ({
@@ -38,7 +40,7 @@ export const useUpdateStore = create<UpdateState & UpdateActions>()((set) => ({
 
   checkForUpdates: (manual) => {
     window.electronAPI.checkForUpdates(manual)
-    set({ status: 'checking' })
+    set({ status: 'checking', manualCheck: manual })
   },
 
   quitAndInstall: () => {

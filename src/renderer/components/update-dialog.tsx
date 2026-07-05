@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useUpdateStore, type UpdateStatus } from '@/stores/update-store'
 import { Download, RefreshCw } from 'lucide-react'
 
-const SHOW_DIALOG: UpdateStatus[] = ['available', 'downloaded', 'error', 'not-available']
+const SHOW_DIALOG: UpdateStatus[] = ['available', 'downloaded']
 
 export function UpdateDialog() {
   const { t } = useTranslation()
@@ -21,16 +21,20 @@ export function UpdateDialog() {
   const checkForUpdates = useUpdateStore((s) => s.checkForUpdates)
   const quitAndInstall = useUpdateStore((s) => s.quitAndInstall)
   const reset = useUpdateStore((s) => s.reset)
+  const manualCheck = useUpdateStore((s) => s.manualCheck)
 
   const [open, setOpen] = useState(false)
   const dismissedStatus = useRef<UpdateStatus | null>(null)
 
   useEffect(() => {
-    if (SHOW_DIALOG.includes(status) && dismissedStatus.current !== status) {
+    const shouldShow =
+      SHOW_DIALOG.includes(status) ||
+      (manualCheck && ['not-available', 'error'].includes(status))
+    if (shouldShow && dismissedStatus.current !== status) {
       dismissedStatus.current = null
       setOpen(true)
     }
-  }, [status])
+  }, [status, manualCheck])
 
   if (window.env.E2E) {
     return null

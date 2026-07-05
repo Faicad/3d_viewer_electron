@@ -24,6 +24,7 @@ afterEach(() => {
     downloadProgress: 0,
     bytesPerSecond: 0,
     errorMessage: null,
+    manualCheck: false,
   })
 })
 
@@ -36,21 +37,32 @@ describe('useUpdateStore', () => {
     expect(state.downloadProgress).toBe(0)
     expect(state.bytesPerSecond).toBe(0)
     expect(state.errorMessage).toBeNull()
+    expect(state.manualCheck).toBe(false)
   })
 
-  it('checkForUpdates sets status to checking', () => {
+  it('checkForUpdates sets status to checking and manualCheck', () => {
     useUpdateStore.getState().checkForUpdates(true)
     const state = useUpdateStore.getState()
     expect(state.status).toBe('checking')
+    expect(state.manualCheck).toBe(true)
     expect(mockCheckForUpdates).toHaveBeenCalledWith(true)
   })
 
+  it('checkForUpdates sets manualCheck false for auto check', () => {
+    useUpdateStore.getState().checkForUpdates(false)
+    const state = useUpdateStore.getState()
+    expect(state.status).toBe('checking')
+    expect(state.manualCheck).toBe(false)
+    expect(mockCheckForUpdates).toHaveBeenCalledWith(false)
+  })
+
   it('reset restores initial state', () => {
-    useUpdateStore.setState({ status: 'available', version: '2.0.0' })
+    useUpdateStore.setState({ status: 'available', version: '2.0.0', manualCheck: true })
     useUpdateStore.getState().reset()
     const state = useUpdateStore.getState()
     expect(state.status).toBe('idle')
     expect(state.version).toBeNull()
+    expect(state.manualCheck).toBe(false)
   })
 })
 

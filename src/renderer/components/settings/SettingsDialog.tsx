@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useUIStore } from '@/stores/ui-store'
+import { useUpdateStore } from '@/stores/update-store'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { Settings, Monitor, Moon, Sun } from 'lucide-react'
+import { Settings, Monitor, Moon, Sun, RefreshCw, Check, AlertTriangle } from 'lucide-react'
 import { SUPPORTED_LANGUAGES } from '@/i18n'
 
 function useUILanguage() {
@@ -79,6 +80,7 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
 
           <SettingSection title={labels.version}>
             <VersionDisplay version={appVersion} />
+            <UpdateCheckSection />
           </SettingSection>
         </div>
       </DialogContent>
@@ -187,4 +189,59 @@ function PreviewOption() {
       />
     </button>
   )
+}
+
+function UpdateCheckSection() {
+  const status = useUpdateStore((s) => s.status)
+  const errorMessage = useUpdateStore((s) => s.errorMessage)
+  const checkForUpdates = useUpdateStore((s) => s.checkForUpdates)
+  const isZh = useUILanguage()
+
+  if (status === 'idle') {
+    return (
+      <button
+        onClick={() => checkForUpdates(true)}
+        className="mt-2 text-xs text-primary hover:underline cursor-pointer"
+      >
+        {isZh ? '检查更新' : 'Check for Updates'}
+      </button>
+    )
+  }
+
+  if (status === 'checking') {
+    return (
+      <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <RefreshCw className="h-3 w-3 animate-spin" />
+        <span>{isZh ? '正在检查更新…' : 'Checking for updates…'}</span>
+      </div>
+    )
+  }
+
+  if (status === 'not-available') {
+    return (
+      <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600">
+        <Check className="h-3 w-3" />
+        <span>{isZh ? '已是最新版本' : "You're up to date"}</span>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="mt-2 flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 text-xs text-destructive">
+          <AlertTriangle className="h-3 w-3" />
+          <span>{errorMessage || (isZh ? '检查更新失败' : 'Update check failed')}</span>
+        </div>
+        <button
+          onClick={() => checkForUpdates(true)}
+          className="text-xs text-primary hover:underline cursor-pointer text-left"
+        >
+          {isZh ? '重试' : 'Retry'}
+        </button>
+      </div>
+    )
+  }
+
+  return null
 }
