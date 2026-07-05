@@ -3,6 +3,7 @@ import { useEngineStore } from './engine-store'
 import { useModelStore } from './model-store'
 import { useUIStore } from './ui-store'
 import { useZebraStore } from './zebra-store'
+import { useDraftAnalysisStore } from './draft-analysis-store'
 import { toast } from 'sonner'
 
 interface CrossSectionState {
@@ -60,6 +61,7 @@ export function tryToggleCrossSection(): boolean {
   const next = !useCrossSectionStore.getState().panelOpen
   if (next) {
     useZebraStore.getState().setEnabled(false)
+    useDraftAnalysisStore.getState().setEnabled(false)
   }
   useCrossSectionStore.getState().setPanelOpen(next)
   return true

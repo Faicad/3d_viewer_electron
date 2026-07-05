@@ -32,6 +32,8 @@ import CrossSectionRenderer from '@/engine/components/CrossSectionRenderer'
 import CrossSectionPanel from '@/engine/components/CrossSectionPanel'
 import ZebraRenderer from '@/engine/components/ZebraRenderer'
 import ZebraPanel from '@/engine/components/ZebraPanel'
+import DraftAnalysisRenderer from '@/engine/components/DraftAnalysisRenderer'
+import DraftAnalysisPanel from '@/engine/components/DraftAnalysisPanel'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -1215,6 +1217,7 @@ export default function ViewportContainer() {
         <PostProcessing />
         <CrossSectionRenderer />
         <ZebraRenderer />
+        <DraftAnalysisRenderer />
         <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
@@ -1431,6 +1434,7 @@ export default function ViewportContainer() {
 
       <CrossSectionPanel />
       <ZebraPanel />
+      <DraftAnalysisPanel />
       <AxesIndicator mainCamera={mainCamera} />
 
       {/* Texture Preview Dialog */}

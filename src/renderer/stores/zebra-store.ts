@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useEngineStore } from './engine-store'
 import { useModelStore } from './model-store'
+import { useDraftAnalysisStore } from './draft-analysis-store'
 import { toast } from 'sonner'
 
 export type ZebraColorScheme = 'blackwhite' | 'colorful' | 'grayscale'
@@ -56,6 +57,9 @@ export function tryToggleZebra(): boolean {
     return false
   }
   const next = !useZebraStore.getState().enabled
+  if (next) {
+    useDraftAnalysisStore.getState().setEnabled(false)
+  }
   useZebraStore.getState().setEnabled(next)
   return true
 }
