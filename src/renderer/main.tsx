@@ -13,6 +13,7 @@ import { useToolStore } from '@/stores/tool-store'
 import { useSelectionStore } from '@/stores/selection-store'
 import { useUIStore } from '@/stores/ui-store'
 import { useSvgWorkspaceStore, parseSvgViewBox, parseSvgLayers } from '@/stores/svg-workspace-store'
+import { useCurvatureCombStore } from '@/stores/curvature-comb-store'
 import { bindUpdateEvents } from '@/stores/update-store'
 import { generateSvgThumbnail } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
@@ -266,6 +267,7 @@ window.__materialStore = useMaterialStore
 window.__toolStore = useToolStore
 window.__selectionStore = useSelectionStore
 window.__svgWorkspaceStore = useSvgWorkspaceStore
+window.__curvatureCombStore = useCurvatureCombStore
 window.__executeCommand = (command: string, params?: Record<string, unknown>) =>
   executeCommand({ command, params: params ?? {} })
 window.__queryParts = queryParts

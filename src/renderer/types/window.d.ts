@@ -4,6 +4,7 @@ import type { useModelStore } from '@/stores/model-store'
 import type { useAnimationStore } from '@/stores/animation-store'
 import type { useMaterialStore } from '@/stores/material-store'
 import type { useSvgWorkspaceStore, parseSvgViewBox as ParseSvgViewBox, parseSvgLayers as ParseSvgLayers } from '@/stores/svg-workspace-store'
+import type { useCurvatureCombStore } from '@/stores/curvature-comb-store'
 import type { ViewerAPI } from '@/ai-injection/types'
 
 declare global {
@@ -15,6 +16,7 @@ declare global {
     __animationStore: typeof useAnimationStore
     __materialStore: typeof useMaterialStore
     __svgWorkspaceStore: typeof useSvgWorkspaceStore
+    __curvatureCombStore: typeof useCurvatureCombStore
     __svgFixtures: Record<string, string>
     __svgHelpers: { parseSvgViewBox: typeof ParseSvgViewBox; parseSvgLayers: typeof ParseSvgLayers }
     __clearStepCache: () => Promise<void>
