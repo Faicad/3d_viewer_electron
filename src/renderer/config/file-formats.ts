@@ -395,7 +395,7 @@ export const FILE_FORMATS: FileFormatEntry[] = [
   {
     id: 'gcode',
     label: 'GCode',
-    extensions: ['.gcode'],
+    extensions: ['.gcode', '.nc', '.ncc', '.ngc'],
     loaderModule: 'GCodeLoader.js',
     group: 'gcode',
     sampleFile: 'gcode/benchy.gcode',

@@ -16,7 +16,7 @@ GCode is the instruction set for 3D printer toolpaths. This app renders the move
 
 | Property | Value |
 | --- | --- |
-| Extensions | `.gcode` |
+| Extensions | `.gcode`, `.nc`, `.ncc`, `.ngc` |
 | Category | GCode |
 | Render Type | Toolpath rendering |
 
