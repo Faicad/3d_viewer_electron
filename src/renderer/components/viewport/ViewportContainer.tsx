@@ -30,6 +30,8 @@ import type { DisplayMode } from '@/engine/components/DisplayModeDropdown'
 import SelectionInfoOverlay from '@/engine/components/SelectionInfoOverlay'
 import CrossSectionRenderer from '@/engine/components/CrossSectionRenderer'
 import CrossSectionPanel from '@/engine/components/CrossSectionPanel'
+import ZebraRenderer from '@/engine/components/ZebraRenderer'
+import ZebraPanel from '@/engine/components/ZebraPanel'
 import { generateThumbnailFromResult } from '@/lib/thumbnail-cache/thumbnailGenerator'
 import { putThumbnail } from '@/lib/thumbnail-cache/thumbnailCache'
 
@@ -1212,6 +1214,7 @@ export default function ViewportContainer() {
         <SceneSetup />
         <PostProcessing />
         <CrossSectionRenderer />
+        <ZebraRenderer />
         <ModelTransformTracker modelGroupMapRef={modelGroupMapRef} />
         {loadedFiles.length > 0 ? (
           loadedFiles.map((file) => (
@@ -1427,6 +1430,7 @@ export default function ViewportContainer() {
       <SelectionInfoOverlay reference={selectedReference} />
 
       <CrossSectionPanel />
+      <ZebraPanel />
       <AxesIndicator mainCamera={mainCamera} />
 
       {/* Texture Preview Dialog */}
