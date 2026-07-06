@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.10.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.9.3...v1.10.0) (2026-07-06)
+
+
+### Features
+
+* **curvature-comb:** add curvature comb visualization for selected edges ([e046988](https://github.com/YOUR_ORG/3d_viewer_electron/commits/e046988cb7f908b9ec17428cc1a95c80a1828e33))
+* **surface-analysis:** add CurvesWB surface analysis (zebra/rainbow/isophote) ([f71008e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/f71008ef143a5ebf61d964c2bcfbcd5efb21ea55))
+* **viewer:** cross-section display via Alt+S with stencil-based clipping ([202d00a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/202d00a317848bf5a3c92d2a78b6a2dee3ef373e))
+* **viewer:** draft analysis tool via Alt+D with GPU shader color overlay ([28effbb](https://github.com/YOUR_ORG/3d_viewer_electron/commits/28effbb510cb188540aea27f2466755f1db1fe38))
+* **viewer:** Studio/CAD mode with shadow guard and post-processing sync ([b4fd57b](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b4fd57b82fe4209f91f5e79d4bf989c091aa8a13))
+* **viewer:** zebra stripe analysis tool for CAD mode ([10bd42a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/10bd42a1b4b523f40f80737ef04e6d0e1141d2ad))
+
+
+### Bug Fixes
+
+* **axes-indicator:** center rotation pivot and reduce canvas size ([6c04b0a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/6c04b0ad2a30ba546042e989bdea3f9c8f344fc5))
+* **ci:** close animation dialog via store API instead of keyboard Escape on macOS ([d946ba0](https://github.com/YOUR_ORG/3d_viewer_electron/commits/d946ba0d3700c0b01c8c4c921c8e926d10d6104e))
+* **ci:** fix macOS E2E test failures for Alt+r and KHR animation dialog ([442a108](https://github.com/YOUR_ORG/3d_viewer_electron/commits/442a108dc6cf106cde9a56cc7ec0b0406d2348e2))
+* **toolbar:** update cross-section tooltip to show Alt+S shortcut ([af1c4cd](https://github.com/YOUR_ORG/3d_viewer_electron/commits/af1c4cda4d460a82f32e36998ce68b8074e9a278))
+
+
+### Code Refactoring
+
+* **hotkey:** centralize keyboard shortcuts into HotkeyManager ([bc8e9b6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bc8e9b6c13a0e71a90a830f365582b9b0bc3237c))
+
 ### [1.9.3](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.9.2...v1.9.3) (2026-07-05)
 
 
