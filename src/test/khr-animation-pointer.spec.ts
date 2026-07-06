@@ -102,8 +102,10 @@ test.describe('KHR_animation_pointer', () => {
     test.skip(_isSwGpu, 'Animation clock does not advance on software GPU')
 
     // Model already loaded in beforeAll test
-    // Dismiss any lingering dialog from a prior failed retry before clicking
-    await page.keyboard.press('Escape')
+    // Ensure any lingering dialog from a prior failed retry is closed
+    await page.evaluate(() => {
+      (window as any).__modelStore?.getState().closeAnimDialog()
+    })
     await page.waitForTimeout(200)
     await page.locator('[data-testid="toolbar-animation-player"]').click()
     await page.locator('[role="dialog"]').waitFor({ state: 'visible', timeout: 5000 })
@@ -150,12 +152,12 @@ test.describe('KHR_animation_pointer', () => {
       { timeout: 3000 },
     )
 
-    // Close dialog — Escape first un-maximizes to window mode, then click X
-    await page.keyboard.press('Escape')
-    // Dialog is now in window mode (not maximized)
-    await page.locator('[role="dialog"]').waitFor({ state: 'visible', timeout: 5000 })
-    // Click X to close
-    await page.locator('[role="dialog"] button svg.lucide-x').first().click()
+    // Close dialog via store (platform-agnostic — on macOS, Escape closes
+    // the dialog entirely rather than un-maximizing)
+    await page.evaluate(() => {
+      (window as any).__modelStore?.getState().closeAnimDialog()
+    })
+    await page.waitForTimeout(200)
 
     // Clips persist in store after close (not reset — by design for API access)
     const clipsAfterClose = await page.evaluate(() => {
