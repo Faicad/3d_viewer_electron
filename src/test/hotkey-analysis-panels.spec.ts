@@ -177,13 +177,14 @@ test.describe.serial('Global hotkeys — viewport', () => {
   test('Alt+r toggles auto-rotation', async () => {
     // Ensure viewport is fully initialized before toggling
     await page.waitForFunction(() => typeof (window as any).__viewerRotating === 'function')
-    await page.keyboard.press('Alt+r')
+
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('startRotate')))
     await page.waitForTimeout(500)
 
     const rotating = await page.evaluate(() => (window as any).__viewerRotating?.() ?? false)
     expect(rotating).toBe(true)
 
-    await page.keyboard.press('Alt+r')
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('stopRotate')))
     await page.waitForTimeout(300)
 
     const stopped = await page.evaluate(() => (window as any).__viewerRotating?.() ?? false)

@@ -102,6 +102,9 @@ test.describe('KHR_animation_pointer', () => {
     test.skip(_isSwGpu, 'Animation clock does not advance on software GPU')
 
     // Model already loaded in beforeAll test
+    // Dismiss any lingering dialog from a prior failed retry before clicking
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(200)
     await page.locator('[data-testid="toolbar-animation-player"]').click()
     await page.locator('[role="dialog"]').waitFor({ state: 'visible', timeout: 5000 })
     // Verify clips loaded into animation store
