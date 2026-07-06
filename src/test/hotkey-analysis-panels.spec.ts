@@ -63,11 +63,11 @@ test.describe.serial('Global hotkeys — analysis panels', () => {
   test('Alt+z opens and closes zebra stripe panel', async () => {
     await page.keyboard.press('Alt+z')
     await page.waitForTimeout(500)
-    await expect(page.getByText('斑马纹分析')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('斑马纹', { exact: true })).toBeVisible({ timeout: 5_000 })
 
     await page.keyboard.press('Alt+z')
     await page.waitForTimeout(300)
-    await expect(page.getByText('斑马纹分析')).not.toBeVisible({ timeout: 3_000 })
+    await expect(page.getByText('斑马纹', { exact: true })).not.toBeVisible({ timeout: 3_000 })
   })
 
   test('Alt+d opens and closes draft analysis panel', async () => {
@@ -175,6 +175,8 @@ test.describe.serial('Global hotkeys — viewport', () => {
   })
 
   test('Alt+r toggles auto-rotation', async () => {
+    // Ensure viewport is fully initialized before toggling
+    await page.waitForFunction(() => typeof (window as any).__viewerRotating === 'function')
     await page.keyboard.press('Alt+r')
     await page.waitForTimeout(500)
 

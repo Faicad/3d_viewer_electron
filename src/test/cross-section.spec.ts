@@ -80,8 +80,18 @@ test.describe.serial('Cross-section', () => {
     await expect(sliders.nth(0)).toHaveValue('50')
     await expect(sliders.nth(1)).toHaveValue('50')
 
-    // Load second model via file input (triggers model switch)
-    await loadModel(page, LAMP_PATH)
+    // Load second model via IPC — file input is unmounted after the first
+    // model load because the drop overlay hides itself when hasAnyModel=true.
+    await page.evaluate(async (fp) => {
+      const modelStore = (window as any).__modelStore
+      modelStore.getState().reset()
+      await (window as any).__executeCommand('loadFile', { filePath: fp })
+    }, LAMP_PATH)
+    await page.waitForFunction(() => {
+      const s = (window as any).__modelStore?.getState()
+      return s?.loadedFiles?.length >= 1 && !s?.loadingState?.isVisible
+    }, { timeout: 30_000 })
+    await expect(page.locator('canvas').first()).toBeAttached({ timeout: 5_000 })
     await page.evaluate(() => (window as any).__engineStore?.getState().setStudioMode(false))
     await page.waitForTimeout(300)
 

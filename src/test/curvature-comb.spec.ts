@@ -69,6 +69,11 @@ test.describe.serial('Curvature Comb', () => {
     await expect(page.getByText('缩放', { exact: true })).toBeVisible()
     await expect(page.getByText('梳齿颜色')).toBeVisible()
     await expect(page.getByText('重置')).toBeVisible()
+
+    // Close so subsequent serial tests start with a clean state
+    await page.keyboard.press('Alt+c')
+    await page.waitForTimeout(300)
+    await expect(page.getByText('曲率梳', { exact: true })).not.toBeVisible({ timeout: 3_000 })
   })
 
   test('closes on model switch', async () => {
@@ -76,8 +81,16 @@ test.describe.serial('Curvature Comb', () => {
     await page.waitForTimeout(500)
     await expect(page.getByText('曲率梳', { exact: true })).toBeVisible({ timeout: 3_000 })
 
-    // Load a different model
-    await loadModel(page, BOX_PATH)
+    // Load a different model via IPC — file input is unmounted after first load
+    await page.evaluate(async (fp) => {
+      const modelStore = (window as any).__modelStore
+      modelStore.getState().reset()
+      await (window as any).__executeCommand('loadFile', { filePath: fp })
+    }, BOX_PATH)
+    await page.waitForFunction(() => {
+      const s = (window as any).__modelStore?.getState()
+      return s?.loadedFiles?.length >= 1 && !s?.loadingState?.isVisible
+    }, { timeout: 30_000 })
     await page.waitForTimeout(500)
     await expect(page.getByText('曲率梳', { exact: true })).not.toBeVisible({ timeout: 5_000 })
   })
