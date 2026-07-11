@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.10.0...v1.11.0) (2026-07-11)
+
+
+### Features
+
+* **toolbar:** replace surface analysis/curvature comb with zebra icon, auto-switch CAD mode for analysis tools ([ee2e54c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ee2e54c5d5f84855d39e4b4474d03c3581166b84))
+
+
+### Bug Fixes
+
+* **i18n:** fallbackLng zh->en ([cdcbe0a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/cdcbe0af63c36eaad2a7aaf7c925f68ade44a529))
+
 ## [1.10.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.9.3...v1.10.0) (2026-07-06)
 
 
