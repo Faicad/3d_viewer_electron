@@ -25,7 +25,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, FolderOpen,
   Maximize, Minimize, Info, X,
   ChevronRight, ChevronDown, Eye, EyeOff,
-  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Zap, Scissors, Shapes,
+  Cuboid, Grid3x3, Clock, Sun, Copy, ClipboardPaste, Palette, Play, FileJson, SwatchBook, Check, Box, Trash2, Download, Zap, Scissors,
 } from 'lucide-react'
 import WorkspacePage from '@/pages/WorkspacePage'
 import FileListPanel from '@/components/FileListPanel'
@@ -38,8 +38,8 @@ import SvgLayerTree from '@/components/panels/SvgLayerTree'
 import { useGlbExtensionStore } from '@/stores/glb-extension-store'
 import { useMaterialStore } from '@/stores/material-store'
 import { tryToggleCrossSection } from '@/stores/cross-section-store'
-import { tryToggleSurfaceAnalysis } from '@/stores/surface-analysis-store'
-import { tryToggleCurvatureComb } from '@/stores/curvature-comb-store'
+import { tryToggleZebra } from '@/stores/zebra-store'
+
 import { ContextMenu as ContextMenuUI } from '@/components/ui/ContextMenu'
 import type { ContextMenuItemDef } from '@/components/ui/ContextMenu'
 
@@ -1027,26 +1027,19 @@ export default function DesktopLayout() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={tryToggleSurfaceAnalysis}
-              aria-label={t('toolbar.surfaceAnalysis', 'Curves 曲面分析')}
+              onClick={tryToggleZebra}
+              aria-label={t('toolbar.zebra', '斑马纹 (Alt+Z)')}
+              data-testid="toolbar-zebra"
             >
-              <Shapes className="toolbar-icon h-4 w-4 text-purple-500" />
+              <svg className="toolbar-icon h-4 w-4 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="21" x2="9" y2="3" />
+                <line x1="7.5" y1="22" x2="13.5" y2="4" />
+                <line x1="12" y1="23" x2="18" y2="5" />
+                <line x1="16.5" y1="24" x2="22.5" y2="6" />
+              </svg>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('toolbar.surfaceAnalysis', 'Curves 曲面分析')}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={tryToggleCurvatureComb}
-              aria-label={t('toolbar.curvatureComb', '曲率梳')}
-            >
-              <Zap className="toolbar-icon h-4 w-4 text-green-500" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('toolbar.curvatureComb', '曲率梳')}</TooltipContent>
+          <TooltipContent>{t('toolbar.zebra', '斑马纹 (Alt+Z)')}</TooltipContent>
         </Tooltip>
         </>)}
 

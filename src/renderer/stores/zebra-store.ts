@@ -50,8 +50,7 @@ export function tryToggleZebra(): boolean {
   const { studioMode } = useEngineStore.getState()
   const { loadedFiles } = useModelStore.getState()
   if (studioMode) {
-    toast('请先进入 CAD 模式（Alt+P 大写）')
-    return false
+    useEngineStore.getState().setStudioMode(false)
   }
   if (loadedFiles.length !== 1) {
     toast('斑马纹功能仅支持单文件')

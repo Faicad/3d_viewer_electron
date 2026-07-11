@@ -45,11 +45,11 @@ export const useCrossSectionStore = create<CrossSectionState>()((set) => ({
 }))
 
 export function tryToggleCrossSection(): boolean {
-  const { studioMode } = useEngineStore.getState()
+  const engineState = useEngineStore.getState()
+  const { studioMode } = engineState
   const { loadedFiles } = useModelStore.getState()
   if (studioMode) {
-    toast('请先进入 CAD 模式（Alt+P 大写）')
-    return false
+    engineState.setStudioMode(false)
   }
   if (loadedFiles.length !== 1) {
     toast('剖面功能仅支持单文件')
@@ -64,6 +64,8 @@ export function tryToggleCrossSection(): boolean {
     useZebraStore.getState().setEnabled(false)
     useDraftAnalysisStore.getState().setEnabled(false)
     useSurfaceAnalysisStore.getState().setEnabled(false)
+  } else {
+    engineState.setStudioMode(true)
   }
   useCrossSectionStore.getState().setPanelOpen(next)
   return true
