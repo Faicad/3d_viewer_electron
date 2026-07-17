@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
+import { parse3mf } from '@/lib/fix-3mf-rels'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
 import type { FormatId, UnitSystem } from '@/config/file-formats'
@@ -443,7 +444,7 @@ export async function loadFormat(
       resetYieldTimer()
 
       updateProgress('Parsing 3MF geometry...', 10)
-      const group = new ThreeMFLoader().parse(buffer)
+      const group = parse3mf(new ThreeMFLoader(), buffer)
       await yieldToUI(true)
 
       const meshes = extractMeshes(group)
