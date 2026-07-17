@@ -139,7 +139,7 @@ export function createDefaultMaterial(): THREE.MeshPhysicalMaterial {
   mat.roughness = DEFAULT_MATERIAL_ROUGHNESS
   mat.metalness = DEFAULT_MATERIAL_METALNESS
   mat.envMapIntensity = 0.6
-  mat.side = THREE.FrontSide
+  mat.side = THREE.DoubleSide
   mat.map = createNoiseTexture()
   mat.needsUpdate = true
   return mat

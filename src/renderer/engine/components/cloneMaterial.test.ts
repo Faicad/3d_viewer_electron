@@ -156,7 +156,7 @@ describe('createDefaultMaterial', () => {
     expect(mat.color.getHex()).toBe(DEFAULT_MATERIAL_HEX)
     expect(mat.roughness).toBe(DEFAULT_MATERIAL_ROUGHNESS)
     expect(mat.metalness).toBe(DEFAULT_MATERIAL_METALNESS)
-    expect(mat.side).toBe(THREE.FrontSide)
+    expect(mat.side).toBe(THREE.DoubleSide)
     mat.dispose()
   })
 })
