@@ -5,6 +5,8 @@
 - 代码已合并到 `main` 分支
 - `pnpm run ci` 全部通过（tsc + lint + vitest + playwright + build）
 - 有 GitHub 仓库的 push 权限（用于推送 tag 和 release）
+- 有 GitCode 仓库的 push 权限（用于发布 CN 版安装包）
+- 环境变量 `GITCODE_TOKEN` 已设置（用于上传安装包到 GitCode release）
 
 ## 发布原理
 
@@ -104,7 +106,25 @@ git push --follow-tags origin main
 | Windows | `3D Model Viewer Setup {version}.exe` |
 | macOS | `3D Model Viewer-{version}.dmg` |
 
-### 6. 本地打包（仅调试用）
+### 6. 推送代码 + tag 到 GitCode
+
+**等待上一步的 GitHub Release workflow 完成后**，再推送代码到 GitCode：
+
+```bash
+git push gitcode main
+git push gitcode v$(node -p "require('./package.json').version")
+```
+
+### 7. 发布 CN 版安装包到 GitCode release
+
+```bash
+node scripts/build-edition.mjs --cn
+node scripts/publish-release.mjs --remote gitcode
+```
+
+GitCode release 上会出现 `3D_Viewer_{version}_x64_cn_Setup.exe` 供国内用户下载。
+
+### 8. 本地打包（仅调试用）
 
 无需本地构建，但如果需要在本地调试打包：
 
@@ -141,9 +161,14 @@ git log v1.1.0...v1.1.1 --oneline
 ## 快速参考
 
 ```bash
-# 完整发布一个版本（全平台）
-git checkout main && git pull origin main  # 0. 拉取最新 main
-pnpm run ci                    # 1. 全量检查
-pnpm run release               # 2. bump version + changelog + tag
-git push --follow-tags origin main  # 3. 推送 → GitHub Actions 自动构建并发布
+# 完整发布一个版本（GitHub + GitCode 双平台）
+git checkout main && git pull origin main          # 0. 拉取最新 main
+pnpm run ci                            # 1. 全量检查
+pnpm run release                       # 2. bump version + changelog + tag
+git push --follow-tags origin main     # 3. 推送 → GitHub Actions 自动构建并发布
+# 等待 GitHub Actions 完成
+git push gitcode main                  # 4. 推送到 GitCode
+git push gitcode v$(node -p "require('./package.json').version")  # 5. 推送 tag
+node scripts/build-edition.mjs --cn    # 6. 构建 CN 安装包
+node scripts/publish-release.mjs --remote gitcode  # 7. 上传到 GitCode release
 ```

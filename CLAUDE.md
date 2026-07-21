@@ -92,6 +92,26 @@ Commit message format determines version bump:
 - `feat: ...` → minor (1.0.0 → 1.1.0)
 - `feat: ...\n\nBREAKING CHANGE: ...` → major (1.0.0 → 2.0.0)
 
+### Release Process (must publish to both GitHub and GitCode)
+
+```bash
+# 1. Bump version + changelog
+pnpm run release
+
+# 2. Push to GitHub (triggers Release workflow that builds + publishes to GitHub Releases)
+git push --follow-tags origin main
+
+# 3. Wait for GitHub Release workflow to finish
+
+# 4. Push code + tag to GitCode
+git push gitcode main
+git push gitcode v$(node -p "require('./package.json').version")
+
+# 5. Build CN installer locally and upload to GitCode release
+node scripts/build-edition.mjs --cn
+node scripts/publish-release.mjs --remote gitcode
+```
+
 ## Tech Stack
 
 - React 19 + TypeScript

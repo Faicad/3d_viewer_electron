@@ -129,9 +129,14 @@ git commit -m "fix: 修正缩放边界值溢出"
 git checkout main
 git merge feat/my-feature
 
-# 4. 发布新版本
+# 4. 发布新版本（必须同时发布 GitHub + GitCode）
 pnpm run release
-git push --follow-tags
+git push --follow-tags origin main
+# 等待 GitHub Release workflow 完成
+git push gitcode main
+git push gitcode v$(node -p "require('./package.json').version")
+node scripts/build-edition.mjs --cn
+node scripts/publish-release.mjs --remote gitcode
 ```
 
 ### Commit 建议
