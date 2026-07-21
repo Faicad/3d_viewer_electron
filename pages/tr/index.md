@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: Başla
       link: /tr/guide/getting-started
-
+    - theme: alt
+      text: İndir
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀

@@ -9,6 +9,9 @@ hero:
     - theme: brand
       text: 快速开始
       link: /zh/guide/getting-started
+    - theme: alt
+      text: 下载
+      link: https://gitcode.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀

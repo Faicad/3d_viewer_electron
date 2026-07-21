@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: 시작하기
       link: /ko/guide/getting-started
-
+    - theme: alt
+      text: 다운로드
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀

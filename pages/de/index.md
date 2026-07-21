@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: Loslegen
       link: /de/guide/getting-started
-
+    - theme: alt
+      text: Herunterladen
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀

@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: เริ่มต้น
       link: /th/guide/getting-started
-
+    - theme: alt
+      text: ดาวน์โหลด
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀
