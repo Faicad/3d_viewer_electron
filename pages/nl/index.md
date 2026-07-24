@@ -33,3 +33,4 @@ features:
     title: Bilingual Interface
     details: Full Chinese and English UI, switchable manually or auto-following system language
 ---
+

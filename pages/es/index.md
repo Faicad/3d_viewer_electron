@@ -33,3 +33,4 @@ features:
     title: Interfaz bilingüe
     details: Interfaz completa en chino e inglés, conmutable manualmente o siguiendo el idioma del sistema
 ---
+
