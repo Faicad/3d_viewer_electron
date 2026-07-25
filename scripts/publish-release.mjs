@@ -193,7 +193,7 @@ for (const name of entries) {
   const fullPath = join(distDir, name)
   const entryStat = await stat(fullPath)
   if (!entryStat.isFile()) continue
-  if (new RegExp(`^3D_Viewer_${escapeRegex(version)}.+_cn_Setup\\.exe(\\.blockmap)?$`).test(name)) {
+  if (new RegExp(`^Faicad_3D_Viewer_${escapeRegex(version)}.+_cn_Setup\\.exe(\\.blockmap)?$`).test(name)) {
     artifactFiles.push({ name, path: fullPath, size: entryStat.size })
   }
 }

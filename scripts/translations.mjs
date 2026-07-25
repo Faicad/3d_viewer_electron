@@ -23,7 +23,7 @@ export const NAV = {
 
 export const HERO = {
   zh: { text: '跨平台 3D 模型文件查看器', tagline: '免费开源的桌面应用，支持 27+ 种 3D 文件格式的浏览和渲染，基于 Electron + Three.js 构建', getStarted: '快速开始' },
-  en: { text: 'Cross-platform 3D Model Viewer', tagline: 'Free and open-source desktop application for viewing 27+ 3D file formats, built with Electron + Three.js', getStarted: 'Get Started' },
+  en: { text: 'Faicad 3D Viewer', tagline: 'Free and open-source desktop application for viewing 27+ 3D file formats, built with Electron + Three.js', getStarted: 'Get Started' },
   es: { text: 'Visor de modelos 3D multiplataforma', tagline: 'Aplicación de escritorio gratuita y de código abierto para ver más de 27 formatos de archivo 3D, construida con Electron + Three.js', getStarted: 'Comenzar' },
   ja: { text: 'クロスプラットフォーム 3D モデルビューア', tagline: '27 以上の 3D ファイル形式に対応した無料のオープンソースデスクトップアプリケーション。Electron + Three.js で構築', getStarted: '始める' },
   ko: { text: '크로스 플랫폼 3D 모델 뷰어', tagline: '27+ 가지 3D 파일 형식을 지원하는 무료 오픈소스 데스크톱 애플리케이션, Electron + Three.js 로 구축', getStarted: '시작하기' },

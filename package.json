@@ -113,7 +113,7 @@
   },
   "build": {
     "appId": "com.faicad.3d_viewer",
-    "productName": "3D Model Viewer",
+    "productName": "Faicad 3D Viewer",
     "publish": [
       "github"
     ],
@@ -197,6 +197,7 @@
       ]
     },
     "linux": {
+      "artifactName": "Faicad_3D_Viewer-${version}.${ext}",
       "target": [
         {
           "target": "AppImage",
@@ -227,6 +228,7 @@
       ]
     },
     "mac": {
+      "artifactName": "Faicad_3D_Viewer-${version}.${ext}",
       "target": [
         {
           "target": "dmg",

@@ -23,7 +23,7 @@ function run(cmd, cmdArgs) {
 }
 
 const suffix = isCN ? '_cn' : ''
-const artifactName = `3D_Viewer_\${version}_\${arch}${suffix}_Setup.\${ext}`
+const artifactName = `Faicad_3D_Viewer_\${version}_\${arch}${suffix}_Setup.\${ext}`
 
 const publishArgs = args.includes('--publish') ? ['--publish', 'always'] : []
 

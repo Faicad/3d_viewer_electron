@@ -34,7 +34,7 @@ function getElectronPath() {
     if (existsSync(unpacked)) return unpacked
   }
   if (platform === 'darwin') {
-    const appName = '3D Model Viewer'
+    const appName = 'Faicad 3D Viewer'
     for (const dir of ['mac-arm64', 'mac']) {
       const p = join(PROJECT_ROOT, 'dist', dir, `${appName}.app`, 'Contents', 'MacOS', appName)
       if (existsSync(p)) return p

@@ -102,9 +102,9 @@ git push --follow-tags origin main
 
 | 平台 | 产物 |
 |------|------|
-| Linux | `3D Model Viewer-{version}.AppImage` + `.deb` |
-| Windows | `3D Model Viewer Setup {version}.exe` |
-| macOS | `3D Model Viewer-{version}.dmg` |
+| Linux | `Faicad_3D_Viewer-{version}.AppImage` + `.deb` |
+| Windows | `Faicad_3D_Viewer_{version}_{arch}_Setup.exe` |
+| macOS | `Faicad_3D_Viewer-{version}.dmg` |
 
 ### 6. 推送代码 + tag 到 GitCode
 

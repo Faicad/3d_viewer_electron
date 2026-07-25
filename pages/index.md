@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: 'Faicad 3D Viewer'
-  text: 'Cross-platform 3D Model Viewer'
+  text: 'Faicad 3D Viewer'
   tagline: 'Free and open-source desktop application for viewing 27+ 3D file formats, built with Electron + Three.js'
   actions:
     - theme: brand

@@ -117,7 +117,7 @@ export function getElectronPath(): string {
   }
   if (platform === 'darwin') {
     const macDir = process.arch === 'arm64' ? 'dist/mac-arm64' : 'dist/mac'
-    const appName = '3D Model Viewer'
+    const appName = 'Faicad 3D Viewer'
     return path.join(PROJECT_ROOT, macDir, `${appName}.app`, 'Contents', 'MacOS', appName)
   }
   if (platform === 'linux') {

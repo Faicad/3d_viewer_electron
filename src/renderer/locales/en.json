@@ -1,6 +1,6 @@
 {
   "app.name": "Faicad",
-  "app.welcome": "Welcome to Faicad 3D Model Viewer",
+  "app.welcome": "Welcome to Faicad 3D Viewer",
   "app.welcomeHint": "Upload a model or describe what you need",
   "app.quickExample1": "Generate an M3 bolt",
   "app.quickExample2": "Make a 20mm cube",
