@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.2](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.11.1...v1.11.2) (2026-07-25)
+
+
+### Bug Fixes
+
+* move playwright from devDependencies to dependencies ([7a5697a](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7a5697ae6a02b41fff9968880dc36bb5b5733fbd))
+
+
+### Documentation
+
+* document dual-platform release process (GitHub + GitCode) ([3e0b799](https://github.com/YOUR_ORG/3d_viewer_electron/commits/3e0b7995a47a3d97d6c51df4f9866e1ba72df3f2))
+
 ### [1.11.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.11.0...v1.11.1) (2026-07-21)
 
 
