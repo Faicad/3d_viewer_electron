@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.12.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.11.2...v1.12.0) (2026-07-25)
+
+
+### Features
+
+* accelerate thumbnail queue 10x in fullscreen mode ([2f5cef4](https://github.com/YOUR_ORG/3d_viewer_electron/commits/2f5cef4037210c6696866081712647873d7213aa))
+* rename product from '3D Model Viewer' to 'Faicad 3D Viewer' ([ddf0ca1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ddf0ca1798fdaff562626b88cba85498d4053a86))
+
 ### [1.11.2](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.11.1...v1.11.2) (2026-07-25)
 
 
