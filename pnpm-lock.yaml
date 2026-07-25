@@ -77,6 +77,9 @@ importers:
       lucide-react:
         specifier: ^1.14.0
         version: 1.23.0(react@19.2.7)
+      playwright:
+        specifier: ^1.61.1
+        version: 1.61.1
       postprocessing:
         specifier: ^6.39.1
         version: 6.39.2(three@0.184.0)
