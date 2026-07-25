@@ -39,6 +39,16 @@ function gapForFormat(format: string | null): number {
   return GAP_MS
 }
 
+/** Multiplier applied to the per-format gap (1 = normal). Set <1 to
+ *  accelerate the queue, e.g. 0.1 in fullscreen. */
+let gapMultiplier = 1
+
+/** Dynamically adjust the gap multiplier. Call from the UI layer when
+ *  the user enters/leaves fullscreen thumbnail mode. */
+export function setGapMultiplier(multiplier: number): void {
+  gapMultiplier = multiplier
+}
+
 /** Tracks how many times each file has timed out in the current queue. */
 const retryCount = new Map<string, number>()
 
@@ -54,10 +64,15 @@ let idleCallbackId = 0
 let timeoutId: ReturnType<typeof setTimeout> | null = null
 
 function scheduleNext(): void {
-  if (typeof requestIdleCallback !== 'undefined') {
-    idleCallbackId = requestIdleCallback(processNext, { timeout: 1000 })
+  const interval = Math.round(gapMultiplier * GAP_MS)
+  // When the multiplier is active (e.g. fullscreen) we need precise
+  // control over the gap, so we skip requestIdleCallback and go
+  // straight to setTimeout — otherwise the browser's idle scheduler
+  // could ignore the shorter interval.
+  if (gapMultiplier === 1 && typeof requestIdleCallback !== 'undefined') {
+    idleCallbackId = requestIdleCallback(processNext, { timeout: interval })
   } else {
-    timeoutId = setTimeout(processNext, GAP_MS)
+    timeoutId = setTimeout(processNext, interval)
   }
 }
 
@@ -275,8 +290,9 @@ async function processNext(): Promise<void> {
 
   // Per-format gap after real work (50 ms for fast SVG/DXF,
   // 200 ms for 3D formats).  Cache hits in Phase 1 need no gap.
+  // gapMultiplier accelerates the queue in fullscreen mode.
   if (!abortFlag && queue.length > 0) {
-    timeoutId = setTimeout(processNext, gap)
+    timeoutId = setTimeout(processNext, Math.round(gap * gapMultiplier))
   } else {
     processing = false
   }

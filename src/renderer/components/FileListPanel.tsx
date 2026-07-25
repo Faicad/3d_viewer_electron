@@ -15,6 +15,7 @@ import {
   stopThumbnailQueue,
   updateVisibleFiles,
   setPriorityPaths,
+  setGapMultiplier,
   type QueueFile,
 } from '@/lib/thumbnail-cache/thumbnailQueue'
 
@@ -91,6 +92,11 @@ export default function FileListPanel() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [fullscreen])
+
+  // Accelerate thumbnail queue in fullscreen mode
+  useEffect(() => {
+    setGapMultiplier(fullscreen ? 0.1 : 1)
   }, [fullscreen])
 
   // Thumbnail queue lifecycle
