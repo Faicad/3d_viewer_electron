@@ -30,7 +30,7 @@ features:
     title: Temas claro y oscuro
     details: Modos claro, oscuro y seguimiento del sistema para adaptarse a su entorno de trabajo
   - icon: 🌐
-    title: Interfaz bilingüe
-    details: Interfaz completa en chino e inglés, conmutable manualmente o siguiendo el idioma del sistema
+    title: Interfaz multilingüe
+    details: Interfaz en 20 idiomas, conmutable manualmente o siguiendo el idioma del sistema
 ---
 

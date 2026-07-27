@@ -20,6 +20,6 @@ Drag & drop, clipboard paste, auto directory scanning, keyboard-navigable file l
 
 Light, dark, and system-following theme modes to suit your working environment
 
-## 🌐 Bilingual Interface
+## 🌐 Multi-language Interface
 
-Full Chinese and English UI, switchable manually or auto-following system language
+20 languages supported, switchable manually or auto-following system language

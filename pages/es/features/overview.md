@@ -20,6 +20,6 @@ Arrastrar y soltar, pegar desde portapapeles, escaneo automático de directorios
 
 Modos claro, oscuro y seguimiento del sistema para adaptarse a su entorno de trabajo
 
-## 🌐 Interfaz bilingüe
+## 🌐 Interfaz multilingüe
 
-Interfaz completa en chino e inglés, conmutable manualmente o siguiendo el idioma del sistema
+Interfaz en 20 idiomas, conmutable manualmente o siguiendo el idioma del sistema

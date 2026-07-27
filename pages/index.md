@@ -29,6 +29,6 @@ features:
     title: Dark & Light Themes
     details: Light, dark, and system-following theme modes to suit your working environment
   - icon: 🌐
-    title: Bilingual Interface
-    details: Full Chinese and English UI, switchable manually or auto-following system language
+    title: Multi-language Interface
+    details: 20 languages supported, switchable manually or auto-following system language
 ---

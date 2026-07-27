@@ -29,8 +29,8 @@ features:
     title: 深色/浅色主题
     details: 支持浅色、深色和跟随系统三种主题模式，适应不同使用环境
   - icon: 🌐
-    title: 中英双语界面
-    details: 完整的中文和英文界面支持，可手动切换或跟随系统语言自动切换
+    title: 多语言界面
+    details: 支持 20 种语言的界面，可手动切换或跟随系统语言自动选择
 ---
 
 <div style="text-align:center;padding:48px 24px 64px">

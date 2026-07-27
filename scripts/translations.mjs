@@ -51,7 +51,7 @@ export const FEATURES = {
     { title: '丰富的交互工具', details: 'OrbitControls 相机控制、TransformControls 变换工具、拓扑选择（物体/面/边/顶点）' },
     { title: '便捷的文件管理', details: '拖拽加载、剪贴板粘贴、目录自动扫描、键盘导航的文件列表，快速切换模型' },
     { title: '深色/浅色主题', details: '支持浅色、深色和跟随系统三种主题模式，适应不同使用环境' },
-    { title: '中英双语界面', details: '完整的中文和英文界面支持，可手动切换或跟随系统语言自动切换' },
+    { title: '多语言界面', details: '支持 20 种语言的界面，可手动切换或跟随系统语言自动选择' },
   ],
   en: [
     { title: 'Multi-format Support', details: 'Supports 33+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more' },
@@ -59,7 +59,7 @@ export const FEATURES = {
     { title: 'Rich Interaction Tools', details: 'OrbitControls camera, TransformControls manipulation, topology selection (object/face/edge/vertex)' },
     { title: 'Easy File Management', details: 'Drag & drop, clipboard paste, auto directory scanning, keyboard-navigable file list for quick model switching' },
     { title: 'Dark & Light Themes', details: 'Light, dark, and system-following theme modes to suit your working environment' },
-    { title: 'Bilingual Interface', details: 'Full Chinese and English UI, switchable manually or auto-following system language' },
+    { title: 'Multi-language Interface', details: '20 languages supported, switchable manually or auto-following system language' },
   ],
   es: [
     { title: 'Soporte multiformato', details: 'Compatible con más de 27 formatos de archivo 3D como STL, GLB, STEP, OBJ, FBX, PLY, 3MF — incluyendo mallas, CAD, nubes de puntos, volúmenes y más' },
@@ -67,7 +67,7 @@ export const FEATURES = {
     { title: 'Herramientas de interacción', details: 'Cámara OrbitControls, manipulación TransformControls, selección de topología (objeto/cara/borde/vértice)' },
     { title: 'Gestión de archivos fácil', details: 'Arrastrar y soltar, pegar desde portapapeles, escaneo automático de directorios, lista de archivos navegable con teclado' },
     { title: 'Temas claro y oscuro', details: 'Modos claro, oscuro y seguimiento del sistema para adaptarse a su entorno de trabajo' },
-    { title: 'Interfaz bilingüe', details: 'Interfaz completa en chino e inglés, conmutable manualmente o siguiendo el idioma del sistema' },
+    { title: 'Interfaz multilingüe', details: 'Interfaz en 20 idiomas, conmutable manualmente o siguiendo el idioma del sistema' },
   ],
   ja: [
     { title: 'マルチフォーマット対応', details: 'STL、GLB、STEP、OBJ、FBX、PLY、3MF など 27 以上の 3D ファイル形式に対応。メッシュ、CAD、点群、ボリュームなどをカバー' },
@@ -75,7 +75,7 @@ export const FEATURES = {
     { title: '豊富なインタラクションツール', details: 'OrbitControls カメラ、TransformControls 操作、トポロジ選択（オブジェクト/面/エッジ/頂点）' },
     { title: '簡単ファイル管理', details: 'ドラッグ＆ドロップ、クリップボード貼り付け、自動ディレクトリスキャン、キーボード操作可能なファイルリスト' },
     { title: 'ダーク/ライトテーマ', details: 'ライト、ダーク、システム追従の3つのテーマモードに対応' },
-    { title: 'バイリンガルインターフェース', details: '中国語と英語の完全なUI、手動切り替えまたはシステム言語に自動追従' },
+    { title: '多言語インターフェース', details: '20言語に対応、手動切り替えまたはシステム言語に自動追従' },
   ],
   ko: [
     { title: '다중 포맷 지원', details: 'STL, GLB, STEP, OBJ, FBX, PLY, 3MF 등 33+ 3D 파일 형식을 지원하며 메시, CAD, 포인트 클라우드, 볼륨 등을 포함' },
@@ -83,7 +83,7 @@ export const FEATURES = {
     { title: '풍부한 상호작용 도구', details: 'OrbitControls 카메라, TransformControls 조작, 토폴로지 선택 (객체/면/모서리/정점)' },
     { title: '손쉬운 파일 관리', details: '드래그 앤 드롭, 클립보드 붙여넣기, 자동 디렉터리 스캔, 키보드 탐색 가능한 파일 목록' },
     { title: '다크/라이트 테마', details: '라이트, 다크, 시스템 설정 연동의 세 가지 테마 모드 지원' },
-    { title: '이중 언어 인터페이스', details: '중국어와 영어로 된 완전한 UI, 수동 전환 또는 시스템 언어 자동 추적' },
+    { title: '다국어 인터페이스', details: '20개 언어 지원, 수동 전환 또는 시스템 언어 자동 추적' },
   ],
 }
 
