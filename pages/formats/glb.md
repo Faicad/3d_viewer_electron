@@ -11,6 +11,10 @@ next:
 
 GLB is the binary format of glTF 2.0, packing meshes, textures and animations into a single file. Full PBR material, animation and topology selection support.
 
+## Screenshot
+
+![GLB](/screenshots/formats/glb.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ GLB is the binary format of glTF 2.0, packing meshes, textures and animations in
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![GLB](/screenshots/formats/glb.png)
 

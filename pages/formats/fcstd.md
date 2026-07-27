@@ -11,6 +11,10 @@ next:
 
 FCStd is FreeCAD's native format — a ZIP package containing XML documents and embedded BREP geometry. The app extracts and converts it to GLB via the OCCT engine.
 
+## Screenshot
+
+![FreeCAD](/screenshots/formats/fcstd.png)
+
 ## Format Info
 
 | Property | Value |

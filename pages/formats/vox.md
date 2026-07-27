@@ -11,6 +11,10 @@ next:
 
 VOX is MagicaVoxel's voxel editor format, building pixel-art style 3D models from cubic voxels.
 
+## Screenshot
+
+![VOX](/screenshots/formats/vox.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ VOX is MagicaVoxel's voxel editor format, building pixel-art style 3D models fro
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![VOX](/screenshots/formats/vox.png)
 

@@ -11,6 +11,10 @@ next:
 
 STEP is the most widely used 3D data exchange format in industrial CAD. Auto-imported and rendered with topology preservation, wireframe display and unit auto-detection.
 
+## Screenshot
+
+![STEP](/screenshots/formats/step.png)
+
 ## Format Info
 
 | Property | Value |
@@ -34,7 +38,4 @@ STEP is the most widely used 3D data exchange format in industrial CAD. Auto-imp
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![STEP](/screenshots/formats/step.png)
 

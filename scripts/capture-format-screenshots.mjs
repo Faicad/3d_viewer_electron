@@ -12,10 +12,10 @@ const FIXTURES = path.resolve(ROOT, 'src', 'test', 'fixtures')
 
 fs.mkdirSync(OUT, { recursive: true })
 
-async function capture(name, page, fn) {
+async function capture(name, page, fn, fullPage = true) {
   if (fn) await fn()
   await page.waitForTimeout(1500)
-  await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: false })
+  await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage })
   console.log(`  ✅ ${name}.png`)
 }
 
@@ -29,17 +29,35 @@ async function loadFile(page, fileName, mimeType) {
     mimeType,
     buffer: buf,
   })
+
+  // ── Wait for loading to complete ──────────────────────────────────
+  // For 3D formats: model store __loadingPhase becomes 'done'
+  // For SVG/DXF (2D) formats: svgWorkspaceStore.files becomes non-empty
   await page.waitForFunction(
-    () => window.__modelStore?.getState().__loadingPhase === 'done',
+    () => {
+      const modelDone = window.__modelStore?.getState().__loadingPhase === 'done'
+      const svgLoading = window.__svgWorkspaceStore?.getState().files.length > 0
+      return modelDone || svgLoading
+    },
     { timeout: 30000 },
   )
-  await page.waitForTimeout(1500)
+
+  // Additional stabilization time for rendering
+  await page.waitForTimeout(2000)
 }
 
 async function main() {
-  const formatsWithFixtures = FORMATS.filter(f => f.fixture)
+  const targetFormats = process.argv.slice(2)
+  const formatsWithFixtures = targetFormats.length > 0
+    ? FORMATS.filter(f => f.fixture && targetFormats.includes(f.id))
+    : FORMATS.filter(f => f.fixture)
 
-  console.log(`Capturing screenshots for ${formatsWithFixtures.length} formats...`)
+  if (formatsWithFixtures.length === 0) {
+    console.log('No matching formats to capture.')
+    return
+  }
+
+  console.log(`Capturing screenshots for ${formatsWithFixtures.length} format(s): ${formatsWithFixtures.map(f => f.id).join(', ')}`)
 
   // Close file list panel for better screenshots
   const electronApp = await _electron.launch({

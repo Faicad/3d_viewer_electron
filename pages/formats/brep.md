@@ -11,6 +11,10 @@ next:
 
 BREP (Boundary Representation) is OpenCASCADE's native boundary representation format, precisely describing face, edge and vertex topology of 3D geometry. Converted to GLB via occt-import-js.wasm for rendering.
 
+## Screenshot
+
+![BREP](/screenshots/formats/brep.png)
+
 ## Format Info
 
 | Property | Value |

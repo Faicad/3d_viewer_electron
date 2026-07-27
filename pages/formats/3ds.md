@@ -11,6 +11,10 @@ next:
 
 3DS is the classic format of Autodesk 3ds Max, widely used for legacy 3D content exchange.
 
+## Screenshot
+
+![3DS](/screenshots/formats/3ds.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ next:
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![3DS](/screenshots/formats/3ds.png)
 

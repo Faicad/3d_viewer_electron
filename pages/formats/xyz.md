@@ -11,6 +11,10 @@ next:
 
 XYZ is a simple point coordinate format with X/Y/Z values per line, rendered as a point cloud.
 
+## Screenshot
+
+![XYZ](/screenshots/formats/xyz.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ XYZ is a simple point coordinate format with X/Y/Z values per line, rendered as 
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![XYZ](/screenshots/formats/xyz.png)
 

@@ -11,6 +11,10 @@ next:
 
 PDB (Protein Data Bank) is the protein structure format. Atoms and bonds are rendered as point clouds and lines.
 
+## Screenshot
+
+![PDB](/screenshots/formats/pdb.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ PDB (Protein Data Bank) is the protein structure format. Atoms and bonds are ren
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![PDB](/screenshots/formats/pdb.png)
 

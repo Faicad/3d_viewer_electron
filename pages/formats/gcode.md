@@ -11,6 +11,10 @@ next:
 
 GCode is the instruction set for 3D printer toolpaths. This app renders the movement trajectories as 3D line segments.
 
+## Screenshot
+
+![GCode](/screenshots/formats/gcode.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ GCode is the instruction set for 3D printer toolpaths. This app renders the move
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![GCode](/screenshots/formats/gcode.png)
 

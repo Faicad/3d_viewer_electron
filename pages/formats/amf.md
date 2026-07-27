@@ -11,6 +11,10 @@ next:
 
 AMF (Additive Manufacturing Format) is an ISO standard 3D printing format supporting color, textures and multiple materials.
 
+## Screenshot
+
+![AMF](/screenshots/formats/amf.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ AMF (Additive Manufacturing Format) is an ISO standard 3D printing format suppor
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![AMF](/screenshots/formats/amf.png)
 

@@ -11,6 +11,10 @@ next:
 
 KMZ is a compressed KML (Keyhole Markup Language) format for packaging geospatial data and 3D models.
 
+## Screenshot
+
+![KMZ](/screenshots/formats/kmz.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ KMZ is a compressed KML (Keyhole Markup Language) format for packaging geospatia
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![KMZ](/screenshots/formats/kmz.png)
 

@@ -11,6 +11,10 @@ next:
 
 MD2 is the model format used by Quake II engine, supporting vertex animation — a classic game model format.
 
+## Screenshot
+
+![MD2](/screenshots/formats/md2.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ MD2 is the model format used by Quake II engine, supporting vertex animation —
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![MD2](/screenshots/formats/md2.png)
 

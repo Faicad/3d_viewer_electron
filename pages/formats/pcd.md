@@ -11,6 +11,10 @@ next:
 
 PCD (Point Cloud Data) is Point Cloud Library's standard format storing 3D point coordinates and attributes.
 
+## Screenshot
+
+![PCD](/screenshots/formats/pcd.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ PCD (Point Cloud Data) is Point Cloud Library's standard format storing 3D point
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![PCD](/screenshots/formats/pcd.png)
 

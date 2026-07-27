@@ -11,6 +11,10 @@ next:
 
 OBJ is the classic Wavefront 3D text-based format, referencing external .mtl material library files.
 
+## Screenshot
+
+![OBJ](/screenshots/formats/obj.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ OBJ is the classic Wavefront 3D text-based format, referencing external .mtl mat
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![OBJ](/screenshots/formats/obj.png)
 

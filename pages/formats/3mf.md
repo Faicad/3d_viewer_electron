@@ -11,6 +11,10 @@ next:
 
 3MF (3D Manufacturing Format) is a 3D printing format promoted by Microsoft, supporting color and material information.
 
+## Screenshot
+
+![3MF](/screenshots/formats/3mf.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ next:
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![3MF](/screenshots/formats/3mf.png)
 

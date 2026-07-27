@@ -11,6 +11,10 @@ next:
 
 3DM is Rhinoceros 3D (Rhino)'s native format, widely used in industrial design and architecture.
 
+## Screenshot
+
+![3DM](/screenshots/formats/3dm.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ next:
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![3DM](/screenshots/formats/3dm.png)
 

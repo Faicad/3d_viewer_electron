@@ -11,6 +11,10 @@ next:
 
 SVG (Scalable Vector Graphics) is an XML-based 2D vector graphics format widely used for web icons, illustrations and UI design.
 
+## Screenshot
+
+![SVG](/screenshots/formats/svg.png)
+
 ## Format Info
 
 | Property | Value |

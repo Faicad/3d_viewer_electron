@@ -11,6 +11,10 @@ next:
 
 SCAD is OpenSCAD's script-based format that describes 3D geometry programmatically (cubes, spheres, cylinders combined via boolean operations). Compiled and converted to GLB via openscad-wasm for rendering.
 
+## Screenshot
+
+![OpenSCAD](/screenshots/formats/scad.png)
+
 ## Format Info
 
 | Property | Value |

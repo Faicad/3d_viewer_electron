@@ -11,6 +11,10 @@ next:
 
 LWO is LightWave 3D's model format, supporting polygon meshes and surface material attributes.
 
+## Screenshot
+
+![LWO](/screenshots/formats/lwo.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ LWO is LightWave 3D's model format, supporting polygon meshes and surface materi
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![LWO](/screenshots/formats/lwo.png)
 

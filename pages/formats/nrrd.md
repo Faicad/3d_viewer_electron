@@ -11,6 +11,10 @@ next:
 
 NRRD (Nearly Raw Raster Data) is a volume data format in medical and scientific imaging, supporting multi-dimensional raster data.
 
+## Screenshot
+
+![NRRD](/screenshots/formats/nrrd.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ NRRD (Nearly Raw Raster Data) is a volume data format in medical and scientific 
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![NRRD](/screenshots/formats/nrrd.png)
 

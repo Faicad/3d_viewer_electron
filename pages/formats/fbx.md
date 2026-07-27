@@ -11,6 +11,10 @@ next:
 
 FBX is Autodesk's 3D exchange format, widely used in gaming and film industries, supporting meshes, materials and animations.
 
+## Screenshot
+
+![FBX](/screenshots/formats/fbx.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ FBX is Autodesk's 3D exchange format, widely used in gaming and film industries,
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![FBX](/screenshots/formats/fbx.png)
 

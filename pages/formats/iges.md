@@ -11,6 +11,10 @@ next:
 
 IGES (Initial Graphics Exchange Specification) is a classic CAD data exchange format widely used in engineering design and manufacturing. Converted to GLB via occt-import-js.wasm for rendering.
 
+## Screenshot
+
+![IGES](/screenshots/formats/iges.png)
+
 ## Format Info
 
 | Property | Value |

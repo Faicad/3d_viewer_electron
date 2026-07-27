@@ -11,6 +11,10 @@ next:
 
 PLY (Polygon File Format) stores vertex colors, normals and other attributes. ASCII and Binary are auto-detected.
 
+## Screenshot
+
+![PLY](/screenshots/formats/ply.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ PLY (Polygon File Format) stores vertex colors, normals and other attributes. AS
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![PLY](/screenshots/formats/ply.png)
 

@@ -11,6 +11,10 @@ next:
 
 BVH (Biovision Hierarchy) is a motion capture data format, rendered as skeleton hierarchy animations.
 
+## Screenshot
+
+![BVH](/screenshots/formats/bvh.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ BVH (Biovision Hierarchy) is a motion capture data format, rendered as skeleton 
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![BVH](/screenshots/formats/bvh.png)
 

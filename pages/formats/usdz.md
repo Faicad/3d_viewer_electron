@@ -11,6 +11,10 @@ next:
 
 USDZ is Apple's Universal Scene Description package format for AR and 3D content distribution.
 
+## Screenshot
+
+![USDZ](/screenshots/formats/usdz.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ USDZ is Apple's Universal Scene Description package format for AR and 3D content
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![USDZ](/screenshots/formats/usdz.png)
 

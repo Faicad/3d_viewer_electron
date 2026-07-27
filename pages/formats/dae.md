@@ -11,6 +11,10 @@ next:
 
 DAE (Collada) is an XML-based open 3D format supporting full scene graphs, materials and animation data.
 
+## Screenshot
+
+![Collada](/screenshots/formats/dae.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ DAE (Collada) is an XML-based open 3D format supporting full scene graphs, mater
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![Collada](/screenshots/formats/dae.png)
 

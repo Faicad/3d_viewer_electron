@@ -11,6 +11,10 @@ next:
 
 GLTF is the JSON-based format of glTF 2.0, referencing external .bin and texture files. Supports PBR materials, animations and topology selection.
 
+## Screenshot
+
+![GLTF](/screenshots/formats/gltf.png)
+
 ## Format Info
 
 | Property | Value |

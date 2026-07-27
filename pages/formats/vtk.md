@@ -11,6 +11,10 @@ next:
 
 VTK (Visualization Toolkit) is the standard data format in scientific visualization, supporting multiple data types.
 
+## Screenshot
+
+![VTK](/screenshots/formats/vtk.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ VTK (Visualization Toolkit) is the standard data format in scientific visualizat
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![VTK](/screenshots/formats/vtk.png)
 

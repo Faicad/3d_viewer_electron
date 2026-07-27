@@ -11,6 +11,10 @@ next:
 
 IFC (Industry Foundation Classes) is the international standard data format in the BIM domain for digital description of buildings and infrastructure. Parsed and rendered via the web-ifc library.
 
+## Screenshot
+
+![IFC](/screenshots/formats/ifc.png)
+
 ## Format Info
 
 | Property | Value |

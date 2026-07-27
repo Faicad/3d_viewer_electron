@@ -8,6 +8,10 @@ prev:
 
 DXF (Drawing Exchange Format) is Autodesk's CAD data exchange format, widely used for 2D engineering drawings and 3D model exchange.
 
+## Screenshot
+
+![DXF](/screenshots/formats/dxf.png)
+
 ## Format Info
 
 | Property | Value |

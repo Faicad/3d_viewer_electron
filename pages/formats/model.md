@@ -11,6 +11,10 @@ next:
 
 MODEL is an embedded model file within 3MF packages, containing 3D mesh and material data. The app loads and renders it as a standard 3D model.
 
+## Screenshot
+
+![3MF Model](/screenshots/formats/model.png)
+
 ## Format Info
 
 | Property | Value |

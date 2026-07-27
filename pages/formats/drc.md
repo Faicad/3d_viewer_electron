@@ -11,6 +11,10 @@ next:
 
 DRC (Draco) is Google's compressed mesh format that significantly reduces 3D model file sizes, ideal for web transmission.
 
+## Screenshot
+
+![Draco](/screenshots/formats/drc.png)
+
 ## Format Info
 
 | Property | Value |
@@ -33,7 +37,4 @@ DRC (Draco) is Google's compressed mesh format that significantly reduces 3D mod
 - Scene tree: hierarchical model structure
 - Model export: download as STL or GLB
 
-## Screenshot
-
-![Draco](/screenshots/formats/drc.png)
 

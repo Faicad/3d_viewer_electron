@@ -8,6 +8,10 @@ next:
 
 STL is the most common triangle mesh format, widely used in 3D printing and CAD exchange. Both ASCII and Binary encodings are supported and auto-detected.
 
+## Screenshot
+
+![STL](/screenshots/formats/stl.png)
+
 ## Format Info
 
 | Property | Value |
