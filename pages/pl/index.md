@@ -4,7 +4,7 @@ layout: home
 hero:
   name: 'Faicad 3D Viewer'
   text: 'Wieloplatformowa przeglądarka modeli 3D'
-  tagline: 'Darmowa aplikacja desktopowa o otwartym kodzie źródłowym do przeglądania 27+ formatów plików 3D, zbudowana na Electron + Three.js'
+  tagline: 'Darmowa aplikacja desktopowa o otwartym kodzie źródłowym do przeglądania 33+ formatów plików 3D, zbudowana na Electron + Three.js'
   actions:
     - theme: brand
       text: Rozpocznij
@@ -16,7 +16,7 @@ hero:
 features:
   - icon: 🚀
     title: Multi-format Support
-    details: Supports 27+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
+    details: Supports 33+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
   - icon: 🎨
     title: PBR Rendering Engine
     details: Physically-based rendering with metalness/roughness workflow, environment maps, and multi-light system built on Three.js

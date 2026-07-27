@@ -2,7 +2,7 @@
 
 ## 🚀 Multi-format Support
 
-Supports 27+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
+Supports 33+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
 
 ## 🎨 PBR Rendering Engine
 

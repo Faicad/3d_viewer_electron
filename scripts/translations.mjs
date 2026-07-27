@@ -22,31 +22,31 @@ export const NAV = {
 }
 
 export const HERO = {
-  zh: { text: '跨平台 3D 模型文件查看器', tagline: '免费开源的桌面应用，支持 27+ 种 3D 文件格式的浏览和渲染，基于 Electron + Three.js 构建', getStarted: '快速开始', download: '下载', downloadLink: 'https://gitcode.com/Faicad/3d_viewer_electron/releases' },
-  en: { text: 'Faicad 3D Viewer', tagline: 'Free and open-source desktop application for viewing 27+ 3D file formats, built with Electron + Three.js', getStarted: 'Get Started', download: 'Download', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  zh: { text: '跨平台 3D 模型文件查看器', tagline: '免费开源的桌面应用，支持 33+ 种 3D 文件格式的浏览和渲染，基于 Electron + Three.js 构建', getStarted: '快速开始', download: '下载', downloadLink: 'https://gitcode.com/Faicad/3d_viewer_electron/releases' },
+  en: { text: 'Faicad 3D Viewer', tagline: 'Free and open-source desktop application for viewing 33+ 3D file formats, built with Electron + Three.js', getStarted: 'Get Started', download: 'Download', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   es: { text: 'Visor de modelos 3D multiplataforma', tagline: 'Aplicación de escritorio gratuita y de código abierto para ver más de 27 formatos de archivo 3D, construida con Electron + Three.js', getStarted: 'Comenzar', download: 'Descargar', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   ja: { text: 'クロスプラットフォーム 3D モデルビューア', tagline: '27 以上の 3D ファイル形式に対応した無料のオープンソースデスクトップアプリケーション。Electron + Three.js で構築', getStarted: '始める', download: 'ダウンロード', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  ko: { text: '크로스 플랫폼 3D 모델 뷰어', tagline: '27+ 가지 3D 파일 형식을 지원하는 무료 오픈소스 데스크톱 애플리케이션, Electron + Three.js 로 구축', getStarted: '시작하기', download: '다운로드', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  ko: { text: '크로스 플랫폼 3D 모델 뷰어', tagline: '33+ 가지 3D 파일 형식을 지원하는 무료 오픈소스 데스크톱 애플리케이션, Electron + Three.js 로 구축', getStarted: '시작하기', download: '다운로드', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   fr: { text: 'Visualiseur de modèles 3D multiplateforme', tagline: 'Application de bureau gratuite et open-source pour visualiser plus de 27 formats de fichiers 3D, construite avec Electron + Three.js', getStarted: 'Commencer', download: 'Télécharger', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   de: { text: 'Plattformübergreifender 3D-Modellbetrachter', tagline: 'Kostenlose Open-Source-Desktop-Anwendung zum Betrachten von über 27 3D-Dateiformaten, entwickelt mit Electron + Three.js', getStarted: 'Loslegen', download: 'Herunterladen', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   pt: { text: 'Visualizador de modelos 3D multiplataforma', tagline: 'Aplicativo de desktop gratuito e de código aberto para visualizar mais de 27 formatos de arquivo 3D, construído com Electron + Three.js', getStarted: 'Começar', download: 'Baixar', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  ru: { text: 'Кроссплатформенный 3D-просмотрщик моделей', tagline: 'Бесплатное приложение с открытым исходным кодом для просмотра 27+ форматов 3D-файлов, созданное на Electron + Three.js', getStarted: 'Начать', download: 'Скачать', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  ru: { text: 'Кроссплатформенный 3D-просмотрщик моделей', tagline: 'Бесплатное приложение с открытым исходным кодом для просмотра 33+ форматов 3D-файлов, созданное на Electron + Three.js', getStarted: 'Начать', download: 'Скачать', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   ar: { text: 'عارض النماذج ثلاثية الأبعاد متعدد المنصات', tagline: 'تطبيق سطح مكتب مجاني ومفتوح المصدر لعرض أكثر من 27 تنسيقًا من ملفات ثلاثية الأبعاد، مبني على Electron + Three.js', getStarted: 'ابدأ', download: 'تحميل', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  hi: { text: 'क्रॉस-प्लेटफ़ॉर्म 3D मॉडल व्यूअर', tagline: '27+ 3D फ़ाइल फ़ॉर्मेट देखने के लिए मुफ़्त और ओपन-सोर्स डेस्कटॉप एप्लिकेशन, Electron + Three.js पर निर्मित', getStarted: 'शुरू करें', download: 'डाउनलोड', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  id: { text: 'Penampil Model 3D Lintas Platform', tagline: 'Aplikasi desktop gratis dan sumber terbuka untuk melihat 27+ format file 3D, dibangun dengan Electron + Three.js', getStarted: 'Mulai', download: 'Unduh', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  tr: { text: 'Platformlar Arası 3D Model Görüntüleyici', tagline: 'Electron + Three.js ile oluşturulmuş, 27+ 3D dosya formatını görüntülemek için ücretsiz ve açık kaynaklı masaüstü uygulaması', getStarted: 'Başla', download: 'İndir', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  hi: { text: 'क्रॉस-प्लेटफ़ॉर्म 3D मॉडल व्यूअर', tagline: '33+ 3D फ़ाइल फ़ॉर्मेट देखने के लिए मुफ़्त और ओपन-सोर्स डेस्कटॉप एप्लिकेशन, Electron + Three.js पर निर्मित', getStarted: 'शुरू करें', download: 'डाउनलोड', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  id: { text: 'Penampil Model 3D Lintas Platform', tagline: 'Aplikasi desktop gratis dan sumber terbuka untuk melihat 33+ format file 3D, dibangun dengan Electron + Three.js', getStarted: 'Mulai', download: 'Unduh', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  tr: { text: 'Platformlar Arası 3D Model Görüntüleyici', tagline: 'Electron + Three.js ile oluşturulmuş, 33+ 3D dosya formatını görüntülemek için ücretsiz ve açık kaynaklı masaüstü uygulaması', getStarted: 'Başla', download: 'İndir', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   it: { text: 'Visualizzatore di modelli 3D multipiattaforma', tagline: 'Applicazione desktop gratuita e open-source per visualizzare oltre 27 formati di file 3D, costruita con Electron + Three.js', getStarted: 'Inizia', download: 'Scarica', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  nl: { text: 'Cross-platform 3D-modelviewer', tagline: 'Gratis en open-source desktopapplicatie voor het bekijken van 27+ 3D-bestandsformaten, gebouwd met Electron + Three.js', getStarted: 'Aan de slag', download: 'Downloaden', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  pl: { text: 'Wieloplatformowa przeglądarka modeli 3D', tagline: 'Darmowa aplikacja desktopowa o otwartym kodzie źródłowym do przeglądania 27+ formatów plików 3D, zbudowana na Electron + Three.js', getStarted: 'Rozpocznij', download: 'Pobierz', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  vi: { text: 'Trình xem mô hình 3D đa nền tảng', tagline: 'Ứng dụng desktop miễn phí và mã nguồn mở để xem 27+ định dạng tệp 3D, được xây dựng với Electron + Three.js', getStarted: 'Bắt đầu', download: 'Tải xuống', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  nl: { text: 'Cross-platform 3D-modelviewer', tagline: 'Gratis en open-source desktopapplicatie voor het bekijken van 33+ 3D-bestandsformaten, gebouwd met Electron + Three.js', getStarted: 'Aan de slag', download: 'Downloaden', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  pl: { text: 'Wieloplatformowa przeglądarka modeli 3D', tagline: 'Darmowa aplikacja desktopowa o otwartym kodzie źródłowym do przeglądania 33+ formatów plików 3D, zbudowana na Electron + Three.js', getStarted: 'Rozpocznij', download: 'Pobierz', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  vi: { text: 'Trình xem mô hình 3D đa nền tảng', tagline: 'Ứng dụng desktop miễn phí và mã nguồn mở để xem 33+ định dạng tệp 3D, được xây dựng với Electron + Three.js', getStarted: 'Bắt đầu', download: 'Tải xuống', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
   th: { text: 'โปรแกรมดูโมเดล 3D ข้ามแพลตฟอร์ม', tagline: 'แอปพลิเคชันเดสก์ท็อปฟรีและโอเพนซอร์สสำหรับดูไฟล์ 3D กว่า 27 รูปแบบ สร้างด้วย Electron + Three.js', getStarted: 'เริ่มต้น', download: 'ดาวน์โหลด', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  uk: { text: 'Кроссплатформенний 3D-переглядач моделей', tagline: 'Безкоштовний додаток з відкритим кодом для перегляду 27+ форматів 3D-файлів, створений на Electron + Three.js', getStarted: 'Почати', download: 'Завантажити', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
-  sv: { text: 'Plattformsoberoende 3D-modellvisare', tagline: 'Gratis skrivbordsapplikation med öppen källkod för att visa 27+ 3D-filformat, byggd med Electron + Three.js', getStarted: 'Kom igång', download: 'Ladda ner', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  uk: { text: 'Кроссплатформенний 3D-переглядач моделей', tagline: 'Безкоштовний додаток з відкритим кодом для перегляду 33+ форматів 3D-файлів, створений на Electron + Three.js', getStarted: 'Почати', download: 'Завантажити', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
+  sv: { text: 'Plattformsoberoende 3D-modellvisare', tagline: 'Gratis skrivbordsapplikation med öppen källkod för att visa 33+ 3D-filformat, byggd med Electron + Three.js', getStarted: 'Kom igång', download: 'Ladda ner', downloadLink: 'https://github.com/Faicad/3d_viewer_electron/releases' },
 }
 
 export const FEATURES = {
   zh: [
-    { title: '多格式支持', details: '支持 STL、GLB、STEP、OBJ、FBX、PLY、3MF 等 27+ 种 3D 文件格式，覆盖网格、CAD、点云、体数据等类别' },
+    { title: '多格式支持', details: '支持 STL、GLB、STEP、OBJ、FBX、PLY、3MF 等 33+ 种 3D 文件格式，覆盖网格、CAD、点云、体数据等类别' },
     { title: 'PBR 渲染引擎', details: '基于 Three.js 的物理渲染系统，支持金属度/粗糙度工作流、环境贴图和多光源系统' },
     { title: '丰富的交互工具', details: 'OrbitControls 相机控制、TransformControls 变换工具、拓扑选择（物体/面/边/顶点）' },
     { title: '便捷的文件管理', details: '拖拽加载、剪贴板粘贴、目录自动扫描、键盘导航的文件列表，快速切换模型' },
@@ -54,7 +54,7 @@ export const FEATURES = {
     { title: '中英双语界面', details: '完整的中文和英文界面支持，可手动切换或跟随系统语言自动切换' },
   ],
   en: [
-    { title: 'Multi-format Support', details: 'Supports 27+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more' },
+    { title: 'Multi-format Support', details: 'Supports 33+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more' },
     { title: 'PBR Rendering Engine', details: 'Physically-based rendering with metalness/roughness workflow, environment maps, and multi-light system built on Three.js' },
     { title: 'Rich Interaction Tools', details: 'OrbitControls camera, TransformControls manipulation, topology selection (object/face/edge/vertex)' },
     { title: 'Easy File Management', details: 'Drag & drop, clipboard paste, auto directory scanning, keyboard-navigable file list for quick model switching' },
@@ -78,7 +78,7 @@ export const FEATURES = {
     { title: 'バイリンガルインターフェース', details: '中国語と英語の完全なUI、手動切り替えまたはシステム言語に自動追従' },
   ],
   ko: [
-    { title: '다중 포맷 지원', details: 'STL, GLB, STEP, OBJ, FBX, PLY, 3MF 등 27+ 3D 파일 형식을 지원하며 메시, CAD, 포인트 클라우드, 볼륨 등을 포함' },
+    { title: '다중 포맷 지원', details: 'STL, GLB, STEP, OBJ, FBX, PLY, 3MF 등 33+ 3D 파일 형식을 지원하며 메시, CAD, 포인트 클라우드, 볼륨 등을 포함' },
     { title: 'PBR 렌더링 엔진', details: '메탈니스/러프니스 워크플로, 환경 맵, 다중 조명 시스템을 갖춘 Three.js 기반 물리 기반 렌더링' },
     { title: '풍부한 상호작용 도구', details: 'OrbitControls 카메라, TransformControls 조작, 토폴로지 선택 (객체/면/모서리/정점)' },
     { title: '손쉬운 파일 관리', details: '드래그 앤 드롭, 클립보드 붙여넣기, 자동 디렉터리 스캔, 키보드 탐색 가능한 파일 목록' },

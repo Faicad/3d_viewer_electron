@@ -2,21 +2,20 @@
 layout: home
 
 hero:
-  name: 'Faicad 3D Viewer'
-  text: '跨平台 3D 模型文件查看器'
-  tagline: '免费开源的桌面应用，支持 27+ 种 3D 文件格式的浏览和渲染，基于 Electron + Three.js 构建'
+  name: '跨平台 3D 模型文件查看器'
+  tagline: '免费开源的桌面应用，支持 33+ 种 3D 文件格式的浏览和渲染，基于 Electron + Three.js 构建'
   actions:
     - theme: brand
       text: 快速开始
       link: /zh/guide/getting-started
-    - theme: alt
+    - theme: brand
       text: 下载
       link: https://gitcode.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀
     title: 多格式支持
-    details: 支持 STL、GLB、STEP、OBJ、FBX、PLY、3MF 等 27+ 种 3D 文件格式，覆盖网格、CAD、点云、体数据等类别
+    details: 支持 STL、GLB、STEP、OBJ、FBX、PLY、3MF 等 33+ 种 3D 文件格式，覆盖网格、CAD、点云、体数据等类别
   - icon: 🎨
     title: PBR 渲染引擎
     details: 基于 Three.js 的物理渲染系统，支持金属度/粗糙度工作流、环境贴图和多光源系统

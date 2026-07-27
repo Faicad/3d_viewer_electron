@@ -4,7 +4,7 @@ layout: home
 hero:
   name: 'Faicad 3D Viewer'
   text: 'Cross-platform 3D-modelviewer'
-  tagline: 'Gratis en open-source desktopapplicatie voor het bekijken van 27+ 3D-bestandsformaten, gebouwd met Electron + Three.js'
+  tagline: 'Gratis en open-source desktopapplicatie voor het bekijken van 33+ 3D-bestandsformaten, gebouwd met Electron + Three.js'
   actions:
     - theme: brand
       text: Aan de slag
@@ -16,7 +16,7 @@ hero:
 features:
   - icon: 🚀
     title: Multi-format Support
-    details: Supports 27+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
+    details: Supports 33+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
   - icon: 🎨
     title: PBR Rendering Engine
     details: Physically-based rendering with metalness/roughness workflow, environment maps, and multi-light system built on Three.js

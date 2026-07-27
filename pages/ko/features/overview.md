@@ -2,7 +2,7 @@
 
 ## 🚀 다중 포맷 지원
 
-STL, GLB, STEP, OBJ, FBX, PLY, 3MF 등 27+ 3D 파일 형식을 지원하며 메시, CAD, 포인트 클라우드, 볼륨 등을 포함
+STL, GLB, STEP, OBJ, FBX, PLY, 3MF 등 33+ 3D 파일 형식을 지원하며 메시, CAD, 포인트 클라우드, 볼륨 등을 포함
 
 ## 🎨 PBR 렌더링 엔진
 

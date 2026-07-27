@@ -4,7 +4,7 @@ layout: home
 hero:
   name: 'Faicad 3D Viewer'
   text: 'Trình xem mô hình 3D đa nền tảng'
-  tagline: 'Ứng dụng desktop miễn phí và mã nguồn mở để xem 27+ định dạng tệp 3D, được xây dựng với Electron + Three.js'
+  tagline: 'Ứng dụng desktop miễn phí và mã nguồn mở để xem 33+ định dạng tệp 3D, được xây dựng với Electron + Three.js'
   actions:
     - theme: brand
       text: Bắt đầu
@@ -16,7 +16,7 @@ hero:
 features:
   - icon: 🚀
     title: Multi-format Support
-    details: Supports 27+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
+    details: Supports 33+ 3D file formats including STL, GLB, STEP, OBJ, FBX, PLY, 3MF — covering mesh, CAD, point cloud, volume and more
   - icon: 🎨
     title: PBR Rendering Engine
     details: Physically-based rendering with metalness/roughness workflow, environment maps, and multi-light system built on Three.js

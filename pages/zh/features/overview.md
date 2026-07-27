@@ -2,7 +2,7 @@
 
 ## 🚀 多格式支持
 
-支持 STL、GLB、STEP、OBJ、FBX、PLY、3MF 等 27+ 种 3D 文件格式，覆盖网格、CAD、点云、体数据等类别
+支持 STL、GLB、STEP、OBJ、FBX、PLY、3MF 等 33+ 种 3D 文件格式，覆盖网格、CAD、点云、体数据等类别
 
 ## 🎨 PBR 渲染引擎
 
