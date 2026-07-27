@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: MD2
   link: /ko/formats/md2

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: 3DS
   link: /de/formats/3ds

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: AMF
   link: /fr/formats/amf

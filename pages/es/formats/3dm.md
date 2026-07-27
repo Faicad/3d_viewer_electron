@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: LWO
   link: /es/formats/lwo

@@ -1,8 +1,7 @@
 ---
-sidebar: false
 prev:
-  text: NRRD
-  link: /ru/formats/nrrd
+  text: IFC
+  link: /ru/formats/ifc
 next:
   text: VRML
   link: /ru/formats/wrl
@@ -16,7 +15,7 @@ GCode is the instruction set for 3D printer toolpaths. This app renders the move
 
 | Property | Value |
 | --- | --- |
-| Extensions | `.gcode`, `.nc`, `.ncc`, `.ngc` |
+| Extensions | `.gcode` |
 | Category | GCode |
 | Render Type | Toolpath rendering |
 

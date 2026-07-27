@@ -1,11 +1,10 @@
 ---
-sidebar: false
 prev:
   text: VOX
   link: /ru/formats/vox
 next:
-  text: SVG
-  link: /ru/formats/svg
+  text: 3MF Model
+  link: /ru/formats/model
 ---
 
 # KMZ — Other

@@ -2,7 +2,7 @@
 
 > [English](README.md)
 
-独立的本地 3D 模型文件查看器桌面应用，支持 31 种 3D 文件格式的浏览和渲染。
+独立的本地 3D 模型文件查看器桌面应用，支持 33 种 3D 文件格式的浏览和渲染，另含 4 种辅助实用格式。
 
 ## 功能
 
@@ -39,7 +39,7 @@
 
 ## 支持的文件格式
 
-### 网格 (Mesh) — 13 种
+### 网格 (Mesh) — 14 种
 | 格式 | 扩展名 | 说明 |
 |------|--------|------|
 | STL | `.stl` | 三角面片网格，支持 ASCII 和 Binary |
@@ -57,14 +57,15 @@
 | LWO | `.lwo` | LightWave 3D 对象格式 |
 | 3DM | `.3dm` | Rhinoceros 3D 格式（需 rhino3dm WASM） |
 
-### CAD — 5 种
+### CAD — 6 种
 | 格式 | 扩展名 | 说明 |
 |------|--------|------|
 | STEP | `.step` `.stp` | 通过 OCCT 引擎转换为 GLB 渲染 |
 | STPZ | `.stpz` | ZIP 压缩的 STEP，解压后通过 OCCT 转换 |
-| IGES | `.iges` `.igs` | 初始图形交换规范，通过 OCCT 转换 |
-| BREP | `.brep` `.brp` | OpenCASCADE BREP 格式，通过 OCCT 转换 |
+| IGES | `.iges` `.igs` | 初始图形交换规范，通过 occt-import-js.wasm 转换 |
+| BREP | `.brep` `.brp` | OpenCASCADE BREP 格式，通过 occt-import-js.wasm 转换 |
 | FreeCAD | `.fcstd` | FreeCAD 原生格式（含嵌入式 BREP 几何的 ZIP 包），通过 OCCT 转换 |
+| OpenSCAD | `.scad` | OpenSCAD 脚本格式，通过 openscad-wasm 转换渲染 |
 
 ### BIM — 1 种
 | 格式 | 扩展名 | 说明 |
@@ -95,14 +96,26 @@
 |------|--------|------|
 | GCode | `.gcode` | 3D 打印刀具路径，渲染为线线段 |
 
-### 其他 — 2 种
+### 其他 — 4 种
 | 格式 | 扩展名 | 说明 |
 |------|--------|------|
 | WRL | `.wrl` | VRML，基于文本 |
 | VOX | `.vox` | MagicaVoxel 体素格式 |
 | KMZ | `.kmz` | 压缩的 KML，含 3D 模型 |
+| 3MF Model | `.model` | 3MF 包中嵌入的模型文件 |
 
-> **总计：31 种格式**。另有用例受限未启用的格式：MDD (`.mdd`)。
+> **总计：33 种 3D 格式**。另有用例受限未启用的格式：MDD (`.mdd`)。
+
+### 辅助实用格式
+
+以下非 3D 格式也受支持，用于辅助用途：
+
+| 格式 | 扩展名 | 说明 |
+|------|--------|------|
+| SVG | `.svg` | 可缩放矢量图形，渲染为 2D 叠加层 |
+| DXF | `.dxf` | AutoCAD 矢量数据交换，转换成 SVG 后渲染 |
+| HDR | `.hdr` | 高动态范围环境贴图 |
+| EXR | `.exr` | OpenEXR 环境贴图 |
 
 ## 环境要求
 

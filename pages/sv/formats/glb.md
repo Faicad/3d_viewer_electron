@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: STL
   link: /sv/formats/stl

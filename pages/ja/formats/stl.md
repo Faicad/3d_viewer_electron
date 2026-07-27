@@ -1,5 +1,4 @@
 ---
-sidebar: false
 next:
   text: GLB
   link: /ja/formats/glb

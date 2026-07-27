@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: XYZ
   link: /nl/formats/xyz

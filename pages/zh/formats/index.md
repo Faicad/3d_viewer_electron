@@ -96,11 +96,43 @@ LWO 是 LightWave 3D 的模型格式，支持多边形网格和表面材质属�
 
 STEP 是工业 CAD 领域最常用的三维数据交换格式。本应用自动导入并渲染，保留拓扑结构，支持线框显示和单位自动识别。
 
+### [IGES](iges)
+
+`.iges` `.igs`
+
+IGES (Initial Graphics Exchange Specification) 是用于 CAD 数据交换的经典格式，广泛应用于工程设计和制造领域。通过 occt-import-js.wasm 转换为 GLB 渲染。
+
+### [BREP](brep)
+
+`.brep` `.brp`
+
+BREP (Boundary Representation) 是 OpenCASCADE 的原生边界表示格式，精确描述三维几何体的面、边和顶点拓扑关系。通过 occt-import-js.wasm 转换为 GLB 渲染。
+
+### [FreeCAD](fcstd)
+
+`.fcstd`
+
+FCStd 是 FreeCAD 的原生格式，本质为 ZIP 包内含 XML 文档和嵌入式 BREP 几何体。本应用通过 OCCT 引擎解包并转换为 GLB 渲染。
+
+### [OpenSCAD](scad)
+
+`.scad`
+
+SCAD 是 OpenSCAD 的脚本语言格式，通过代码描述三维几何体（如立方体、球体、圆柱体并通过布尔运算组合）。本应用通过 openscad-wasm 编译并转换为 GLB 渲染。
+
 ### [DXF](dxf)
 
 `.dxf`
 
 DXF (Drawing Exchange Format) 是 Autodesk 的 CAD 数据交换格式，广泛用于 2D 工程图和 3D 模型交换。
+
+## BIM
+
+### [IFC](ifc)
+
+`.ifc`
+
+IFC (Industry Foundation Classes) 是建筑信息模型 (BIM) 领域的国际标准数据格式，用于建筑物和基础设施的数字化描述。本应用通过 web-ifc 库解析并渲染。
 
 ## 动画 (Animation)
 
@@ -185,3 +217,9 @@ VOX 是 MagicaVoxel 体素编辑器格式，以立方体体素构建像素风格
 `.kmz`
 
 KMZ 是压缩的 KML (Keyhole Markup Language) 格式，用于地理空间数据和 3D 模型的打包分发。
+
+### [3MF Model](model)
+
+`.model`
+
+MODEL 是 3MF 包中嵌入的独立模型文件，包含三维网格和材质信息。本应用将其作为普通 3D 模型加载渲染。

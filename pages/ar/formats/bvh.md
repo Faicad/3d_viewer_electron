@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: 3DM
   link: /ar/formats/3dm

@@ -1,8 +1,7 @@
 ---
-sidebar: false
 prev:
-  text: STEP
-  link: /de/formats/step
+  text: OpenSCAD
+  link: /de/formats/scad
 next:
   text: PLY
   link: /de/formats/ply

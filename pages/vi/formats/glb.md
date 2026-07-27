@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: STL
   link: /vi/formats/stl

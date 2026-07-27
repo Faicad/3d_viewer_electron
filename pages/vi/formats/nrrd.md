@@ -1,11 +1,10 @@
 ---
-sidebar: false
 prev:
   text: VTK
   link: /vi/formats/vtk
 next:
-  text: GCode
-  link: /vi/formats/gcode
+  text: IFC
+  link: /vi/formats/ifc
 ---
 
 # NRRD — Volume

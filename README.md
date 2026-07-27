@@ -2,7 +2,7 @@
 
 > [中文版](README.zh.md)
 
-A standalone local 3D model file viewer desktop application supporting browsing and rendering of 31 3D file formats.
+A standalone local 3D model file viewer desktop application supporting browsing and rendering of 33 3D file formats, plus 4 additional utility formats.
 
 ## Features
 
@@ -39,7 +39,7 @@ A standalone local 3D model file viewer desktop application supporting browsing 
 
 ## Supported File Formats
 
-### Mesh — 13 Formats
+### Mesh — 14 Formats
 | Format | Extension | Description |
 |--------|-----------|-------------|
 | STL | `.stl` | Triangle mesh, supports ASCII and Binary |
@@ -57,14 +57,15 @@ A standalone local 3D model file viewer desktop application supporting browsing 
 | LWO | `.lwo` | LightWave 3D object format |
 | 3DM | `.3dm` | Rhinoceros 3D format (requires rhino3dm WASM) |
 
-### CAD — 5 Formats
+### CAD — 6 Formats
 | Format | Extension | Description |
 |--------|-----------|-------------|
 | STEP | `.step` `.stp` | Converted to GLB for rendering via Open CASCADE engine |
 | STPZ | `.stpz` | ZIP-compressed STEP, decompressed then converted via OCCT |
-| IGES | `.iges` `.igs` | Initial Graphics Exchange Specification, converted via OCCT |
-| BREP | `.brep` `.brp` | OpenCASCADE BREP format, converted via OCCT |
+| IGES | `.iges` `.igs` | Initial Graphics Exchange Specification, converted via occt-import-js.wasm |
+| BREP | `.brep` `.brp` | OpenCASCADE BREP format, converted via occt-import-js.wasm |
 | FreeCAD | `.fcstd` | FreeCAD native format (ZIP with embedded BREP geometry), converted via OCCT |
+| OpenSCAD | `.scad` | OpenSCAD script format, rendered via openscad-wasm conversion |
 
 ### BIM — 1 Format
 | Format | Extension | Description |
@@ -95,14 +96,26 @@ A standalone local 3D model file viewer desktop application supporting browsing 
 |--------|-----------|-------------|
 | GCode | `.gcode` | 3D printing toolpath, rendered as line segments |
 
-### Other — 2 Formats
+### Other — 4 Formats
 | Format | Extension | Description |
 |--------|-----------|-------------|
 | WRL | `.wrl` | VRML, text-based |
 | VOX | `.vox` | MagicaVoxel voxel format |
 | KMZ | `.kmz` | Compressed KML with 3D models |
+| 3MF Model | `.model` | Embedded model file inside 3MF packages |
 
-> **Total: 31 formats**. Additional formats with limited use cases not enabled: MDD (`.mdd`).
+> **Total: 33 3D formats**. Additional formats with limited use cases not enabled: MDD (`.mdd`).
+
+### Additional Utility Formats
+
+The following non-3D formats are also supported for auxiliary purposes:
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| SVG | `.svg` | Scalable Vector Graphics, rendered as 2D overlay |
+| DXF | `.dxf` | AutoCAD vector data exchange, converted to SVG for rendering |
+| HDR | `.hdr` | High Dynamic Range environment map |
+| EXR | `.exr` | OpenEXR environment map |
 
 ## Prerequisites
 

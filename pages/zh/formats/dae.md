@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: FBX
   link: /zh/formats/fbx

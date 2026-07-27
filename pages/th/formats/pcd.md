@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: PDB
   link: /th/formats/pdb

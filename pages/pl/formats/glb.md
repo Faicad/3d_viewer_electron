@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: STL
   link: /pl/formats/stl

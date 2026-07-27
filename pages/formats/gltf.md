@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: GLB
   link: /formats/glb

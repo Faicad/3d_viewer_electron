@@ -8,6 +8,7 @@ export const FORMAT_GROUPS = {
   volume:   L20('体数据 (Volume)',   'Volume'),
   gcode:    L20('GCode',            'GCode'),
   vector:   L20('矢量 (Vector)',    'Vector'),
+  bim:      L20('BIM',              'BIM'),
   other:    L20('其他',             'Other'),
 }
 
@@ -55,6 +56,34 @@ export const FORMATS = [
     fixture: 'test-model.step', mimeType: 'application/octet-stream',
     zh: { description: 'STEP 是工业 CAD 领域最常用的三维数据交换格式。本应用自动导入并渲染，保留拓扑结构，支持线框显示和单位自动识别。' },
     en: { description: 'STEP is the most widely used 3D data exchange format in industrial CAD. Auto-imported and rendered with topology preservation, wireframe display and unit auto-detection.' },
+  },
+  {
+    id: 'iges', label: 'IGES', extensions: ['.iges', '.igs'],
+    group: 'cad', renderHint: 'mesh',
+    fixture: null, mimeType: 'application/iges',
+    zh: { description: 'IGES (Initial Graphics Exchange Specification) 是用于 CAD 数据交换的经典格式，广泛应用于工程设计和制造领域。通过 occt-import-js.wasm 转换为 GLB 渲染。' },
+    en: { description: 'IGES (Initial Graphics Exchange Specification) is a classic CAD data exchange format widely used in engineering design and manufacturing. Converted to GLB via occt-import-js.wasm for rendering.' },
+  },
+  {
+    id: 'brep', label: 'BREP', extensions: ['.brep', '.brp'],
+    group: 'cad', renderHint: 'mesh',
+    fixture: null, mimeType: 'application/brep',
+    zh: { description: 'BREP (Boundary Representation) 是 OpenCASCADE 的原生边界表示格式，精确描述三维几何体的面、边和顶点拓扑关系。通过 occt-import-js.wasm 转换为 GLB 渲染。' },
+    en: { description: 'BREP (Boundary Representation) is OpenCASCADE\'s native boundary representation format, precisely describing face, edge and vertex topology of 3D geometry. Converted to GLB via occt-import-js.wasm for rendering.' },
+  },
+  {
+    id: 'fcstd', label: 'FreeCAD', extensions: ['.fcstd'],
+    group: 'cad', renderHint: 'mesh',
+    fixture: null, mimeType: 'application/x-freecad',
+    zh: { description: 'FCStd 是 FreeCAD 的原生格式，本质为 ZIP 包内含 XML 文档和嵌入式 BREP 几何体。本应用通过 OCCT 引擎解包并转换为 GLB 渲染。' },
+    en: { description: 'FCStd is FreeCAD\'s native format — a ZIP package containing XML documents and embedded BREP geometry. The app extracts and converts it to GLB via the OCCT engine.' },
+  },
+  {
+    id: 'scad', label: 'OpenSCAD', extensions: ['.scad'],
+    group: 'cad', renderHint: 'mesh',
+    fixture: null, mimeType: 'text/plain',
+    zh: { description: 'SCAD 是 OpenSCAD 的脚本语言格式，通过代码描述三维几何体（如立方体、球体、圆柱体并通过布尔运算组合）。本应用通过 openscad-wasm 编译并转换为 GLB 渲染。' },
+    en: { description: 'SCAD is OpenSCAD\'s script-based format that describes 3D geometry programmatically (cubes, spheres, cylinders combined via boolean operations). Compiled and converted to GLB via openscad-wasm for rendering.' },
   },
   {
     id: 'obj', label: 'OBJ', extensions: ['.obj'],
@@ -176,6 +205,13 @@ export const FORMATS = [
     en: { description: 'NRRD (Nearly Raw Raster Data) is a volume data format in medical and scientific imaging, supporting multi-dimensional raster data.' },
   },
   {
+    id: 'ifc', label: 'IFC', extensions: ['.ifc'],
+    group: 'bim', renderHint: 'mesh',
+    fixture: null, mimeType: 'application/octet-stream',
+    zh: { description: 'IFC (Industry Foundation Classes) 是建筑信息模型 (BIM) 领域的国际标准数据格式，用于建筑物和基础设施的数字化描述。本应用通过 web-ifc 库解析并渲染。' },
+    en: { description: 'IFC (Industry Foundation Classes) is the international standard data format in the BIM domain for digital description of buildings and infrastructure. Parsed and rendered via the web-ifc library.' },
+  },
+  {
     id: 'gcode', label: 'GCode', extensions: ['.gcode'],
     group: 'gcode', renderHint: 'toolpath',
     fixture: 'benchy.gcode', mimeType: 'text/plain',
@@ -202,6 +238,13 @@ export const FORMATS = [
     fixture: 'Box.kmz', mimeType: 'application/octet-stream',
     zh: { description: 'KMZ 是压缩的 KML (Keyhole Markup Language) 格式，用于地理空间数据和 3D 模型的打包分发。' },
     en: { description: 'KMZ is a compressed KML (Keyhole Markup Language) format for packaging geospatial data and 3D models.' },
+  },
+  {
+    id: 'model', label: '3MF Model', extensions: ['.model'],
+    group: 'other', renderHint: 'mesh',
+    fixture: null, mimeType: 'text/plain',
+    zh: { description: 'MODEL 是 3MF 包中嵌入的独立模型文件，包含三维网格和材质信息。本应用将其作为普通 3D 模型加载渲染。' },
+    en: { description: 'MODEL is an embedded model file within 3MF packages, containing 3D mesh and material data. The app loads and renders it as a standard 3D model.' },
   },
   {
     id: 'svg', label: 'SVG', extensions: ['.svg'],

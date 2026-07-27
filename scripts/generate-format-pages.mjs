@@ -141,7 +141,7 @@ for (let i = 0; i < FORMATS.length; i++) {
 }
 
 // Generate grouped index page per locale
-const GROUP_ORDER = ['mesh', 'cad', 'animation', 'point', 'volume', 'gcode', 'vector', 'other']
+const GROUP_ORDER = ['mesh', 'cad', 'bim', 'animation', 'point', 'volume', 'gcode', 'vector', 'other']
 
 for (const lang of ALL_LOCALES) {
   const title = lang === 'zh' ? '支持的格式' : 'Supported Formats'

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: BVH
   link: /ar/formats/bvh

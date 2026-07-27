@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: USDZ
   link: /hi/formats/usdz

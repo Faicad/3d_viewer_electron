@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: Collada
   link: /ja/formats/dae

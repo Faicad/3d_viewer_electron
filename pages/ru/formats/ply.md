@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: OBJ
   link: /ru/formats/obj

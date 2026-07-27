@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: PLY
   link: /tr/formats/ply

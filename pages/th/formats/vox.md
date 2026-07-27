@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: VRML
   link: /th/formats/wrl

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: GLTF
   link: /ja/formats/gltf

@@ -96,11 +96,43 @@ LWO is LightWave 3D's model format, supporting polygon meshes and surface materi
 
 STEP is the most widely used 3D data exchange format in industrial CAD. Auto-imported and rendered with topology preservation, wireframe display and unit auto-detection.
 
+### [IGES](iges)
+
+`.iges` `.igs`
+
+IGES (Initial Graphics Exchange Specification) is a classic CAD data exchange format widely used in engineering design and manufacturing. Converted to GLB via occt-import-js.wasm for rendering.
+
+### [BREP](brep)
+
+`.brep` `.brp`
+
+BREP (Boundary Representation) is OpenCASCADE's native boundary representation format, precisely describing face, edge and vertex topology of 3D geometry. Converted to GLB via occt-import-js.wasm for rendering.
+
+### [FreeCAD](fcstd)
+
+`.fcstd`
+
+FCStd is FreeCAD's native format — a ZIP package containing XML documents and embedded BREP geometry. The app extracts and converts it to GLB via the OCCT engine.
+
+### [OpenSCAD](scad)
+
+`.scad`
+
+SCAD is OpenSCAD's script-based format that describes 3D geometry programmatically (cubes, spheres, cylinders combined via boolean operations). Compiled and converted to GLB via openscad-wasm for rendering.
+
 ### [DXF](dxf)
 
 `.dxf`
 
 DXF (Drawing Exchange Format) is Autodesk's CAD data exchange format, widely used for 2D engineering drawings and 3D model exchange.
+
+## BIM
+
+### [IFC](ifc)
+
+`.ifc`
+
+IFC (Industry Foundation Classes) is the international standard data format in the BIM domain for digital description of buildings and infrastructure. Parsed and rendered via the web-ifc library.
 
 ## Animation
 
@@ -185,3 +217,9 @@ VOX is MagicaVoxel's voxel editor format, building pixel-art style 3D models fro
 `.kmz`
 
 KMZ is a compressed KML (Keyhole Markup Language) format for packaging geospatial data and 3D models.
+
+### [3MF Model](model)
+
+`.model`
+
+MODEL is an embedded model file within 3MF packages, containing 3D mesh and material data. The app loads and renders it as a standard 3D model.

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: BVH
   link: /id/formats/bvh

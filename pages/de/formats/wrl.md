@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: GCode
   link: /de/formats/gcode

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: OBJ
   link: /ar/formats/obj

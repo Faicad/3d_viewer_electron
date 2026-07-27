@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: PLY
   link: /sv/formats/ply

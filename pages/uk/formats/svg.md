@@ -1,8 +1,7 @@
 ---
-sidebar: false
 prev:
-  text: KMZ
-  link: /uk/formats/kmz
+  text: 3MF Model
+  link: /uk/formats/model
 next:
   text: DXF
   link: /uk/formats/dxf

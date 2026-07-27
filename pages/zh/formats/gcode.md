@@ -1,8 +1,7 @@
 ---
-sidebar: false
 prev:
-  text: NRRD
-  link: /zh/formats/nrrd
+  text: IFC
+  link: /zh/formats/ifc
 next:
   text: VRML
   link: /zh/formats/wrl
@@ -16,7 +15,7 @@ GCode 是 3D 打印机的刀具路径指令集，本应用将其中的运动轨�
 
 | 属性 | 值 |
 | --- | --- |
-| 扩展名 | `.gcode`, `.nc`, `.ncc`, `.ngc` |
+| 扩展名 | `.gcode` |
 | 分类 | GCode |
 | 渲染方式 | 刀具路径渲染 |
 

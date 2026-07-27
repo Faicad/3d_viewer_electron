@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: Collada
   link: /ar/formats/dae

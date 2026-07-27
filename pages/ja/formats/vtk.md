@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: PCD
   link: /ja/formats/pcd

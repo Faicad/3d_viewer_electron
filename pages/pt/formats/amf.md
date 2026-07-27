@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: Draco
   link: /pt/formats/drc

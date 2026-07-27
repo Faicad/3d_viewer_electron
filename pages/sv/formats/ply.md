@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: OBJ
   link: /sv/formats/obj

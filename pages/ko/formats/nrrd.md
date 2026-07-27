@@ -1,11 +1,10 @@
 ---
-sidebar: false
 prev:
   text: VTK
   link: /ko/formats/vtk
 next:
-  text: GCode
-  link: /ko/formats/gcode
+  text: IFC
+  link: /ko/formats/ifc
 ---
 
 # NRRD — Volume

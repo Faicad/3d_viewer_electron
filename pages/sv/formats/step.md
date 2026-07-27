@@ -1,11 +1,10 @@
 ---
-sidebar: false
 prev:
   text: 3MF
   link: /sv/formats/3mf
 next:
-  text: OBJ
-  link: /sv/formats/obj
+  text: IGES
+  link: /sv/formats/iges
 ---
 
 # STEP — CAD

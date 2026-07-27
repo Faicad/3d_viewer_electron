@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: SVG
   link: /it/formats/svg

@@ -1,5 +1,4 @@
 ---
-sidebar: false
 prev:
   text: GLTF
   link: /vi/formats/gltf
