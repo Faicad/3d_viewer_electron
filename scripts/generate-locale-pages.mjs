@@ -17,6 +17,26 @@ function featuresYaml(lang) {
   ).join('\n')
 }
 
+function videoHtml(code) {
+  if (code !== 'zh') return ''
+  return `<div style="text-align:center;padding:48px 24px 64px">
+  <h2 style="font-size:1.8rem;font-weight:600;margin-bottom:8px">📺 介绍视频</h2>
+  <p style="color:var(--vp-c-text-2);margin-bottom:32px">一分钟了解 Faicad 3D Viewer</p>
+  <a href="https://www.douyin.com/user/self?modal_id=7657063273283472682&showSubTab=compilation" target="_blank" rel="noopener noreferrer" style="display:inline-block;position:relative;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.12);max-width:640px;width:100%;background:#1a1a2e;aspect-ratio:16/9;transition:transform 0.2s;text-decoration:none;color:#fff" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e)">
+      <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.9">
+        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.4)" fill="rgba(255,255,255,0.08)"/>
+        <polygon points="10,8 16,12 10,16" fill="#fff"/>
+      </svg>
+      <div style="position:absolute;bottom:16px;left:16px;right:16px;display:flex;justify-content:space-between;font-size:0.85rem;color:rgba(255,255,255,0.7)">
+        <span>📱 抖音</span>
+        <span>Faicad 3D Viewer</span>
+      </div>
+    </div>
+  </a>
+</div>`
+}
+
 function pageContent(code) {
   const hero = HERO[code] || HERO.en
   return [
@@ -32,13 +52,14 @@ function pageContent(code) {
     `      text: ${hero.getStarted}`,
     `      link: /${code}/guide/getting-started`,
     '    - theme: alt',
-    '      text: GitHub',
-    '      link: https://github.com/faicad/3d_viewer_electron',
+    `      text: ${hero.download}`,
+    `      link: ${hero.downloadLink}`,
     '',
     'features:',
     featuresYaml(code),
     '---',
     '',
+    videoHtml(code),
   ].join('\n')
 }
 

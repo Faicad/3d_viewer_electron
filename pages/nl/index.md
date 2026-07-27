@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: Aan de slag
       link: /nl/guide/getting-started
-
+    - theme: alt
+      text: Downloaden
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀
@@ -31,3 +33,4 @@ features:
     title: Bilingual Interface
     details: Full Chinese and English UI, switchable manually or auto-following system language
 ---
+

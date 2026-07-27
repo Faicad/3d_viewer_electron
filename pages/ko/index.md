@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: 시작하기
       link: /ko/guide/getting-started
-
+    - theme: alt
+      text: 다운로드
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀
@@ -31,3 +33,4 @@ features:
     title: 이중 언어 인터페이스
     details: 중국어와 영어로 된 완전한 UI, 수동 전환 또는 시스템 언어 자동 추적
 ---
+

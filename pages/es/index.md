@@ -9,7 +9,9 @@ hero:
     - theme: brand
       text: Comenzar
       link: /es/guide/getting-started
-
+    - theme: alt
+      text: Descargar
+      link: https://github.com/Faicad/3d_viewer_electron/releases
 
 features:
   - icon: 🚀
@@ -31,3 +33,4 @@ features:
     title: Interfaz bilingüe
     details: Interfaz completa en chino e inglés, conmutable manualmente o siguiendo el idioma del sistema
 ---
+
