@@ -20,7 +20,7 @@
           <span class="footer-text">Copyright © {{ year }} Faicad</span>
         </div>
       </footer>
-      <div style="text-align:center;padding:0 32px 16px;font-size:12px;color:var(--vp-c-text-2);background:var(--vp-c-bg);display:flex;align-items:center;justify-content:center;gap:6px">
+      <div v-if="isZh" style="text-align:center;padding:0 32px 16px;font-size:12px;color:var(--vp-c-text-2);background:var(--vp-c-bg);display:flex;align-items:center;justify-content:center;gap:6px">
         <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:var(--vp-c-text-2);text-decoration:none">浙ICP备2026042810号</a>
         <img src="/备案图标.png" style="height:14px;width:auto" alt="备案图标">
         <a href="https://beian.mps.gov.cn/#/query/webSearch?code=33010502013146" rel="noreferrer" target="_blank" style="color:var(--vp-c-text-2);text-decoration:none">浙公网安备33010502013146号</a>
@@ -30,10 +30,14 @@
 </template>
 
 <script setup lang="ts">
+import { useData } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
+import { computed } from 'vue'
 import pkg from '../../../package.json'
 
 const { Layout } = DefaultTheme
+const { lang } = useData()
+const isZh = computed(() => lang.value.startsWith('zh'))
 const version = pkg.version
 const year = new Date().getFullYear()
 </script>

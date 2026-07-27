@@ -179,7 +179,6 @@ export default defineConfig({
     ['meta', { property: 'og:url', content: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/' }],
     ['meta', { name: 'robots', content: 'index, follow' }],
     ['link', { rel: 'canonical', href: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/' }],
-    ['style', {}, '.VPNavBarTranslations,.VPNavScreenTranslations{display:none!important}'],
   ],
 
   lastUpdated: !process.env.DOCKER_BUILD,
