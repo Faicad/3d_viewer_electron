@@ -28,6 +28,7 @@ const SKIP_FORMATS: Set<FormatId> = new Set([
   'wrl',   // fixture has VRML lexing errors
   'usdz',  // needs complex texture/image loading in USDComposer
   'svg',   // 2D vector format — uses SvgWorkspace (Canvas 2D), not loadFormat()
+  'dxf',   // 2D CAD format — converted to SVG via dxf-to-svg, not loadFormat()
 ])
 
 interface FixtureEntry {
