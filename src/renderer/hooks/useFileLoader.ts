@@ -249,12 +249,31 @@ export function useFileLoader() {
       if (!skipFolderUpdate) {
         updateFolderForFile(filePath, name)
       }
-    } catch (e) {
+    } catch (err: any) {
+      if (err?.name === 'BLENDER_NOT_FOUND') {
+        const result = await window.electronAPI.blendShowNotFoundDialog()
+        if (result.action === 'select' && result.path) {
+          useUIStore.getState().setBlenderPath(result.path)
+          toast.success('Blender path saved. Retrying...')
+          // Retry loading with the new path
+          try {
+            // 重新调用 loadFilePath 即可，blenderPath 已更新
+            return loadFilePath(filePath, opts)
+          } catch (retryErr) {
+            toast.error('Retry failed: ' + (retryErr as Error).message)
+            return
+          }
+        } else if (result.action === 'download') {
+          await window.electronAPI.openExternal('https://www.blender.org/download/')
+          toast.info('Please install Blender and set the path in Settings after installation.')
+        }
+        return
+      }
       useModelStore.getState().hideProgress()
-      if (e instanceof ModelEmptyError) {
-        toast.error(t('error.modelEmpty', { fileName: e.fileName }))
+      if (err instanceof ModelEmptyError) {
+        toast.error(t('error.modelEmpty', { fileName: err.fileName }))
       } else {
-        const msg = e instanceof Error ? e.message : String(e)
+        const msg = err instanceof Error ? err.message : String(err)
         toast.error(msg || `Load failed: ${name}`)
       }
     } finally {

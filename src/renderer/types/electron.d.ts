@@ -48,6 +48,12 @@ declare global {
       getPipedFiles: () => Promise<{ name: string; path: string; mtimeMs: number }[] | null>
       isStdinMode: () => Promise<boolean>
 
+      // ---- Blender .blend format support ----
+      blendFindExe: (customPath?: string) => Promise<string | null>
+      blendConvertToGlb: (blendPath: string, customBlenderPath?: string) => Promise<ArrayBuffer>
+      blendSelectExe: () => Promise<{ success: boolean; path: string | null; error?: string }>
+      blendShowNotFoundDialog: () => Promise<{ action: 'select' | 'download' | 'cancel'; path?: string }>
+
       checkForUpdates: (manual: boolean) => Promise<void>
       downloadUpdate: () => Promise<void>
       quitAndInstall: () => Promise<void>

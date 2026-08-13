@@ -6,6 +6,7 @@ import * as readline from 'readline'
 import { ALL_EXTENSIONS, ALL_MODEL_EXTENSIONS, FILE_FORMATS } from '../../src/renderer/config/file-formats'
 import { startServer } from './server'
 import { registerAIHandlers } from './ipc-handlers'
+import { findBlender, blendToGlb } from './blender-converter'
 import { readDirectory } from './readDirectory'
 import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 
@@ -360,6 +361,95 @@ app.whenReady().then(async () => {
   createWindow()
 
   registerAIHandlers()
+
+  // ---- Blender .blend format IPC handlers ----
+  ipcMain.handle('blend:findExe', async (_event, customPath?: string) => {
+    try {
+      return await findBlender(customPath)
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('blend:convertToGlb', async (_event, blendPath: string, customBlenderPath?: string) => {
+    const exe = await findBlender(customBlenderPath)
+    if (!exe) {
+      throw new Error('Blender executable not found')
+    }
+    const glbBuffer = await blendToGlb(blendPath, exe)
+    // Electron IPC auto-serializes Buffer → ArrayBuffer for renderer
+    return glbBuffer.buffer.slice(glbBuffer.byteOffset, glbBuffer.byteOffset + glbBuffer.byteLength)
+  })
+
+  ipcMain.handle('dialog:openBlenderExe', async () => {
+    if (!mainWindow) return { success: false, error: 'No window' }
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Blender Executable',
+      properties: ['openFile'],
+      filters: [
+        process.platform === 'win32'
+          ? { name: 'Blender', extensions: ['exe'] }
+          : { name: 'All Files', extensions: ['*'] },
+      ],
+    })
+    if (result.canceled || result.filePaths.length === 0) return { success: true, path: null }
+    return { success: true, path: result.filePaths[0] }
+  })
+
+  ipcMain.handle('blend:showNotFoundDialog', async () => {
+    if (!mainWindow) return { action: 'cancel' }
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: 'Blender Not Found',
+      message: 'Blender is required to open .blend files',
+      detail: 'Blender executable was not found on your system. You can manually select the Blender executable, or download it from blender.org.',
+      buttons: ['Select Blender Path', 'Download Blender', 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+    })
+    if (result.response === 0) {
+      // User chose to select path — open file dialog
+      const fileResult = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select Blender Executable',
+        properties: ['openFile'],
+        filters: [
+          process.platform === 'win32'
+            ? { name: 'Blender', extensions: ['exe'] }
+            : { name: 'All Files', extensions: ['*'] },
+        ],
+      })
+      if (!fileResult.canceled && fileResult.filePaths.length > 0) {
+        return { action: 'select', path: fileResult.filePaths[0] }
+      }
+      return { action: 'cancel' }
+    } else if (result.response === 1) {
+      return { action: 'download' }
+    }
+    return { action: 'cancel' }
+  })
+
+  ipcMain.handle('blend:findExe', async (_event, customPath?: string) => {
+    try {
+      return await findBlender(customPath)
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('dialog:openBlenderExe', async () => {
+    if (!mainWindow) return { success: false, error: 'No window' }
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Blender Executable',
+      properties: ['openFile'],
+      filters: [
+        process.platform === 'win32'
+          ? { name: 'Blender', extensions: ['exe'] }
+          : { name: 'All Files', extensions: ['*'] },
+      ],
+    })
+    if (result.canceled || result.filePaths.length === 0) return { success: true, path: null }
+    return { success: true, path: result.filePaths[0] }
+  })
 
   const edition = process.env.EDITION === 'cn' ? 'cn' : undefined
   if (!process.env.E2E) {

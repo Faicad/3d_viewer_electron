@@ -36,6 +36,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPipedFiles: () => ipcRenderer.invoke('fs:getPipedFiles'),
   isStdinMode: () => ipcRenderer.invoke('fs:isStdinMode'),
 
+  // ---- Blender .blend format support ----
+  blendFindExe: (customPath?: string) => ipcRenderer.invoke('blend:findExe', customPath),
+  blendConvertToGlb: (blendPath: string, customBlenderPath?: string) => ipcRenderer.invoke('blend:convertToGlb', blendPath, customBlenderPath),
+  blendSelectExe: () => ipcRenderer.invoke('dialog:openBlenderExe'),
+  blendShowNotFoundDialog: () => ipcRenderer.invoke('blend:showNotFoundDialog'),
+
   checkForUpdates: (manual: boolean) => ipcRenderer.invoke('update:check', manual),
   downloadUpdate: () => ipcRenderer.invoke('update:download'),
   quitAndInstall: () => ipcRenderer.invoke('update:quit-and-install'),

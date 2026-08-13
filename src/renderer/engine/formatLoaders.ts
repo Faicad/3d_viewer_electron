@@ -14,6 +14,10 @@ import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 import { scadToStl } from '@/lib/scad-converter'
 import { loadIfcAsMeshes } from '@/lib/ifc-loader'
 
+/** .blend → GLB conversion cache: key = filePath, value = { glbBuffer, timestamp } */
+const blendGlbCache = new Map<string, { glbBuffer: ArrayBuffer; timestamp: number }>()
+const BLEND_CACHE_TTL = 30 * 60 * 1000 // 30 minutes
+
 /** Parse ISO 10303-21 HEADER section from a STEP file buffer. */
 export function parseStepHeader(buffer: ArrayBuffer): FileMeta['step'] | undefined {
   const text = new TextDecoder().decode(buffer.slice(0, Math.min(buffer.byteLength, 4096)))
@@ -213,9 +217,9 @@ async function gltfToGlb(gltfText: string, filePath: string): Promise<ArrayBuffe
         const ext = image.uri.split('.').pop()?.toLowerCase()
         const mime =
           ext === 'png' ? 'image/png'
-          : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-          : ext === 'webp' ? 'image/webp'
-          : 'application/octet-stream'
+            : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+              : ext === 'webp' ? 'image/webp'
+                : 'application/octet-stream'
         image.uri = `data:${mime};base64,${result.data}`
       }
     }
@@ -376,6 +380,59 @@ export async function loadFormat(
 ): Promise<LoaderResult> {
   switch (format) {
     // ---- already supported ----
+    case 'blend': {
+      const { updateProgress } = useModelStore.getState()
+      resetYieldTimer()
+
+      if (!resourcePath) {
+        throw new Error('Blender (.blend) files require a file path for CLI conversion.')
+      }
+
+      updateProgress('Detecting Blender...', 5)
+      await yieldToUI(true)
+
+      // 1. Read user-configured path from settings
+      const { blenderPath } = await import('@/stores/ui-store').then(m => m.useUIStore.getState())
+      const blenderExe = await window.electronAPI.blendFindExe(blenderPath || undefined)
+
+      // 2. Not found → throw specific error for UI layer to handle
+      if (!blenderExe) {
+        const err = new Error(
+          blenderPath
+            ? `Blender not found at configured path: "${blenderPath}". Please update the path in Settings.`
+            : 'Blender not found. Please install Blender 3.4+ or set the path in Settings.'
+        )
+        err.name = 'BLENDER_NOT_FOUND'
+        throw err
+      }
+
+      // 3. Cache lookup
+      const cacheKey = resourcePath
+      const cached = blendGlbCache.get(cacheKey)
+      let glbBuffer: ArrayBuffer
+
+      if (cached && (Date.now() - cached.timestamp) < BLEND_CACHE_TTL) {
+        updateProgress('Loading cached GLB...', 50)
+        glbBuffer = cached.glbBuffer
+      } else {
+        // 4. Convert .blend → GLB via main process
+        updateProgress('Converting Blender file to GLB (this may take a while)...', 10)
+        await yieldToUI(true)
+        try {
+          const result = await window.electronAPI.blendConvertToGlb(resourcePath, blenderPath || undefined)
+          glbBuffer = result as ArrayBuffer
+        } catch (err: any) {
+          throw new Error(`Blender conversion failed: ${err.message || err}`)
+        }
+
+        blendGlbCache.set(cacheKey, { glbBuffer, timestamp: Date.now() })
+      }
+
+      // 5. Load GLB via standard pipeline
+      updateProgress('Loading GLB geometry...', 60)
+      await yieldToUI(true)
+      return loadFormat(glbBuffer, 'glb', resourcePath)
+    }
     case 'stl': {
       const geo = new STLLoader().parse(buffer)
       geo.computeVertexNormals()
@@ -673,7 +730,7 @@ export async function loadFormat(
         if (points.geometry.boundingSphere) {
           const radius = points.geometry.boundingSphere.radius || 1
           const adaptiveSize = Math.max(radius * 0.02, 0.002)
-          ;(points.material as THREE.PointsMaterial).size = adaptiveSize
+            ; (points.material as THREE.PointsMaterial).size = adaptiveSize
         }
         return { meshes: [], objects: [points] }
       }
