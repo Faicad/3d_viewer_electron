@@ -36,6 +36,11 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
     language: isZh ? '语言' : 'Language',
     followSystem: isZh ? '跟随系统' : 'System',
     version: isZh ? '版本' : 'Version',
+    blenderPath: isZh ? 'Blender 路径' : 'Blender Path',
+    blenderAuto: isZh ? '自动检测' : 'Auto-detect',
+    browse: isZh ? '浏览' : 'Browse',
+    reset: isZh ? '重置' : 'Reset',
+    blenderPathHint: isZh ? '留空则自动检测。打开 .blend 文件需要安装 Blender。' : 'Leave empty to auto-detect. Blender is required to open .blend files.',
   }
 
   return (
@@ -76,6 +81,11 @@ export function SettingsDialog({ children, ...props }: { children?: React.ReactN
                 <LanguageOption key={lang.code} value={lang.code} label={lang.name} />
               ))}
             </div>
+          </SettingSection>
+
+          <SettingSection title={labels.blenderPath}>
+            <BlenderPathOption labels={labels} />
+            <p className="text-xs text-muted-foreground">{labels.blenderPathHint}</p>
           </SettingSection>
 
           <SettingSection title={labels.version}>
@@ -244,4 +254,47 @@ function UpdateCheckSection() {
   }
 
   return null
+}
+
+function BlenderPathOption({ labels }: { labels: Record<string, string> }) {
+  const blenderPath = useUIStore((s) => s.blenderPath)
+  const setBlenderPath = useUIStore((s) => s.setBlenderPath)
+  const [selecting, setSelecting] = useState(false)
+ 
+  const handleBrowse = async () => {
+    setSelecting(true)
+    try {
+      const result = await window.electronAPI.blendSelectExe()
+      if (result.success && result.path) {
+        setBlenderPath(result.path)
+      }
+    } finally {
+      setSelecting(false)
+    }
+  }
+ 
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="text"
+        readOnly
+        value={blenderPath || labels.blenderAuto}
+        className="flex-1 rounded border px-2 py-1 text-sm bg-muted truncate"
+      />
+      <button
+        className="px-3 py-1 text-sm rounded border hover:bg-accent"
+        onClick={handleBrowse}
+        disabled={selecting}
+      >
+        {labels.browse}
+      </button>
+      <button
+        className="px-3 py-1 text-sm rounded border hover:bg-accent"
+        onClick={() => setBlenderPath('')}
+        disabled={!blenderPath}
+      >
+        {labels.reset}
+      </button>
+    </div>
+  )
 }

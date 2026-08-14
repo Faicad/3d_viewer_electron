@@ -37,6 +37,10 @@ interface UIStore {
   bottomVisible: boolean
   displayMode: DisplayMode
 
+  /** User-configured Blender executable path (persisted). Empty string = auto-detect. */
+  blenderPath: string
+  setBlenderPath: (path: string) => void
+
   setFullscreen: (v: boolean) => void
   setDisplayMode: (v: DisplayMode) => void
   setHeaderVisible: (v: boolean) => void
@@ -78,6 +82,9 @@ export const useUIStore = create<UIStore>()(
       headerVisible: true,
       bottomVisible: true,
       displayMode: 'solid',
+
+      blenderPath: '',
+      setBlenderPath: (path: string) => void set({ blenderPath: path }),
 
       setFullscreen: (v) => set({ isFullscreen: v }),
       setHeaderVisible: (v) => set({ headerVisible: v }),

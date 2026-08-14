@@ -32,6 +32,7 @@ export type FormatId =
   | 'iges'
   | 'brep'
   | 'fcstd'
+  | 'blend'
   | 'obj'
   | 'ply'
   | 'fbx'
@@ -177,6 +178,20 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     renderHint: 'mesh',
     defaultUnit: 'millimeter',
     color: 'text-purple-500',
+  },
+  {
+    id: 'blend',
+    label: 'Blender',
+    extensions: ['.blend'],
+    loaderModule: '', // special: converted via Blender CLI → GLB
+    group: 'mesh',
+    sampleFile: '',
+    textBased: false,
+    needsDracoWasm: false,
+    needsExternalDep: true,
+    renderHint: 'mesh',
+    defaultUnit: 'meter',
+    color: 'text-amber-600',
   },
   {
     id: 'iges',
@@ -684,7 +699,7 @@ export type UpAxis = 'y' | 'z'
 
 /** Formats native to Z-up (3D printing / CAD manufacturing). */
 const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
-  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'fcstd', 'gcode',
+  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'fcstd', 'gcode', 'blend',
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.
@@ -730,12 +745,12 @@ export function sourceUnitToLabel(unit: UnitSystem): string {
   switch (unit) {
     case 'millimeter': return 'mm'
     case 'centimeter': return 'cm'
-    case 'meter':      return 'm'
-    case 'inch':       return 'in'
-    case 'foot':       return 'ft'
-    case 'micron':     return 'µm'
-    case 'angstrom':   return 'Å'
-    default:           return 'mm'
+    case 'meter': return 'm'
+    case 'inch': return 'in'
+    case 'foot': return 'ft'
+    case 'micron': return 'µm'
+    case 'angstrom': return 'Å'
+    default: return 'mm'
   }
 }
 
@@ -795,7 +810,7 @@ export function guessStlUnit(bbox: { max: { x: number; y: number; z: number }; m
   const volume = w * h * d
 
   if (volume > 0 && volume < 0.008) return 'meter'   // cube root ≈ 0.2 → coords likely in meters
-  if (volume > 0 && volume < 8.0)   return 'inch'    // cube root ≈ 2.0 → coords likely in inches
+  if (volume > 0 && volume < 8.0) return 'inch'    // cube root ≈ 2.0 → coords likely in inches
   return 'millimeter'                                  // default
 }
 
