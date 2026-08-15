@@ -428,29 +428,6 @@ app.whenReady().then(async () => {
     return { action: 'cancel' }
   })
 
-  ipcMain.handle('blend:findExe', async (_event, customPath?: string) => {
-    try {
-      return await findBlender(customPath)
-    } catch {
-      return null
-    }
-  })
-
-  ipcMain.handle('dialog:openBlenderExe', async () => {
-    if (!mainWindow) return { success: false, error: 'No window' }
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Select Blender Executable',
-      properties: ['openFile'],
-      filters: [
-        process.platform === 'win32'
-          ? { name: 'Blender', extensions: ['exe'] }
-          : { name: 'All Files', extensions: ['*'] },
-      ],
-    })
-    if (result.canceled || result.filePaths.length === 0) return { success: true, path: null }
-    return { success: true, path: result.filePaths[0] }
-  })
-
   const edition = process.env.EDITION === 'cn' ? 'cn' : undefined
   if (!process.env.E2E) {
     initUpdater(edition, getMainWindow)

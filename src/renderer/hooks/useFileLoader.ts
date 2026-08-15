@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useModelStore } from '@/stores/model-store'
 import { useEngineStore } from '@/stores/engine-store'
@@ -52,6 +52,8 @@ export function useFileLoader() {
       console.warn('[useFileLoader] Failed to read directory:', e)
     }
   }
+
+  const loadFilePathRef = useRef<(filePath: string, opts?: LoadFilePathOptions) => Promise<void>>(async () => {})
 
   const loadFilePath = useCallback(async (filePath: string, opts: LoadFilePathOptions = {}) => {
     const { fileName, skipFolderUpdate = false } = opts
@@ -258,7 +260,7 @@ export function useFileLoader() {
           // Retry loading with the new path
           try {
             // 重新调用 loadFilePath 即可，blenderPath 已更新
-            return loadFilePath(filePath, opts)
+            return loadFilePathRef.current(filePath, opts)
           } catch (retryErr) {
             toast.error('Retry failed: ' + (retryErr as Error).message)
             return
@@ -274,12 +276,17 @@ export function useFileLoader() {
         toast.error(t('error.modelEmpty', { fileName: err.fileName }))
       } else {
         const msg = err instanceof Error ? err.message : String(err)
+        console.error('[loadFilePath] load failed:', err)
         toast.error(msg || `Load failed: ${name}`)
       }
     } finally {
       useModelStore.getState().hideProgress()
     }
   }, [t])
+
+  useEffect(() => {
+    loadFilePathRef.current = loadFilePath
+  })
 
   const loadFilesFromDialog = useCallback(async () => {
     if (!window.electronAPI) return

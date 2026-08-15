@@ -392,7 +392,8 @@ export async function loadFormat(
       await yieldToUI(true)
 
       // 1. Read user-configured path from settings
-      const { blenderPath } = await import('@/stores/ui-store').then(m => m.useUIStore.getState())
+      const uiStoreModule = await import('@/stores/ui-store')
+      const { blenderPath } = uiStoreModule.useUIStore.getState()
       const blenderExe = await window.electronAPI.blendFindExe(blenderPath || undefined)
 
       // 2. Not found → throw specific error for UI layer to handle
@@ -422,7 +423,7 @@ export async function loadFormat(
           const result = await window.electronAPI.blendConvertToGlb(resourcePath, blenderPath || undefined)
           glbBuffer = result as ArrayBuffer
         } catch (err: any) {
-          throw new Error(`Blender conversion failed: ${err.message || err}`)
+          throw new Error(`Blender conversion failed: ${err.message || err}`, { cause: err })
         }
 
         blendGlbCache.set(cacheKey, { glbBuffer, timestamp: Date.now() })

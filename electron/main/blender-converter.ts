@@ -1,5 +1,5 @@
 import { execFile } from 'child_process'
-import { readFile, unlink, access, constants } from 'fs/promises'
+import { readFile, unlink, access, constants, readdir } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 
@@ -15,26 +15,119 @@ async function isAccessible(filePath: string): Promise<boolean> {
     }
 }
 
-const BLENDER_CANDIDATES_WIN = [
-    'C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 4.4\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 4.3\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 4.1\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 4.0\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 3.6\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 3.5\\blender.exe',
-    'C:\\Program Files\\Blender Foundation\\Blender 3.4\\blender.exe',
-]
+const BLENDER_FOUNDATION_DIR = 'C:\\Program Files\\Blender Foundation'
+const WINDOWS_APPS_DIR = 'C:\\Program Files\\WindowsApps'
+/** Executable names used by Blender on Windows (MSIX Store builds use blender-launcher.exe). */
+const BLENDER_EXE_NAMES = ['blender-launcher.exe', 'blender.exe']
 
 const BLENDER_CANDIDATES_MAC = [
     '/Applications/Blender.app/Contents/MacOS/Blender',
 ]
 
+/** Parse a Blender version from a directory name ("Blender 4.5" / "Blender_5.2.0.0..."). */
+function parseBlenderVersion(dirName: string): [number, number] | null {
+    const m = /^Blender[ _]?(\d+)\.(\d+)/i.exec(dirName)
+    if (!m) return null
+    return [Number(m[1]), Number(m[2])]
+}
+
+/** Compare [major, minor] tuples; negative when a < b. */
+function compareVersions(a: [number, number], b: [number, number]): number {
+    if (a[0] !== b[0]) return a[0] - b[0]
+    return a[1] - b[1]
+}
+
+interface BlenderCandidate {
+    exe: string
+    version: [number, number]
+}
+
+/** Pick the newest accessible candidate. */
+function newestCandidate(candidates: BlenderCandidate[]): string | null {
+    candidates.sort((a, b) => compareVersions(b.version, a.version))
+    return candidates[0]?.exe ?? null
+}
+
+/** Scan C:\Program Files\Blender Foundation\Blender X.Y\blender.exe — any version. */
+async function findBlenderClassicInstall(): Promise<string | null> {
+    let entries: Awaited<ReturnType<typeof readdir>>
+    try {
+        entries = await readdir(BLENDER_FOUNDATION_DIR, { withFileTypes: true })
+    } catch {
+        return null // directory does not exist
+    }
+
+    const candidates: BlenderCandidate[] = []
+    for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const version = parseBlenderVersion(entry.name)
+        if (!version) continue
+        const exe = join(BLENDER_FOUNDATION_DIR, entry.name, 'blender.exe')
+        if (await isAccessible(exe)) {
+            candidates.push({ exe, version })
+        }
+    }
+    return newestCandidate(candidates)
+}
+
+/** Check the MSIX App Execution Alias (%LOCALAPPDATA%\Microsoft\WindowsApps\). */
+async function findBlenderMsixAlias(): Promise<string | null> {
+    const aliasDir = join(process.env.LOCALAPPDATA ?? '', 'Microsoft', 'WindowsApps')
+    for (const name of BLENDER_EXE_NAMES) {
+        const exe = join(aliasDir, name)
+        if (await isAccessible(exe)) return exe
+    }
+    return null
+}
+
+/**
+ * Scan the MSIX package folder (C:\Program Files\WindowsApps\BlenderFoundation.Blender_*\).
+ * The folder is ACL-protected; any read failure simply means no match.
+ */
+async function findBlenderMsixPackage(): Promise<string | null> {
+    let entries: string[]
+    try {
+        entries = await readdir(WINDOWS_APPS_DIR)
+    } catch {
+        return null // ACL denied or directory missing
+    }
+
+    const candidates: BlenderCandidate[] = []
+    for (const name of entries) {
+        const version = parseBlenderVersion(name)
+        if (!version) continue
+        // Executable lives in a Blender\ subfolder inside the package
+        const roots = [join(WINDOWS_APPS_DIR, name, 'Blender'), join(WINDOWS_APPS_DIR, name)]
+        outer: for (const root of roots) {
+            for (const exeName of BLENDER_EXE_NAMES) {
+                const exe = join(root, exeName)
+                if (await isAccessible(exe)) {
+                    candidates.push({ exe, version })
+                    break outer
+                }
+            }
+        }
+    }
+    return newestCandidate(candidates)
+}
+
+/** Fallback: search PATH via `where.exe` (covers "Add to PATH" installs). */
+async function findBlenderInPath(): Promise<string | null> {
+    for (const name of ['blender', 'blender-launcher']) {
+        try {
+            const { stdout } = await execAsync('where.exe', [name], 5000)
+            const first = stdout.split(/\r?\n/).map(l => l.trim()).find(Boolean)
+            if (first) return first
+        } catch { /* not found */ }
+    }
+    return null
+}
+
 /**
  * Detect Blender executable on the system.
- * Scans versioned paths (newest first) on Windows/macOS;
- * uses `which` on Linux. Returns null if not found.
+ * Windows: classic install dirs (any version, newest first) → MSIX alias →
+ * MSIX package folder → PATH. macOS: /Applications. Linux: `which`.
+ * Returns null if not found.
  */
 export async function findBlender(customPath?: string): Promise<string | null> {
     if (customPath) {
@@ -53,25 +146,30 @@ export async function findBlender(customPath?: string): Promise<string | null> {
 
     const platform = process.platform
 
-    const candidates =
-        platform === 'win32' ? BLENDER_CANDIDATES_WIN :
-            platform === 'darwin' ? BLENDER_CANDIDATES_MAC :
-                [] // Linux handled below
+    if (platform === 'win32') {
+        return (
+            (await findBlenderClassicInstall()) ??
+            (await findBlenderMsixAlias()) ??
+            (await findBlenderMsixPackage()) ??
+            (await findBlenderInPath())
+        )
+    }
 
-    for (const candidate of candidates) {
-        if (await isAccessible(candidate)) {
-            return candidate
+    if (platform === 'darwin') {
+        for (const candidate of BLENDER_CANDIDATES_MAC) {
+            if (await isAccessible(candidate)) {
+                return candidate
+            }
         }
+        return null
     }
 
     // Linux / other: try `which blender`
-    if (platform === 'linux') {
-        try {
-            const { stdout } = await execAsync('which', ['blender'], 5000)
-            const path = stdout.trim()
-            if (path) return path
-        } catch { /* not found */ }
-    }
+    try {
+        const { stdout } = await execAsync('which', ['blender'], 5000)
+        const path = stdout.trim()
+        if (path) return path
+    } catch { /* not found */ }
 
     return null
 }
@@ -122,14 +220,14 @@ export async function blendToGlb(
         await execAsync(blenderExe, ['-b', blendPath, '--python-expr', pyExpr], timeoutMs)
     } catch (err: any) {
         await unlink(outGlb).catch(() => { })
-        throw new Error(`Blender conversion failed: ${err.message || err}`)
+        throw new Error(`Blender conversion failed: ${err.message || err}`, { cause: err })
     }
 
     let glbBuffer: Buffer
     try {
         glbBuffer = await readFile(outGlb)
     } catch (err: any) {
-        throw new Error(`Failed to read converted GLB: ${err.message || err}`)
+        throw new Error(`Failed to read converted GLB: ${err.message || err}`, { cause: err })
     }
 
     // Clean up temp file
