@@ -12,7 +12,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { getElectronLaunchArgs, getElectronPath, createUserDataDir, cleanupUserDataDir } from './utils'
-import { isSoftwareGpu, isLinuxCI } from './gpu-utils'
+import { isSoftwareGpu, isLinuxCI, isMacOSCI } from './gpu-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const KHR_GLB = readFileSync(path.join(__dirname, 'fixtures', 'khr-animation-pointer.glb'))
@@ -100,6 +100,7 @@ test.describe('KHR_animation_pointer', () => {
   test('KHR_animation_pointer clips load into store with material property tracks', async () => {
     const page = await app.firstWindow()
     test.skip(_isSwGpu, 'Animation clock does not advance on software GPU')
+    test.skip(isMacOSCI(), 'Animation clock stalls on macOS CI runners')
 
     // Model already loaded in beforeAll test
     // Ensure any lingering dialog from a prior failed retry is closed
