@@ -50,3 +50,9 @@ ci-logs/
 benchmark/snapshots/*
 .npmrc
 movies
+
+# Playwright persistent browser profile for wechat publish scripts (login state / cache)
+wechat/faicad-3d-viewer/.pw-profile/
+wechat/faicad-3d-viewer/.publish/
+
+.workbuddy

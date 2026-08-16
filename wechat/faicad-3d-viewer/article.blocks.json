@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "title": "一个能快速预览多个本地3D文件的查看器，支持33+种格式，支持win/mac/linux",
+    "author": "Faicad",
+    "author_name": "Faicad",
+    "digest": "市面上的3D查看器一次只能打开一个文件。Faicad 3D查看器打破了这个限制——拖入一个文件，自动扫描同目录所有模型，一键切换预览。支持STL/GLB/STEP/OBJ/FBX等33+种3D格式，免费开源，完美支持 Windows / macOS / Linux。",
+    "cover": "C:\\my\\Faicad\\3d_viewer_electron\\wechat\\faicad-3d-viewer\\images\\cover.png"
+  },
+  "blocks": [
+    {
+      "type": "html",
+      "html": "<h1 style='font-size:22px;font-weight:bold;margin:24px 0 12px;line-height:1.4;'>一个能快速预览多个本地3D文件的查看器，支持33+种格式，支持win/mac/linux</h1>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>你有没有遇到过这种场景：</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>手里有十几个 STL 文件、几个 STEP 文件、还有几个 OBJ 模型，想快速看看哪个是自己要的那个。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>于是你打开某个 3D 查看器，加载第一个文件。看完，关掉，再加载第二个。再关掉，再加载第三个……</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'><strong>一次只能看一个文件。</strong></p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>这不是某一个软件的问题，而是几乎所有 3D 查看器的通病。它们的设计假设是：用户一次只关心一个模型。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>但现实工作流不是这样的。工程师需要在一堆模型里挑零件，设计师要在不同版本间对比，3D 打印爱好者想从几十个下载的文件里找合适的那个。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<h2 style='font-size:19px;font-weight:bold;margin:22px 0 10px;line-height:1.4;'>Faicad 3D 查看器：多文件预览</h2>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>Faicad 3D 查看器（Faicad 3D Viewer）是一个开源桌面应用，专门解决这个痛点。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>它的核心设计思路很简单：<strong>你打开一个 3D 文件，它自动帮你把同目录下所有支持的 3D 模型都列出来。</strong></p>"
+    },
+    {
+      "type": "image",
+      "src": "C:\\my\\Faicad\\3d_viewer_electron\\wechat\\faicad-3d-viewer\\images\\car.png",
+      "alt": "文件列表"
+    },
+    {
+      "type": "html",
+      "html": "<h3 style='font-size:17px;font-weight:bold;margin:18px 0 8px;'>怎么用</h3>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>1. <strong>拖入任意一个 3D 文件</strong>到窗口<br>2. 右侧「文件列表」面板自动显示同目录下所有支持的模型<br>3. <strong>点击列表中的文件</strong>即可切换预览</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>就这么简单。</p>"
+    },
+    {
+      "type": "image",
+      "src": "C:\\my\\Faicad\\3d_viewer_electron\\wechat\\faicad-3d-viewer\\images\\main-window.png",
+      "alt": "主界面"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>除了多文件预览，它还支持：</p>"
+    },
+    {
+      "type": "html",
+      "html": "<ul style='padding-left:22px;margin:12px 0;line-height:1.8;'><li style='margin:4px 0;'><strong>拖拽上传 / 点击上传 / 剪贴板粘贴</strong> — 三种方式加载文件</li><li style='margin:4px 0;'><strong>场景树</strong> — 左侧层次化展示模型的所有部件，可以单独显隐每个零件</li><li style='margin:4px 0;'><strong>4 种显示模式</strong> — 实体、线框、实体+线框、网格</li><li style='margin:4px 0;'><strong>变换工具</strong> — 平移、旋转、缩放选中部件</li><li style='margin:4px 0;'><strong>PBR 材质渲染</strong> — 基于物理的渲染，金属感、粗糙度真实呈现</li><li style='margin:4px 0;'><strong>中英文界面 + 暗色/亮色主题</strong></li><li style='margin:4px 0;'><strong>一键导出</strong> — 在文件名上点击右键，即可把任意 3D 格式导出为 STL / 3MF / GLB</li></ul>"
+    },
+    {
+      "type": "html",
+      "html": "<h3 style='font-size:17px;font-weight:bold;margin:18px 0 8px;'>右键文件名，一键导出</h3>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>在文件列表里任意文件名上点击右键，就能把当前模型导出成你需要的格式。无论把 STEP 工程图转成 GLB 丢进网页、还是把任意模型统一成 STL/3MF 去 3D 打印，都很方便。</p>"
+    },
+    {
+      "type": "image",
+      "src": "C:\\my\\Faicad\\3d_viewer_electron\\wechat\\faicad-3d-viewer\\images\\export.png",
+      "alt": "右键文件名导出菜单"
+    },
+    {
+      "type": "html",
+      "html": "<h2 style='font-size:19px;font-weight:bold;margin:22px 0 10px;line-height:1.4;'>支持 33 种 3D 文件格式</h2>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>这是 Faicad 最硬核的地方。大多数 3D 查看器支持 5-10 种格式就不错了，Faicad 支持整整 <strong>33 种 3D 格式</strong>，外加 4 种辅助实用格式。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<h3 style='font-size:17px;font-weight:bold;margin:18px 0 8px;'>网格类（Mesh）— 14 种</h3>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>最常用的 3D 模型格式全覆盖：</p>"
+    },
+    {
+      "type": "html",
+      "html": "<table style='border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;line-height:1.6;color:#333;'><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>格式</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>扩展名</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>说明</th><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>STL</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.stl</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3D 打印最常用格式，支持 ASCII 和二进制</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>GLB</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.glb</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>glTF 2.0 二进制，Web 3D 标准格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>GLTF</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.gltf</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>glTF 2.0 JSON，自动解析外部纹理引用</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3MF</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.3mf</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3D Manufacturing Format，微软主导</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>OBJ</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.obj</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Wavefront OBJ，通用交换格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>PLY</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.ply</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Stanford 三角形格式，支持 ASCII 和二进制</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>FBX</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.fbx</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Autodesk Filmbox，游戏/动画行业主流</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>DAE</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.dae</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Collada，基于 XML 的开放标准</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3DS</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.3ds</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3D Studio 旧版格式，兼容老资源</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>USDZ</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.usdz</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Apple AR 格式，iOS/macOS 原生支持</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>DRC</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.drc</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Draco 压缩网格，Google 开源压缩格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>AMF</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.amf</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Additive Manufacturing Format，支持颜色和材质</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>LWO</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.lwo</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>LightWave 3D 对象格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3DM</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.3dm</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Rhinoceros（犀牛）原生格式</td></tr></table>"
+    },
+    {
+      "type": "html",
+      "html": "<h3 style='font-size:17px;font-weight:bold;margin:18px 0 8px;'>CAD 工程格式 — 6 种</h3>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>工程领域的高精度格式，通过 OCCT 引擎转换渲染：</p>"
+    },
+    {
+      "type": "html",
+      "html": "<table style='border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;line-height:1.6;color:#333;'><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>格式</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>扩展名</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>说明</th><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>STEP</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.step</code> <code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.stp</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>国际标准 CAD 交换格式，精度无损</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>STPZ</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.stpz</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>ZIP 压缩的 STEP 文件</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>IGES</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.iges</code> <code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.igs</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>初始图形交换规范，早期 CAD 标准</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>BREP</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.brep</code> <code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.brp</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>OpenCASCADE 边界表示格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>FreeCAD</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.fcstd</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>FreeCAD 原生项目格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>OpenSCAD</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.scad</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>OpenSCAD 参数化脚本</td></tr></table>"
+    },
+    {
+      "type": "image",
+      "src": "C:\\my\\Faicad\\3d_viewer_electron\\wechat\\faicad-3d-viewer\\images\\fcstd.png",
+      "alt": "CAD 格式渲染示例"
+    },
+    {
+      "type": "html",
+      "html": "<h3 style='font-size:17px;font-weight:bold;margin:18px 0 8px;'>其他专业格式 — 13 种</h3>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>覆盖 BIM、动画、点云、体数据等垂直领域：</p>"
+    },
+    {
+      "type": "html",
+      "html": "<table style='border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;line-height:1.6;color:#333;'><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>类别</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>格式</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>扩展名</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>说明</th><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>BIM</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>IFC</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.ifc</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>工业基础类建筑信息模型</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>动画</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>BVH</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.bvh</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>骨骼动画骨架格式</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>动画</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>MD2</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.md2</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Quake II 游戏模型</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>点云</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>XYZ</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.xyz</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>纯坐标点云数据</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>点云</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>PDB</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.pdb</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>蛋白质数据库分子结构</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>点云</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>PCD</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.pcd</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Point Cloud Data (PCL)</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>体数据</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>VTK</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.vtk</code> <code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.vtp</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Visualization Toolkit</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>体数据</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>NRRD</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.nrrd</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>医学影像近原始数据</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>GCode</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>GCode</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.gcode</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3D 打印刀具路径可视化</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>VRML</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>WRL</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.wrl</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>虚拟现实建模语言</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>体素</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>VOX</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.vox</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>MagicaVoxel 体素艺术</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>地理</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>KMZ</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.kmz</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Google Earth 3D 地理数据</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3MF</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>Model</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.model</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>3MF 包内嵌模型</td></tr></table>"
+    },
+    {
+      "type": "html",
+      "html": "<h3 style='font-size:17px;font-weight:bold;margin:18px 0 8px;'>辅助实用格式 — 4 种</h3>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>非 3D 模型，但在工作流中有实际用途：</p>"
+    },
+    {
+      "type": "html",
+      "html": "<table style='border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;line-height:1.6;color:#333;'><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>格式</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>扩展名</th><th style='border:1px solid #e0e0e0;padding:7px 9px;background:#f6f7f9;font-weight:bold;text-align:left;'>用途</th><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>SVG</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.svg</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>矢量图形叠加到 3D 视口</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>DXF</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.dxf</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>AutoCAD 2D 图纸转为 SVG 叠加</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>HDR</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.hdr</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>高动态范围环境光照贴图</td></tr><tr><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>EXR</td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'><code style='background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:monospace;'>.exr</code></td><td style='border:1px solid #e0e0e0;padding:7px 9px;text-align:left;'>OpenEXR 高质量环境贴图</td></tr></table>"
+    },
+    {
+      "type": "html",
+      "html": "<h2 style='font-size:19px;font-weight:bold;margin:22px 0 10px;line-height:1.4;'>为什么值得试试</h2>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'><strong>第一，真的免费开源。</strong> 基于 Electron + Three.js 构建，代码完全开源，不需要注册账号，不需要付费解锁功能。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'><strong>第二，不需要安装一堆软件。</strong> 一个应用搞定 37 种格式。以前你可能需要 MeshLab 看 PLY、FreeCAD 看 STEP、Blender 看 FBX——现在一个 Faicad 全部搞定。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'><strong>第三，本地运行，隐私安全。</strong> 所有渲染都在本地完成，不需要上传文件到任何云端服务器。你的设计图纸不会离开你的电脑。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'><strong>第四，跨平台支持。</strong> 主要开发平台是 Windows 10/11，同时适配了 Linux x64 和 macOS（Apple Silicon + Intel）。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<h2 style='font-size:19px;font-weight:bold;margin:22px 0 10px;line-height:1.4;'>怎么获取</h2>"
+    },
+    {
+      "type": "html",
+      "html": "<ul style='padding-left:22px;margin:12px 0;line-height:1.8;'><li style='margin:4px 0;'><strong>官网下载</strong>：https://faicad.cn</li><li style='margin:4px 0;'><strong>环境要求</strong>：Windows 10/11（推荐），或 Linux / macOS</li><li style='margin:4px 0;'><strong>开箱即用</strong>：下载免安装便携版，解压即运行</li></ul>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>如果你经常和 3D 文件打交道，不管是做机械设计、3D 打印、游戏美术还是建筑 BIM，都值得试一试。</p>"
+    },
+    {
+      "type": "html",
+      "html": "<p style='margin:12px 0;line-height:1.8;font-size:15px;color:#333;'>毕竟，<strong>能一次看完所有模型的查看器，确实不多。</strong></p>"
+    }
+  ]
+}
