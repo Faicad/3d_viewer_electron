@@ -179,6 +179,7 @@ export default defineConfig({
     ['meta', { property: 'og:url', content: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/' }],
     ['meta', { name: 'robots', content: 'index, follow' }],
     ['link', { rel: 'canonical', href: DOCKER ? 'https://faicad.cn/' : 'https://faicad.github.io/3d_viewer_electron/' }],
+    ...(DOCKER ? [['style', {}, '.VPNavBarTranslations { display: none !important; }']] : []),
     ['style', {}, '.VPHero .name { white-space: nowrap !important; font-size: clamp(28px, 4.5vw, 48px) !important; } .VPHero .tagline { font-size: clamp(14px, 2.2vw, 20px) !important; }'],
   ],
 
