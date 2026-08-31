@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.12.0...v1.13.0) (2026-08-31)
+
+
+### Features
+
+* add download button to homepage hero ([7aff18d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7aff18d00c17d22ad55f761f6f2ee957273aa257))
+* add ICP beian, hide lang switcher, update nginx for zh default ([31eb12e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/31eb12e122c04f8ea691c05411a5009e639a1f5c))
+* **docs:** add format pages for BREP, FCStd, IFC, IGES, Model, SCAD across all locales ([44775b6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/44775b651b5b32e22969a337a9194eee2d6c6873))
+* **docs:** add screenshot for many file formats ([054b9c6](https://github.com/YOUR_ORG/3d_viewer_electron/commits/054b9c628cd0eebfd2f2ccfd82922bb1661115ae))
+* improve Blender detection and add blend loading tests ([71f9d74](https://github.com/YOUR_ORG/3d_viewer_electron/commits/71f9d742149f600f4ef16fbb33322e72674ba5fa))
+* serve Chinese site at root via DOCKER_BUILD conditional config ([bf46126](https://github.com/YOUR_ORG/3d_viewer_electron/commits/bf461263fe2abd82f695c72df9e1ea5f5908037b))
+* **wechat:** add WeChat MP draft publishing automation scripts ([57ac9a2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/57ac9a2f3c60dd5649457651e8d92cab09fb59f8))
+
+
+### Bug Fixes
+
+* **ci:** skip KHR animation clock test on macOS CI ([c01b1f2](https://github.com/YOUR_ORG/3d_viewer_electron/commits/c01b1f2f76a40e408c41b5cc468aa1d8376e0890))
+* **docs:** hide language switcher in Docker deployment mode ([821b8c1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/821b8c1418a5a4d29db83bcb46bca9aa867503b3))
+* reduce hero font size, change 27+ to 33+ in docs ([b63148d](https://github.com/YOUR_ORG/3d_viewer_electron/commits/b63148df92a5ddac494db8ce0dced929ab9fa737))
+* restore language switcher and show ICP/beian only in zh locale ([ef474ab](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ef474abdd4115d3ddcb141ce5b1e8aa6a855c33b))
+* skip DXF in format-loaders test - 2D format not handled by loadFormat ([a972078](https://github.com/YOUR_ORG/3d_viewer_electron/commits/a972078bcd5c2fc8e393102d01f61a81db47744e))
+* update bilingual interface description to multi-language across all locales ([ba65e29](https://github.com/YOUR_ORG/3d_viewer_electron/commits/ba65e29c1fe46378362991b9198d749020359ddf))
+
 ## [1.12.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.11.2...v1.12.0) (2026-07-25)
 
 
