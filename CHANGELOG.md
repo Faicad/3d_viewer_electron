@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.13.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.13.0...v1.13.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* scale camera near/far plane to model size to prevent clipping of large models ([044bf3f](https://github.com/YOUR_ORG/3d_viewer_electron/commits/044bf3fa85cf38fb5b6d4c3ba7d40ebda8b68f69))
+* stabilize studio-env brightness test against camera animation timing ([0ca336e](https://github.com/YOUR_ORG/3d_viewer_electron/commits/0ca336ef196b4da19c74b3758a3442447b9559e8))
+
 ## [1.13.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.12.0...v1.13.0) (2026-08-31)
 
 
