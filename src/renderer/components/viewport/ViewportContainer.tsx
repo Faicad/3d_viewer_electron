@@ -866,6 +866,16 @@ export default function ViewportContainer() {
     if (maxDim === 0) return
 
     const camera = controls.object
+
+    // Scale the camera frustum to the model so large models are not clipped
+    // by the far plane (mirrors thumbnailGenerator's near/far adaptation).
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const diag = size.length()
+      camera.near = Math.max(diag * 0.001, 0.001)
+      camera.far = Math.max(diag * 20, camera.far)
+      camera.updateProjectionMatrix()
+    }
+
     const targetUp = activeUpAxis === 'y'
       ? new THREE.Vector3(0, 1, 0)
       : new THREE.Vector3(0, 0, 1)
