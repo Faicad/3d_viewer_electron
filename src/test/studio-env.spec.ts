@@ -56,6 +56,15 @@ test('procedural studio shows room box with lights when rotated', async () => {
     () => (window as any).__modelStore?.getState().__loadingPhase === 'done',
     { timeout: 15000 },
   ).catch(() => {})
+  // Wait for the camera fit animation (triggered on model load) to finish and
+  // two rendered frames to pass, so pixel sampling sees a settled view.
+  await page.waitForFunction(
+    () => (window as any).__engineStore?.getState().__animActive === false,
+    { timeout: 10000 },
+  ).catch(() => {})
+  await page.evaluate(() => new Promise<void>((r) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => r())),
+  ))
 
   // Switch to studio preset with environment background
   await page.evaluate(() => {
@@ -120,32 +129,33 @@ test('procedural studio shows room box with lights when rotated', async () => {
   ).toBeGreaterThan(0)
 
   // --- Verify bright spots exist in background ---
-  // Sample background corners (avoid model area) and check for light regions.
+  // Sample a grid over the top 40% of the canvas (background-dominated area,
+  // away from model / shadow floor) and check for light regions. 5x5 region
+  // averages resist single-pixel noise from PMREM prefiltering.
   const brightCheck = await page.evaluate(() => {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement | null
     if (!canvas) return { err: 'no canvas' }
-    // Read pixels from a small region in the top-left corner (sky/ceiling
-    // portion of the cubemap, away from the model).
     const offscreen = document.createElement('canvas')
     offscreen.width = canvas.width
     offscreen.height = canvas.height
     const ctx = offscreen.getContext('2d')!
     ctx.drawImage(canvas, 0, 0)
-    // Sample corner regions (where background is clearly visible)
-    const corners = [
-      { x: 10, y: 10 },
-      { x: canvas.width - 10, y: 10 },
-      { x: 10, y: canvas.height - 10 },
-      { x: canvas.width - 10, y: canvas.height - 10 },
-      { x: canvas.width / 2, y: 10 },
-    ]
+    // Grid over the top 40% of the canvas
+    const rows = 4, cols = 8
+    const regionH = Math.floor(canvas.height * 0.4)
     const samples: number[][] = []
-    for (const p of corners) {
-      const px = ctx.getImageData(p.x, p.y, 1, 1).data
-      samples.push([px[0], px[1], px[2]])
+    for (let ry = 0; ry < rows; ry++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const x = Math.floor((cx + 0.5) * canvas.width / cols)
+        const y = Math.floor((ry + 0.5) * regionH / rows)
+        const d = ctx.getImageData(x - 2, y - 2, 5, 5).data
+        let r = 0, g = 0, b = 0, n = 0
+        for (let i = 0; i < d.length; i += 4) {
+          r += d[i]; g += d[i + 1]; b += d[i + 2]; n++
+        }
+        samples.push([r / n, g / n, b / n])
+      }
     }
-    // Check whether samples are NOT all the same shade of grey
-    // (if they were all same grey, the background would be the gradient fallback).
     // The room interior is mostly neutral/white tones, so R≈G≈B per pixel
     // is expected — what matters is whether brightness varies between
     // different positions (e.g. ceiling light vs dark corner).
@@ -155,7 +165,7 @@ test('procedural studio shows room box with lights when rotated', async () => {
     const hasVariation = maxVal - minVal > 10 // brightness spread across room positions
     // Check for bright spots (>200 in any channel, indicating area lights)
     const hasBright = samples.some(([r, g, b]) => r > 200 || g > 200 || b > 200)
-    return { samples, maxVal, minVal, hasVariation, hasBright }
+    return { sampleCount: samples.length, maxVal, minVal, hasVariation, hasBright }
   })
   console.log('BRIGHT CHECK:', JSON.stringify(brightCheck))
 
