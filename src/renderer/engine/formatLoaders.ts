@@ -14,6 +14,23 @@ import { yieldToUI, resetYieldTimer } from '@/lib/async-utils'
 import { scadToStl } from '@/lib/scad-converter'
 import { loadIfcAsMeshes } from '@/lib/ifc-loader'
 
+/**
+ * Self-hosted wasm assets for the faijs engine (the `.fai.zip` renderer path).
+ * Copied to the renderer public dir by `scripts/copy-faijs-wasm.mjs`, so they
+ * are served under `/wasm/fai/` in both dev and the packaged build (same
+ * mechanism as occt-import-js / draco / ifc wasm). A host may override with
+ * `window.__FAIJS_WASM__` (used by tests to point at local files / CDN).
+ */
+export function faijsWasmUrls(): { occtUrl: string; manifoldUrl: string; brepkitUrl: string } {
+  const overrides =
+    typeof window !== 'undefined' && (window as { __FAIJS_WASM__?: { occt?: string; manifold?: string; brepkit?: string } }).__FAIJS_WASM__
+  return {
+    occtUrl: overrides?.occt ?? '/wasm/fai/occt-wasm.wasm',
+    manifoldUrl: overrides?.manifold ?? '/wasm/fai/manifold.wasm',
+    brepkitUrl: overrides?.brepkit ?? '/wasm/fai/brepkit_wasm_bg.wasm',
+  }
+}
+
 /** .blend → GLB conversion cache: key = filePath, value = { glbBuffer, timestamp } */
 const blendGlbCache = new Map<string, { glbBuffer: ArrayBuffer; timestamp: number }>()
 const BLEND_CACHE_TTL = 30 * 60 * 1000 // 30 minutes
@@ -835,6 +852,64 @@ export async function loadFormat(
       const code = bufferToText(buffer)
       const { stlBuffer } = await scadToStl(code)
       return loadFormat(stlBuffer, 'stl')
+    }
+
+    // ---- FAI project (.fai.zip) ----
+    // Path is entirely separate from the occt-import-js CAD→GLB branch: the
+    // container embeds faijs model scripts that must be executed at runtime
+    // through @faicad/faijs-viewer, which yields on-screen triangle soup
+    // directly (no GLB round-trip). Its three engine wasm assets are
+    // self-hosted under the renderer public `/wasm/fai/` dir.
+    case 'fai': {
+      const { updateProgress } = useModelStore.getState()
+      resetYieldTimer()
+
+      const { openFaiZip } = await import('@faicad/faijs-viewer')
+
+      updateProgress('Executing FAI project...', 10)
+      await yieldToUI(true)
+
+      const result = await openFaiZip(new Uint8Array(buffer), {
+        wasm: faijsWasmUrls(),
+      })
+
+      if (result.error) {
+        const fileName = resourcePath ? resourcePath.split(/[/\\]/).pop() || resourcePath : 'unknown'
+        if (result.error.code === 'E_NO_GEOMETRY') {
+          throw new ModelEmptyError(fileName)
+        }
+        const err = new Error(`FAI load failed: ${result.error.message}`)
+        ;(err as Error & { code?: string }).code = result.error.code
+        throw err
+      }
+
+      updateProgress('Building FAI meshes...', 80)
+      await yieldToUI(true)
+
+      const meshes: THREE.Mesh[] = []
+      const root = new THREE.Group()
+      // Match the interleaved-position/index mesh building used elsewhere in
+      // this file (see `case 'model'`): positions interleaved x,y,z; indices
+      // groups of three forming the triangle soup.
+      for (const faiMesh of result.meshes) {
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', new THREE.BufferAttribute(faiMesh.positions, 3))
+        geo.setIndex(new THREE.BufferAttribute(faiMesh.indices, 1))
+        geo.computeVertexNormals()
+        const mesh = new THREE.Mesh(geo)
+        mesh.name = faiMesh.name || 'faijs-part'
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+        root.add(mesh)
+        meshes.push(mesh)
+      }
+
+      if (meshes.length === 0) {
+        const fileName = resourcePath ? resourcePath.split(/[/\\]/).pop() || resourcePath : 'unknown'
+        throw new ModelEmptyError(fileName)
+      }
+
+      return { meshes, objects: [], sceneRoot: root, sourceUnit: 'millimeter' }
     }
 
     default:

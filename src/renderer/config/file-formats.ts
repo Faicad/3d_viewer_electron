@@ -61,6 +61,7 @@ export type FormatId =
   | 'hdr'
   | 'exr'
   | 'scad'
+  | 'fai'
 
 export interface FileFormatEntry {
   id: FormatId
@@ -635,6 +636,21 @@ export const FILE_FORMATS: FileFormatEntry[] = [
     defaultUnit: 'millimeter',
     color: 'text-yellow-500',
   },
+  {
+    id: 'fai',
+    label: 'FAI Project',
+    extensions: ['.fai.zip'],
+    // No Three.js loader — routed directly through @faicad/faijs-viewer (openFaiZip)
+    loaderModule: '',
+    group: 'cad',
+    sampleFile: '',
+    textBased: false, // binary ZIP container — never decoded as text
+    needsDracoWasm: false,
+    needsExternalDep: true, // @faicad/faijs-viewer (executes embedded model scripts via OCCT/manifold wasm)
+    renderHint: 'mesh',
+    defaultUnit: 'millimeter', // faijs contract: mm, +Z up
+    color: 'text-cyan-500',
+  },
 ]
 
 // ---- derived lookup tables ----
@@ -699,7 +715,7 @@ export type UpAxis = 'y' | 'z'
 
 /** Formats native to Z-up (3D printing / CAD manufacturing). */
 const Z_UP_FORMATS: ReadonlySet<FormatId> = new Set([
-  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'fcstd', 'gcode', 'blend',
+  '3mf', 'stl', 'amf', 'step', 'iges', 'brep', 'fcstd', 'gcode', 'blend', 'fai',
 ])
 
 /** Determines the coordinate-system up-axis native to a given file format.
@@ -852,4 +868,10 @@ export function isFcstdFile(filenameOrFormat: string | null | undefined): boolea
   if (!filenameOrFormat) return false
   const f = filenameOrFormat.toLowerCase()
   return f.endsWith('.fcstd') || f === 'fcstd'
+}
+
+export function isFaiFile(filenameOrFormat: string | null | undefined): boolean {
+  if (!filenameOrFormat) return false
+  const f = filenameOrFormat.toLowerCase()
+  return f.endsWith('.fai.zip') || f === 'fai'
 }

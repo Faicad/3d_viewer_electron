@@ -1,0 +1,2 @@
+let part0 = cad.box(20, 33, 20, { at:[0,0,0], centered:true })
+let part1 = cad.fillet(part0, { edges:[{kind:'edge', faces:[{origin:'part0', role:'box:front'},{origin:'part0', role:'box:top'}], hint:{kind:'edge', length:20, midpoint:[0,-16.5,10]}}], radius:15 })

@@ -8,6 +8,8 @@ import {
   FORMAT_MAP,
   ALL_ACCEPT,
   getGroupAccept,
+  getDefaultUpAxis,
+  isFaiFile,
   FILE_FORMATS,
   UNIT_TO_MM,
   parse3mfUnit,
@@ -16,8 +18,8 @@ import {
 } from './file-formats'
 
 describe('file-formats config', () => {
-  it('all 38 formats defined', () => {
-    expect(FILE_FORMATS.length).toBe(38)
+  it('all 39 formats defined', () => {
+    expect(FILE_FORMATS.length).toBe(39)
   })
 
   it('no duplicate format ids', () => {
@@ -154,6 +156,31 @@ describe('getGroupAccept', () => {
     // 'animation' group has bvh (enabled) and md2 (enabled) but mdd is disabled
     const anim = getGroupAccept('animation')
     expect(anim.length).toBeGreaterThan(0)
+  })
+})
+
+describe('fai format (.fai.zip)', () => {
+  it('detects the compound extension .fai.zip', () => {
+    expect(detectFormat('project.fai.zip')).toBe('fai')
+  })
+
+  it('detects .fai.zip case-insensitively', () => {
+    expect(detectFormat('PROJECT.FAI.ZIP')).toBe('fai')
+    expect(detectFormat('Model.Fai.Zip')).toBe('fai')
+  })
+
+  it('is registered in EXT_TO_FORMAT and ALL_ACCEPT', () => {
+    expect(EXT_TO_FORMAT['.fai.zip']).toBe('fai')
+    expect(ALL_MODEL_EXTENSIONS).toContain('.fai.zip')
+    expect(ALL_ACCEPT).toContain('.fai.zip')
+    expect(isFaiFile('model.fai.zip')).toBe(true)
+    expect(isFaiFile('model.stl')).toBe(false)
+  })
+
+  it('sits in the cad group (accept string + Z-up, millimeter)', () => {
+    expect(getGroupAccept('cad')).toContain('.fai.zip')
+    expect(getDefaultUpAxis('fai')).toBe('z')
+    expect(FORMAT_MAP.fai.defaultUnit).toBe('millimeter')
   })
 })
 
