@@ -21,13 +21,14 @@ import { loadIfcAsMeshes } from '@/lib/ifc-loader'
  * mechanism as occt-import-js / draco / ifc wasm). A host may override with
  * `window.__FAIJS_WASM__` (used by tests to point at local files / CDN).
  */
-export function faijsWasmUrls(): { occtUrl: string; manifoldUrl: string; brepkitUrl: string } {
+export function faijsWasmUrls(): { occtUrl: string; manifoldUrl: string; brepkitUrl: string; planegcsUrl: string } {
   const overrides =
-    typeof window !== 'undefined' && (window as { __FAIJS_WASM__?: { occt?: string; manifold?: string; brepkit?: string } }).__FAIJS_WASM__
+    typeof window !== 'undefined' && (window as { __FAIJS_WASM__?: { occt?: string; manifold?: string; brepkit?: string; planegcs?: string } }).__FAIJS_WASM__
   return {
     occtUrl: overrides?.occt ?? '/wasm/fai/occt-wasm.wasm',
     manifoldUrl: overrides?.manifold ?? '/wasm/fai/manifold.wasm',
     brepkitUrl: overrides?.brepkit ?? '/wasm/fai/brepkit_wasm_bg.wasm',
+    planegcsUrl: overrides?.planegcs ?? '/wasm/fai/planegcs.wasm',
   }
 }
 
@@ -858,8 +859,9 @@ export async function loadFormat(
     // Path is entirely separate from the occt-import-js CAD→GLB branch: the
     // container embeds faijs model scripts that must be executed at runtime
     // through @faicad/faijs-viewer, which yields on-screen triangle soup
-    // directly (no GLB round-trip). Its three engine wasm assets are
-    // self-hosted under the renderer public `/wasm/fai/` dir.
+    // directly (no GLB round-trip). The engine wasm assets (including the
+    // planegcs sketch solver) are self-hosted under the renderer public
+    // `/wasm/fai/` dir.
     case 'fai': {
       const { updateProgress } = useModelStore.getState()
       resetYieldTimer()
@@ -871,6 +873,10 @@ export async function loadFormat(
 
       const result = await openFaiZip(new Uint8Array(buffer), {
         wasm: faijsWasmUrls(),
+        // FreeCAD-converted containers exercise cad.sketch / cad.draw, which
+        // need the planegcs constraint solver. Browser hosts must self-host
+        // planegcs.wasm and supply its URL (Node auto-loads its own wasm).
+        sketch: { planegcsUrl: faijsWasmUrls().planegcsUrl },
       })
 
       if (result.error) {

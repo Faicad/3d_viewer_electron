@@ -91,6 +91,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.8.0",
+    "@salusoft89/planegcs": "^1.2.0",
     "@vitejs/plugin-react": "^4.5.2",
     "@vitest/ui": "^4.1.6",
     "@xmldom/xmldom": "^0.9.10",

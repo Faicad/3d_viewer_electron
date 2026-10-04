@@ -3,10 +3,11 @@
  * `.fai.zip` loader path (`@faicad/faijs-viewer` → `openFaiZip`) can fetch them
  * from self-hosted `/wasm/fai/` URLs in both dev and the packaged build.
  *
- * The three bundles are produced by npm packages:
+ * The bundles are produced by npm packages:
  *   - occt-wasm        → dist/occt-wasm.wasm      (BREP execution chain engine)
  *   - manifold-3d      → manifold.wasm            (mesh boolean / CSG engine)
  *   - brepkit-wasm     → brepkit_wasm_bg.wasm     (secondary BREP engine)
+ *   - @salusoft89/planegcs → dist/planegcs_dist/planegcs.wasm (cad.sketch constraint solver)
  *
  * They are NOT bundled three.js assets, so we copy them like draco/ifc/openscad
  * wasm. In dev the sibling `faijs` repo provides them under its own
@@ -26,6 +27,7 @@ const SOURCES = {
   'occt-wasm.wasm': ['occt-wasm/dist/occt-wasm.wasm'],
   'manifold.wasm': ['manifold-3d/manifold.wasm'],
   'brepkit_wasm_bg.wasm': ['brepkit-wasm/brepkit_wasm_bg.wasm'],
+  'planegcs.wasm': ['@salusoft89/planegcs/dist/planegcs_dist/planegcs.wasm'],
 };
 
 /** Repos whose `node_modules` may host these packages (electron project first). */
@@ -59,8 +61,8 @@ for (const destName of Object.keys(SOURCES)) {
   copied++;
 }
 
-if (copied < 3) {
+if (copied < Object.keys(SOURCES).length) {
   console.warn(
-    `[copy-faijs-wasm] Copied ${copied}/3 faijs wasm assets. Opening a .fai.zip will fail until all three are present.`,
+    `[copy-faijs-wasm] Copied ${copied}/${Object.keys(SOURCES).length} faijs wasm assets. Opening a .fai.zip will fail until all are present.`,
   );
 }
