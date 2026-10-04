@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.14.0](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.13.1...v1.14.0) (2026-10-04)
+
+
+### Features
+
+* **fai:** add .fai.zip viewer integration via @faicad/faijs-viewer ([7a510a1](https://github.com/YOUR_ORG/3d_viewer_electron/commits/7a510a1cb4b011da15112d303b6fb4c729e358d3))
+
+
+### Bug Fixes
+
+* **fai:** self-host planegcs sketch solver for cad.sketch models ([26f052c](https://github.com/YOUR_ORG/3d_viewer_electron/commits/26f052cbab750ffa213f349c4c00bc9624a064d1))
+
 ### [1.13.1](https://github.com/YOUR_ORG/3d_viewer_electron/compare/v1.13.0...v1.13.1) (2026-09-20)
 
 
